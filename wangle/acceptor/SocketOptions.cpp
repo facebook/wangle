@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/wangle/acceptor/SocketOptions.h>
+#include <wangle/acceptor/SocketOptions.h>
 
 #include <netinet/tcp.h>
 #include <sys/socket.h>

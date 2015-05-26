@@ -16,7 +16,7 @@
 #pragma once
 
 #include <folly/experimental/fibers/FiberManagerMap.h>
-#include <folly/wangle/concurrent/IOExecutor.h>
+#include <wangle/concurrent/IOExecutor.h>
 
 namespace folly { namespace fibers {
 

@@ -19,7 +19,7 @@
 #include <memory>
 
 #include <folly/Executor.h>
-#include <folly/wangle/concurrent/IOExecutor.h>
+#include <wangle/concurrent/IOExecutor.h>
 
 namespace folly { namespace wangle {
 

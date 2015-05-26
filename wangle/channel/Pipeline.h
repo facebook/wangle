@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/wangle/channel/HandlerContext.h>
+#include <wangle/channel/HandlerContext.h>
 #include <folly/futures/Future.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
@@ -179,4 +179,4 @@ class PipelineFactory {
 
 }
 
-#include <folly/wangle/channel/Pipeline-inl.h>
+#include <wangle/channel/Pipeline-inl.h>

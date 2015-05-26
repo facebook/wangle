@@ -7,10 +7,10 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/wangle/acceptor/Acceptor.h>
+#include <wangle/acceptor/Acceptor.h>
 
-#include <folly/wangle/acceptor/ManagedConnection.h>
-#include <folly/wangle/ssl/SSLContextManager.h>
+#include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/ssl/SSLContextManager.h>
 
 #include <boost/cast.hpp>
 #include <fcntl.h>

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/concurrent/Codel.h>
+#include <wangle/concurrent/Codel.h>
 #include <algorithm>
 #include <math.h>
 

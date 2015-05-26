@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/wangle/channel/Handler.h>
+#include <wangle/channel/Handler.h>
 #include <gmock/gmock.h>
 
 namespace folly { namespace wangle {

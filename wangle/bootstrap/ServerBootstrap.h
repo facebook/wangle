@@ -15,9 +15,9 @@
  */
 #pragma once
 
-#include <folly/wangle/bootstrap/ServerBootstrap-inl.h>
+#include <wangle/bootstrap/ServerBootstrap-inl.h>
 #include <folly/Baton.h>
-#include <folly/wangle/channel/Pipeline.h>
+#include <wangle/channel/Pipeline.h>
 
 namespace folly {
 

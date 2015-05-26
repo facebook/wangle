@@ -15,8 +15,8 @@
  */
 #pragma once
 
-#include <folly/wangle/channel/Pipeline.h>
-#include <folly/wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBaseManager.h>
 

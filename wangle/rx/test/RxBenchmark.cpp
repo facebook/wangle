@@ -15,8 +15,8 @@
  */
 
 #include <folly/Benchmark.h>
-#include <folly/wangle/rx/Observer.h>
-#include <folly/wangle/rx/Subject.h>
+#include <wangle/rx/Observer.h>
+#include <wangle/rx/Subject.h>
 #include <gflags/gflags.h>
 
 using namespace folly::wangle;

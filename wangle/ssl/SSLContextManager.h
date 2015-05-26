@@ -15,10 +15,10 @@
 #include <glog/logging.h>
 #include <list>
 #include <memory>
-#include <folly/wangle/ssl/SSLContextConfig.h>
-#include <folly/wangle/ssl/SSLSessionCacheManager.h>
-#include <folly/wangle/ssl/TLSTicketKeySeeds.h>
-#include <folly/wangle/acceptor/DomainNameMisc.h>
+#include <wangle/ssl/SSLContextConfig.h>
+#include <wangle/ssl/SSLSessionCacheManager.h>
+#include <wangle/ssl/TLSTicketKeySeeds.h>
+#include <wangle/acceptor/DomainNameMisc.h>
 #include <vector>
 
 namespace folly {

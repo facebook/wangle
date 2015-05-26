@@ -17,7 +17,7 @@
 #include <set>
 #include <string>
 
-#include <folly/wangle/acceptor/NetworkAddress.h>
+#include <wangle/acceptor/NetworkAddress.h>
 
 namespace folly {
 

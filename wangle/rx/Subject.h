@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <folly/wangle/rx/types.h> // must come first
-#include <folly/wangle/rx/Observable.h>
-#include <folly/wangle/rx/Observer.h>
+#include <wangle/rx/types.h> // must come first
+#include <wangle/rx/Observable.h>
+#include <wangle/rx/Observer.h>
 
 namespace folly { namespace wangle {
 

@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/wangle/acceptor/LoadShedConfiguration.h>
+#include <wangle/acceptor/LoadShedConfiguration.h>
 
 #include <folly/Conv.h>
 #include <openssl/ssl.h>

@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include <folly/wangle/codec/ByteToMessageCodec.h>
+#include <wangle/codec/ByteToMessageCodec.h>
 #include <folly/io/Cursor.h>
 
 namespace folly { namespace wangle {

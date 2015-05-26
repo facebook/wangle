@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/channel/Handler.h>
-#include <folly/wangle/channel/Pipeline.h>
-#include <folly/wangle/channel/StaticPipeline.h>
-#include <folly/wangle/channel/AsyncSocketHandler.h>
-#include <folly/wangle/channel/OutputBufferingHandler.h>
-#include <folly/wangle/channel/test/MockHandler.h>
+#include <wangle/channel/Handler.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/channel/StaticPipeline.h>
+#include <wangle/channel/AsyncSocketHandler.h>
+#include <wangle/channel/OutputBufferingHandler.h>
+#include <wangle/channel/test/MockHandler.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

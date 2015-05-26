@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <folly/wangle/concurrent/BlockingQueue.h>
+#include <wangle/concurrent/BlockingQueue.h>
 #include <folly/LifoSem.h>
 #include <folly/MPMCQueue.h>
 

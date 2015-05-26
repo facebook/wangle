@@ -15,11 +15,11 @@
  */
 #include <gtest/gtest.h>
 
-#include <folly/wangle/codec/StringCodec.h>
-#include <folly/wangle/codec/ByteToMessageCodec.h>
-#include <folly/wangle/service/ClientDispatcher.h>
-#include <folly/wangle/service/ServerDispatcher.h>
-#include <folly/wangle/service/Service.h>
+#include <wangle/codec/StringCodec.h>
+#include <wangle/codec/ByteToMessageCodec.h>
+#include <wangle/service/ClientDispatcher.h>
+#include <wangle/service/ServerDispatcher.h>
+#include <wangle/service/Service.h>
 
 namespace folly {
 

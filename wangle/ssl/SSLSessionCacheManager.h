@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include <folly/wangle/ssl/SSLCacheProvider.h>
-#include <folly/wangle/ssl/SSLStats.h>
+#include <wangle/ssl/SSLCacheProvider.h>
+#include <wangle/ssl/SSLStats.h>
 
 #include <folly/EvictingCacheMap.h>
 #include <mutex>

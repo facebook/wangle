@@ -15,13 +15,13 @@
  */
 #pragma once
 
-#include <folly/wangle/acceptor/Acceptor.h>
-#include <folly/wangle/bootstrap/ServerSocketFactory.h>
+#include <wangle/acceptor/Acceptor.h>
+#include <wangle/bootstrap/ServerSocketFactory.h>
 #include <folly/io/async/EventBaseManager.h>
-#include <folly/wangle/concurrent/IOThreadPoolExecutor.h>
-#include <folly/wangle/acceptor/ManagedConnection.h>
-#include <folly/wangle/channel/Pipeline.h>
-#include <folly/wangle/channel/Handler.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/channel/Handler.h>
 
 namespace folly {
 

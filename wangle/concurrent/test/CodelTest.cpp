@@ -15,7 +15,7 @@
  */
 
 #include <chrono>
-#include <folly/wangle/concurrent/Codel.h>
+#include <wangle/concurrent/Codel.h>
 #include <gtest/gtest.h>
 #include <thread>
 

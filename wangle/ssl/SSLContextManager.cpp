@@ -7,16 +7,16 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/wangle/ssl/SSLContextManager.h>
+#include <wangle/ssl/SSLContextManager.h>
 
-#include <folly/wangle/ssl/ClientHelloExtStats.h>
-#include <folly/wangle/ssl/DHParam.h>
-#include <folly/wangle/ssl/PasswordInFile.h>
-#include <folly/wangle/ssl/SSLCacheOptions.h>
-#include <folly/wangle/ssl/SSLSessionCacheManager.h>
-#include <folly/wangle/ssl/SSLUtil.h>
-#include <folly/wangle/ssl/TLSTicketKeyManager.h>
-#include <folly/wangle/ssl/TLSTicketKeySeeds.h>
+#include <wangle/ssl/ClientHelloExtStats.h>
+#include <wangle/ssl/DHParam.h>
+#include <wangle/ssl/PasswordInFile.h>
+#include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLSessionCacheManager.h>
+#include <wangle/ssl/SSLUtil.h>
+#include <wangle/ssl/TLSTicketKeyManager.h>
+#include <wangle/ssl/TLSTicketKeySeeds.h>
 
 #include <folly/Conv.h>
 #include <folly/ScopeGuard.h>

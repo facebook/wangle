@@ -105,4 +105,4 @@ enum class HandlerDir {
 
 }} // folly::wangle
 
-#include <folly/wangle/channel/HandlerContext-inl.h>
+#include <wangle/channel/HandlerContext-inl.h>

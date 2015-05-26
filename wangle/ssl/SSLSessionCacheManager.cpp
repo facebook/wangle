@@ -7,11 +7,11 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/wangle/ssl/SSLSessionCacheManager.h>
+#include <wangle/ssl/SSLSessionCacheManager.h>
 
-#include <folly/wangle/ssl/SSLCacheProvider.h>
-#include <folly/wangle/ssl/SSLStats.h>
-#include <folly/wangle/ssl/SSLUtil.h>
+#include <wangle/ssl/SSLCacheProvider.h>
+#include <wangle/ssl/SSLStats.h>
+#include <wangle/ssl/SSLUtil.h>
 
 #include <folly/io/async/EventBase.h>
 

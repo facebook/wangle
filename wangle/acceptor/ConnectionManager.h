@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/ManagedConnection.h>
 
 #include <chrono>
 #include <folly/Memory.h>

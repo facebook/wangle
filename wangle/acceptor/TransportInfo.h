@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <folly/wangle/ssl/SSLUtil.h>
+#include <wangle/ssl/SSLUtil.h>
 
 #include <chrono>
 #include <netinet/tcp.h>

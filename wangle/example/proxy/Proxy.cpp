@@ -15,9 +15,9 @@
  */
 #include <gflags/gflags.h>
 
-#include <folly/wangle/bootstrap/ClientBootstrap.h>
-#include <folly/wangle/bootstrap/ServerBootstrap.h>
-#include <folly/wangle/channel/AsyncSocketHandler.h>
+#include <wangle/bootstrap/ClientBootstrap.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/channel/AsyncSocketHandler.h>
 
 using namespace folly;
 using namespace folly::wangle;

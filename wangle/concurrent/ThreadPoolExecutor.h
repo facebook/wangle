@@ -16,9 +16,9 @@
 
 #pragma once
 #include <folly/Executor.h>
-#include <folly/wangle/concurrent/LifoSemMPMCQueue.h>
-#include <folly/wangle/concurrent/NamedThreadFactory.h>
-#include <folly/wangle/rx/Observable.h>
+#include <wangle/concurrent/LifoSemMPMCQueue.h>
+#include <wangle/concurrent/NamedThreadFactory.h>
+#include <wangle/rx/Observable.h>
 #include <folly/Baton.h>
 #include <folly/Memory.h>
 #include <folly/RWSpinLock.h>

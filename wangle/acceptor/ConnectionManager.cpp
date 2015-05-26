@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/acceptor/ConnectionManager.h>
+#include <wangle/acceptor/ConnectionManager.h>
 
 #include <glog/logging.h>
 #include <folly/io/async/EventBase.h>

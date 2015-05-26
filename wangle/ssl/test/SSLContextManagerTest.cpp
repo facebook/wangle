@@ -11,8 +11,8 @@
 #include <folly/io/async/SSLContext.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <folly/wangle/ssl/SSLContextManager.h>
-#include <folly/wangle/acceptor/DomainNameMisc.h>
+#include <wangle/ssl/SSLContextManager.h>
+#include <wangle/acceptor/DomainNameMisc.h>
 
 using std::shared_ptr;
 

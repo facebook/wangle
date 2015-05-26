@@ -20,7 +20,7 @@
 #include <string>
 #include <thread>
 
-#include <folly/wangle/concurrent/ThreadFactory.h>
+#include <wangle/concurrent/ThreadFactory.h>
 #include <folly/Conv.h>
 #include <folly/Range.h>
 #include <folly/ThreadName.h>

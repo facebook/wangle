@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include <folly/wangle/bootstrap/ServerBootstrap-inl.h>
+#include <wangle/bootstrap/ServerBootstrap-inl.h>
 #include <folly/io/async/AsyncServerSocket.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <folly/io/async/AsyncUDPServerSocket.h>

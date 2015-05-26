@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <folly/wangle/bootstrap/ServerBootstrap.h>
-#include <folly/wangle/concurrent/NamedThreadFactory.h>
-#include <folly/wangle/channel/Handler.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/concurrent/NamedThreadFactory.h>
+#include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBaseManager.h>
 
 namespace folly {

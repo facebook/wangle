@@ -15,8 +15,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <folly/wangle/concurrent/GlobalExecutor.h>
-#include <folly/wangle/concurrent/IOExecutor.h>
+#include <wangle/concurrent/GlobalExecutor.h>
+#include <wangle/concurrent/IOExecutor.h>
 
 using namespace folly::wangle;
 

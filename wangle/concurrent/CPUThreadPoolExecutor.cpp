@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/concurrent/CPUThreadPoolExecutor.h>
-#include <folly/wangle/concurrent/PriorityLifoSemMPMCQueue.h>
+#include <wangle/concurrent/CPUThreadPoolExecutor.h>
+#include <wangle/concurrent/PriorityLifoSemMPMCQueue.h>
 
 namespace folly { namespace wangle {
 

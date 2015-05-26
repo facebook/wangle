@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/concurrent/FutureExecutor.h>
-#include <folly/wangle/concurrent/ThreadPoolExecutor.h>
-#include <folly/wangle/concurrent/CPUThreadPoolExecutor.h>
-#include <folly/wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/concurrent/FutureExecutor.h>
+#include <wangle/concurrent/ThreadPoolExecutor.h>
+#include <wangle/concurrent/CPUThreadPoolExecutor.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 

@@ -18,7 +18,7 @@
 
 #include <type_traits>
 
-#include <folly/wangle/channel/Pipeline.h>
+#include <wangle/channel/Pipeline.h>
 
 namespace folly { namespace wangle {
 

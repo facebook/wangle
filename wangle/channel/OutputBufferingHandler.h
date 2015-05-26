@@ -17,7 +17,7 @@
 #pragma once
 
 #include <folly/futures/SharedPromise.h>
-#include <folly/wangle/channel/Handler.h>
+#include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <folly/io/IOBuf.h>

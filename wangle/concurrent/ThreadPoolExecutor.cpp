@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/concurrent/ThreadPoolExecutor.h>
+#include <wangle/concurrent/ThreadPoolExecutor.h>
 
 namespace folly { namespace wangle {
 

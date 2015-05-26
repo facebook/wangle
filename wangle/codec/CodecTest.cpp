@@ -15,10 +15,10 @@
  */
 #include <gtest/gtest.h>
 
-#include <folly/wangle/codec/FixedLengthFrameDecoder.h>
-#include <folly/wangle/codec/LengthFieldBasedFrameDecoder.h>
-#include <folly/wangle/codec/LengthFieldPrepender.h>
-#include <folly/wangle/codec/LineBasedFrameDecoder.h>
+#include <wangle/codec/FixedLengthFrameDecoder.h>
+#include <wangle/codec/LengthFieldBasedFrameDecoder.h>
+#include <wangle/codec/LengthFieldPrepender.h>
+#include <wangle/codec/LineBasedFrameDecoder.h>
 
 using namespace folly;
 using namespace folly::wangle;

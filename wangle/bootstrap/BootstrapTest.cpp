@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "folly/wangle/bootstrap/ServerBootstrap.h"
-#include "folly/wangle/bootstrap/ClientBootstrap.h"
-#include "folly/wangle/channel/Handler.h"
+#include "wangle/bootstrap/ServerBootstrap.h"
+#include "wangle/bootstrap/ClientBootstrap.h"
+#include "wangle/channel/Handler.h"
 
 #include <glog/logging.h>
 #include <gtest/gtest.h>

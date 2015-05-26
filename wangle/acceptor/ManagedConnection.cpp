@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/ManagedConnection.h>
 
-#include <folly/wangle/acceptor/ConnectionManager.h>
+#include <wangle/acceptor/ConnectionManager.h>
 
 namespace folly { namespace wangle {
 

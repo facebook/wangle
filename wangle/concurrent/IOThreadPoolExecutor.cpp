@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <folly/wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
 
 #include <folly/MoveWrapper.h>
 #include <glog/logging.h>

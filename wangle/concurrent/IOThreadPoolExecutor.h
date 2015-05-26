@@ -17,8 +17,8 @@
 #pragma once
 
 #include <folly/io/async/EventBaseManager.h>
-#include <folly/wangle/concurrent/IOExecutor.h>
-#include <folly/wangle/concurrent/ThreadPoolExecutor.h>
+#include <wangle/concurrent/IOExecutor.h>
+#include <wangle/concurrent/ThreadPoolExecutor.h>
 
 namespace folly { namespace wangle {
 

@@ -18,10 +18,10 @@
 #include <folly/futures/Future.h>
 #include <folly/Memory.h>
 
-#include <folly/wangle/bootstrap/ServerBootstrap.h>
-#include <folly/wangle/bootstrap/ClientBootstrap.h>
-#include <folly/wangle/channel/Pipeline.h>
-#include <folly/wangle/channel/AsyncSocketHandler.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/bootstrap/ClientBootstrap.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/channel/AsyncSocketHandler.h>
 
 namespace folly {
 

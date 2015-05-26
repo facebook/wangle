@@ -9,12 +9,12 @@
  */
 #pragma once
 
-#include <folly/wangle/acceptor/ServerSocketConfig.h>
-#include <folly/wangle/acceptor/ConnectionCounter.h>
-#include <folly/wangle/acceptor/ConnectionManager.h>
-#include <folly/wangle/acceptor/LoadShedConfiguration.h>
-#include <folly/wangle/ssl/SSLCacheProvider.h>
-#include <folly/wangle/acceptor/TransportInfo.h>
+#include <wangle/acceptor/ServerSocketConfig.h>
+#include <wangle/acceptor/ConnectionCounter.h>
+#include <wangle/acceptor/ConnectionManager.h>
+#include <wangle/acceptor/LoadShedConfiguration.h>
+#include <wangle/ssl/SSLCacheProvider.h>
+#include <wangle/acceptor/TransportInfo.h>
 
 #include <chrono>
 #include <event.h>

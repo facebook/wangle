@@ -9,11 +9,11 @@
  */
 #pragma once
 
-#include <folly/wangle/ssl/SSLCacheOptions.h>
-#include <folly/wangle/ssl/SSLContextConfig.h>
-#include <folly/wangle/ssl/TLSTicketKeySeeds.h>
-#include <folly/wangle/ssl/SSLUtil.h>
-#include <folly/wangle/acceptor/SocketOptions.h>
+#include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLContextConfig.h>
+#include <wangle/ssl/TLSTicketKeySeeds.h>
+#include <wangle/ssl/SSLUtil.h>
+#include <wangle/acceptor/SocketOptions.h>
 
 #include <boost/optional.hpp>
 #include <chrono>
