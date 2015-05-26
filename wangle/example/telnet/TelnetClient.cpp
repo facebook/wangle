@@ -16,11 +16,11 @@
 #include <iostream>
 #include <gflags/gflags.h>
 
-#include <wangle/bootstrap/ClientBootstrap.h>
-#include <wangle/channel/AsyncSocketHandler.h>
-#include <wangle/channel/EventBaseHandler.h>
-#include <wangle/codec/LineBasedFrameDecoder.h>
-#include <wangle/codec/StringCodec.h>
+#include <folly/wangle/bootstrap/ClientBootstrap.h>
+#include <folly/wangle/channel/AsyncSocketHandler.h>
+#include <folly/wangle/channel/EventBaseHandler.h>
+#include <folly/wangle/codec/LineBasedFrameDecoder.h>
+#include <folly/wangle/codec/StringCodec.h>
 
 using namespace folly;
 using namespace folly::wangle;
