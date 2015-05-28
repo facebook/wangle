@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_CXX_FLAGS "-std=c++0x")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
-include(ExternalProject)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 find_package(Folly REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread)
@@ -123,6 +125,8 @@ install(DIRECTORY wangle/ DESTINATION include/wangle
 
 enable_testing()
 
+include(ExternalProject)
+
 # Download and install GoogleMock
 ExternalProject_Add(
     gmock
@@ -158,7 +162,7 @@ include_directories("${source_dir}/gtest/include")
 macro(add_gtest test_source test_name)
 add_executable(${test_name} ${test_source})
 target_link_libraries(${test_name} wangle libgmock libgmock_main)
-add_test(${test_name} ${test_name})
+add_test(${test_name} bin/${test_name})
 endmacro(add_gtest)
 
 # this test segfaults
