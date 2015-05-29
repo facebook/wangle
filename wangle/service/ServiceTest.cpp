@@ -20,6 +20,7 @@
 #include <wangle/service/ClientDispatcher.h>
 #include <wangle/service/ServerDispatcher.h>
 #include <wangle/service/Service.h>
+#include <wangle/service/CloseOnReleaseFilter.h>
 
 namespace folly {
 
@@ -247,12 +248,14 @@ TEST(Wangle, FactoryToService) {
   EXPECT_EQ("test", service("test").value());
 }
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  google::InitGoogleLogging(argv[0]);
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+TEST(ServiceFilter, CloseOnRelease) {
+  auto service = std::make_shared<EchoService>();
+  auto closeOnReleaseService =
+    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
 
-  return RUN_ALL_TESTS();
+  EXPECT_EQ("test", (*closeOnReleaseService)("test").get());
+  closeOnReleaseService->close();
+  EXPECT_TRUE((*closeOnReleaseService)("test").getTry().hasException());
 }
 
 } // namespace
