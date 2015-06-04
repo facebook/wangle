@@ -32,15 +32,25 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
+  TestClientPipelineFactory(bool shouldSucceed = true)
+      : shouldSucceed_(shouldSucceed) {}
   std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
   newPipeline(std::shared_ptr<AsyncSocket> sock) {
     // We probably aren't connected immedately, check after a small delay
-    EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
-      CHECK(sock->good());
-      CHECK(sock->readable());
+    EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock,this](){
+        if (shouldSucceed_) {
+          EXPECT_TRUE(sock->good());
+          EXPECT_TRUE(sock->readable());
+        } else {
+          EXPECT_FALSE(sock->good());
+          EXPECT_FALSE(sock->readable());
+        }
     }, 100);
     return nullptr;
   }
+
+ private:
+  bool shouldSucceed_;
 };
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
@@ -112,6 +122,21 @@ TEST(Bootstrap, ClientServerTest) {
   server.stop();
 
   CHECK(factory->pipelines == 1);
+}
+
+TEST(Bootstrap, ClientCancelTest) {
+  auto base = EventBaseManager::get()->getEventBase();
+  auto serverSocket = AsyncServerSocket::newSocket(base);
+  serverSocket->bind(0);
+
+  SocketAddress address;
+  serverSocket->getAddress(&address);
+
+  TestClient client;
+  client.pipelineFactory(std::make_shared<TestClientPipelineFactory>(false));
+  auto connectFuture = client.connect(address);
+  connectFuture.cancel();
+  base->loop();
 }
 
 TEST(Bootstrap, ClientConnectionManagerTest) {

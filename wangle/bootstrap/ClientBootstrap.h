@@ -76,6 +76,9 @@ class ClientBootstrap {
     base->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
       auto socket = AsyncSocket::newSocket(base);
       Promise<Pipeline*> promise;
+      promise.setInterruptHandler([socket](const folly::exception_wrapper&){
+        socket->cancelConnect();
+      });
       retval = promise.getFuture();
       socket->connect(
         new ConnectCallback(std::move(promise), this), address);
