@@ -20,6 +20,7 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/OutputBufferingHandler.h>
 #include <wangle/channel/test/MockHandler.h>
+#include <folly/io/async/test/SocketPair.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -72,6 +73,27 @@ TEST(PipelineTest, RealHandlersCompile) {
       .finalize();
     EXPECT_TRUE(pipeline.getHandler<AsyncSocketHandler>(0));
     EXPECT_TRUE(pipeline.getHandler<OutputBufferingHandler>(1));
+  }
+}
+
+// Test active/inactive AsyncSocketHandler
+TEST(PipelineTest, ActiveInactive) {
+  SocketPair p(SocketPair::NONBLOCKING);
+  EventBase base;
+  auto socket = AsyncSocket::newSocket(&base, p.extractFD0());
+  auto socket2 = AsyncSocket::newSocket(&base, p.extractFD1());
+  // static
+  {
+    StaticPipeline<IOBufQueue&, std::unique_ptr<IOBuf>,
+                   AsyncSocketHandler>
+    pipeline{AsyncSocketHandler(socket)};
+    pipeline.finalize();
+    EXPECT_TRUE(pipeline.getHandler<AsyncSocketHandler>(0));
+    EXPECT_TRUE(socket->getReadCallback() == nullptr);
+    pipeline.transportActive();
+    EXPECT_TRUE(socket->getReadCallback() != nullptr);
+    pipeline.transportInactive();
+    EXPECT_TRUE(socket->getReadCallback() == nullptr);
   }
 }
 

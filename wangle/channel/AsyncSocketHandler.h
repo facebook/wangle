@@ -74,6 +74,12 @@ class AsyncSocketHandler
     ctx->fireTransportActive();
   }
 
+  void transportInactive(Context* ctx) override {
+    detachReadCallback();
+    ctx->getPipeline()->setTransport(nullptr);
+    ctx->fireTransportInactive();
+  }
+
   void detachPipeline(Context* ctx) override {
     detachReadCallback();
   }
