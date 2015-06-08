@@ -32,6 +32,7 @@ class ServerAcceptor
   typedef std::unique_ptr<Pipeline,
                           folly::DelayedDestruction::Destructor> PipelinePtr;
 
+ public:
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
    public:
@@ -65,7 +66,6 @@ class ServerAcceptor
     PipelinePtr pipeline_;
   };
 
- public:
   explicit ServerAcceptor(
         std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory,
         std::shared_ptr<folly::wangle::Pipeline<void*>> acceptorPipeline,
