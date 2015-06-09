@@ -93,12 +93,22 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
   }
 
   void transportActive(Context* ctx) override {
+    if (backendPipeline_) {
+      // Already connected
+      return;
+    }
+
+    // Pause reading from the socket until remote connection succeeds
+    auto frontendPipeline = dynamic_cast<DefaultPipeline*>(ctx->getPipeline());
+    frontendPipeline->transportInactive();
+
     client_.pipelineFactory(
-        std::make_shared<ProxyBackendPipelineFactory>(
-            dynamic_cast<DefaultPipeline*>(ctx->getPipeline())));
+        std::make_shared<ProxyBackendPipelineFactory>(frontendPipeline));
     client_.connect(remoteAddress_)
-      .then([this](DefaultPipeline* pipeline){
+      .then([this, frontendPipeline](DefaultPipeline* pipeline){
         backendPipeline_ = pipeline;
+        // Resume read
+        frontendPipeline->transportActive();
       })
       .onError([this, ctx](const std::exception& e){
         LOG(ERROR) << "Connect error: " << exceptionStr(e);
