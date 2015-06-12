@@ -37,11 +37,8 @@ class ThreadPrintingHandler : public BytesToBytesHandler {
 
 class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
  public:
-  std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-
-    std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new DefaultPipeline);
+  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ThreadPrintingHandler());
     pipeline->finalize();
@@ -87,12 +84,9 @@ class AcceptHandler : public wangle::InboundHandler<void*> {
       transport->attachEventBase(acceptor->getEventBase());
 
       // TODO: pass in pipeline, instead of having AcceptPipeline create it?
-      std::unique_ptr<DefaultPipeline,
-                      folly::DelayedDestruction::Destructor>
-        pipeline(factory_.newPipeline(
-                   std::shared_ptr<AsyncSocket>(
-                     transport,
-                     folly::DelayedDestruction::Destructor())));
+      DefaultPipeline::UniquePtr pipeline(
+          factory_.newPipeline(std::shared_ptr<AsyncSocket>(
+              transport, folly::DelayedDestruction::Destructor())));
       pipeline->transportActive();
       auto connection = new ServerAcceptor<DefaultPipeline>::ServerConnection(
         std::move(pipeline));
@@ -108,11 +102,8 @@ class AcceptSteeringPipelineFactory : public PipelineFactory<AcceptPipeline> {
     ServerBootstrap<DefaultPipeline>* server)
       : server_(server) {}
 
-  std::unique_ptr<AcceptPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket>) {
-
-    std::unique_ptr<AcceptPipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new AcceptPipeline);
+  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
+    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
     pipeline->addBack(AcceptHandler(server_));
 
     return std::move(pipeline);

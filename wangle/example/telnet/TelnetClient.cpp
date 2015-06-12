@@ -47,9 +47,8 @@ class TelnetHandler : public HandlerAdapter<std::string> {
 
 class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
  public:
-  std::unique_ptr<TelnetPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-    auto pipeline = folly::make_unique<TelnetPipeline, folly::DelayedDestruction::Destructor>();
+  TelnetPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    TelnetPipeline::UniquePtr pipeline(new TelnetPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(EventBaseHandler()); // ensure we can write from any thread
     pipeline->addBack(LineBasedFrameDecoder(8192, false));

@@ -29,14 +29,11 @@ template <typename Pipeline>
 class ServerAcceptor
     : public Acceptor
     , public folly::wangle::InboundHandler<void*> {
-  typedef std::unique_ptr<Pipeline,
-                          folly::DelayedDestruction::Destructor> PipelinePtr;
-
  public:
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
    public:
-    explicit ServerConnection(PipelinePtr pipeline)
+    explicit ServerConnection(typename Pipeline::UniquePtr pipeline)
         : pipeline_(std::move(pipeline)) {
       pipeline_->setPipelineManager(this);
     }
@@ -63,7 +60,7 @@ class ServerAcceptor
     }
 
    private:
-    PipelinePtr pipeline_;
+    typename Pipeline::UniquePtr pipeline_;
   };
 
   explicit ServerAcceptor(
@@ -83,12 +80,9 @@ class ServerAcceptor
 
   void read(Context* ctx, void* conn) {
     AsyncSocket::UniquePtr transport((AsyncSocket*)conn);
-      std::unique_ptr<Pipeline,
-                       folly::DelayedDestruction::Destructor>
-      pipeline(childPipelineFactory_->newPipeline(
-        std::shared_ptr<AsyncSocket>(
-          transport.release(),
-          folly::DelayedDestruction::Destructor())));
+    typename Pipeline::UniquePtr pipeline(
+        childPipelineFactory_->newPipeline(std::shared_ptr<AsyncSocket>(
+            transport.release(), folly::DelayedDestruction::Destructor())));
     pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
@@ -187,11 +181,8 @@ class DefaultAcceptPipelineFactory
   typedef wangle::Pipeline<void*> AcceptPipeline;
 
  public:
-  std::unique_ptr<AcceptPipeline, folly::DelayedDestruction::Destructor>
-    newPipeline(std::shared_ptr<AsyncSocket>) {
-
-    return std::unique_ptr<AcceptPipeline, folly::DelayedDestruction::Destructor>
-      (new AcceptPipeline);
+  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
+    return AcceptPipeline::UniquePtr(new AcceptPipeline);
   }
 };
 

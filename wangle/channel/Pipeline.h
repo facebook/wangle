@@ -71,6 +71,8 @@ struct Nothing{};
 template <class R, class W = Nothing>
 class Pipeline : public PipelineBase, public DelayedDestruction {
  public:
+  typedef std::unique_ptr<Pipeline, Destructor> UniquePtr;
+
   Pipeline();
   ~Pipeline();
 
@@ -171,8 +173,8 @@ class AsyncSocket;
 template <typename Pipeline>
 class PipelineFactory {
  public:
-  virtual std::unique_ptr<Pipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket>) = 0;
+  virtual typename Pipeline::UniquePtr newPipeline(
+      std::shared_ptr<AsyncSocket>) = 0;
 
   virtual ~PipelineFactory() {}
 };

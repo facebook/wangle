@@ -54,11 +54,8 @@ class ProxyBackendPipelineFactory : public PipelineFactory<DefaultPipeline> {
   explicit ProxyBackendPipelineFactory(DefaultPipeline* frontendPipeline) :
       frontendPipeline_(frontendPipeline) {}
 
-  std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-
-    std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new DefaultPipeline);
+  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ProxyBackendHandler(frontendPipeline_));
     pipeline->finalize();
@@ -127,11 +124,8 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
   explicit ProxyFrontendPipelineFactory(SocketAddress remoteAddress) :
       remoteAddress_(remoteAddress) {}
 
-  std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-
-    std::unique_ptr<DefaultPipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new DefaultPipeline);
+  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(std::make_shared<ProxyFrontendHandler>(remoteAddress_));
     pipeline->finalize();

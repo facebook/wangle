@@ -21,8 +21,9 @@
 
 namespace folly {
 
-typedef folly::wangle::Pipeline<
-  folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>> DefaultPipeline;
+typedef wangle::Pipeline<void*> AcceptPipeline;
+typedef wangle::Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
+    DefaultPipeline;
 
 /*
  * ServerBootstrap is a parent class intended to set up a
@@ -52,7 +53,6 @@ class ServerBootstrap {
     join();
   }
 
-  typedef wangle::Pipeline<void*> AcceptPipeline;
   /*
    * Pipeline used to add connections to event bases.
    * This is used for UDP or for load balancing

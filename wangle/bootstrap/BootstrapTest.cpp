@@ -32,10 +32,9 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  TestClientPipelineFactory(bool shouldSucceed = true)
+  explicit TestClientPipelineFactory(bool shouldSucceed = true)
       : shouldSucceed_(shouldSucceed) {}
-  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  BytesPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
     // We probably aren't connected immedately, check after a small delay
     EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock,this](){
         if (shouldSucceed_) {
@@ -55,12 +54,9 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor> newPipeline(
-    std::shared_ptr<AsyncSocket> sock) {
-
+  BytesPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
     pipelines++;
-    return std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>(
-      new BytesPipeline());
+    return BytesPipeline::UniquePtr(new BytesPipeline);
   }
   std::atomic<int> pipelines{0};
 };
@@ -305,15 +301,10 @@ class TestHandlerPipeline : public InboundHandler<void*> {
 
 template <typename HandlerPipeline>
 class TestHandlerPipelineFactory
-    : public PipelineFactory<ServerBootstrap<BytesPipeline>::AcceptPipeline> {
+    : public PipelineFactory<AcceptPipeline> {
  public:
-  std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
-                  folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket>) {
-
-    std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
-                    folly::DelayedDestruction::Destructor> pipeline(
-                      new ServerBootstrap<BytesPipeline>::AcceptPipeline);
+  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
+    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
     pipeline->addBack(HandlerPipeline());
     return pipeline;
   }

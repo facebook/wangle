@@ -54,11 +54,9 @@ template <typename Req, typename Resp>
 class ServerPipelineFactory
     : public PipelineFactory<ServicePipeline> {
  public:
-
-  std::unique_ptr<ServicePipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> socket) override {
-    std::unique_ptr<ServicePipeline, folly::DelayedDestruction::Destructor> pipeline(
-      new ServicePipeline());
+  ServicePipeline::UniquePtr newPipeline(
+      std::shared_ptr<AsyncSocket> socket) override {
+    ServicePipeline::UniquePtr pipeline(new ServicePipeline);
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(SimpleDecode());
     pipeline->addBack(StringCodec());
@@ -74,11 +72,9 @@ class ServerPipelineFactory
 template <typename Req, typename Resp>
 class ClientPipelineFactory : public PipelineFactory<ServicePipeline> {
  public:
-
-  std::unique_ptr<ServicePipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> socket) override {
-    std::unique_ptr<ServicePipeline, folly::DelayedDestruction::Destructor> pipeline(
-      new ServicePipeline());
+  ServicePipeline::UniquePtr newPipeline(
+      std::shared_ptr<AsyncSocket> socket) override {
+    ServicePipeline::UniquePtr pipeline(new ServicePipeline);
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(SimpleDecode());
     pipeline->addBack(StringCodec());
