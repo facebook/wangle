@@ -15,15 +15,48 @@
  */
 #include <gflags/gflags.h>
 
+#include <wangle/bootstrap/AcceptRoutingHandler.h>
+#include <wangle/bootstrap/RoutingDataHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
-#include <wangle/codec/LineBasedFrameDecoder.h>
-#include <wangle/codec/StringCodec.h>
 
 using namespace folly;
 using namespace folly::wangle;
 
 DEFINE_int32(port, 23, "test server port");
+
+/**
+ * A simple server that hashes connections to worker threads
+ * based on the first character typed in by the client.
+ */
+
+class NaiveRoutingDataHandler : public RoutingDataHandler {
+ public:
+  NaiveRoutingDataHandler(uint64_t connId, Callback* cob)
+      : RoutingDataHandler(connId, cob) {}
+
+  bool parseRoutingData(folly::IOBufQueue& bufQueue,
+                        RoutingData& routingData) override {
+    if (bufQueue.chainLength() == 0) {
+      return false;
+    }
+
+    auto buf = bufQueue.move();
+    buf->coalesce();
+    // Use the first byte for hashing to a worker
+    routingData.routingData = buf->data()[0];
+    routingData.bufQueue.append(std::move(buf));
+    return true;
+  }
+};
+
+class NaiveRoutingDataHandlerFactory : public RoutingDataHandlerFactory {
+ public:
+  std::unique_ptr<RoutingDataHandler> newHandler(
+      uint64_t connId, RoutingDataHandler::Callback* cob) override {
+    return folly::make_unique<NaiveRoutingDataHandler>(connId, cob);
+  }
+};
 
 class ThreadPrintingHandler : public BytesToBytesHandler {
  public:
@@ -47,77 +80,17 @@ class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
   }
 };
 
-typedef wangle::Pipeline<void*> AcceptPipeline;
-
-class AcceptHandler : public wangle::InboundHandler<void*> {
-  ServerPipelineFactory factory_;
-  ServerBootstrap<DefaultPipeline>* server_;
-
- public:
-  explicit AcceptHandler(ServerBootstrap<DefaultPipeline>* server)
-      : server_(server) {
-  }
-
-  void read(Context* ctx, void* conn) {
-    // Get list of acceptors. TODO: make this easier
-    std::vector<Acceptor*> acceptors_;
-    server_->forEachWorker([&](Acceptor* acceptor) {
-      acceptors_.push_back(acceptor);
-    });
-
-    AsyncSocket* transport = (AsyncSocket*)conn;
-    auto out = std::string("Accepted conn, hashing based on address...\n");
-    transport->writeChain(nullptr, IOBuf::copyBuffer(out));
-
-    // awesome hash function
-    SocketAddress address;
-    transport->getPeerAddress(&address);
-    char a = address.getAddressStr()[0];
-    Acceptor* acceptor = acceptors_[a % acceptors_.size()];
-
-    // Since we are on a new thread, we have to update async socket's
-    // event base
-    transport->detachEventBase();
-
-    // Switch to new acceptor's thread
-    acceptor->getEventBase()->runInEventBaseThread([=](){
-      transport->attachEventBase(acceptor->getEventBase());
-
-      // TODO: pass in pipeline, instead of having AcceptPipeline create it?
-      DefaultPipeline::UniquePtr pipeline(
-          factory_.newPipeline(std::shared_ptr<AsyncSocket>(
-              transport, folly::DelayedDestruction::Destructor())));
-      pipeline->transportActive();
-      auto connection = new ServerAcceptor<DefaultPipeline>::ServerConnection(
-        std::move(pipeline));
-
-      acceptor->addConnection(connection);
-    });
-  }
-};
-
-class AcceptSteeringPipelineFactory : public PipelineFactory<AcceptPipeline> {
- public:
-  explicit AcceptSteeringPipelineFactory(
-    ServerBootstrap<DefaultPipeline>* server)
-      : server_(server) {}
-
-  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
-    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
-    pipeline->addBack(AcceptHandler(server_));
-
-    return std::move(pipeline);
-  }
-
- private:
-  ServerBootstrap<DefaultPipeline>* server_;
-};
-
 int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, true);
 
+  auto routingHandlerFactory =
+      std::make_shared<NaiveRoutingDataHandlerFactory>();
+  auto childPipelineFactory = std::make_shared<ServerPipelineFactory>();
+
   ServerBootstrap<DefaultPipeline> server;
-  server.pipeline(std::make_shared<AcceptSteeringPipelineFactory>(&server));
+  server.pipeline(
+      std::make_shared<AcceptRoutingPipelineFactory<DefaultPipeline>>(
+          &server, routingHandlerFactory, childPipelineFactory));
   server.bind(FLAGS_port);
   server.waitForStop();
 
