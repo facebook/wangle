@@ -83,9 +83,13 @@ class ServerAcceptor
     typename Pipeline::UniquePtr pipeline(
         childPipelineFactory_->newPipeline(std::shared_ptr<AsyncSocket>(
             transport.release(), folly::DelayedDestruction::Destructor())));
-    pipeline->transportActive();
+    auto pipelinePtr = pipeline.get();
+    folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
+
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
+
+    pipelinePtr->transportActive();
   }
 
   /* See Acceptor::onNewConnection for details */

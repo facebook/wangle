@@ -52,15 +52,19 @@ void AcceptRoutingHandler<Pipeline>::onRoutingData(
     socket->attachEventBase(acceptor->getEventBase());
 
     auto pipeline = childPipelineFactory_->newPipeline(socket);
-    pipeline->transportActive();
-
-    // Pass in the buffered bytes to the pipeline
-    pipeline->read(*mwBufQueue);
+    auto pipelinePtr = pipeline.get();
+    folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
 
     auto connection =
         new typename folly::ServerAcceptor<Pipeline>::ServerConnection(
             std::move(pipeline));
     acceptor->addConnection(connection);
+
+    pipelinePtr->transportActive();
+
+    // Pass in the buffered bytes to the pipeline
+    pipelinePtr->read(*mwBufQueue);
+
   });
 }
 
