@@ -51,7 +51,7 @@ class RoutingDataHandlerFactory {
  public:
   virtual ~RoutingDataHandlerFactory() {}
 
-  virtual std::unique_ptr<RoutingDataHandler> newHandler(
+  virtual std::shared_ptr<RoutingDataHandler> newHandler(
       uint64_t connId, RoutingDataHandler::Callback* cob) = 0;
 };
 

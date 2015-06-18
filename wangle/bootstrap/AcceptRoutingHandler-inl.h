@@ -17,8 +17,7 @@ void AcceptRoutingHandler<Pipeline>::read(Context* ctx, void* conn) {
   folly::DefaultPipeline::UniquePtr routingPipeline(
       new folly::DefaultPipeline);
   routingPipeline->addBack(folly::wangle::AsyncSocketHandler(socket));
-  auto routingDataHandler = routingHandlerFactory_->newHandler(connId, this);
-  routingPipeline->addBack(routingDataHandler.release());
+  routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();
 
   routingPipeline->transportActive();

@@ -52,9 +52,9 @@ class NaiveRoutingDataHandler : public RoutingDataHandler {
 
 class NaiveRoutingDataHandlerFactory : public RoutingDataHandlerFactory {
  public:
-  std::unique_ptr<RoutingDataHandler> newHandler(
+  std::shared_ptr<RoutingDataHandler> newHandler(
       uint64_t connId, RoutingDataHandler::Callback* cob) override {
-    return folly::make_unique<NaiveRoutingDataHandler>(connId, cob);
+    return std::make_shared<NaiveRoutingDataHandler>(connId, cob);
   }
 };
 
