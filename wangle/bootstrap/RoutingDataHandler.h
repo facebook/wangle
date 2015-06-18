@@ -16,7 +16,7 @@ class RoutingDataHandler : public folly::wangle::BytesToBytesHandler {
   class Callback {
    public:
     virtual ~Callback() {}
-    virtual void onRoutingData(uint64_t connId, RoutingData routingData) = 0;
+    virtual void onRoutingData(uint64_t connId, RoutingData& routingData) = 0;
     virtual void onError(uint64_t connId) = 0;
   };
 
@@ -42,7 +42,7 @@ class RoutingDataHandler : public folly::wangle::BytesToBytesHandler {
   virtual bool parseRoutingData(folly::IOBufQueue& bufQueue,
                                 RoutingData& routingData) = 0;
 
- private:
+ protected:
   uint64_t connId_;
   Callback* cob_{nullptr};
 };

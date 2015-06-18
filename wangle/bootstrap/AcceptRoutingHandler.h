@@ -39,7 +39,7 @@ class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
 
   // RoutingDataHandler::Callback implementation
   void onRoutingData(uint64_t connId,
-                     RoutingDataHandler::RoutingData routingData) override;
+                     RoutingDataHandler::RoutingData& routingData) override;
   void onError(uint64_t connId) override;
 
  private:

@@ -9,7 +9,7 @@ RoutingDataHandler::RoutingDataHandler(uint64_t connId, Callback* cob)
 void RoutingDataHandler::read(Context* ctx, IOBufQueue& q) {
   RoutingData routingData;
   if (parseRoutingData(q, routingData)) {
-    cob_->onRoutingData(connId_, std::move(routingData));
+    cob_->onRoutingData(connId_, routingData);
   }
 }
 

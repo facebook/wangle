@@ -26,7 +26,7 @@ void AcceptRoutingHandler<Pipeline>::read(Context* ctx, void* conn) {
 
 template <typename Pipeline>
 void AcceptRoutingHandler<Pipeline>::onRoutingData(
-    uint64_t connId, RoutingDataHandler::RoutingData routingData) {
+    uint64_t connId, RoutingDataHandler::RoutingData& routingData) {
   // Get the routing pipeline corresponding to this connection
   auto routingPipelineIter = routingPipelines_.find(connId);
   DCHECK(routingPipelineIter != routingPipelines_.end());
