@@ -45,12 +45,13 @@ void AcceptRoutingHandler<Pipeline>::onRoutingData(
   auto acceptor = acceptors_[hash % acceptors_.size()];
 
   // Switch to the new acceptor's thread
-  auto mwBufQueue = folly::makeMoveWrapper<folly::IOBufQueue>(
-      std::move(routingData.bufQueue));
+  auto mwRoutingData = folly::makeMoveWrapper<RoutingDataHandler::RoutingData>(
+      std::move(routingData));
   acceptor->getEventBase()->runInEventBaseThread([=]() mutable {
     socket->attachEventBase(acceptor->getEventBase());
 
-    auto pipeline = childPipelineFactory_->newPipeline(socket);
+    auto pipeline =
+        childPipelineFactory_->newPipeline(socket, mwRoutingData->routingData);
     auto pipelinePtr = pipeline.get();
     folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
 
@@ -62,8 +63,7 @@ void AcceptRoutingHandler<Pipeline>::onRoutingData(
     pipelinePtr->transportActive();
 
     // Pass in the buffered bytes to the pipeline
-    pipelinePtr->read(*mwBufQueue);
-
+    pipelinePtr->read(mwRoutingData->bufQueue);
   });
 }
 

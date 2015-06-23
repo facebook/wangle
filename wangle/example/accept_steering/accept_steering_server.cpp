@@ -55,20 +55,29 @@ class NaiveRoutingDataHandlerFactory : public RoutingDataHandlerFactory {
 
 class ThreadPrintingHandler : public BytesToBytesHandler {
  public:
+  explicit ThreadPrintingHandler(const std::string& routingData)
+      : routingData_(routingData) {}
+
   virtual void transportActive(Context* ctx) override {
-    auto out = std::string("You were hashed to thread ") +
-      folly::to<std::string>(pthread_self()) + "\n";
-    write(ctx, IOBuf::copyBuffer(out));
+    std::stringstream out;
+    out << "You were hashed to thread " << std::this_thread::get_id()
+        << " based on '" << routingData_ << "'" << std::endl;
+    write(ctx, IOBuf::copyBuffer(out.str()));
     close(ctx);
   }
+
+ private:
+  std::string routingData_;
 };
 
-class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
+class ServerPipelineFactory
+    : public RoutingDataPipelineFactory<DefaultPipeline> {
  public:
-  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock,
+                                         const std::string& routingData) {
     DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
-    pipeline->addBack(ThreadPrintingHandler());
+    pipeline->addBack(ThreadPrintingHandler(routingData));
     pipeline->finalize();
 
     return std::move(pipeline);
