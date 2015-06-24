@@ -6,11 +6,14 @@
 
 namespace folly { namespace wangle {
 
+template <typename R>
 class RoutingDataHandler : public folly::wangle::BytesToBytesHandler {
  public:
   struct RoutingData {
-    std::string routingData;
-    folly::IOBufQueue bufQueue{folly::IOBufQueue::cacheChainLength()};
+    RoutingData() : bufQueue(folly::IOBufQueue::cacheChainLength()) {}
+
+    R routingData;
+    folly::IOBufQueue bufQueue;
   };
 
   class Callback {
@@ -47,12 +50,15 @@ class RoutingDataHandler : public folly::wangle::BytesToBytesHandler {
   Callback* cob_{nullptr};
 };
 
+template <typename R>
 class RoutingDataHandlerFactory {
  public:
   virtual ~RoutingDataHandlerFactory() {}
 
-  virtual std::shared_ptr<RoutingDataHandler> newHandler(
-      uint64_t connId, RoutingDataHandler::Callback* cob) = 0;
+  virtual std::shared_ptr<RoutingDataHandler<R>> newHandler(
+      uint64_t connId, typename RoutingDataHandler<R>::Callback* cob) = 0;
 };
 
 }} // namespace folly::wangle
+
+#include <wangle/bootstrap/RoutingDataHandler-inl.h>

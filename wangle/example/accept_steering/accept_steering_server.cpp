@@ -25,10 +25,10 @@ DEFINE_int32(port, 23, "test server port");
  * based on the first character typed in by the client.
  */
 
-class NaiveRoutingDataHandler : public RoutingDataHandler {
+class NaiveRoutingDataHandler : public RoutingDataHandler<char> {
  public:
   NaiveRoutingDataHandler(uint64_t connId, Callback* cob)
-      : RoutingDataHandler(connId, cob) {}
+      : RoutingDataHandler<char>(connId, cob) {}
 
   bool parseRoutingData(folly::IOBufQueue& bufQueue,
                         RoutingData& routingData) override {
@@ -45,17 +45,18 @@ class NaiveRoutingDataHandler : public RoutingDataHandler {
   }
 };
 
-class NaiveRoutingDataHandlerFactory : public RoutingDataHandlerFactory {
+class NaiveRoutingDataHandlerFactory : public RoutingDataHandlerFactory<char> {
  public:
-  std::shared_ptr<RoutingDataHandler> newHandler(
-      uint64_t connId, RoutingDataHandler::Callback* cob) override {
+  std::shared_ptr<RoutingDataHandler<char>> newHandler(
+      uint64_t connId,
+      RoutingDataHandler<char>::Callback* cob) override {
     return std::make_shared<NaiveRoutingDataHandler>(connId, cob);
   }
 };
 
 class ThreadPrintingHandler : public BytesToBytesHandler {
  public:
-  explicit ThreadPrintingHandler(const std::string& routingData)
+  explicit ThreadPrintingHandler(const char& routingData)
       : routingData_(routingData) {}
 
   virtual void transportActive(Context* ctx) override {
@@ -67,14 +68,14 @@ class ThreadPrintingHandler : public BytesToBytesHandler {
   }
 
  private:
-  std::string routingData_;
+  char routingData_;
 };
 
 class ServerPipelineFactory
-    : public RoutingDataPipelineFactory<DefaultPipeline> {
+    : public RoutingDataPipelineFactory<DefaultPipeline, char> {
  public:
   DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock,
-                                         const std::string& routingData) {
+                                         const char& routingData) {
     DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ThreadPrintingHandler(routingData));
@@ -93,7 +94,7 @@ int main(int argc, char** argv) {
 
   ServerBootstrap<DefaultPipeline> server;
   server.pipeline(
-      std::make_shared<AcceptRoutingPipelineFactory<DefaultPipeline>>(
+      std::make_shared<AcceptRoutingPipelineFactory<DefaultPipeline, char>>(
           &server, routingHandlerFactory, childPipelineFactory));
   server.bind(FLAGS_port);
   server.waitForStop();

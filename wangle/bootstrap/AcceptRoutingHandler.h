@@ -22,17 +22,17 @@ namespace folly { namespace wangle {
 
 typedef folly::PipelineFactory<folly::AcceptPipeline> AcceptPipelineFactory;
 
-template <typename Pipeline>
+template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory;
 
-template <typename Pipeline>
+template <typename Pipeline, typename R>
 class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
-                             public RoutingDataHandler::Callback {
+                             public RoutingDataHandler<R>::Callback {
  public:
   AcceptRoutingHandler(
       folly::ServerBootstrap<Pipeline>* server,
-      std::shared_ptr<RoutingDataHandlerFactory> routingHandlerFactory,
-      std::shared_ptr<RoutingDataPipelineFactory<Pipeline>>
+      std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory,
+      std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
           childPipelineFactory)
       : server_(CHECK_NOTNULL(server)),
         routingHandlerFactory_(routingHandlerFactory),
@@ -42,29 +42,31 @@ class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
   void read(Context* ctx, void* conn) override;
 
   // RoutingDataHandler::Callback implementation
-  void onRoutingData(uint64_t connId,
-                     RoutingDataHandler::RoutingData& routingData) override;
+  void onRoutingData(
+      uint64_t connId,
+      typename RoutingDataHandler<R>::RoutingData& routingData) override;
   void onError(uint64_t connId) override;
 
  private:
   void populateAcceptors();
 
   folly::ServerBootstrap<Pipeline>* server_;
-  std::shared_ptr<RoutingDataHandlerFactory> routingHandlerFactory_;
-  std::shared_ptr<RoutingDataPipelineFactory<Pipeline>> childPipelineFactory_;
+  std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;
+  std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
+      childPipelineFactory_;
 
   std::vector<folly::Acceptor*> acceptors_;
   std::map<uint64_t, folly::DefaultPipeline::UniquePtr> routingPipelines_;
   uint64_t nextConnId_{0};
 };
 
-template <typename Pipeline>
+template <typename Pipeline, typename R>
 class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
  public:
   AcceptRoutingPipelineFactory(
       folly::ServerBootstrap<Pipeline>* server,
-      std::shared_ptr<RoutingDataHandlerFactory> routingHandlerFactory,
-      std::shared_ptr<RoutingDataPipelineFactory<Pipeline>>
+      std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory,
+      std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
           childPipelineFactory)
       : server_(CHECK_NOTNULL(server)),
         routingHandlerFactory_(routingHandlerFactory),
@@ -73,7 +75,7 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
   folly::AcceptPipeline::UniquePtr newPipeline(
       std::shared_ptr<folly::AsyncSocket>) override {
     folly::AcceptPipeline::UniquePtr pipeline(new folly::AcceptPipeline);
-    pipeline->addBack(AcceptRoutingHandler<Pipeline>(
+    pipeline->addBack(AcceptRoutingHandler<Pipeline, R>(
         server_, routingHandlerFactory_, childPipelineFactory_));
     pipeline->finalize();
 
@@ -82,18 +84,18 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
 
  private:
   folly::ServerBootstrap<Pipeline>* server_;
-  std::shared_ptr<RoutingDataHandlerFactory> routingHandlerFactory_;
-  std::shared_ptr<RoutingDataPipelineFactory<Pipeline>> childPipelineFactory_;
+  std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;
+  std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
+      childPipelineFactory_;
 };
 
-template <typename Pipeline>
+template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory {
  public:
   virtual ~RoutingDataPipelineFactory() {}
 
   virtual typename Pipeline::UniquePtr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket,
-      const std::string& routingData) = 0;
+      std::shared_ptr<folly::AsyncSocket> socket, const R& routingData) = 0;
 };
 
 }} // namespace folly::wangle

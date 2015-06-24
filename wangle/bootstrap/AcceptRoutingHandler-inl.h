@@ -3,8 +3,8 @@
 
 namespace folly { namespace wangle {
 
-template <typename Pipeline>
-void AcceptRoutingHandler<Pipeline>::read(Context* ctx, void* conn) {
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
   populateAcceptors();
 
   uint64_t connId = nextConnId_++;
@@ -24,9 +24,9 @@ void AcceptRoutingHandler<Pipeline>::read(Context* ctx, void* conn) {
   routingPipelines_[connId] = std::move(routingPipeline);
 }
 
-template <typename Pipeline>
-void AcceptRoutingHandler<Pipeline>::onRoutingData(
-    uint64_t connId, RoutingDataHandler::RoutingData& routingData) {
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
+    uint64_t connId, typename RoutingDataHandler<R>::RoutingData& routingData) {
   // Get the routing pipeline corresponding to this connection
   auto routingPipelineIter = routingPipelines_.find(connId);
   DCHECK(routingPipelineIter != routingPipelines_.end());
@@ -41,12 +41,13 @@ void AcceptRoutingHandler<Pipeline>::onRoutingData(
   socket->detachEventBase();
 
   // Hash based on routing data to pick a new acceptor
-  uint64_t hash = std::hash<std::string>()(routingData.routingData);
+  uint64_t hash = std::hash<R>()(routingData.routingData);
   auto acceptor = acceptors_[hash % acceptors_.size()];
 
   // Switch to the new acceptor's thread
-  auto mwRoutingData = folly::makeMoveWrapper<RoutingDataHandler::RoutingData>(
-      std::move(routingData));
+  auto mwRoutingData =
+      folly::makeMoveWrapper<typename RoutingDataHandler<R>::RoutingData>(
+          std::move(routingData));
   acceptor->getEventBase()->runInEventBaseThread([=]() mutable {
     socket->attachEventBase(acceptor->getEventBase());
 
@@ -67,14 +68,14 @@ void AcceptRoutingHandler<Pipeline>::onRoutingData(
   });
 }
 
-template <typename Pipeline>
-void AcceptRoutingHandler<Pipeline>::onError(uint64_t connId) {
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::onError(uint64_t connId) {
   // Delete the pipeline. This will close and delete the socket as well.
   routingPipelines_.erase(connId);
 }
 
-template <typename Pipeline>
-void AcceptRoutingHandler<Pipeline>::populateAcceptors() {
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::populateAcceptors() {
   if (!acceptors_.empty()) {
     return;
   }
