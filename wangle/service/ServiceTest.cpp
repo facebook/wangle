@@ -16,6 +16,8 @@
 #include <wangle/service/ServerDispatcher.h>
 #include <wangle/service/Service.h>
 #include <wangle/service/CloseOnReleaseFilter.h>
+#include <wangle/service/ExpiringFilter.h>
+
 
 namespace folly {
 
@@ -247,6 +249,89 @@ TEST(ServiceFilter, CloseOnRelease) {
   EXPECT_EQ("test", (*closeOnReleaseService)("test").get());
   closeOnReleaseService->close();
   EXPECT_TRUE((*closeOnReleaseService)("test").getTry().hasException());
+}
+
+class TimekeeperTester : public Timekeeper {
+ public:
+  virtual Future<void> after(Duration dur) {
+    Promise<void> p;
+    auto f = p.getFuture();
+    promises_.push_back(std::move(p));
+    return std::move(f);
+  }
+  template <class Clock>
+  Future<void> at(std::chrono::time_point<Clock> when) {
+    Promise<void> p;
+    auto f = p.getFuture();
+    promises_.push_back(std::move(p));
+    return std::move(f);
+  }
+  std::vector<Promise<void>> promises_;
+};
+
+TEST(ServiceFilter, ExpiringMax) {
+  TimekeeperTester timekeeper;
+
+  std::shared_ptr<Service<std::string, std::string>> service =
+    std::make_shared<EchoService>();
+  std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
+    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+  std::shared_ptr<Service<std::string, std::string>> expiringService =
+    std::make_shared<ExpiringFilter<std::string, std::string>>(
+      closeOnReleaseService,
+      std::chrono::milliseconds(0),
+      std::chrono::milliseconds(400),
+      &timekeeper);
+
+  EXPECT_EQ("test", (*expiringService)("test").get());
+  timekeeper.promises_[0].setValue();
+  EXPECT_TRUE((*expiringService)("test").getTry().hasException());
+}
+
+TEST(ServiceFilter, ExpiringIdle) {
+  TimekeeperTester timekeeper;
+
+  std::shared_ptr<Service<std::string, std::string>> service =
+    std::make_shared<EchoService>();
+  std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
+    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+  std::shared_ptr<Service<std::string, std::string>> expiringService =
+    std::make_shared<ExpiringFilter<std::string, std::string>>(
+      closeOnReleaseService,
+      std::chrono::milliseconds(100),
+      std::chrono::milliseconds(0),
+      &timekeeper);
+
+  EXPECT_EQ(1, timekeeper.promises_.size());
+}
+
+TEST(ServiceFilter, NoIdleDuringRequests) {
+  TimekeeperTester timekeeper;
+
+  std::shared_ptr<Service<std::string, std::string>> service =
+    std::make_shared<EchoService>();
+  std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
+    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+  std::shared_ptr<Service<std::string, std::string>> expiringService =
+    std::make_shared<ExpiringFilter<std::string, std::string>>(
+      closeOnReleaseService,
+      std::chrono::milliseconds(1),
+      std::chrono::milliseconds(0),
+      &timekeeper);
+
+  auto f = (*expiringService)("2000");
+  EXPECT_EQ(2, timekeeper.promises_.size());
+  f.get();
+  EXPECT_EQ("2000", (*expiringService)("2000").get());
+  EXPECT_EQ(3, timekeeper.promises_.size());
+}
+
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  google::InitGoogleLogging(argv[0]);
+  google::ParseCommandLineFlags(&argc, &argv, true);
+
+  return RUN_ALL_TESTS();
 }
 
 } // namespace
