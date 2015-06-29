@@ -177,11 +177,10 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
 
 class DefaultAcceptPipelineFactory
     : public PipelineFactory<wangle::Pipeline<void*>> {
-  typedef wangle::Pipeline<void*> AcceptPipeline;
 
  public:
-  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
-    return AcceptPipeline::UniquePtr(new AcceptPipeline);
+  wangle::AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
+    return wangle::AcceptPipeline::UniquePtr(new wangle::AcceptPipeline);
   }
 };
 

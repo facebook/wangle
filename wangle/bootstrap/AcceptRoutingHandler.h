@@ -3,6 +3,7 @@
 
 #include <wangle/bootstrap/RoutingDataHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/channel/Pipeline.h>
 
 namespace folly { namespace wangle {
 
@@ -20,7 +21,7 @@ namespace folly { namespace wangle {
  * worker thread, and resumes reading from the socket on the child pipeline.
  */
 
-typedef folly::PipelineFactory<folly::AcceptPipeline> AcceptPipelineFactory;
+typedef folly::PipelineFactory<AcceptPipeline> AcceptPipelineFactory;
 
 template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory;
@@ -56,7 +57,7 @@ class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
       childPipelineFactory_;
 
   std::vector<folly::Acceptor*> acceptors_;
-  std::map<uint64_t, folly::DefaultPipeline::UniquePtr> routingPipelines_;
+  std::map<uint64_t, DefaultPipeline::UniquePtr> routingPipelines_;
   uint64_t nextConnId_{0};
 };
 
@@ -72,9 +73,9 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
         routingHandlerFactory_(routingHandlerFactory),
         childPipelineFactory_(childPipelineFactory) {}
 
-  folly::AcceptPipeline::UniquePtr newPipeline(
+  AcceptPipeline::UniquePtr newPipeline(
       std::shared_ptr<folly::AsyncSocket>) override {
-    folly::AcceptPipeline::UniquePtr pipeline(new folly::AcceptPipeline);
+    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
     pipeline->addBack(AcceptRoutingHandler<Pipeline, R>(
         server_, routingHandlerFactory_, childPipelineFactory_));
     pipeline->finalize();

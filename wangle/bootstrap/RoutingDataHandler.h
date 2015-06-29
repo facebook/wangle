@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-#include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 
 namespace folly { namespace wangle {

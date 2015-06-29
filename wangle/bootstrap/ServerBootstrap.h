@@ -18,10 +18,6 @@
 
 namespace folly {
 
-typedef wangle::Pipeline<void*> AcceptPipeline;
-typedef wangle::Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
-    DefaultPipeline;
-
 /*
  * ServerBootstrap is a parent class intended to set up a
  * high-performance TCP accepting server.  It will manage a pool of
@@ -36,7 +32,7 @@ typedef wangle::Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
  * Acceptor objects, an AcceptorFactory can be given directly instead
  * of a pipeline factory.
  */
-template <typename Pipeline>
+template <typename Pipeline = wangle::DefaultPipeline>
 class ServerBootstrap {
  public:
 
@@ -56,7 +52,7 @@ class ServerBootstrap {
    * TCP connections to IO threads explicitly
    */
   ServerBootstrap* pipeline(
-    std::shared_ptr<PipelineFactory<AcceptPipeline>> factory) {
+      std::shared_ptr<PipelineFactory<wangle::AcceptPipeline>> factory) {
     pipeline_ = factory;
     return this;
   }
@@ -340,7 +336,7 @@ class ServerBootstrap {
 
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
-  std::shared_ptr<PipelineFactory<AcceptPipeline>> pipeline_{
+  std::shared_ptr<PipelineFactory<wangle::AcceptPipeline>> pipeline_{
     std::make_shared<DefaultAcceptPipelineFactory>()};
   std::shared_ptr<ServerSocketFactory> socketFactory_{
     std::make_shared<AsyncServerSocketFactory>()};

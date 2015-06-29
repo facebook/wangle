@@ -14,8 +14,7 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
 
   // Create a new routing pipeline for this connection to read from
   // the socket until it parses the routing data
-  folly::DefaultPipeline::UniquePtr routingPipeline(
-      new folly::DefaultPipeline);
+  DefaultPipeline::UniquePtr routingPipeline(new DefaultPipeline);
   routingPipeline->addBack(folly::wangle::AsyncSocketHandler(socket));
   routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();

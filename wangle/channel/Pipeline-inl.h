@@ -10,9 +10,14 @@
 
 #pragma once
 
+#include <folly/io/IOBufQueue.h>
 #include <glog/logging.h>
 
 namespace folly { namespace wangle {
+
+typedef Pipeline<void*> AcceptPipeline;
+typedef Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
+    DefaultPipeline;
 
 template <class R, class W>
 Pipeline<R, W>::Pipeline() : isStatic_(false) {}
