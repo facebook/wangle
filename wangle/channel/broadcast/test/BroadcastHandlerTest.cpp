@@ -10,7 +10,7 @@ class BroadcastHandlerTest : public Test {
   class MockBroadcastHandler : public BroadcastHandler<std::string> {
    public:
     MOCK_METHOD2(processRead, bool(folly::IOBufQueue&, std::string&));
-    MOCK_METHOD1(close, folly::Future<void>(Context*));
+    MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
   };
 
   void SetUp() override {

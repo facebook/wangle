@@ -37,13 +37,13 @@ class MockObservingHandler : public ObservingHandler<std::string> {
       : ObservingHandler<std::string>("", nullptr, nullptr) {}
 
   MOCK_METHOD2(write,
-               folly::Future<void>(Context*, std::shared_ptr<folly::IOBuf>));
-  MOCK_METHOD1(close, folly::Future<void>(Context*));
+               folly::Future<folly::Unit>(Context*, std::shared_ptr<folly::IOBuf>));
+  MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
   MOCK_METHOD0(newBroadcastPool,
                BroadcastPool<std::unique_ptr<folly::IOBuf>, std::string>*());
 
-  folly::Future<void> write(Context* ctx,
-                            std::unique_ptr<folly::IOBuf> buf) override {
+  folly::Future<folly::Unit>
+  write(Context* ctx, std::unique_ptr<folly::IOBuf> buf) override {
     std::shared_ptr<folly::IOBuf> sbuf(buf.release());
     return write(ctx, sbuf);
   }

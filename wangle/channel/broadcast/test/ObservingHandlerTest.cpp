@@ -250,7 +250,7 @@ TEST_F(ObservingHandlerTest, WriteError) {
   EXPECT_CALL(*observingHandler, write(_, _))
       .WillOnce(InvokeWithoutArgs([&] {
         // Inject write error
-        return makeFuture<void>(make_exception_wrapper<std::exception>());
+        return makeFuture<Unit>(make_exception_wrapper<std::exception>());
       }));
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
