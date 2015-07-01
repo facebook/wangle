@@ -29,8 +29,8 @@ class HandlerContext {
   virtual void fireTransportActive() = 0;
   virtual void fireTransportInactive() = 0;
 
-  virtual Future<void> fireWrite(Out msg) = 0;
-  virtual Future<void> fireClose() = 0;
+  virtual Future<Unit> fireWrite(Out msg) = 0;
+  virtual Future<Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
   std::shared_ptr<AsyncTransport> getTransport() {
@@ -82,8 +82,8 @@ class OutboundHandlerContext {
  public:
   virtual ~OutboundHandlerContext() {}
 
-  virtual Future<void> fireWrite(Out msg) = 0;
-  virtual Future<void> fireClose() = 0;
+  virtual Future<Unit> fireWrite(Out msg) = 0;
+  virtual Future<Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
   std::shared_ptr<AsyncTransport> getTransport() {

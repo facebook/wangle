@@ -282,7 +282,7 @@ class ConcreteHandler : public Handler<Rin, Rout, Win, Wout> {
   typedef typename Handler<Rin, Rout, Win, Wout>::Context Context;
  public:
   void read(Context* ctx, Rin msg) {}
-  Future<void> write(Context* ctx, Win msg) { return makeFuture(); }
+  Future<Unit> write(Context* ctx, Win msg) { return makeFuture(); }
 };
 
 typedef HandlerAdapter<std::string, std::string> StringHandler;

@@ -107,7 +107,7 @@ Pipeline<R, W>::readException(exception_wrapper e) {
 
 template <class R, class W>
 template <class T>
-typename std::enable_if<!std::is_same<T, Nothing>::value, Future<void>>::type
+typename std::enable_if<!std::is_same<T, Nothing>::value, Future<Unit>>::type
 Pipeline<R, W>::write(W msg) {
   if (!back_) {
     throw std::invalid_argument("write(): no outbound handler in Pipeline");
@@ -117,7 +117,7 @@ Pipeline<R, W>::write(W msg) {
 
 template <class R, class W>
 template <class T>
-typename std::enable_if<!std::is_same<T, Nothing>::value, Future<void>>::type
+typename std::enable_if<!std::is_same<T, Nothing>::value, Future<Unit>>::type
 Pipeline<R, W>::close() {
   if (!back_) {
     throw std::invalid_argument("close(): no outbound handler in Pipeline");

@@ -40,7 +40,7 @@ class BytesReflector
     : public BytesToBytesHandler {
  public:
 
-  Future<void> write(Context* ctx, std::unique_ptr<IOBuf> buf) {
+  Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf) {
     IOBufQueue q_(IOBufQueue::cacheChainLength());
     q_.append(std::move(buf));
     ctx->fireRead(q_);

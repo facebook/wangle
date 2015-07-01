@@ -47,8 +47,8 @@ template <class Out>
 class OutboundLink {
  public:
   virtual ~OutboundLink() {}
-  virtual Future<void> write(Out msg) = 0;
-  virtual Future<void> close() = 0;
+  virtual Future<Unit> write(Out msg) = 0;
+  virtual Future<Unit> close() = 0;
 };
 
 template <class P, class H, class Context>
@@ -178,7 +178,7 @@ class ContextImpl
     }
   }
 
-  Future<void> fireWrite(Wout msg) override {
+  Future<Unit> fireWrite(Wout msg) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
@@ -188,7 +188,7 @@ class ContextImpl
     }
   }
 
-  Future<void> fireClose() override {
+  Future<Unit> fireClose() override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->close();
@@ -247,12 +247,12 @@ class ContextImpl
   }
 
   // OutboundLink overrides
-  Future<void> write(Win msg) override {
+  Future<Unit> write(Win msg) override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
-  Future<void> close() override {
+  Future<Unit> close() override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->close(this);
   }
@@ -386,7 +386,7 @@ class OutboundContextImpl
   ~OutboundContextImpl() {}
 
   // OutboundHandlerContext overrides
-  Future<void> fireWrite(Wout msg) override {
+  Future<Unit> fireWrite(Wout msg) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
@@ -396,7 +396,7 @@ class OutboundContextImpl
     }
   }
 
-  Future<void> fireClose() override {
+  Future<Unit> fireClose() override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->close();
@@ -411,12 +411,12 @@ class OutboundContextImpl
   }
 
   // OutboundLink overrides
-  Future<void> write(Win msg) override {
+  Future<Unit> write(Win msg) override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
-  Future<void> close() override {
+  Future<Unit> close() override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->close(this);
   }

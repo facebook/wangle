@@ -50,7 +50,7 @@ class LengthFieldPrepender
     bool lengthIncludesLengthField = false,
     bool networkByteOrder = true);
 
-  Future<void> write(Context* ctx, std::unique_ptr<IOBuf> buf);
+  Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf);
 
  private:
   int lengthFieldLength_;

@@ -97,11 +97,11 @@ class Pipeline : public PipelineBase, public DelayedDestruction {
   transportInactive();
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, Nothing>::value, Future<void>>::type
+  typename std::enable_if<!std::is_same<T, Nothing>::value, Future<Unit>>::type
   write(W msg);
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, Nothing>::value, Future<void>>::type
+  typename std::enable_if<!std::is_same<T, Nothing>::value, Future<Unit>>::type
   close();
 
   template <class H>

@@ -62,8 +62,8 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
   }
 
  private:
-  Future<void> idleTimeout_;
-  Future<void> maxTimeout_;
+  Future<Unit> idleTimeout_;
+  Future<Unit> maxTimeout_;
   std::chrono::milliseconds idleTimeoutTime_{0};
   std::chrono::milliseconds maxTime_{0};
   Timekeeper* timekeeper_;

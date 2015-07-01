@@ -33,7 +33,7 @@ class CloseOnReleaseFilter : public ServiceFilter<Req, Resp> {
     }
   }
 
-  Future<void> close() override {
+  Future<Unit> close() override {
     if (!released.exchange(true)) {
       return this->service_->close();
     } else {

@@ -65,8 +65,8 @@ class Handler : public HandlerBase<HandlerContext<Rout, Wout>> {
     ctx->fireTransportInactive();
   }
 
-  virtual Future<void> write(Context* ctx, Win msg) = 0;
-  virtual Future<void> close(Context* ctx) {
+  virtual Future<Unit> write(Context* ctx, Win msg) = 0;
+  virtual Future<Unit> close(Context* ctx) {
     return ctx->fireClose();
   }
 
@@ -83,15 +83,15 @@ class Handler : public HandlerBase<HandlerContext<Rout, Wout>> {
   virtual void channelWritabilityChanged(HandlerContext* ctx) {}
 
   // outbound
-  virtual Future<void> bind(
+  virtual Future<Unit> bind(
       HandlerContext* ctx,
       SocketAddress localAddress) {}
-  virtual Future<void> connect(
+  virtual Future<Unit> connect(
           HandlerContext* ctx,
           SocketAddress remoteAddress, SocketAddress localAddress) {}
-  virtual Future<void> disconnect(HandlerContext* ctx) {}
-  virtual Future<void> deregister(HandlerContext* ctx) {}
-  virtual Future<void> read(HandlerContext* ctx) {}
+  virtual Future<Unit> disconnect(HandlerContext* ctx) {}
+  virtual Future<Unit> deregister(HandlerContext* ctx) {}
+  virtual Future<Unit> read(HandlerContext* ctx) {}
   virtual void flush(HandlerContext* ctx) {}
   */
 };
@@ -135,8 +135,8 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext<Wout>> {
   typedef OutboundHandlerContext<Wout> Context;
   virtual ~OutboundHandler() {}
 
-  virtual Future<void> write(Context* ctx, Win msg) = 0;
-  virtual Future<void> close(Context* ctx) {
+  virtual Future<Unit> write(Context* ctx, Win msg) = 0;
+  virtual Future<Unit> close(Context* ctx) {
     return ctx->fireClose();
   }
 };
@@ -150,7 +150,7 @@ class HandlerAdapter : public Handler<R, R, W, W> {
     ctx->fireRead(std::forward<R>(msg));
   }
 
-  Future<void> write(Context* ctx, W msg) override {
+  Future<Unit> write(Context* ctx, W msg) override {
     return ctx->fireWrite(std::forward<W>(msg));
   }
 };

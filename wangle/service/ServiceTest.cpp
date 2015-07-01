@@ -253,20 +253,20 @@ TEST(ServiceFilter, CloseOnRelease) {
 
 class TimekeeperTester : public Timekeeper {
  public:
-  virtual Future<void> after(Duration dur) {
-    Promise<void> p;
+  virtual Future<Unit> after(Duration dur) {
+    Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));
     return std::move(f);
   }
   template <class Clock>
-  Future<void> at(std::chrono::time_point<Clock> when) {
-    Promise<void> p;
+  Future<Unit> at(std::chrono::time_point<Clock> when) {
+    Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));
     return std::move(f);
   }
-  std::vector<Promise<void>> promises_;
+  std::vector<Promise<Unit>> promises_;
 };
 
 TEST(ServiceFilter, ExpiringMax) {
