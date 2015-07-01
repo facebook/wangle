@@ -9,8 +9,8 @@
  */
 
 #include <folly/Benchmark.h>
-#include <wangle/rx/Observer.h>
-#include <wangle/rx/Subject.h>
+#include <wangle/deprecated/rx/Observer.h>
+#include <wangle/deprecated/rx/Subject.h>
 #include <gflags/gflags.h>
 
 using namespace folly::wangle;

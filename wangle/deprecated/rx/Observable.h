@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include <wangle/rx/types.h> // must come first
-#include <wangle/rx/Subject.h>
-#include <wangle/rx/Subscription.h>
+#include <wangle/deprecated/rx/types.h> // must come first
+#include <wangle/deprecated/rx/Subject.h>
+#include <wangle/deprecated/rx/Subscription.h>
 
 #include <folly/RWSpinLock.h>
 #include <folly/SmallLocks.h>

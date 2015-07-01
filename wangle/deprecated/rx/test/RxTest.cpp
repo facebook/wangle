@@ -8,8 +8,8 @@
  *
  */
 
-#include <wangle/rx/Observer.h>
-#include <wangle/rx/Subject.h>
+#include <wangle/deprecated/rx/Observer.h>
+#include <wangle/deprecated/rx/Subject.h>
 #include <gtest/gtest.h>
 
 using namespace folly::wangle;

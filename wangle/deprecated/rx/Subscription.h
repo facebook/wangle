@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <wangle/rx/types.h> // must come first
-#include <wangle/rx/Observable.h>
+#include <wangle/deprecated/rx/types.h> // must come first
+#include <wangle/deprecated/rx/Observable.h>
 
 namespace folly { namespace wangle {
 

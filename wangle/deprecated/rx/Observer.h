@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <wangle/rx/types.h> // must come first
+#include <wangle/deprecated/rx/types.h> // must come first
 #include <functional>
 #include <memory>
 #include <stdexcept>

@@ -12,7 +12,7 @@
 #include <folly/Executor.h>
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/NamedThreadFactory.h>
-#include <wangle/rx/Observable.h>
+#include <wangle/deprecated/rx/Observable.h>
 #include <folly/Baton.h>
 #include <folly/Memory.h>
 #include <folly/RWSpinLock.h>

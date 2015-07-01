@@ -19,11 +19,6 @@ The RxJava wiki: https://github.com/Netflix/RxJava/wiki
 Netflix QCon presentation: http://www.infoq.com/presentations/netflix-functional-rx
 https://rx.codeplex.com/
 
-There are open source C++ implementations, I haven't looked at them. They
-might be the best way to go rather than writing it NIH-style. I mostly did it
-as an exercise, to think through how closely we might want to integrate
-something like this with Wangle, and to get a feel for how it works in C++.
-
 I haven't even tried to support move-only data in this version. I'm on the
 fence about the usage of shared_ptr. Subject is underdeveloped. A whole rich
 set of operations is obviously missing. I haven't decided how to handle
@@ -34,3 +29,9 @@ probably riddled with lifetime corner case bugs that will come out like a
 swarm of angry bees as soon as someone tries an infinite sequence, or tries to
 partially observe a long sequence. I'm pretty sure subscribeOn has a bug that
 I haven't tracked down yet.
+
+DEPRECATED:
+This was an experimental exploration. There are better, more robust, and (most
+importantly) supported C++ implementations, notably
+[rxcpp](https://rxcpp.codeplex.com/). Use that instead. You really shouldn't
+use this one. It's unsupported and incomplete. Honest.
