@@ -55,12 +55,13 @@ class ObservingHandler : public BytesToBytesHandler,
    */
   void resume() noexcept { paused_ = false; }
 
- private:
+ protected:
   /**
    * Unsubscribe from the broadcast and close the handler.
    */
   void closeHandler();
 
+ private:
   /**
    * Lazily initialize and return a thread-local BroadcastPool.
    */
@@ -98,14 +99,15 @@ class ObservingPipelineFactory
       const R& routingData) override {
     DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(socket));
-    pipeline->addBack(
-        ObservingHandler<R>(routingData, broadcastHandlerFactory_));
+    auto handler = std::make_shared<ObservingHandler<R>>(
+        routingData, serverPool_, broadcastHandlerFactory_);
+    pipeline->addBack(handler);
     pipeline->finalize();
 
     return pipeline;
   }
 
- private:
+ protected:
   std::shared_ptr<ServerPool> serverPool_;
   std::shared_ptr<BroadcastHandlerFactory<std::unique_ptr<folly::IOBuf>>>
       broadcastHandlerFactory_;
