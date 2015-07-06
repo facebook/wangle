@@ -109,7 +109,7 @@ TEST(Wangle, ClientServerTest) {
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
     std::make_shared<ServerPipelineFactory<std::string, std::string>>());
-  server.bind(port);
+  server.bind(port, true); // reuse port so that concurrent runs don't fail
 
   // client
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();

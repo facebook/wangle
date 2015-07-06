@@ -182,8 +182,8 @@ class ServerBootstrap {
     sockets_->push_back(socket);
   }
 
-  void bind(folly::SocketAddress& address) {
-    bindImpl(-1, address);
+  void bind(folly::SocketAddress& address, bool reusePort = false) {
+    bindImpl(-1, address, reusePort);
   }
 
   /*
@@ -192,18 +192,20 @@ class ServerBootstrap {
    *
    * @param port Port to listen on
    */
-  void bind(int port) {
+  void bind(int port, bool reusePort = false) {
     CHECK(port >= 0);
     folly::SocketAddress address;
-    bindImpl(port, address);
+    bindImpl(port, address, reusePort);
   }
 
-  void bindImpl(int port, folly::SocketAddress& address) {
+  void bindImpl(
+      int port,
+      folly::SocketAddress& address,
+      bool reusePort = false) {
     if (!workerFactory_) {
       group(nullptr);
     }
 
-    bool reusePort = false;
     if (acceptor_group_->numThreads() > 1) {
       reusePort = true;
     }
