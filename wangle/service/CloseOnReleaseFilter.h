@@ -18,7 +18,7 @@ namespace folly { namespace wangle {
  * A service that rejects all requests after its 'close' method has
  * been invoked.
  */
-template <typename Req, typename Resp>
+template <typename Req, typename Resp = Req>
 class CloseOnReleaseFilter : public ServiceFilter<Req, Resp> {
  public:
   explicit CloseOnReleaseFilter(std::shared_ptr<Service<Req, Resp>> service)

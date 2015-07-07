@@ -6,7 +6,8 @@ namespace folly { namespace wangle {
  * amount of idle time, or after a maximum amount of time total.
  * Idle timeout is cancelled when any requests are outstanding.
  */
-template <typename Req, typename Resp>
+
+template <typename Req, typename Resp = Req>
 class ExpiringFilter : public ServiceFilter<Req, Resp> {
  public:
   explicit ExpiringFilter(std::shared_ptr<Service<Req, Resp>> service,
