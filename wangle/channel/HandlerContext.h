@@ -91,6 +91,16 @@ class OutboundHandlerContext {
   }
 };
 
+// #include <windows.h> has blessed us with #define IN & OUT, typically mapped
+// to nothing, so letting the preprocessor delete each of these symbols, leading
+// to interesting compiler errors around HandlerDir.
+#ifdef IN
+#  undef IN
+#endif
+#ifdef OUT
+#  undef OUT
+#endif
+
 enum class HandlerDir {
   IN,
   OUT,
