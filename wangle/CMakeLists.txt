@@ -7,7 +7,7 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x")
+set(CMAKE_CXX_FLAGS "-std=c++0x -fPIC")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -19,7 +19,7 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(OpenSSL REQUIRED)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/..
   ${FOLLY_INCLUDE_DIR}
   ${INCLUDE_DIR}
 )
@@ -30,7 +30,7 @@ set(WANGLE_HEADER_DIRS
   channel
   codec
   concurrent
-  rx
+  deprecated
   service
   ssl
 )
@@ -50,6 +50,7 @@ set(WANGLE_SOURCES
   acceptor/SocketOptions.cpp
   acceptor/TransportInfo.cpp
   bootstrap/ServerBootstrap.cpp
+  channel/Pipeline.cpp
   codec/ByteToMessageCodec.cpp
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
@@ -59,7 +60,7 @@ set(WANGLE_SOURCES
   concurrent/GlobalExecutor.cpp
   concurrent/IOThreadPoolExecutor.cpp
   concurrent/ThreadPoolExecutor.cpp
-  rx/Dummy.cpp
+  deprecated/rx/Dummy.cpp
   ssl/PasswordInFile.cpp
   ssl/SSLContextManager.cpp
   ssl/SSLSessionCacheManager.cpp
