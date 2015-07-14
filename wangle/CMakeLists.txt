@@ -21,6 +21,7 @@ find_package(OpenSSL REQUIRED)
 include_directories(
   ${CMAKE_SOURCE_DIR}
   ${FOLLY_INCLUDE_DIR}
+  ${INCLUDE_DIR}
 )
 
 set(WANGLE_HEADER_DIRS
