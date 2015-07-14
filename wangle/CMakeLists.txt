@@ -50,7 +50,6 @@ set(WANGLE_SOURCES
   acceptor/SocketOptions.cpp
   acceptor/TransportInfo.cpp
   bootstrap/ServerBootstrap.cpp
-  channel/Pipeline.cpp
   codec/ByteToMessageCodec.cpp
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
@@ -139,7 +138,7 @@ if(BUILD_TESTS)
   add_gtest(concurrent/test/CodelTest.cpp CodelTest)
   add_gtest(concurrent/test/GlobalExecutorTest.cpp GlobalExecutorTest)
   add_gtest(concurrent/test/ThreadPoolExecutorTest ThreadPoolExecutorTest)
-  add_gtest(rx/test/RxTest.cpp RxTest)
+  add_gtest(deprecated/rx/test/RxTest.cpp RxTest)
   # this test fails with an exception
   add_gtest(service/ServiceTest.cpp ServiceTest)
   # this test requires arguments?
