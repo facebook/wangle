@@ -104,6 +104,10 @@ std::shared_ptr<IOExecutor> getIOExecutor() {
       globalIOExecutorLock);
 }
 
+EventBase* getEventBase() {
+  return getIOExecutor()->getEventBase();
+}
+
 void setIOExecutor(std::shared_ptr<IOExecutor> executor) {
   setExecutor(
       std::move(executor),

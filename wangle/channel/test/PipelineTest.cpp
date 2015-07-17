@@ -14,7 +14,6 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/OutputBufferingHandler.h>
 #include <wangle/channel/test/MockHandler.h>
-#include <folly/io/async/test/SocketPair.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -67,27 +66,6 @@ TEST(PipelineTest, RealHandlersCompile) {
       .finalize();
     EXPECT_TRUE(pipeline.getHandler<AsyncSocketHandler>(0));
     EXPECT_TRUE(pipeline.getHandler<OutputBufferingHandler>(1));
-  }
-}
-
-// Test active/inactive AsyncSocketHandler
-TEST(PipelineTest, ActiveInactive) {
-  SocketPair p(SocketPair::NONBLOCKING);
-  EventBase base;
-  auto socket = AsyncSocket::newSocket(&base, p.extractFD0());
-  auto socket2 = AsyncSocket::newSocket(&base, p.extractFD1());
-  // static
-  {
-    StaticPipeline<IOBufQueue&, std::unique_ptr<IOBuf>,
-                   AsyncSocketHandler>
-    pipeline{AsyncSocketHandler(socket)};
-    pipeline.finalize();
-    EXPECT_TRUE(pipeline.getHandler<AsyncSocketHandler>(0));
-    EXPECT_TRUE(socket->getReadCallback() == nullptr);
-    pipeline.transportActive();
-    EXPECT_TRUE(socket->getReadCallback() != nullptr);
-    pipeline.transportInactive();
-    EXPECT_TRUE(socket->getReadCallback() == nullptr);
   }
 }
 
@@ -281,8 +259,8 @@ template <class Rin, class Rout = Rin, class Win = Rout, class Wout = Rin>
 class ConcreteHandler : public Handler<Rin, Rout, Win, Wout> {
   typedef typename Handler<Rin, Rout, Win, Wout>::Context Context;
  public:
-  void read(Context* ctx, Rin msg) {}
-  Future<Unit> write(Context* ctx, Win msg) { return makeFuture(); }
+  void read(Context* ctx, Rin msg) override {}
+  Future<Unit> write(Context* ctx, Win msg) override { return makeFuture(); }
 };
 
 typedef HandlerAdapter<std::string, std::string> StringHandler;
@@ -319,4 +297,89 @@ TEST(Pipeline, DynamicConstruction) {
         .addBack(IntToStringHandler{})
         .finalize());
   }
+}
+
+TEST(Pipeline, RemovePointer) {
+  IntHandler handler1, handler2;
+  EXPECT_CALL(handler1, attachPipeline(_));
+  EXPECT_CALL(handler2, attachPipeline(_));
+  Pipeline<int, int> pipeline;
+  pipeline
+    .addBack(&handler1)
+    .addBack(&handler2)
+    .finalize();
+
+  EXPECT_CALL(handler1, detachPipeline(_));
+  pipeline
+    .remove(&handler1)
+    .finalize();
+
+  EXPECT_CALL(handler2, read_(_, _));
+  pipeline.read(1);
+
+  EXPECT_CALL(handler2, detachPipeline(_));
+}
+
+TEST(Pipeline, RemoveFront) {
+  IntHandler handler1, handler2;
+  EXPECT_CALL(handler1, attachPipeline(_));
+  EXPECT_CALL(handler2, attachPipeline(_));
+  Pipeline<int, int> pipeline;
+  pipeline
+    .addBack(&handler1)
+    .addBack(&handler2)
+    .finalize();
+
+  EXPECT_CALL(handler1, detachPipeline(_));
+  pipeline
+    .removeFront()
+    .finalize();
+
+  EXPECT_CALL(handler2, read_(_, _));
+  pipeline.read(1);
+
+  EXPECT_CALL(handler2, detachPipeline(_));
+}
+
+TEST(Pipeline, RemoveBack) {
+  IntHandler handler1, handler2;
+  EXPECT_CALL(handler1, attachPipeline(_));
+  EXPECT_CALL(handler2, attachPipeline(_));
+  Pipeline<int, int> pipeline;
+  pipeline
+    .addBack(&handler1)
+    .addBack(&handler2)
+    .finalize();
+
+  EXPECT_CALL(handler2, detachPipeline(_));
+  pipeline
+    .removeBack()
+    .finalize();
+
+  EXPECT_CALL(handler1, read_(_, _));
+  pipeline.read(1);
+
+  EXPECT_CALL(handler1, detachPipeline(_));
+}
+
+TEST(Pipeline, RemoveType) {
+  IntHandler handler1;
+  IntHandler2 handler2;
+  EXPECT_CALL(handler1, attachPipeline(_));
+  EXPECT_CALL(handler2, attachPipeline(_));
+  Pipeline<int, int> pipeline;
+  pipeline
+    .addBack(&handler1)
+    .addBack(&handler2)
+    .finalize();
+
+  EXPECT_CALL(handler1, detachPipeline(_));
+  pipeline
+    .remove<IntHandler>()
+    .finalize();
+
+  EXPECT_CALL(handler2, read_(_, _));
+  pipeline.read(1);
+
+  EXPECT_CALL(handler2, detachPipeline(_));
 }

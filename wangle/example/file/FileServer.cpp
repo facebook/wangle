@@ -10,11 +10,11 @@
 
 #include <gflags/gflags.h>
 
-#include <folly/wangle/bootstrap/ServerBootstrap.h>
-#include <folly/wangle/channel/AsyncSocketHandler.h>
-#include <folly/wangle/channel/FileRegion.h>
-#include <folly/wangle/codec/LineBasedFrameDecoder.h>
-#include <folly/wangle/codec/StringCodec.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/channel/AsyncSocketHandler.h>
+#include <wangle/channel/FileRegion.h>
+#include <wangle/codec/LineBasedFrameDecoder.h>
+#include <wangle/codec/StringCodec.h>
 #include <sys/sendfile.h>
 
 using namespace folly;

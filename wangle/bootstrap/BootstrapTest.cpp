@@ -26,31 +26,25 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  explicit TestClientPipelineFactory(bool shouldSucceed = true)
-      : shouldSucceed_(shouldSucceed) {}
-  BytesPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
+  newPipeline(std::shared_ptr<AsyncSocket> sock) override {
     // We probably aren't connected immedately, check after a small delay
-    EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock,this](){
-        if (shouldSucceed_) {
-          EXPECT_TRUE(sock->good());
-          EXPECT_TRUE(sock->readable());
-        } else {
-          EXPECT_FALSE(sock->good());
-          EXPECT_FALSE(sock->readable());
-        }
+    EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
+      CHECK(sock->good());
+      CHECK(sock->readable());
     }, 100);
     return nullptr;
   }
-
- private:
-  bool shouldSucceed_;
 };
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  BytesPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
+  newPipeline(std::shared_ptr<AsyncSocket> sock) override {
+
     pipelines++;
-    return BytesPipeline::UniquePtr(new BytesPipeline);
+    return std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>(
+      new BytesPipeline());
   }
   std::atomic<int> pipelines{0};
 };
@@ -61,17 +55,15 @@ EventBase base_;
   TestAcceptor() : Acceptor(ServerSocketConfig()) {
     Acceptor::init(nullptr, &base_);
   }
-  void onNewConnection(
-      AsyncSocket::UniquePtr sock,
-      const folly::SocketAddress* address,
-      const std::string& nextProtocolName,
-        const TransportInfo& tinfo) {
-  }
+  void onNewConnection(AsyncSocket::UniquePtr sock,
+                       const folly::SocketAddress* address,
+                       const std::string& nextProtocolName,
+                       const TransportInfo& tinfo) override {}
 };
 
 class TestAcceptorFactory : public AcceptorFactory {
  public:
-  std::shared_ptr<Acceptor> newAcceptor(EventBase* base) {
+  std::shared_ptr<Acceptor> newAcceptor(EventBase* base) override {
     return std::make_shared<TestAcceptor>();
   }
 };
@@ -112,21 +104,6 @@ TEST(Bootstrap, ClientServerTest) {
   server.stop();
 
   CHECK(factory->pipelines == 1);
-}
-
-TEST(Bootstrap, ClientCancelTest) {
-  auto base = EventBaseManager::get()->getEventBase();
-  auto serverSocket = AsyncServerSocket::newSocket(base);
-  serverSocket->bind(0);
-
-  SocketAddress address;
-  serverSocket->getAddress(&address);
-
-  TestClient client;
-  client.pipelineFactory(std::make_shared<TestClientPipelineFactory>(false));
-  auto connectFuture = client.connect(address);
-  connectFuture.cancel();
-  base->loop();
 }
 
 TEST(Bootstrap, ClientConnectionManagerTest) {
@@ -287,7 +264,7 @@ std::atomic<int> connections{0};
 
 class TestHandlerPipeline : public InboundHandler<void*> {
  public:
-  void read(Context* ctx, void* conn) {
+  void read(Context* ctx, void* conn) override {
     connections++;
     return ctx->fireRead(conn);
   }
@@ -295,10 +272,15 @@ class TestHandlerPipeline : public InboundHandler<void*> {
 
 template <typename HandlerPipeline>
 class TestHandlerPipelineFactory
-    : public PipelineFactory<AcceptPipeline> {
+    : public PipelineFactory<ServerBootstrap<BytesPipeline>::AcceptPipeline> {
  public:
-  AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket>) {
-    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
+  std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
+                  folly::DelayedDestruction::Destructor>
+      newPipeline(std::shared_ptr<AsyncSocket>) override {
+
+    std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
+                    folly::DelayedDestruction::Destructor> pipeline(
+                      new ServerBootstrap<BytesPipeline>::AcceptPipeline);
     pipeline->addBack(HandlerPipeline());
     return pipeline;
   }
@@ -330,9 +312,7 @@ TEST(Bootstrap, LoadBalanceHandler) {
 
 class TestUDPPipeline : public InboundHandler<void*> {
  public:
-  void read(Context* ctx, void* conn) {
-    connections++;
-  }
+  void read(Context* ctx, void* conn) override { connections++; }
 };
 
 TEST(Bootstrap, UDP) {

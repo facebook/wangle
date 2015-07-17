@@ -28,7 +28,7 @@ template <typename Req, typename Resp = Req>
 class Service {
  public:
   virtual Future<Resp> operator()(Req request) = 0;
-  virtual ~Service() {}
+  virtual ~Service() = default;
   virtual Future<Unit> close() {
     return makeFuture();
   }
@@ -62,7 +62,7 @@ class ServiceFilter : public Service<ReqA, RespA> {
   public:
   explicit ServiceFilter(std::shared_ptr<Service<ReqB, RespB>> service)
       : service_(service) {}
-  virtual ~ServiceFilter() {}
+  virtual ~ServiceFilter() = default;
 
   virtual Future<Unit> close() override {
     return service_->close();
@@ -127,7 +127,7 @@ class FactoryToService : public Service<Req, Resp> {
   explicit FactoryToService(
     std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
       : factory_(factory) {}
-  virtual ~FactoryToService() {}
+  virtual ~FactoryToService() = default;
 
   virtual Future<Resp> operator()(Req request) override {
     DCHECK(factory_);

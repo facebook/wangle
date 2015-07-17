@@ -25,15 +25,18 @@ class ServerAcceptor
     : public Acceptor
     , public folly::wangle::InboundHandler<void*> {
  public:
+  typedef std::unique_ptr<Pipeline,
+                          folly::DelayedDestruction::Destructor> PipelinePtr;
+
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
    public:
-    explicit ServerConnection(typename Pipeline::UniquePtr pipeline)
+    explicit ServerConnection(PipelinePtr pipeline)
         : pipeline_(std::move(pipeline)) {
       pipeline_->setPipelineManager(this);
     }
 
-    ~ServerConnection() {}
+    ~ServerConnection() = default;
 
     void timeoutExpired() noexcept override {
     }
@@ -55,7 +58,7 @@ class ServerAcceptor
     }
 
    private:
-    typename Pipeline::UniquePtr pipeline_;
+    PipelinePtr pipeline_;
   };
 
   explicit ServerAcceptor(
@@ -75,16 +78,15 @@ class ServerAcceptor
 
   void read(Context* ctx, void* conn) {
     AsyncSocket::UniquePtr transport((AsyncSocket*)conn);
-    typename Pipeline::UniquePtr pipeline(
-        childPipelineFactory_->newPipeline(std::shared_ptr<AsyncSocket>(
-            transport.release(), folly::DelayedDestruction::Destructor())));
-    auto pipelinePtr = pipeline.get();
-    folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
-
+      std::unique_ptr<Pipeline,
+                       folly::DelayedDestruction::Destructor>
+      pipeline(childPipelineFactory_->newPipeline(
+        std::shared_ptr<AsyncSocket>(
+          transport.release(),
+          folly::DelayedDestruction::Destructor())));
+    pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
-
-    pipelinePtr->transportActive();
   }
 
   /* See Acceptor::onNewConnection for details */

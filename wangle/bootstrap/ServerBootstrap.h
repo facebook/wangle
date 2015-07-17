@@ -39,13 +39,14 @@ class ServerBootstrap {
   ServerBootstrap(const ServerBootstrap& that) = delete;
   ServerBootstrap(ServerBootstrap&& that) = default;
 
-  ServerBootstrap() {}
+  ServerBootstrap() = default;
 
   ~ServerBootstrap() {
     stop();
     join();
   }
 
+  typedef wangle::Pipeline<void*> AcceptPipeline;
   /*
    * Pipeline used to add connections to event bases.
    * This is used for UDP or for load balancing
@@ -182,8 +183,8 @@ class ServerBootstrap {
     sockets_->push_back(socket);
   }
 
-  void bind(folly::SocketAddress& address, bool reusePort = false) {
-    bindImpl(-1, address, reusePort);
+  void bind(folly::SocketAddress& address) {
+    bindImpl(-1, address);
   }
 
   /*
@@ -192,20 +193,18 @@ class ServerBootstrap {
    *
    * @param port Port to listen on
    */
-  void bind(int port, bool reusePort = false) {
+  void bind(int port) {
     CHECK(port >= 0);
     folly::SocketAddress address;
-    bindImpl(port, address, reusePort);
+    bindImpl(port, address);
   }
 
-  void bindImpl(
-      int port,
-      folly::SocketAddress& address,
-      bool reusePort = false) {
+  void bindImpl(int port, folly::SocketAddress& address) {
     if (!workerFactory_) {
       group(nullptr);
     }
 
+    bool reusePort = false;
     if (acceptor_group_->numThreads() > 1) {
       reusePort = true;
     }

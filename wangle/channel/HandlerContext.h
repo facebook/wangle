@@ -21,7 +21,7 @@ class PipelineBase;
 template <class In, class Out>
 class HandlerContext {
  public:
-  virtual ~HandlerContext() {}
+  virtual ~HandlerContext() = default;
 
   virtual void fireRead(In msg) = 0;
   virtual void fireReadEOF() = 0;
@@ -59,7 +59,7 @@ class HandlerContext {
 template <class In>
 class InboundHandlerContext {
  public:
-  virtual ~InboundHandlerContext() {}
+  virtual ~InboundHandlerContext() = default;
 
   virtual void fireRead(In msg) = 0;
   virtual void fireReadEOF() = 0;
@@ -80,7 +80,7 @@ class InboundHandlerContext {
 template <class Out>
 class OutboundHandlerContext {
  public:
-  virtual ~OutboundHandlerContext() {}
+  virtual ~OutboundHandlerContext() = default;
 
   virtual Future<Unit> fireWrite(Out msg) = 0;
   virtual Future<Unit> fireClose() = 0;
