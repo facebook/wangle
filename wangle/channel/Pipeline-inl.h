@@ -146,7 +146,7 @@ inline void logWarningIfNotUnit(const std::string& warning) {
 }
 
 template <>
-inline void logWarningIfNotUnit<Unit>(const std::string& warning) {
+inline void logWarningIfNotUnit<Unit>(const std::string& /*warning*/) {
   // do nothing
 }
 

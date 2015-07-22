@@ -226,15 +226,15 @@ class Acceptor :
    *                            or an empty string if unknown
    */
   virtual void onNewConnection(
-      AsyncSocket::UniquePtr sock,
-      const folly::SocketAddress* address,
-      const std::string& nextProtocolName,
-      const TransportInfo& tinfo) {}
+      AsyncSocket::UniquePtr /*sock*/,
+      const folly::SocketAddress* /*address*/,
+      const std::string& /*nextProtocolName*/,
+      const TransportInfo& /*tinfo*/) {}
 
   void onListenStarted() noexcept {}
   void onListenStopped() noexcept {}
   void onDataAvailable(
-    std::shared_ptr<AsyncUDPSocket> socket,
+    std::shared_ptr<AsyncUDPSocket> /*socket*/,
     const SocketAddress&,
     std::unique_ptr<IOBuf>, bool) noexcept {}
 
@@ -251,9 +251,9 @@ class Acceptor :
    * Hook for subclasses to record stats about SSL connection establishment.
    */
   virtual void updateSSLStats(
-      const AsyncSSLSocket* sock,
-      std::chrono::milliseconds acceptLatency,
-      SSLErrorEnum error) noexcept {}
+      const AsyncSSLSocket* /*sock*/,
+      std::chrono::milliseconds /*acceptLatency*/,
+      SSLErrorEnum /*error*/) noexcept {}
 
  protected:
 
@@ -275,8 +275,8 @@ class Acceptor :
 
   // ConnectionManager::Callback methods
   void onEmpty(const folly::wangle::ConnectionManager& cm);
-  void onConnectionAdded(const folly::wangle::ConnectionManager& cm) {}
-  void onConnectionRemoved(const folly::wangle::ConnectionManager& cm) {}
+  void onConnectionAdded(const folly::wangle::ConnectionManager& /*cm*/) {}
+  void onConnectionRemoved(const folly::wangle::ConnectionManager& /*cm*/) {}
 
   /**
    * Process a connection that is to ready to receive L7 traffic.

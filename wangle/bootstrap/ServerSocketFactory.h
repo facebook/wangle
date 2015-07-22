@@ -34,7 +34,7 @@ class ServerSocketFactory {
 class AsyncServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<AsyncSocketBase> newSocket(
-      int port, SocketAddress address, int backlog, bool reuse,
+      int port, SocketAddress address, int /*backlog*/, bool reuse,
       ServerSocketConfig& config) {
 
     auto socket = folly::AsyncServerSocket::newSocket();
@@ -78,8 +78,8 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
 class AsyncUDPServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<AsyncSocketBase> newSocket(
-      int port, SocketAddress address, int backlog, bool reuse,
-      ServerSocketConfig& config) {
+      int port, SocketAddress address, int /*backlog*/, bool reuse,
+      ServerSocketConfig& /*config*/) {
 
     auto socket = std::make_shared<AsyncUDPServerSocket>(
       EventBaseManager::get()->getEventBase());
@@ -102,8 +102,8 @@ class AsyncUDPServerSocketFactory : public ServerSocketFactory {
     socket->close();
   }
 
-  virtual void removeAcceptCB(std::shared_ptr<AsyncSocketBase> s,
-                              Acceptor *callback, EventBase* base) {
+  virtual void removeAcceptCB(std::shared_ptr<AsyncSocketBase> /*s*/,
+                              Acceptor* /*callback*/, EventBase* /*base*/) {
   }
 
   virtual void addAcceptCB(std::shared_ptr<AsyncSocketBase> s,

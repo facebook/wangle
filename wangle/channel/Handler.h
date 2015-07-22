@@ -22,8 +22,8 @@ class HandlerBase {
  public:
   virtual ~HandlerBase() = default;
 
-  virtual void attachPipeline(Context* ctx) {}
-  virtual void detachPipeline(Context* ctx) {}
+  virtual void attachPipeline(Context* /*ctx*/) {}
+  virtual void detachPipeline(Context* /*ctx*/) {}
 
   Context* getContext() {
     if (attachCount_ != 1) {
