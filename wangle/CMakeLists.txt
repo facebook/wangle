@@ -50,7 +50,6 @@ set(WANGLE_SOURCES
   acceptor/SocketOptions.cpp
   acceptor/TransportInfo.cpp
   bootstrap/ServerBootstrap.cpp
-  channel/Pipeline.cpp
   codec/ByteToMessageCodec.cpp
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
