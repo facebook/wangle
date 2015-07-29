@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <wangle/codec/StringCodec.h>
-#include <wangle/codec/ByteToMessageCodec.h>
+#include <wangle/codec/ByteToMessageDecoder.h>
 #include <wangle/service/ClientDispatcher.h>
 #include <wangle/service/ServerDispatcher.h>
 #include <wangle/service/Service.h>
@@ -24,12 +24,14 @@ using namespace wangle;
 
 typedef Pipeline<IOBufQueue&, std::string> ServicePipeline;
 
-class SimpleDecode : public ByteToMessageCodec {
+class SimpleDecode : public ByteToByteDecoder {
  public:
-  std::unique_ptr<IOBuf> decode(Context* ctx,
-                                IOBufQueue& buf,
-                                size_t&) override {
-    return buf.move();
+  bool decode(Context* ctx,
+              IOBufQueue& buf,
+              std::unique_ptr<IOBuf>& result,
+              size_t&) override {
+    result = buf.move();
+    return result != nullptr;
   }
 };
 

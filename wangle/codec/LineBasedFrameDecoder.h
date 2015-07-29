@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <wangle/codec/ByteToMessageCodec.h>
 #include <folly/io/Cursor.h>
+#include <wangle/codec/ByteToMessageDecoder.h>
 
 namespace folly { namespace wangle {
 
@@ -21,7 +21,7 @@ namespace folly { namespace wangle {
  * Both "\n" and "\r\n" are handled, or optionally reqire only
  * one or the other.
  */
-class LineBasedFrameDecoder : public ByteToMessageCodec {
+class LineBasedFrameDecoder : public ByteToByteDecoder {
  public:
   enum class TerminatorType {
     BOTH,
@@ -29,12 +29,15 @@ class LineBasedFrameDecoder : public ByteToMessageCodec {
     CARRIAGENEWLINE
   };
 
-  LineBasedFrameDecoder(uint32_t maxLength = UINT_MAX,
-                        bool stripDelimiter = true,
-                        TerminatorType terminatorType =
-                        TerminatorType::BOTH);
+  explicit LineBasedFrameDecoder(
+      uint32_t maxLength = UINT_MAX,
+      bool stripDelimiter = true,
+      TerminatorType terminatorType = TerminatorType::BOTH);
 
-  std::unique_ptr<IOBuf> decode(Context* ctx, IOBufQueue& buf, size_t&);
+  bool decode(Context* ctx,
+              IOBufQueue& buf,
+              std::unique_ptr<IOBuf>& result,
+              size_t&) override;
 
  private:
 

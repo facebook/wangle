@@ -21,8 +21,10 @@ LineBasedFrameDecoder::LineBasedFrameDecoder(uint32_t maxLength,
     , stripDelimiter_(stripDelimiter)
     , terminatorType_(terminatorType) {}
 
-std::unique_ptr<IOBuf> LineBasedFrameDecoder::decode(
-  Context* ctx, IOBufQueue& buf, size_t&) {
+bool LineBasedFrameDecoder::decode(Context* ctx,
+                                   IOBufQueue& buf,
+                                   std::unique_ptr<IOBuf>& result,
+                                   size_t&) {
   int64_t eol = findEndOfLine(buf);
 
   if (!discarding_) {
@@ -33,7 +35,7 @@ std::unique_ptr<IOBuf> LineBasedFrameDecoder::decode(
       if (eol > maxLength_) {
         buf.split(eol + delimLength);
         fail(ctx, folly::to<std::string>(eol));
-        return nullptr;
+        return false;
       }
 
       std::unique_ptr<folly::IOBuf> frame;
@@ -45,7 +47,8 @@ std::unique_ptr<IOBuf> LineBasedFrameDecoder::decode(
         frame = buf.split(eol + delimLength);
       }
 
-      return std::move(frame);
+      result = std::move(frame);
+      return true;
     } else {
       auto len = buf.chainLength();
       if (len > maxLength_) {
@@ -54,7 +57,7 @@ std::unique_ptr<IOBuf> LineBasedFrameDecoder::decode(
         discarding_ = true;
         fail(ctx, "over " + folly::to<std::string>(len));
       }
-      return nullptr;
+      return false;
     }
   } else {
     if (eol >= 0) {
@@ -69,7 +72,7 @@ std::unique_ptr<IOBuf> LineBasedFrameDecoder::decode(
       buf.move();
     }
 
-    return nullptr;
+    return false;
   }
 }
 

@@ -34,14 +34,28 @@ namespace folly { namespace wangle {
  * To check for complete frames without modify the reader index, use
  * IOBufQueue.front(), without split() or pop_front().
  */
-class ByteToMessageCodec
-    : public InboundBytesToBytesHandler {
+template <typename M>
+class ByteToMessageDecoder : public InboundHandler<IOBufQueue&, M> {
  public:
+  typedef typename InboundHandler<IOBufQueue&, M>::Context Context;
 
-  virtual std::unique_ptr<IOBuf> decode(
-    Context* ctx, IOBufQueue& buf, size_t&) = 0;
+  /**
+   * Decode bytes from buf into result.
+   *
+   * @return bool - Return true if decoding is successful, false if buf
+   *                has insufficient bytes.
+   */
+  virtual bool decode(Context* ctx, IOBufQueue& buf, M& result, size_t&) = 0;
 
-  void read(Context* ctx, IOBufQueue& q);
+  void read(Context* ctx, IOBufQueue& q) override {
+    M result;
+    size_t needed = 0;
+    while (decode(ctx, q, result, needed)) {
+      ctx->fireRead(std::move(result));
+    }
+  }
 };
+
+typedef ByteToMessageDecoder<std::unique_ptr<IOBuf>> ByteToByteDecoder;
 
 }}

@@ -25,10 +25,11 @@ class StringCodec : public Handler<std::unique_ptr<IOBuf>, std::string,
    std::string, std::unique_ptr<IOBuf>>::Context Context;
 
   void read(Context* ctx, std::unique_ptr<IOBuf> buf) override {
-    buf->coalesce();
-    std::string data((const char*)buf->data(), buf->length());
-
-    ctx->fireRead(data);
+    if (buf) {
+      buf->coalesce();
+      std::string data((const char*)buf->data(), buf->length());
+      ctx->fireRead(data);
+    }
   }
 
   Future<Unit> write(Context* ctx, std::string msg) override {

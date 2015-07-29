@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <wangle/codec/ByteToMessageCodec.h>
+#include <wangle/codec/ByteToMessageDecoder.h>
 
 namespace folly {namespace wangle {
 
@@ -31,20 +31,21 @@ namespace folly {namespace wangle {
  * +-----+-----+-----+
  *
  */
-class FixedLengthFrameDecoder
-  : public ByteToMessageCodec {
+class FixedLengthFrameDecoder : public ByteToByteDecoder {
  public:
+  explicit FixedLengthFrameDecoder(size_t length) : length_(length) {}
 
-  FixedLengthFrameDecoder(size_t length)
-    : length_(length) {}
-
-  std::unique_ptr<IOBuf> decode(Context* ctx, IOBufQueue& q, size_t& needed) {
+  bool decode(Context* ctx,
+              IOBufQueue& q,
+              std::unique_ptr<IOBuf>& result,
+              size_t& needed) override {
     if (q.chainLength() < length_) {
       needed = length_ - q.chainLength();
-      return nullptr;
+      return false;
     }
 
-    return q.split(length_);
+    result = q.split(length_);
+    return true;
   }
 
  private:

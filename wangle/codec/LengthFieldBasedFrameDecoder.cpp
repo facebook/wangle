@@ -30,11 +30,13 @@ LengthFieldBasedFrameDecoder::LengthFieldBasedFrameDecoder(
   CHECK(lengthFieldOffset <= maxFrameLength - lengthFieldLength);
 }
 
-std::unique_ptr<IOBuf> LengthFieldBasedFrameDecoder::decode(
-  Context* ctx, IOBufQueue& buf, size_t&) {
+bool LengthFieldBasedFrameDecoder::decode(Context* ctx,
+                                          IOBufQueue& buf,
+                                          std::unique_ptr<IOBuf>& result,
+                                          size_t&) {
   // discarding too long frame
   if (buf.chainLength() < lengthFieldEndOffset_) {
-    return nullptr;
+    return false;
   }
 
   uint64_t frameLength = getUnadjustedFrameLength(
@@ -46,7 +48,7 @@ std::unique_ptr<IOBuf> LengthFieldBasedFrameDecoder::decode(
     buf.trimStart(lengthFieldEndOffset_);
     ctx->fireReadException(folly::make_exception_wrapper<std::runtime_error>(
                              "Frame too small"));
-    return nullptr;
+    return false;
   }
 
   if (frameLength > maxFrameLength_) {
@@ -54,23 +56,24 @@ std::unique_ptr<IOBuf> LengthFieldBasedFrameDecoder::decode(
     ctx->fireReadException(folly::make_exception_wrapper<std::runtime_error>(
                              "Frame larger than " +
                              folly::to<std::string>(maxFrameLength_)));
-    return nullptr;
+    return false;
   }
 
   if (buf.chainLength() < frameLength) {
-    return nullptr;
+    return false;
   }
 
   if (initialBytesToStrip_ > frameLength) {
     buf.trimStart(frameLength);
     ctx->fireReadException(folly::make_exception_wrapper<std::runtime_error>(
                              "InitialBytesToSkip larger than frame"));
-    return nullptr;
+    return false;
   }
 
   buf.trimStart(initialBytesToStrip_);
   int actualFrameLength = frameLength - initialBytesToStrip_;
-  return buf.split(actualFrameLength);
+  result = buf.split(actualFrameLength);
+  return true;
 }
 
 uint64_t LengthFieldBasedFrameDecoder::getUnadjustedFrameLength(

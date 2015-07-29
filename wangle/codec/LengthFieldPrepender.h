@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <wangle/codec/ByteToMessageCodec.h>
 #include <folly/io/Cursor.h>
+#include <wangle/channel/Handler.h>
 
 namespace folly { namespace wangle {
 
@@ -41,14 +41,12 @@ namespace folly { namespace wangle {
  * +--------+----------------+
  *
  */
-class LengthFieldPrepender
-: public OutboundBytesToBytesHandler {
+class LengthFieldPrepender : public OutboundBytesToBytesHandler {
  public:
-  LengthFieldPrepender(
-    int lengthFieldLength = 4,
-    int lengthAdjustment = 0,
-    bool lengthIncludesLengthField = false,
-    bool networkByteOrder = true);
+  explicit LengthFieldPrepender(int lengthFieldLength = 4,
+                                int lengthAdjustment = 0,
+                                bool lengthIncludesLengthField = false,
+                                bool networkByteOrder = true);
 
   Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf);
 

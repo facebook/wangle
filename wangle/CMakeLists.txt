@@ -52,7 +52,6 @@ set(WANGLE_SOURCES
   bootstrap/ServerBootstrap.cpp
   channel/FileRegion.cpp
   channel/Pipeline.cpp
-  codec/ByteToMessageCodec.cpp
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp

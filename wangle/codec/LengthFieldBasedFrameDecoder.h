@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <wangle/codec/ByteToMessageCodec.h>
 #include <folly/io/Cursor.h>
+#include <wangle/codec/ByteToMessageDecoder.h>
 
 namespace folly { namespace wangle {
 
@@ -174,17 +174,19 @@ namespace folly { namespace wangle {
  *
  * @see LengthFieldPrepender
  */
-class LengthFieldBasedFrameDecoder : public ByteToMessageCodec {
+class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
  public:
-  LengthFieldBasedFrameDecoder(
-    uint32_t lengthFieldLength = 4,
-    uint32_t maxFrameLength = UINT_MAX,
-    uint32_t lengthFieldOffset = 0,
-    uint32_t lengthAdjustment = 0,
-    uint32_t initialBytesToStrip = 4,
-    bool networkByteOrder = true);
+  explicit LengthFieldBasedFrameDecoder(uint32_t lengthFieldLength = 4,
+                                        uint32_t maxFrameLength = UINT_MAX,
+                                        uint32_t lengthFieldOffset = 0,
+                                        uint32_t lengthAdjustment = 0,
+                                        uint32_t initialBytesToStrip = 4,
+                                        bool networkByteOrder = true);
 
-  std::unique_ptr<IOBuf> decode(Context* ctx, IOBufQueue& buf, size_t&);
+  bool decode(Context* ctx,
+              IOBufQueue& buf,
+              std::unique_ptr<IOBuf>& result,
+              size_t&) override;
 
  private:
 
