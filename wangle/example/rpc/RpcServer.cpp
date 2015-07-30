@@ -17,12 +17,14 @@
 
 #include <wangle/service/Service.h>
 #include <wangle/service/ExpiringFilter.h>
+#include <wangle/service/ExecutorFilter.h>
 #include <wangle/service/ServerDispatcher.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>
 #include <wangle/codec/LengthFieldPrepender.h>
 #include <wangle/channel/EventBaseHandler.h>
+#include <wangle/concurrent/CPUThreadPoolExecutor.h>
 
 #include <wangle/example/rpc/SerializeHandler.h>
 
@@ -74,7 +76,9 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
   }
 
  private:
-  RpcService service_;
+  ExecutorFilter<Bonk> service_{
+    std::make_shared<CPUThreadPoolExecutor>(10),
+      std::make_shared<RpcService>()};
 };
 
 int main(int argc, char** argv) {
