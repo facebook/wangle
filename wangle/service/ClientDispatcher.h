@@ -15,18 +15,13 @@
 
 namespace folly { namespace wangle {
 
-/**
- * Dispatch a request, satisfying Promise `p` with the response;
- * the returned Future is satisfied when the response is received:
- * only one request is allowed at a time.
- */
 template <typename Pipeline, typename Req, typename Resp = Req>
-class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
+class ClientDispatcherBase : public HandlerAdapter<Req, Resp>
                              , public Service<Req, Resp> {
  public:
   typedef typename HandlerAdapter<Req, Resp>::Context Context;
 
-  ~SerialClientDispatcher() {
+  ~ClientDispatcherBase() {
     if (pipeline_) {
       try {
         pipeline_->remove(this).finalize();
@@ -38,7 +33,7 @@ class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
 
   void setPipeline(Pipeline* pipeline) {
     try {
-      pipeline->template remove<SerialClientDispatcher>();
+      pipeline->template remove<ClientDispatcherBase>();
     } catch (const std::invalid_argument& e) {
       // no existing dispatcher; this is fine
     }
@@ -46,6 +41,29 @@ class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
     pipeline_->addBack(this);
     pipeline_->finalize();
   }
+
+  virtual Future<Unit> close() override {
+    return HandlerAdapter<Req, Resp>::close(this->getContext());
+  }
+
+  virtual Future<Unit> close(Context* ctx) override {
+    return HandlerAdapter<Req, Resp>::close(ctx);
+  }
+
+ protected:
+  Pipeline* pipeline_{nullptr};
+};
+
+/**
+ * Dispatch a request, satisfying Promise `p` with the response;
+ * the returned Future is satisfied when the response is received:
+ * only one request is allowed at a time.
+ */
+template <typename Pipeline, typename Req, typename Resp = Req>
+class SerialClientDispatcher
+    : public ClientDispatcherBase<Pipeline, Req, Resp> {
+ public:
+  typedef typename HandlerAdapter<Req, Resp>::Context Context;
 
   void read(Context* ctx, Req in) override {
     DCHECK(p_);
@@ -55,28 +73,15 @@ class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
 
   virtual Future<Resp> operator()(Req arg) override {
     CHECK(!p_);
-    DCHECK(pipeline_);
+    DCHECK(this->pipeline_);
 
     p_ = Promise<Resp>();
     auto f = p_->getFuture();
-    pipeline_->write(std::move(arg));
+    this->pipeline_->write(std::move(arg));
     return f;
   }
 
-  virtual Future<Unit> close() override {
-    return HandlerAdapter<Req, Resp>::close(nullptr);
-  }
-
-  virtual Future<Unit> close(Context* ctx) override {
-    return HandlerAdapter<Req, Resp>::close(ctx);
-  }
-
-  void detachPipeline(Context* ctx) override {
-    pipeline_ = nullptr;
-  }
-
  private:
-  Pipeline* pipeline_{nullptr};
   folly::Optional<Promise<Resp>> p_;
 };
 
@@ -86,17 +91,11 @@ class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
  * A deque of promises/futures are mantained for pipelining.
  */
 template <typename Pipeline, typename Req, typename Resp = Req>
-class PipelinedClientDispatcher : public HandlerAdapter<Req, Resp>
-                                , public Service<Req, Resp> {
+class PipelinedClientDispatcher
+    : public ClientDispatcherBase<Pipeline, Req, Resp> {
  public:
 
   typedef typename HandlerAdapter<Req, Resp>::Context Context;
-
-  void setPipeline(Pipeline* pipeline) {
-    pipeline_ = pipeline;
-    pipeline->addBack(this);
-    pipeline->finalize();
-  }
 
   void read(Context* ctx, Req in) override {
     DCHECK(p_.size() >= 1);
@@ -106,25 +105,23 @@ class PipelinedClientDispatcher : public HandlerAdapter<Req, Resp>
   }
 
   virtual Future<Resp> operator()(Req arg) override {
-    DCHECK(pipeline_);
+    DCHECK(this->pipeline_);
 
     Promise<Resp> p;
     auto f = p.getFuture();
     p_.push_back(std::move(p));
-    pipeline_->write(std::move(arg));
+    this->pipeline_->write(std::move(arg));
     return f;
   }
 
-  virtual Future<Unit> close() override {
-    return HandlerAdapter<Req, Resp>::close(nullptr);
-  }
-
-  virtual Future<Unit> close(Context* ctx) override {
-    return HandlerAdapter<Req, Resp>::close(ctx);
-  }
  private:
-  Pipeline* pipeline_{nullptr};
   std::deque<Promise<Resp>> p_;
 };
+
+/*
+ * A full out-of-order request/response client would require some sort
+ * of sequence id on the wire.  Currently this is left up to
+ * individual protocol writers to implement.
+ */
 
 }} // namespace

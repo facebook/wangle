@@ -50,7 +50,7 @@ class RpcService : public Service<Bonk> {
       .then([request]() {
         Bonk response;
         response.message = "Stop saying " + request.message + "!";
-        response.type = 0;
+        response.type = request.type;
         return response;
       });
   }
@@ -71,7 +71,9 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
     pipeline->addBack(SerializeHandler());
     // We could use a serial dispatcher instead easily
     // pipeline->addBack(SerialServerDispatcher<Bonk>(&service_));
-    pipeline->addBack(PipelinedServerDispatcher<Bonk>(&service_));
+    // Or a Pipelined Dispatcher
+    //pipeline->addBack(PipelinedServerDispatcher<Bonk>(&service_));
+    pipeline->addBack(MultiplexServerDispatcher<Bonk>(&service_));
     pipeline->finalize();
 
     return std::move(pipeline);

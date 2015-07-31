@@ -53,8 +53,8 @@ class PipelinedServerDispatcher : public HandlerAdapter<Req, Resp> {
 
   void read(Context* ctx, Req in) override {
     auto requestId = requestId_++;
-    (*service_)(std::move(in)).then([requestId,this](Resp resp){
-      responses_[requestId] = std::move(resp);
+    (*service_)(std::move(in)).then([requestId,this](Resp& resp){
+      responses_[requestId] = resp;
       sendResponses();
     });
   }
@@ -75,6 +75,32 @@ class PipelinedServerDispatcher : public HandlerAdapter<Req, Resp> {
   uint32_t requestId_{1};
   std::unordered_map<uint32_t, Resp> responses_;
   uint32_t lastWrittenId_{0};
+};
+
+/**
+ * Dispatch requests from pipeline as they come in.  Concurrent
+ * requests are assumed to have sequence id's that are taken care of
+ * by the pipeline.  Unlike a multiplexed client dispatcher, a
+ * multiplexed server dispatcher needs no state, and the sequence id's
+ * can just be copied from the request to the response in the pipeline.
+ */
+template <typename Req, typename Resp = Req>
+class MultiplexServerDispatcher : public HandlerAdapter<Req, Resp> {
+ public:
+
+  typedef typename HandlerAdapter<Req, Resp>::Context Context;
+
+  explicit MultiplexServerDispatcher(Service<Req, Resp>* service)
+      : service_(service) {}
+
+  void read(Context* ctx, Req in) override {
+    (*service_)(std::move(in)).then([ctx](Resp resp) {
+      ctx->fireWrite(std::move(resp));
+    });
+  }
+
+ private:
+  Service<Req, Resp>* service_;
 };
 
 }} // namespace

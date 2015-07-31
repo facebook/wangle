@@ -54,6 +54,33 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
   }
 };
 
+
+// Client multiplex dispatcher.  Uses Bonk.type as request ID
+class BonkMultiplexClientDispatcher
+    : public ClientDispatcherBase<SerializePipeline, Bonk> {
+ public:
+  void read(Context* ctx, Bonk in) override {
+    auto search = requests_.find(in.type);
+    CHECK(search != requests_.end());
+    auto p = std::move(search->second);
+    requests_.erase(in.type);
+    p.setValue(in);
+  }
+
+  Future<Bonk> operator()(Bonk arg) override {
+    auto& p = requests_[arg.type];
+    auto f = p.getFuture();
+    p.setInterruptHandler([arg,this](const folly::exception_wrapper& e) {
+      this->requests_.erase(arg.type);
+    });
+    this->pipeline_->write(arg);
+
+    return f;
+  }
+ private:
+  std::unordered_map<int32_t, Promise<Bonk>> requests_;
+};
+
 int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -70,7 +97,10 @@ int main(int argc, char** argv) {
   // A serial dispatcher would assert if we tried to send more than one
   // request at a time
   //SerialClientDispatcher<SerializePipeline, Bonk> service;
-  PipelinedClientDispatcher<SerializePipeline, Bonk> service;
+  // Or we could use a pipelined dispatcher, but responses would always come
+  // back in order
+  //PipelinedClientDispatcher<SerializePipeline, Bonk> service;
+  BonkMultiplexClientDispatcher service;
   service.setPipeline(pipeline);
 
   try {
@@ -80,7 +110,8 @@ int main(int argc, char** argv) {
       Bonk request;
       std::cin >> request.message;
       std::cin >> request.type;
-      service(request).then([&](Bonk response){
+      service(request).then([request](Bonk response){
+        CHECK(request.type == response.type);
         std::cout << response.message << std::endl;
       });
     }
