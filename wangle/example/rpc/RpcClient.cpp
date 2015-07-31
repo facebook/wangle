@@ -77,6 +77,18 @@ class BonkMultiplexClientDispatcher
 
     return f;
   }
+
+  // Print some nice messages for close
+
+  virtual Future<Unit> close() override {
+    printf("Channel closed\n");
+    return ClientDispatcherBase::close();
+  }
+
+  virtual Future<Unit> close(Context* ctx) override {
+    printf("Channel closed\n");
+    return ClientDispatcherBase::close(ctx);
+  }
  private:
   std::unordered_map<int32_t, Promise<Bonk>> requests_;
 };
@@ -100,8 +112,11 @@ int main(int argc, char** argv) {
   // Or we could use a pipelined dispatcher, but responses would always come
   // back in order
   //PipelinedClientDispatcher<SerializePipeline, Bonk> service;
-  BonkMultiplexClientDispatcher service;
-  service.setPipeline(pipeline);
+  auto dispatcher = std::make_shared<BonkMultiplexClientDispatcher>();
+  dispatcher->setPipeline(pipeline);
+
+  // Set an idle timeout of 5s using a filter.
+  ExpiringFilter<Bonk> service(dispatcher, std::chrono::seconds(5));
 
   try {
     while (true) {
