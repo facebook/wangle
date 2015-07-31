@@ -80,4 +80,51 @@ class SerialClientDispatcher : public HandlerAdapter<Req, Resp>
   folly::Optional<Promise<Resp>> p_;
 };
 
+/**
+ * Dispatch a request, satisfying Promise `p` with the response;
+ * the returned Future is satisfied when the response is received.
+ * A deque of promises/futures are mantained for pipelining.
+ */
+template <typename Pipeline, typename Req, typename Resp = Req>
+class PipelinedClientDispatcher : public HandlerAdapter<Req, Resp>
+                                , public Service<Req, Resp> {
+ public:
+
+  typedef typename HandlerAdapter<Req, Resp>::Context Context;
+
+  void setPipeline(Pipeline* pipeline) {
+    pipeline_ = pipeline;
+    pipeline->addBack(this);
+    pipeline->finalize();
+  }
+
+  void read(Context* ctx, Req in) override {
+    DCHECK(p_.size() >= 1);
+    auto p = std::move(p_.front());
+    p_.pop_front();
+    p.setValue(std::move(in));
+  }
+
+  virtual Future<Resp> operator()(Req arg) override {
+    DCHECK(pipeline_);
+
+    Promise<Resp> p;
+    auto f = p.getFuture();
+    p_.push_back(std::move(p));
+    pipeline_->write(std::move(arg));
+    return f;
+  }
+
+  virtual Future<Unit> close() override {
+    return HandlerAdapter<Req, Resp>::close(nullptr);
+  }
+
+  virtual Future<Unit> close(Context* ctx) override {
+    return HandlerAdapter<Req, Resp>::close(ctx);
+  }
+ private:
+  Pipeline* pipeline_{nullptr};
+  std::deque<Promise<Resp>> p_;
+};
+
 }} // namespace

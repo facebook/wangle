@@ -69,7 +69,9 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
     pipeline->addBack(LengthFieldBasedFrameDecoder());
     pipeline->addBack(LengthFieldPrepender());
     pipeline->addBack(SerializeHandler());
-    pipeline->addBack(SerialServerDispatcher<Bonk>(&service_));
+    // We could use a serial dispatcher instead easily
+    // pipeline->addBack(SerialServerDispatcher<Bonk>(&service_));
+    pipeline->addBack(PipelinedServerDispatcher<Bonk>(&service_));
     pipeline->finalize();
 
     return std::move(pipeline);

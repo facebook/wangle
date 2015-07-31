@@ -67,7 +67,10 @@ int main(int argc, char** argv) {
   client.group(std::make_shared<folly::wangle::IOThreadPoolExecutor>(1));
   client.pipelineFactory(std::make_shared<RpcPipelineFactory>());
   auto pipeline = client.connect(SocketAddress(FLAGS_host, FLAGS_port)).get();
-  SerialClientDispatcher<SerializePipeline, Bonk> service;
+  // A serial dispatcher would assert if we tried to send more than one
+  // request at a time
+  //SerialClientDispatcher<SerializePipeline, Bonk> service;
+  PipelinedClientDispatcher<SerializePipeline, Bonk> service;
   service.setPipeline(pipeline);
 
   try {
