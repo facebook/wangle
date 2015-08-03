@@ -1,5 +1,6 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #include <wangle/channel/broadcast/test/Mocks.h>
+#include <wangle/codec/MessageToByteEncoder.h>
 
 using namespace folly::wangle;
 using namespace folly;
@@ -7,47 +8,51 @@ using namespace testing;
 
 class ObservingHandlerTest : public Test {
  public:
-  class MockBroadcastHandler : public BroadcastHandler<std::unique_ptr<IOBuf>> {
+  class MockBroadcastHandler : public BroadcastHandler<int> {
    public:
-    MOCK_METHOD2(processRead,
-                 bool(folly::IOBufQueue&, std::unique_ptr<IOBuf>&));
-    MOCK_METHOD1(subscribe, uint64_t(Subscriber<std::unique_ptr<IOBuf>>*));
+    MOCK_METHOD2(processRead, bool(folly::IOBufQueue&, int&));
+    MOCK_METHOD1(subscribe, uint64_t(Subscriber<int>*));
     MOCK_METHOD1(unsubscribe, void(uint64_t));
   };
 
+  class MockIntToByteEncoder : public MessageToByteEncoder<int> {
+   public:
+    std::unique_ptr<IOBuf> encode(int& data) override {
+      return IOBuf::copyBuffer(folly::to<std::string>(data));
+    }
+  };
+
   void SetUp() override {
-    socketHandler = make_unique<StrictMock<MockAsyncSocketHandler>>();
-    observingHandler = make_unique<StrictMock<MockObservingHandler>>();
+    socketHandler = new StrictMock<MockAsyncSocketHandler>();
+    observingHandler = new StrictMock<MockObservingHandler>();
     broadcastHandler = make_unique<StrictMock<MockBroadcastHandler>>();
 
-    pipeline.reset(new DefaultPipeline);
-    pipeline->addBack(socketHandler.get());
-    pipeline->addBack(observingHandler.get());
+    pipeline.reset(new ObservingPipeline<int>);
+    pipeline->addBack(
+        std::shared_ptr<StrictMock<MockAsyncSocketHandler>>(socketHandler));
+    pipeline->addBack(MockIntToByteEncoder());
+    pipeline->addBack(
+        std::shared_ptr<StrictMock<MockObservingHandler>>(observingHandler));
     pipeline->finalize();
 
-    pool = new MockBroadcastPool<std::unique_ptr<IOBuf>>();
+    pool = new MockBroadcastPool();
   }
 
   void TearDown() override {
-    Mock::VerifyAndClear(socketHandler.get());
-    Mock::VerifyAndClear(observingHandler.get());
     Mock::VerifyAndClear(broadcastHandler.get());
 
-    pipeline.reset();
-
-    socketHandler.reset();
-    observingHandler.reset();
     broadcastHandler.reset();
+    pipeline.reset();
   }
 
  protected:
-  DefaultPipeline::UniquePtr pipeline;
+  ObservingPipeline<int>::UniquePtr pipeline;
 
-  std::unique_ptr<StrictMock<MockAsyncSocketHandler>> socketHandler;
-  std::unique_ptr<StrictMock<MockObservingHandler>> observingHandler;
+  StrictMock<MockAsyncSocketHandler>* socketHandler{nullptr};
+  StrictMock<MockObservingHandler>* observingHandler{nullptr};
   std::unique_ptr<StrictMock<MockBroadcastHandler>> broadcastHandler;
 
-  MockBroadcastPool<std::unique_ptr<IOBuf>>* pool{nullptr};
+  MockBroadcastPool* pool{nullptr};
 };
 
 TEST_F(ObservingHandlerTest, Success) {
@@ -63,8 +68,7 @@ TEST_F(ObservingHandlerTest, Success) {
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<std::unique_ptr<IOBuf>>*>(
-            std::move(handler));
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
@@ -76,28 +80,11 @@ TEST_F(ObservingHandlerTest, Success) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  // Test broadcasting empty buf
-  std::unique_ptr<IOBuf> buf;
-  observingHandler->onNext(buf);
-
   EXPECT_CALL(*observingHandler, write(_, _)).Times(2);
 
   // Broadcast some data
-  buf = IOBuf::copyBuffer("data");
-  observingHandler->onNext(buf);
-  observingHandler->onNext(buf);
-
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(0);
-
-  // Broadcast some data while the handler is paused
-  observingHandler->pause();
-  observingHandler->onNext(buf);
-
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
-
-  // Resume the handler and broadcast more data
-  observingHandler->resume();
-  observingHandler->onNext(buf);
+  observingHandler->onNext(1);
+  observingHandler->onNext(2);
 
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
 
@@ -118,8 +105,7 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<std::unique_ptr<IOBuf>>*>(
-            std::move(handler));
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
@@ -134,8 +120,7 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
   EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
 
   // Broadcast some data
-  auto buf = IOBuf::copyBuffer("data");
-  observingHandler->onNext( buf);
+  observingHandler->onNext(1);
 
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
 
@@ -156,8 +141,7 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<std::unique_ptr<IOBuf>>*>(
-            std::move(handler));
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
@@ -172,8 +156,7 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
 
   // Broadcast some data
-  auto buf = IOBuf::copyBuffer("data");
-  observingHandler->onNext( buf);
+  observingHandler->onNext(1);
 
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
@@ -195,8 +178,7 @@ TEST_F(ObservingHandlerTest, ReadError) {
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<std::unique_ptr<IOBuf>>*>(
-            std::move(handler));
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
@@ -211,8 +193,7 @@ TEST_F(ObservingHandlerTest, ReadError) {
   EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
 
   // Broadcast some data
-  auto buf = IOBuf::copyBuffer("data");
-  observingHandler->onNext( buf);
+  observingHandler->onNext(1);
 
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
@@ -234,8 +215,7 @@ TEST_F(ObservingHandlerTest, WriteError) {
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<std::unique_ptr<IOBuf>>*>(
-            std::move(handler));
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
@@ -256,6 +236,5 @@ TEST_F(ObservingHandlerTest, WriteError) {
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
 
   // Broadcast some data
-  auto buf = IOBuf::copyBuffer("data");
-  observingHandler->onNext( buf);
+  observingHandler->onNext(1);
 }

@@ -13,19 +13,17 @@ namespace folly { namespace wangle {
  * A Handler-Observer adaptor that can be used for subscribing to broadcasts.
  * Maintains a thread-local BroadcastPool from which a BroadcastHandler is
  * obtained and subscribed to based on the given routing data.
- *
- * If custom logic needs to be added based on inbound bytes, subclass and
- * override the handler's read() method.
  */
-template <typename R>
-class ObservingHandler : public BytesToBytesHandler,
-                         public Subscriber<std::unique_ptr<folly::IOBuf>> {
+template <typename T, typename R>
+class ObservingHandler : public HandlerAdapter<IOBufQueue&, T>,
+                         public Subscriber<T> {
  public:
+  typedef typename HandlerAdapter<IOBufQueue&, T>::Context Context;
+
   ObservingHandler(
       const R& routingData,
       std::shared_ptr<ServerPool> serverPool,
-      std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>,
-                                               R>> broadcastPipelineFactory)
+      std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
       : routingData_(routingData),
         serverPool_(serverPool),
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
@@ -34,26 +32,15 @@ class ObservingHandler : public BytesToBytesHandler,
     CHECK(!broadcastHandler_);
   }
 
-  // BytesToBytesHandler implementation
+  // HandlerAdapter implementation
   void transportActive(Context* ctx) override;
   void readEOF(Context* ctx) override;
   void readException(Context* ctx, folly::exception_wrapper ex) override;
 
   // Subscriber implementation
-  void onNext(const std::unique_ptr<folly::IOBuf>& buf) override;
+  void onNext(const T& buf) override;
   void onError(folly::exception_wrapper ex) override;
   void onCompleted() override;
-
-  /**
-   * Pause listening to the broadcast.
-   * All bytes streamed from the broadcast will be dropped.
-   */
-  void pause() noexcept { paused_ = true; }
-
-  /**
-   * Resume listening to the braodcast if paused.
-   */
-  void resume() noexcept { paused_ = false; }
 
  protected:
   /**
@@ -65,41 +52,41 @@ class ObservingHandler : public BytesToBytesHandler,
   /**
    * Lazily initialize and return a thread-local BroadcastPool.
    */
-  BroadcastPool<std::unique_ptr<folly::IOBuf>, R>* broadcastPool();
+  BroadcastPool<T, R>* broadcastPool();
 
   // For testing
-  virtual BroadcastPool<std::unique_ptr<folly::IOBuf>, R>* newBroadcastPool();
+  virtual BroadcastPool<T, R>* newBroadcastPool();
 
   R routingData_;
   std::shared_ptr<ServerPool> serverPool_;
-  std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>, R>>
-      broadcastPipelineFactory_;
+  std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
 
-  BroadcastHandler<std::unique_ptr<folly::IOBuf>>* broadcastHandler_{nullptr};
+  BroadcastHandler<T>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
   bool paused_{false};
 
-  folly::ThreadLocalPtr<BroadcastPool<std::unique_ptr<folly::IOBuf>, R>>
-      broadcastPool_;
+  folly::ThreadLocalPtr<BroadcastPool<T, R>> broadcastPool_;
 };
 
-template <typename R>
+template <typename T>
+using ObservingPipeline = Pipeline<folly::IOBufQueue&, T>;
+
+template <typename T, typename R>
 class ObservingPipelineFactory
-    : public RoutingDataPipelineFactory<DefaultPipeline, R> {
+    : public RoutingDataPipelineFactory<ObservingPipeline<T>, R> {
  public:
   ObservingPipelineFactory(
       std::shared_ptr<ServerPool> serverPool,
-      std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>,
-                                               R>> broadcastPipelineFactory)
+      std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
       : serverPool_(serverPool),
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
 
-  DefaultPipeline::UniquePtr newPipeline(
+  typename ObservingPipeline<T>::UniquePtr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket,
       const R& routingData) override {
-    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
+    typename ObservingPipeline<T>::UniquePtr pipeline(new ObservingPipeline<T>);
     pipeline->addBack(AsyncSocketHandler(socket));
-    auto handler = std::make_shared<ObservingHandler<R>>(
+    auto handler = std::make_shared<ObservingHandler<T, R>>(
         routingData, serverPool_, broadcastPipelineFactory_);
     pipeline->addBack(handler);
     pipeline->finalize();
@@ -109,8 +96,7 @@ class ObservingPipelineFactory
 
  protected:
   std::shared_ptr<ServerPool> serverPool_;
-  std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>, R>>
-      broadcastPipelineFactory_;
+  std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
 };
 
 }} // namespace folly::wangle

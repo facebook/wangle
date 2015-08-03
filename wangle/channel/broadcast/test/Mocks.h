@@ -22,31 +22,22 @@ class MockServerPool : public ServerPool {
   GMOCK_METHOD0_(, noexcept, , getServer, folly::SocketAddress());
 };
 
-template <typename T>
-class MockBroadcastPool : public BroadcastPool<T, std::string> {
+class MockBroadcastPool : public BroadcastPool<int, std::string> {
  public:
-  MockBroadcastPool() : BroadcastPool<T, std::string>(nullptr, nullptr) {}
+  MockBroadcastPool() : BroadcastPool<int, std::string>(nullptr, nullptr) {}
 
   MOCK_METHOD1_T(getHandler,
-                 folly::Future<BroadcastHandler<T>*>(const std::string&));
+                 folly::Future<BroadcastHandler<int>*>(const std::string&));
 };
 
-class MockObservingHandler : public ObservingHandler<std::string> {
+class MockObservingHandler : public ObservingHandler<int, std::string> {
  public:
   MockObservingHandler()
-      : ObservingHandler<std::string>("", nullptr, nullptr) {}
+      : ObservingHandler<int, std::string>("", nullptr, nullptr) {}
 
-  MOCK_METHOD2(write,
-               folly::Future<folly::Unit>(Context*, std::shared_ptr<folly::IOBuf>));
+  MOCK_METHOD2(write, folly::Future<folly::Unit>(Context*, int));
   MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
-  MOCK_METHOD0(newBroadcastPool,
-               BroadcastPool<std::unique_ptr<folly::IOBuf>, std::string>*());
-
-  folly::Future<folly::Unit>
-  write(Context* ctx, std::unique_ptr<folly::IOBuf> buf) override {
-    std::shared_ptr<folly::IOBuf> sbuf(buf.release());
-    return write(ctx, sbuf);
-  }
+  MOCK_METHOD0(newBroadcastPool, BroadcastPool<int, std::string>*());
 };
 
 class MockAsyncSocketHandler : public folly::wangle::AsyncSocketHandler {
