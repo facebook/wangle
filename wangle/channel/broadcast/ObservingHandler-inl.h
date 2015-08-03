@@ -97,7 +97,7 @@ template <typename R>
 BroadcastPool<std::unique_ptr<folly::IOBuf>, R>*
 ObservingHandler<R>::newBroadcastPool() {
   return (new BroadcastPool<std::unique_ptr<folly::IOBuf>, R>(
-      serverPool_, broadcastHandlerFactory_));
+      serverPool_, broadcastPipelineFactory_));
 }
 
 }} // namespace folly::wangle

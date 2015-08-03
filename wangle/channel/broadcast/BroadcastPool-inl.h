@@ -23,8 +23,9 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
       .then([this](DefaultPipeline* pipeline) {
         pipeline->setPipelineManager(this);
 
-        auto handler =
-            BroadcastPipelineFactory<T>::getBroadcastHandler(pipeline);
+        broadcastPipelineFactory_->setRoutingData(pipeline, routingData_);
+
+        auto handler = broadcastPipelineFactory_->getBroadcastHandler(pipeline);
         CHECK(handler);
         sharedPromise_.setValue(handler);
       })

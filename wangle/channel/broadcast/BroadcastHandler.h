@@ -67,31 +67,18 @@ class BroadcastHandlerFactory {
   virtual std::shared_ptr<BroadcastHandler<T>> newHandler() = 0;
 };
 
-template <typename T>
+template <typename T, typename R>
 class BroadcastPipelineFactory
     : public folly::PipelineFactory<DefaultPipeline> {
  public:
-  explicit BroadcastPipelineFactory(
-      std::shared_ptr<BroadcastHandlerFactory<T>> handlerFactory)
-      : handlerFactory_(handlerFactory) {}
+  virtual DefaultPipeline::UniquePtr newPipeline(
+      std::shared_ptr<folly::AsyncSocket> socket) override = 0;
 
-  DefaultPipeline::UniquePtr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket) override {
-    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
-    pipeline->addBack(AsyncSocketHandler(socket));
-    pipeline->addBack(handlerFactory_->newHandler());
-    pipeline->finalize();
+  virtual BroadcastHandler<T>* getBroadcastHandler(
+      DefaultPipeline* pipeline) noexcept = 0;
 
-    return pipeline;
-  }
-
-  static BroadcastHandler<T>* getBroadcastHandler(DefaultPipeline* pipeline) {
-    DCHECK(pipeline);
-    return pipeline->getHandler<BroadcastHandler<T>>(1);
-  }
-
- private:
-  std::shared_ptr<BroadcastHandlerFactory<T>> handlerFactory_;
+  virtual void setRoutingData(DefaultPipeline* pipeline,
+                              const R& routingData) noexcept = 0;
 };
 
 }} // namespace folly::wangle

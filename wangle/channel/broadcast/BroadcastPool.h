@@ -30,11 +30,13 @@ class BroadcastPool {
  public:
   class BroadcastManager : PipelineManager {
    public:
-    BroadcastManager(
-        BroadcastPool<T, R>* pool,
-        const R& routingData,
-        std::shared_ptr<BroadcastPipelineFactory<T>> broadcastPipelineFactory)
-        : pool_(pool), routingData_(routingData) {
+    BroadcastManager(BroadcastPool<T, R>* pool,
+                     const R& routingData,
+                     std::shared_ptr<BroadcastPipelineFactory<T, R>>
+                         broadcastPipelineFactory)
+        : pool_(pool),
+          routingData_(routingData),
+          broadcastPipelineFactory_(broadcastPipelineFactory) {
       client_.pipelineFactory(broadcastPipelineFactory);
     }
 
@@ -55,6 +57,7 @@ class BroadcastPool {
    private:
     BroadcastPool<T, R>* pool_{nullptr};
     R routingData_;
+    std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
     folly::ClientBootstrap<DefaultPipeline> client_;
 
     bool connectStarted_{false};
@@ -62,10 +65,8 @@ class BroadcastPool {
   };
 
   BroadcastPool(std::shared_ptr<ServerPool> serverPool,
-                std::shared_ptr<BroadcastHandlerFactory<T>> handlerFactory)
-      : serverPool_(serverPool),
-        broadcastPipelineFactory_(
-            std::make_shared<BroadcastPipelineFactory<T>>(handlerFactory)) {}
+                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
+      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
 
   virtual ~BroadcastPool() {}
 
@@ -97,7 +98,7 @@ class BroadcastPool {
   }
 
   std::shared_ptr<ServerPool> serverPool_;
-  std::shared_ptr<BroadcastPipelineFactory<T>> broadcastPipelineFactory_;
+  std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
 };
 

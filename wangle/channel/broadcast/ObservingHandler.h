@@ -24,11 +24,11 @@ class ObservingHandler : public BytesToBytesHandler,
   ObservingHandler(
       const R& routingData,
       std::shared_ptr<ServerPool> serverPool,
-      std::shared_ptr<BroadcastHandlerFactory<std::unique_ptr<folly::IOBuf>>>
-          broadcastHandlerFactory)
+      std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>,
+                                               R>> broadcastPipelineFactory)
       : routingData_(routingData),
         serverPool_(serverPool),
-        broadcastHandlerFactory_(broadcastHandlerFactory) {}
+        broadcastPipelineFactory_(broadcastPipelineFactory) {}
 
   virtual ~ObservingHandler() {
     CHECK(!broadcastHandler_);
@@ -72,8 +72,8 @@ class ObservingHandler : public BytesToBytesHandler,
 
   R routingData_;
   std::shared_ptr<ServerPool> serverPool_;
-  std::shared_ptr<BroadcastHandlerFactory<std::unique_ptr<folly::IOBuf>>>
-      broadcastHandlerFactory_;
+  std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>, R>>
+      broadcastPipelineFactory_;
 
   BroadcastHandler<std::unique_ptr<folly::IOBuf>>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
@@ -89,10 +89,10 @@ class ObservingPipelineFactory
  public:
   ObservingPipelineFactory(
       std::shared_ptr<ServerPool> serverPool,
-      std::shared_ptr<BroadcastHandlerFactory<std::unique_ptr<folly::IOBuf>>>
-          broadcastHandlerFactory)
+      std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>,
+                                               R>> broadcastPipelineFactory)
       : serverPool_(serverPool),
-        broadcastHandlerFactory_(broadcastHandlerFactory) {}
+        broadcastPipelineFactory_(broadcastPipelineFactory) {}
 
   DefaultPipeline::UniquePtr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket,
@@ -100,7 +100,7 @@ class ObservingPipelineFactory
     DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
     pipeline->addBack(AsyncSocketHandler(socket));
     auto handler = std::make_shared<ObservingHandler<R>>(
-        routingData, serverPool_, broadcastHandlerFactory_);
+        routingData, serverPool_, broadcastPipelineFactory_);
     pipeline->addBack(handler);
     pipeline->finalize();
 
@@ -109,8 +109,8 @@ class ObservingPipelineFactory
 
  protected:
   std::shared_ptr<ServerPool> serverPool_;
-  std::shared_ptr<BroadcastHandlerFactory<std::unique_ptr<folly::IOBuf>>>
-      broadcastHandlerFactory_;
+  std::shared_ptr<BroadcastPipelineFactory<std::unique_ptr<folly::IOBuf>, R>>
+      broadcastPipelineFactory_;
 };
 
 }} // namespace folly::wangle

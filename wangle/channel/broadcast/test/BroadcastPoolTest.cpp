@@ -7,16 +7,31 @@ using namespace folly::wangle;
 using namespace folly;
 using namespace testing;
 
-class MockBroadcastHandlerFactory : public BroadcastHandlerFactory<int> {
+class MockBroadcastPipelineFactory
+    : public BroadcastPipelineFactory<int, std::string> {
  public:
   class MockBroadcastHandler : public BroadcastHandler<int> {
    public:
     MOCK_METHOD2(processRead, bool(IOBufQueue&, int&));
   };
 
-  std::shared_ptr<BroadcastHandler<int>> newHandler() override {
-    return std::make_shared<NiceMock<MockBroadcastHandler>>();
+  DefaultPipeline::UniquePtr newPipeline(
+      std::shared_ptr<folly::AsyncSocket> socket) override {
+    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
+    pipeline->addBack(AsyncSocketHandler(socket));
+    pipeline->addBack(std::make_shared<MockBroadcastHandler>());
+    pipeline->finalize();
+
+    return pipeline;
   }
+
+  virtual BroadcastHandler<int>* getBroadcastHandler(
+      DefaultPipeline* pipeline) noexcept override {
+    return pipeline->getHandler<MockBroadcastHandler>(1);
+  }
+
+  GMOCK_METHOD2_(
+      , noexcept, , setRoutingData, void(DefaultPipeline*, const std::string&));
 };
 
 class BroadcastPoolTest : public Test {
@@ -27,15 +42,18 @@ class BroadcastPoolTest : public Test {
     serverPool = std::make_shared<StrictMock<MockServerPool>>();
     EXPECT_CALL(*serverPool, getServer()).WillRepeatedly(ReturnPointee(&addr));
 
-    auto handlerFactory = std::make_shared<MockBroadcastHandlerFactory>();
+    pipelineFactory =
+        std::make_shared<StrictMock<MockBroadcastPipelineFactory>>();
     pool = folly::make_unique<BroadcastPool<int, std::string>>(serverPool,
-                                                               handlerFactory);
+                                                               pipelineFactory);
   }
 
   void TearDown() override {
     Mock::VerifyAndClear(serverPool.get());
+    Mock::VerifyAndClear(pipelineFactory.get());
 
     serverPool.reset();
+    pipelineFactory.reset();
     pool.reset();
 
     stopServer();
@@ -63,6 +81,7 @@ class BroadcastPoolTest : public Test {
 
   std::unique_ptr<BroadcastPool<int, std::string>> pool;
   std::shared_ptr<StrictMock<MockServerPool>> serverPool;
+  std::shared_ptr<StrictMock<MockBroadcastPipelineFactory>> pipelineFactory;
   std::unique_ptr<ServerBootstrap<DefaultPipeline>> server;
   SocketAddress addr;
 };
@@ -75,6 +94,8 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   BroadcastHandler<int>* handler2 = nullptr;
   auto base = EventBaseManager::get()->getEventBase();
 
+  InSequence dummy;
+
   // No broadcast available for routingData1. Test that a new connection
   // is established and handler created.
   EXPECT_FALSE(pool->isBroadcasting(routingData1));
@@ -83,6 +104,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
         handler1 = h;
       });
   EXPECT_TRUE(handler1 == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler1 != nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
@@ -108,6 +130,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
         handler1 = h;
       });
   EXPECT_TRUE(handler1 == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler1 != nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
@@ -120,6 +143,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
         handler2 = h;
       });
   EXPECT_TRUE(handler2 == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url2")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler2 != nullptr);
   EXPECT_TRUE(handler2 != handler1);
@@ -133,6 +157,8 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   BroadcastHandler<int>* handler1 = nullptr;
   BroadcastHandler<int>* handler2 = nullptr;
   auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
 
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
@@ -152,6 +178,8 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_TRUE(handler2 == nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
 
   base->loopOnce(); // Do async connect
 
@@ -179,6 +207,8 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   bool handler1Error = false;
   bool handler2Error = false;
   auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
 
   // Stop the server to inject connect failure
   stopServer();
@@ -227,6 +257,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
         handler1 = h;
       });
   EXPECT_TRUE(handler1 == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler1 != nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData));
@@ -236,6 +267,8 @@ TEST_F(BroadcastPoolTest, ConnectErrorPoolDeletion) {
   // Test against use-after-free when connect error deletes the pool
   std::string routingData = "url1";
   auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
 
   // Stop the server to inject connect failure
   stopServer();
@@ -270,6 +303,7 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
         pipeline = dynamic_cast<DefaultPipeline*>(
             handler->getContext()->getPipeline());
       });
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(pool->isBroadcasting(routingData));
   EXPECT_TRUE(handler != nullptr);
