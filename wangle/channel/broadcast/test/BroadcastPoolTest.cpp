@@ -7,33 +7,6 @@ using namespace folly::wangle;
 using namespace folly;
 using namespace testing;
 
-class MockBroadcastPipelineFactory
-    : public BroadcastPipelineFactory<int, std::string> {
- public:
-  class MockBroadcastHandler : public BroadcastHandler<int> {
-   public:
-    MOCK_METHOD2(processRead, bool(IOBufQueue&, int&));
-  };
-
-  DefaultPipeline::UniquePtr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket) override {
-    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
-    pipeline->addBack(AsyncSocketHandler(socket));
-    pipeline->addBack(std::make_shared<MockBroadcastHandler>());
-    pipeline->finalize();
-
-    return pipeline;
-  }
-
-  virtual BroadcastHandler<int>* getBroadcastHandler(
-      DefaultPipeline* pipeline) noexcept override {
-    return pipeline->getHandler<MockBroadcastHandler>(1);
-  }
-
-  GMOCK_METHOD2_(
-      , noexcept, , setRoutingData, void(DefaultPipeline*, const std::string&));
-};
-
 class BroadcastPoolTest : public Test {
  public:
   void SetUp() override {

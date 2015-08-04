@@ -8,13 +8,6 @@ using namespace testing;
 
 class ObservingHandlerTest : public Test {
  public:
-  class MockBroadcastHandler : public BroadcastHandler<int> {
-   public:
-    MOCK_METHOD2(processRead, bool(folly::IOBufQueue&, int&));
-    MOCK_METHOD1(subscribe, uint64_t(Subscriber<int>*));
-    MOCK_METHOD1(unsubscribe, void(uint64_t));
-  };
-
   class MockIntToByteEncoder : public MessageToByteEncoder<int> {
    public:
     std::unique_ptr<IOBuf> encode(int& data) override {
@@ -23,13 +16,13 @@ class ObservingHandlerTest : public Test {
   };
 
   void SetUp() override {
-    socketHandler = new StrictMock<MockAsyncSocketHandler>();
+    prevHandler = new StrictMock<MockBytesToBytesHandler>();
     observingHandler = new StrictMock<MockObservingHandler>();
     broadcastHandler = make_unique<StrictMock<MockBroadcastHandler>>();
 
     pipeline.reset(new ObservingPipeline<int>);
     pipeline->addBack(
-        std::shared_ptr<StrictMock<MockAsyncSocketHandler>>(socketHandler));
+        std::shared_ptr<StrictMock<MockBytesToBytesHandler>>(prevHandler));
     pipeline->addBack(MockIntToByteEncoder());
     pipeline->addBack(
         std::shared_ptr<StrictMock<MockObservingHandler>>(observingHandler));
@@ -48,7 +41,7 @@ class ObservingHandlerTest : public Test {
  protected:
   ObservingPipeline<int>::UniquePtr pipeline;
 
-  StrictMock<MockAsyncSocketHandler>* socketHandler{nullptr};
+  StrictMock<MockBytesToBytesHandler>* prevHandler{nullptr};
   StrictMock<MockObservingHandler>* observingHandler{nullptr};
   std::unique_ptr<StrictMock<MockBroadcastHandler>> broadcastHandler;
 
@@ -58,12 +51,12 @@ class ObservingHandlerTest : public Test {
 TEST_F(ObservingHandlerTest, Success) {
   InSequence dummy;
 
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
   // Verify that ingress is paused
-  EXPECT_CALL(*socketHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
@@ -72,8 +65,8 @@ TEST_F(ObservingHandlerTest, Success) {
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
 
@@ -95,12 +88,12 @@ TEST_F(ObservingHandlerTest, Success) {
 TEST_F(ObservingHandlerTest, BroadcastError) {
   InSequence dummy;
 
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
   // Verify that ingress is paused
-  EXPECT_CALL(*socketHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
@@ -109,8 +102,8 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
 
@@ -131,12 +124,12 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
 TEST_F(ObservingHandlerTest, ReadEOF) {
   InSequence dummy;
 
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
   // Verify that ingress is paused
-  EXPECT_CALL(*socketHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
@@ -145,8 +138,8 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
 
@@ -162,18 +155,18 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
 
   // Client closes connection
-  pipeline->readEOF();
+  observingHandler->readEOF(nullptr);
 }
 
 TEST_F(ObservingHandlerTest, ReadError) {
   InSequence dummy;
 
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
   // Verify that ingress is paused
-  EXPECT_CALL(*socketHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
@@ -182,8 +175,8 @@ TEST_F(ObservingHandlerTest, ReadError) {
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
 
@@ -199,18 +192,19 @@ TEST_F(ObservingHandlerTest, ReadError) {
   EXPECT_CALL(*observingHandler, close(_)).Times(1);
 
   // Inject read error
-  pipeline->readException(make_exception_wrapper<std::exception>());
+  observingHandler->readException(nullptr,
+                                  make_exception_wrapper<std::exception>());
 }
 
 TEST_F(ObservingHandlerTest, WriteError) {
   InSequence dummy;
 
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
   // Verify that ingress is paused
-  EXPECT_CALL(*socketHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
   EXPECT_CALL(*pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
@@ -219,8 +213,8 @@ TEST_F(ObservingHandlerTest, WriteError) {
       }));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
-  EXPECT_CALL(*socketHandler, transportActive(_))
-      .WillOnce(Invoke([&](MockAsyncSocketHandler::Context* ctx) {
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
         ctx->fireTransportActive();
       }));
 

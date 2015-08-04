@@ -13,14 +13,16 @@ namespace folly { namespace wangle {
  * of subscribers.
  */
 template <typename T>
-class BroadcastHandler : public BytesToBytesHandler {
+class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<IOBuf>> {
  public:
+  typedef typename HandlerAdapter<T, std::unique_ptr<IOBuf>>::Context Context;
+
   virtual ~BroadcastHandler() {
     CHECK(subscribers_.empty());
   }
 
   // BytesToBytesHandler implementation
-  void read(Context* ctx, folly::IOBufQueue& q) override;
+  void read(Context* ctx, T data) override;
   void readEOF(Context* ctx) override;
   void readException(Context* ctx, folly::exception_wrapper ex) override;
 
@@ -35,15 +37,6 @@ class BroadcastHandler : public BytesToBytesHandler {
    * number of subscribers reaches zero.
    */
   virtual void unsubscribe(uint64_t subscriptionId);
-
-  /**
-   * Process bytes read from the input IOBufQueue and store
-   * it in `data` for broadcasting it to the subscribers.
-   *
-   * @return bool   True if `data` is ready to be broadcast,
-   *                false if waiting for more bytes.
-   */
-  virtual bool processRead(folly::IOBufQueue& q, T& data) = 0;
 
  protected:
   template <typename FUNC> // FUNC: Subscriber<T>* -> void

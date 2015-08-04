@@ -9,34 +9,61 @@ class BroadcastHandlerTest : public Test {
  public:
   class MockBroadcastHandler : public BroadcastHandler<std::string> {
    public:
-    MOCK_METHOD2(processRead, bool(folly::IOBufQueue&, std::string&));
     MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
   };
 
   void SetUp() override {
-    handler = new NiceMock<MockBroadcastHandler>();
+    prevHandler = new StrictMock<MockBytesToBytesHandler>();
+    EXPECT_CALL(*prevHandler, read(_, _))
+        .WillRepeatedly(Invoke([&](MockBytesToBytesHandler::Context* ctx,
+                                   IOBufQueue& q) { ctx->fireRead(q); }));
+
+    decoder = new StrictMock<MockByteToMessageDecoder<std::string>>();
+    handler = new StrictMock<MockBroadcastHandler>();
+
+    pipeline.reset(new DefaultPipeline);
+    pipeline->addBack(
+        std::shared_ptr<StrictMock<MockBytesToBytesHandler>>(prevHandler));
+    pipeline->addBack(
+        std::shared_ptr<StrictMock<MockByteToMessageDecoder<std::string>>>(
+            decoder));
+    pipeline->addBack(
+        std::shared_ptr<StrictMock<MockBroadcastHandler>>(handler));
+    pipeline->finalize();
   }
 
   void TearDown() override {
     Mock::VerifyAndClear(&subscriber0);
     Mock::VerifyAndClear(&subscriber1);
+
+    pipeline.reset();
   }
 
  protected:
-  NiceMock<MockBroadcastHandler>* handler{nullptr};
+  DefaultPipeline::UniquePtr pipeline;
+
+  StrictMock<MockBytesToBytesHandler>* prevHandler{nullptr};
+  StrictMock<MockByteToMessageDecoder<std::string>>* decoder{nullptr};
+  StrictMock<MockBroadcastHandler>* handler{nullptr};
+
   StrictMock<MockSubscriber<std::string>> subscriber0;
   StrictMock<MockSubscriber<std::string>> subscriber1;
 };
 
 TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   // Test by adding a couple of subscribers and unsubscribing them
-  EXPECT_CALL(*handler, processRead(_, _))
-      .WillRepeatedly(Invoke([&](IOBufQueue& q, std::string& data) {
-        auto buf = q.move();
-        buf->coalesce();
-        data = buf->moveToFbString().toStdString();
-        return true;
-      }));
+  EXPECT_CALL(*decoder, decode(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
+                     IOBufQueue& q, std::string& data, size_t&) {
+            auto buf = q.move();
+            if (buf) {
+              buf->coalesce();
+              data = buf->moveToFbString().toStdString();
+              return true;
+            }
+            return false;
+          }));
 
   InSequence dummy;
 
@@ -49,10 +76,10 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   // Push some data
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
   q.append(IOBuf::copyBuffer("data2"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Add another subscriber
@@ -63,7 +90,7 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
 
   // Push more data
   q.append(IOBuf::copyBuffer("data3"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Unsubscribe one of the subscribers
@@ -73,12 +100,12 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
 
   // Push more data
   q.append(IOBuf::copyBuffer("data4"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   EXPECT_CALL(*handler, close(_))
       .WillOnce(InvokeWithoutArgs([this] {
-        delete handler;
+        pipeline.reset();
         return makeFuture();
       }));
 
@@ -87,20 +114,22 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
 }
 
 TEST_F(BroadcastHandlerTest, BufferedRead) {
-  // Test with processRead that buffers data based on some local logic
+  // Test with decoder that buffers data based on some local logic
   // before pushing to subscribers
   IOBufQueue bufQueue{IOBufQueue::cacheChainLength()};
-  EXPECT_CALL(*handler, processRead(_, _))
-      .WillRepeatedly(Invoke([&](IOBufQueue& q, std::string& data) {
-        bufQueue.append(q);
-        if (bufQueue.chainLength() < 5) {
-          return false;
-        }
-        auto buf = bufQueue.move();
-        buf->coalesce();
-        data = buf->moveToFbString().toStdString();
-        return true;
-      }));
+  EXPECT_CALL(*decoder, decode(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
+                     IOBufQueue& q, std::string& data, size_t&) {
+            bufQueue.append(q);
+            if (bufQueue.chainLength() < 5) {
+              return false;
+            }
+            auto buf = bufQueue.move();
+            buf->coalesce();
+            data = buf->moveToFbString().toStdString();
+            return true;
+          }));
 
   InSequence dummy;
 
@@ -112,18 +141,18 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   // Push some fragmented data
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("da"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
   q.append(IOBuf::copyBuffer("ta1"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Push more fragmented data. onNext shouldn't be called yet.
   q.append(IOBuf::copyBuffer("dat"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
   q.append(IOBuf::copyBuffer("a"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Add another subscriber
@@ -135,7 +164,7 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   // Push rest of the fragmented data. The entire data should be pushed
   // to both subscribers.
   q.append(IOBuf::copyBuffer("3data4"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   EXPECT_CALL(subscriber0, onNext("data2")).Times(1);
@@ -143,12 +172,12 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
 
   // Push some unfragmented data
   q.append(IOBuf::copyBuffer("data2"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   EXPECT_CALL(*handler, close(_))
       .WillOnce(InvokeWithoutArgs([this] {
-        delete handler;
+        pipeline.reset();
         return makeFuture();
       }));
 
@@ -159,13 +188,18 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
 
 TEST_F(BroadcastHandlerTest, OnCompleted) {
   // Test with EOF on the handler
-  EXPECT_CALL(*handler, processRead(_, _))
-      .WillRepeatedly(Invoke([&](IOBufQueue& q, std::string& data) {
-        auto buf = q.move();
-        buf->coalesce();
-        data = buf->moveToFbString().toStdString();
-        return true;
-      }));
+  EXPECT_CALL(*decoder, decode(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
+                     IOBufQueue& q, std::string& data, size_t&) {
+            auto buf = q.move();
+            if (buf) {
+              buf->coalesce();
+              data = buf->moveToFbString().toStdString();
+              return true;
+            }
+            return false;
+          }));
 
   InSequence dummy;
 
@@ -177,7 +211,7 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
   // Push some data
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Add another subscriber
@@ -188,7 +222,7 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
 
   // Push more data
   q.append(IOBuf::copyBuffer("data2"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Unsubscribe one of the subscribers
@@ -198,7 +232,7 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
 
   EXPECT_CALL(*handler, close(_))
       .WillOnce(InvokeWithoutArgs([this] {
-        delete handler;
+        pipeline.reset();
         return makeFuture();
       }));
 
@@ -208,13 +242,18 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
 
 TEST_F(BroadcastHandlerTest, OnError) {
   // Test with EOF on the handler
-  EXPECT_CALL(*handler, processRead(_, _))
-      .WillRepeatedly(Invoke([&](IOBufQueue& q, std::string& data) {
-        auto buf = q.move();
-        buf->coalesce();
-        data = buf->moveToFbString().toStdString();
-        return true;
-      }));
+  EXPECT_CALL(*decoder, decode(_, _, _, _))
+      .WillRepeatedly(
+          Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
+                     IOBufQueue& q, std::string& data, size_t&) {
+            auto buf = q.move();
+            if (buf) {
+              buf->coalesce();
+              data = buf->moveToFbString().toStdString();
+              return true;
+            }
+            return false;
+          }));
 
   InSequence dummy;
 
@@ -226,7 +265,7 @@ TEST_F(BroadcastHandlerTest, OnError) {
   // Push some data
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   // Add another subscriber
@@ -237,7 +276,7 @@ TEST_F(BroadcastHandlerTest, OnError) {
 
   // Push more data
   q.append(IOBuf::copyBuffer("data2"));
-  handler->read(nullptr, q);
+  pipeline->read(q);
   q.clear();
 
   EXPECT_CALL(subscriber0, onError(_)).Times(1);
@@ -245,7 +284,7 @@ TEST_F(BroadcastHandlerTest, OnError) {
 
   EXPECT_CALL(*handler, close(_))
       .WillOnce(InvokeWithoutArgs([this] {
-        delete handler;
+        pipeline.reset();
         return makeFuture();
       }));
 

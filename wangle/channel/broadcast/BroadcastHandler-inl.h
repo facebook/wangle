@@ -4,13 +4,10 @@
 namespace folly { namespace wangle {
 
 template <typename T>
-void BroadcastHandler<T>::read(Context* ctx, folly::IOBufQueue& q) {
-  T data;
-  if (processRead(q, data)) {
-    forEachSubscriber([&](Subscriber<T>* s) {
-      s->onNext(data);
-    });
-  }
+void BroadcastHandler<T>::read(Context* ctx, T data) {
+  forEachSubscriber([&](Subscriber<T>* s) {
+    s->onNext(data);
+  });
 }
 
 template <typename T>
@@ -21,7 +18,7 @@ void BroadcastHandler<T>::readEOF(Context* ctx) {
   subscribers_.clear();
 
   // This will delete the broadcast from the pool
-  close(ctx);
+  this->close(ctx);
 }
 
 template <typename T>
@@ -36,7 +33,7 @@ void BroadcastHandler<T>::readException(Context* ctx,
   subscribers_.clear();
 
   // This will delete the broadcast from the pool
-  close(ctx);
+  this->close(ctx);
 }
 
 template <typename T>
@@ -52,7 +49,7 @@ void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
   if (subscribers_.empty()) {
     // No more subscribers. Clean up.
     // This will delete the broadcast from the pool.
-    close(getContext());
+    this->close(this->getContext());
   }
 }
 
