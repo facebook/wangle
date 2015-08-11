@@ -48,11 +48,15 @@ class ByteToMessageDecoder : public InboundHandler<IOBufQueue&, M> {
   virtual bool decode(Context* ctx, IOBufQueue& buf, M& result, size_t&) = 0;
 
   void read(Context* ctx, IOBufQueue& q) override {
-    M result;
-    size_t needed = 0;
-    while (decode(ctx, q, result, needed)) {
-      ctx->fireRead(std::move(result));
-    }
+    bool success = true;
+    do {
+      M result;
+      size_t needed = 0;
+      success = decode(ctx, q, result, needed);
+      if (success) {
+        ctx->fireRead(std::move(result));
+      }
+    } while (success);
   }
 };
 
