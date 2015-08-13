@@ -267,6 +267,7 @@ void SSLContextManager::addSSLContextConfig(
   // will improve performance and decrease write buffer fragmentation.
   sslCtx->setOptions(SSL_OP_CIPHER_SERVER_PREFERENCE |
     SSL_OP_SINGLE_DH_USE |
+    SSL_OP_SINGLE_ECDH_USE |
     SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
 
   // Configure SSL ciphers list
