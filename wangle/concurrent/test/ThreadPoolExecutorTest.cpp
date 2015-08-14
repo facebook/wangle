@@ -12,6 +12,7 @@
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/concurrent/PriorityThreadFactory.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -382,4 +383,14 @@ TEST(ThreadPoolExecutorTest, AddWithPriority) {
   cpuExe.join();
 
   EXPECT_EQ(7, c);
+}
+
+TEST(PriorityThreadFactoryTest, ThreadPriority) {
+  PriorityThreadFactory factory(
+    std::make_shared<NamedThreadFactory>("stuff"), 1);
+  int actualPriority = -21;
+  factory.newThread([&]() {
+      actualPriority = getpriority(PRIO_PROCESS, 0);
+    }).join();
+  EXPECT_EQ(1, actualPriority);
 }
