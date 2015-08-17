@@ -8,9 +8,9 @@
 #include <wangle/channel/broadcast/ObservingHandler.h>
 #include <wangle/codec/ByteToMessageDecoder.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
-class MockBytesToBytesHandler : public folly::wangle::BytesToBytesHandler {
+class MockBytesToBytesHandler : public wangle::BytesToBytesHandler {
  public:
   MOCK_METHOD1(transportActive, void(Context*));
   MOCK_METHOD1(transportInactive, void(Context*));
@@ -42,7 +42,7 @@ class MockByteToMessageDecoder : public ByteToMessageDecoder<T> {
  public:
   typedef typename ByteToMessageDecoder<T>::Context Context;
 
-  MOCK_METHOD4_T(decode, bool(Context*, IOBufQueue&, T&, size_t&));
+  MOCK_METHOD4_T(decode, bool(Context*, folly::IOBufQueue&, T&, size_t&));
 };
 
 class MockServerPool : public ServerPool {
@@ -97,4 +97,4 @@ class MockBroadcastPipelineFactory
       , noexcept, , setRoutingData, void(DefaultPipeline*, const std::string&));
 };
 
-}} // namespace folly::wangle
+} // namespace wangle

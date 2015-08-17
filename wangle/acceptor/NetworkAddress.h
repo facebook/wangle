@@ -11,7 +11,7 @@
 
 #include <folly/SocketAddress.h>
 
-namespace folly {
+namespace wangle {
 
 /**
  * A simple wrapper around SocketAddress that represents
@@ -57,4 +57,4 @@ private:
   unsigned prefixLen_;
 };
 
-} // namespace
+} // namespace wangle

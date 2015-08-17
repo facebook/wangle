@@ -17,7 +17,7 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /*
  * OutputBufferingHandler buffers writes in order to minimize syscalls. The
@@ -26,9 +26,11 @@ namespace folly { namespace wangle {
  * This handler may only be used in a single Pipeline.
  */
 class OutputBufferingHandler : public OutboundBytesToBytesHandler,
-                               protected EventBase::LoopCallback {
+                               protected folly::EventBase::LoopCallback {
  public:
-  Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf) override {
+  folly::Future<folly::Unit> write(
+      Context* ctx,
+      std::unique_ptr<folly::IOBuf> buf) override {
     CHECK(buf);
     if (!queueSends_) {
       return ctx->fireWrite(std::move(buf));
@@ -48,15 +50,15 @@ class OutputBufferingHandler : public OutboundBytesToBytesHandler,
   }
 
   void runLoopCallback() noexcept override {
-    MoveWrapper<SharedPromise<Unit>> sharedPromise;
+    folly::MoveWrapper<folly::SharedPromise<folly::Unit>> sharedPromise;
     std::swap(*sharedPromise, sharedPromise_);
     getContext()->fireWrite(std::move(sends_))
-      .then([sharedPromise](Try<Unit> t) mutable {
+      .then([sharedPromise](folly::Try<folly::Unit> t) mutable {
         sharedPromise->setTry(std::move(t));
       });
   }
 
-  Future<Unit> close(Context* ctx) override {
+  folly::Future<folly::Unit> close(Context* ctx) override {
     if (isLoopCallbackScheduled()) {
       cancelLoopCallback();
     }
@@ -66,13 +68,13 @@ class OutputBufferingHandler : public OutboundBytesToBytesHandler,
       folly::make_exception_wrapper<std::runtime_error>(
         "close() called while sends still pending"));
     sends_.reset();
-    sharedPromise_ = SharedPromise<Unit>();
+    sharedPromise_ = folly::SharedPromise<folly::Unit>();
     return ctx->fireClose();
   }
 
-  SharedPromise<Unit> sharedPromise_;
-  std::unique_ptr<IOBuf> sends_{nullptr};
+  folly::SharedPromise<folly::Unit> sharedPromise_;
+  std::unique_ptr<folly::IOBuf> sends_{nullptr};
   bool queueSends_{true};
 };
 
-}}
+} // namespace wangle

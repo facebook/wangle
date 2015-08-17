@@ -12,7 +12,9 @@
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 
-namespace folly {
+using folly::AsyncSocket;
+
+namespace wangle {
 
 AsyncSocket::OptionMap filterIPSocketOptions(
   const AsyncSocket::OptionMap& allOptions,
@@ -35,4 +37,4 @@ AsyncSocket::OptionMap filterIPSocketOptions(
   return opts;
 }
 
-}
+} // namespace wangle

@@ -17,7 +17,7 @@ namespace folly {
 class EventBase;
 }
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 // An IOExecutor is an executor that operates on at least one EventBase.  One of
 // these EventBases should be accessible via getEventBase(). The event base
@@ -32,10 +32,10 @@ namespace folly { namespace wangle {
 //
 // If getIOExecutor is called and none has been set, a default global
 // IOThreadPoolExecutor will be created and returned.
-class IOExecutor : public virtual Executor {
+class IOExecutor : public virtual folly::Executor {
  public:
   virtual ~IOExecutor() = default;
-  virtual EventBase* getEventBase() = 0;
+  virtual folly::EventBase* getEventBase() = 0;
 };
 
-}}
+} // namespace wangle

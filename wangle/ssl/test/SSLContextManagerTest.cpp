@@ -15,8 +15,9 @@
 #include <wangle/acceptor/DomainNameMisc.h>
 
 using std::shared_ptr;
+using namespace folly;
 
-namespace folly {
+namespace wangle {
 
 TEST(SSLContextManagerTest, Test1)
 {
@@ -84,4 +85,4 @@ TEST(SSLContextManagerTest, Test1)
   eventBase.loop(); // Clean up events before SSLContextManager is destructed
 }
 
-}
+} // namespace wangle

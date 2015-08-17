@@ -33,6 +33,7 @@ do { \
 } while(0)
 
 
+using folly::SSLContext;
 using std::string;
 using std::shared_ptr;
 
@@ -58,7 +59,7 @@ using std::shared_ptr;
  * manage all SSL_CTX for the VIP:PORT.
  */
 
-namespace folly {
+namespace wangle {
 
 namespace {
 
@@ -147,7 +148,7 @@ std::string flattenList(const std::list<std::string>& list) {
 SSLContextManager::~SSLContextManager() = default;
 
 SSLContextManager::SSLContextManager(
-  EventBase* eventBase,
+  folly::EventBase* eventBase,
   const std::string& vipName,
   bool strict,
   SSLStats* stats) :
@@ -368,7 +369,7 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
   VLOG(6) << "Server Name (SNI TLS extension): '" << sn << "' ";
 
   // FIXME: This code breaks the abstraction. Suggestion?
-  AsyncSSLSocket* sslSocket = AsyncSSLSocket::getFromSSL(ssl);
+  folly::AsyncSSLSocket* sslSocket = folly::AsyncSSLSocket::getFromSSL(ssl);
   CHECK(sslSocket);
 
   DNString dnstr(sn, snLen);
@@ -649,4 +650,4 @@ SSLContextManager::reloadTLSTicketKeys(
 #endif
 }
 
-} // namespace
+} // namespace wangle

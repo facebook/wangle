@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #include <wangle/channel/broadcast/test/Mocks.h>
 
-using namespace folly::wangle;
+using namespace wangle;
 using namespace folly;
 using namespace testing;
 

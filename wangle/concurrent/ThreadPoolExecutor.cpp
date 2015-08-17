@@ -10,7 +10,10 @@
 
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 
-namespace folly { namespace wangle {
+using folly::Func;
+using folly::RWSpinLock;
+
+namespace wangle {
 
 ThreadPoolExecutor::ThreadPoolExecutor(
     size_t numThreads,
@@ -193,4 +196,4 @@ void ThreadPoolExecutor::removeObserver(std::shared_ptr<Observer> o) {
   DCHECK(false);
 }
 
-}} // folly::wangle
+} // namespace wangle

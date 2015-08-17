@@ -12,7 +12,8 @@
 #include <wangle/concurrent/GlobalExecutor.h>
 #include <wangle/concurrent/IOExecutor.h>
 
-using namespace folly::wangle;
+using namespace folly;
+using namespace wangle;
 
 TEST(GlobalExecutorTest, GlobalCPUExecutor) {
   class DummyExecutor : public folly::Executor {

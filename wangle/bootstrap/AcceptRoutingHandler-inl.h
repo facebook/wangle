@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
@@ -15,7 +15,7 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
   // Create a new routing pipeline for this connection to read from
   // the socket until it parses the routing data
   DefaultPipeline::UniquePtr routingPipeline(new DefaultPipeline);
-  routingPipeline->addBack(folly::wangle::AsyncSocketHandler(socket));
+  routingPipeline->addBack(wangle::AsyncSocketHandler(socket));
   routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();
 
@@ -55,9 +55,8 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
     auto pipelinePtr = pipeline.get();
     folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
 
-    auto connection =
-        new typename folly::ServerAcceptor<Pipeline>::ServerConnection(
-            std::move(pipeline));
+    auto connection = new typename ServerAcceptor<Pipeline>::ServerConnection(
+        std::move(pipeline));
     acceptor->addConnection(connection);
 
     pipelinePtr->transportActive();
@@ -80,7 +79,7 @@ void AcceptRoutingHandler<Pipeline, R>::populateAcceptors() {
   }
   CHECK(server_);
   server_->forEachWorker(
-      [&](folly::Acceptor* acceptor) { acceptors_.push_back(acceptor); });
+      [&](Acceptor* acceptor) { acceptors_.push_back(acceptor); });
 }
 
-}} // namespace folly::wangle
+} // namespace wangle

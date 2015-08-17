@@ -13,7 +13,7 @@
 #include <wangle/channel/Handler.h>
 #include <gmock/gmock.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class Rin, class Rout = Rin, class Win = Rout, class Wout = Rin>
 class MockHandler : public Handler<Rin, Rout, Win, Wout> {
@@ -25,7 +25,7 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
 
   MOCK_METHOD2_T(read_, void(Context*, Rin&));
   MOCK_METHOD1_T(readEOF, void(Context*));
-  MOCK_METHOD2_T(readException, void(Context*, exception_wrapper));
+  MOCK_METHOD2_T(readException, void(Context*, folly::exception_wrapper));
 
   MOCK_METHOD2_T(write_, void(Context*, Win&));
   MOCK_METHOD1_T(close_, void(Context*));
@@ -39,14 +39,14 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
     read_(ctx, msg);
   }
 
-  Future<Unit> write(Context* ctx, Win msg) override {
-    return makeFutureWith([&](){
+  folly::Future<folly::Unit> write(Context* ctx, Win msg) override {
+    return folly::makeFutureWith([&](){
       write_(ctx, msg);
     });
   }
 
-  Future<Unit> close(Context* ctx) override {
-    return makeFutureWith([&](){
+  folly::Future<folly::Unit> close(Context* ctx) override {
+    return folly::makeFutureWith([&](){
       close_(ctx);
     });
   }
@@ -55,4 +55,4 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
 template <class R, class W = R>
 using MockHandlerAdapter = MockHandler<R, R, W, W>;
 
-}}
+} // namespace wangle

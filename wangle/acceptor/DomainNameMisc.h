@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace folly {
+namespace wangle {
 
 struct dn_char_traits : public std::char_traits<char> {
   static bool eq(char c1, char c2) {
@@ -65,4 +65,4 @@ struct DNStringHash : public std::hash<std::string> {
   }
 };
 
-} // namespace
+} // namespace wangle

@@ -19,7 +19,7 @@
 #include <folly/io/async/EventBase.h>
 #include <wangle/concurrent/GlobalExecutor.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /*
  * IOObjectCache manages objects of type T that are dependent on an EventBase
@@ -40,7 +40,7 @@ namespace folly { namespace wangle {
 template <class T>
 class IOObjectCache {
  public:
-  typedef std::function<std::shared_ptr<T>(EventBase*)> TFactory;
+  typedef std::function<std::shared_ptr<T>(folly::EventBase*)> TFactory;
 
   IOObjectCache() = default;
   explicit IOObjectCache(TFactory factory)
@@ -63,8 +63,8 @@ class IOObjectCache {
   }
 
  private:
-  ThreadLocal<std::map<EventBase*, std::shared_ptr<T>>> cache_;
+  folly::ThreadLocal<std::map<folly::EventBase*, std::shared_ptr<T>>> cache_;
   TFactory factory_;
 };
 
-}} // folly::wangle
+} // namespace wangle

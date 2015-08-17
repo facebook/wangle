@@ -13,7 +13,7 @@
 #include <folly/experimental/fibers/FiberManagerMap.h>
 #include <wangle/concurrent/IOExecutor.h>
 
-namespace folly { namespace fibers {
+namespace wangle {
 
 /**
  * @class FiberIOExecutor
@@ -22,10 +22,10 @@ namespace folly { namespace fibers {
  * A FiberIOExecutor wraps an IOExecutor, but executes funcs on the FiberManager
  * mapped to the underlying IOExector's event base.
  */
-class FiberIOExecutor : public folly::wangle::IOExecutor {
+class FiberIOExecutor : public IOExecutor {
  public:
   explicit FiberIOExecutor(
-      const std::shared_ptr<folly::wangle::IOExecutor>& ioExecutor)
+      const std::shared_ptr<IOExecutor>& ioExecutor)
       : ioExecutor_(ioExecutor) {}
 
   virtual void add(std::function<void()> f) override {
@@ -38,7 +38,7 @@ class FiberIOExecutor : public folly::wangle::IOExecutor {
   }
 
  private:
-  std::shared_ptr<folly::wangle::IOExecutor> ioExecutor_;
+  std::shared_ptr<IOExecutor> ioExecutor_;
 };
 
-}}
+} // namespace wangle

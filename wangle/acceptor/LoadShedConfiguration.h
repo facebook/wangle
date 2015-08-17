@@ -19,7 +19,7 @@
 
 #include <wangle/acceptor/NetworkAddress.h>
 
-namespace folly {
+namespace wangle {
 
 /**
  * Class that holds an LoadShed configuration for a service
@@ -30,13 +30,13 @@ class LoadShedConfiguration {
   // Comparison function for SocketAddress that disregards the port
   struct AddressOnlyCompare {
     bool operator()(
-     const SocketAddress& addr1,
-     const SocketAddress& addr2) const {
+     const folly::SocketAddress& addr1,
+     const folly::SocketAddress& addr2) const {
       return addr1.getIPAddress() < addr2.getIPAddress();
     }
   };
 
-  typedef std::set<SocketAddress, AddressOnlyCompare> AddressSet;
+  typedef std::set<folly::SocketAddress, AddressOnlyCompare> AddressSet;
   typedef std::set<NetworkAddress> NetworkSet;
 
   LoadShedConfiguration() = default;
@@ -102,7 +102,7 @@ class LoadShedConfiguration {
   }
   std::chrono::milliseconds getLoadUpdatePeriod() const { return period_; }
 
-  bool isWhitelisted(const SocketAddress& addr) const;
+  bool isWhitelisted(const folly::SocketAddress& addr) const;
 
  private:
 
@@ -115,4 +115,4 @@ class LoadShedConfiguration {
   std::chrono::milliseconds period_;
 };
 
-}
+} // namespace wangle

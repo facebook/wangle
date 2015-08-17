@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <folly/Memory.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T> struct FunctionObserver;
 
@@ -104,4 +104,4 @@ struct FunctionObserver : public Observer<T> {
   OnCompleted onCompleted_;
 };
 
-}}
+} // namespace wangle

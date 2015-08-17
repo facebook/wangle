@@ -10,7 +10,10 @@
 
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>
 
-namespace folly { namespace wangle {
+using folly::IOBuf;
+using folly::IOBufQueue;
+
+namespace wangle {
 
 LengthFieldBasedFrameDecoder::LengthFieldBasedFrameDecoder(
   uint32_t lengthFieldLength,
@@ -122,4 +125,4 @@ uint64_t LengthFieldBasedFrameDecoder::getUnadjustedFrameLength(
 }
 
 
-}} // namespace
+} // namespace wangle

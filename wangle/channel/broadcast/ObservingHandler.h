@@ -7,7 +7,7 @@
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/Subscriber.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A Handler-Observer adaptor that can be used for subscribing to broadcasts.
@@ -15,10 +15,10 @@ namespace folly { namespace wangle {
  * obtained and subscribed to based on the given routing data.
  */
 template <typename T, typename R>
-class ObservingHandler : public HandlerAdapter<IOBufQueue&, T>,
+class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
                          public Subscriber<T> {
  public:
-  typedef typename HandlerAdapter<IOBufQueue&, T>::Context Context;
+  typedef typename HandlerAdapter<folly::IOBufQueue&, T>::Context Context;
 
   ObservingHandler(
       const R& routingData,
@@ -99,6 +99,6 @@ class ObservingPipelineFactory
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle
 
 #include <wangle/channel/broadcast/ObservingHandler-inl.h>

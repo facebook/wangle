@@ -14,7 +14,7 @@
 #include <wangle/deprecated/rx/Observable.h>
 #include <wangle/deprecated/rx/Observer.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /// Subject interface. A Subject is both an Observable and an Observer. There
 /// is a default implementation of the Observer methods that just forwards the
@@ -38,4 +38,4 @@ struct Subject : public Observable<T>, public Observer<T> {
   }
 };
 
-}}
+} // namespace wangle

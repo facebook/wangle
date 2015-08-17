@@ -12,23 +12,23 @@
 
 #include <wangle/channel/Handler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * An OutboundHandler which encodes message in a stream-like fashion from one
  * message to IOBuf. Inverse of ByteToMessageDecoder.
  */
 template <typename M>
-class MessageToByteEncoder : public OutboundHandler<M, std::unique_ptr<IOBuf>> {
+class MessageToByteEncoder : public OutboundHandler<M, std::unique_ptr<folly::IOBuf>> {
  public:
-  typedef typename OutboundHandler<M, std::unique_ptr<IOBuf>>::Context Context;
+  typedef typename OutboundHandler<M, std::unique_ptr<folly::IOBuf>>::Context Context;
 
-  virtual std::unique_ptr<IOBuf> encode(M& msg) = 0;
+  virtual std::unique_ptr<folly::IOBuf> encode(M& msg) = 0;
 
-  Future<Unit> write(Context* ctx, M msg) override {
+  folly::Future<folly::Unit> write(Context* ctx, M msg) override {
     auto buf = encode(msg);
-    return buf ? ctx->fireWrite(std::move(buf)) : makeFuture();
+    return buf ? ctx->fireWrite(std::move(buf)) : folly::makeFuture();
   }
 };
 
-}}
+} // namespace wangle

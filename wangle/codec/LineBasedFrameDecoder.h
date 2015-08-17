@@ -13,7 +13,7 @@
 #include <folly/io/Cursor.h>
 #include <wangle/codec/ByteToMessageDecoder.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A decoder that splits the received IOBufQueue on line endings.
@@ -35,13 +35,13 @@ class LineBasedFrameDecoder : public ByteToByteDecoder {
       TerminatorType terminatorType = TerminatorType::BOTH);
 
   bool decode(Context* ctx,
-              IOBufQueue& buf,
-              std::unique_ptr<IOBuf>& result,
+              folly::IOBufQueue& buf,
+              std::unique_ptr<folly::IOBuf>& result,
               size_t&) override;
 
  private:
 
-  int64_t findEndOfLine(IOBufQueue& buf);
+  int64_t findEndOfLine(folly::IOBufQueue& buf);
 
   void fail(Context* ctx, std::string len);
 
@@ -54,4 +54,4 @@ class LineBasedFrameDecoder : public ByteToByteDecoder {
   TerminatorType terminatorType_;
 };
 
-}} // namespace
+} // namespace wangle

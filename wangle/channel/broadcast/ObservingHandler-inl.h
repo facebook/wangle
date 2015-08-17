@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::transportActive(Context* ctx) {
@@ -92,4 +92,4 @@ BroadcastPool<T, R>* ObservingHandler<T, R>::newBroadcastPool() {
   return (new BroadcastPool<T, R>(serverPool_, broadcastPipelineFactory_));
 }
 
-}} // namespace folly::wangle
+} // namespace wangle

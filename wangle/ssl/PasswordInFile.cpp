@@ -13,7 +13,7 @@
 
 using namespace std;
 
-namespace folly {
+namespace wangle {
 
 PasswordInFile::PasswordInFile(const string& file)
     : fileName_(file) {
@@ -28,4 +28,4 @@ PasswordInFile::~PasswordInFile() {
   OPENSSL_cleanse((char *)password_.data(), password_.length());
 }
 
-}
+} // namespace wangle

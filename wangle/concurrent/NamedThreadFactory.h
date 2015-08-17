@@ -19,14 +19,14 @@
 #include <folly/Range.h>
 #include <folly/ThreadName.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class NamedThreadFactory : public ThreadFactory {
  public:
   explicit NamedThreadFactory(folly::StringPiece prefix)
     : prefix_(prefix.str()), suffix_(0) {}
 
-  std::thread newThread(Func&& func) override {
+  std::thread newThread(folly::Func&& func) override {
     auto thread = std::thread(std::move(func));
     folly::setThreadName(
         thread.native_handle(),
@@ -47,4 +47,4 @@ class NamedThreadFactory : public ThreadFactory {
   std::atomic<uint64_t> suffix_;
 };
 
-}} // folly::wangle
+} // namespace wangle

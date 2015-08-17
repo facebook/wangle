@@ -12,7 +12,7 @@
 
 #include <wangle/channel/Handler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A Handler which decodes bytes in a stream-like fashion from
@@ -35,9 +35,9 @@ namespace folly { namespace wangle {
  * IOBufQueue.front(), without split() or pop_front().
  */
 template <typename M>
-class ByteToMessageDecoder : public InboundHandler<IOBufQueue&, M> {
+class ByteToMessageDecoder : public InboundHandler<folly::IOBufQueue&, M> {
  public:
-  typedef typename InboundHandler<IOBufQueue&, M>::Context Context;
+  typedef typename InboundHandler<folly::IOBufQueue&, M>::Context Context;
 
   /**
    * Decode bytes from buf into result.
@@ -45,9 +45,9 @@ class ByteToMessageDecoder : public InboundHandler<IOBufQueue&, M> {
    * @return bool - Return true if decoding is successful, false if buf
    *                has insufficient bytes.
    */
-  virtual bool decode(Context* ctx, IOBufQueue& buf, M& result, size_t&) = 0;
+  virtual bool decode(Context* ctx, folly::IOBufQueue& buf, M& result, size_t&) = 0;
 
-  void read(Context* ctx, IOBufQueue& q) override {
+  void read(Context* ctx, folly::IOBufQueue& q) override {
     bool success = true;
     do {
       M result;
@@ -60,6 +60,6 @@ class ByteToMessageDecoder : public InboundHandler<IOBufQueue&, M> {
   }
 };
 
-typedef ByteToMessageDecoder<std::unique_ptr<IOBuf>> ByteToByteDecoder;
+typedef ByteToMessageDecoder<std::unique_ptr<folly::IOBuf>> ByteToByteDecoder;
 
-}}
+} // namespace wangle

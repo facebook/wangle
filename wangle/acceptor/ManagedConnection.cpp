@@ -12,7 +12,7 @@
 
 #include <wangle/acceptor/ConnectionManager.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 ManagedConnection::ManagedConnection()
   : connectionManager_(nullptr) {
@@ -55,4 +55,4 @@ operator<<(std::ostream& os, const ManagedConnection& conn) {
   return os;
 }
 
-}} // folly::wangle
+} // wangle

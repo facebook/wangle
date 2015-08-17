@@ -11,7 +11,7 @@
 
 #include <folly/io/async/SSLContext.h> // PasswordCollector
 
-namespace folly {
+namespace wangle {
 
 class PasswordInFile: public folly::PasswordCollector {
  public:
@@ -35,4 +35,4 @@ class PasswordInFile: public folly::PasswordCollector {
   std::string password_;
 };
 
-}
+} // namespace wangle

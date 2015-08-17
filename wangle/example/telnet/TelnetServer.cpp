@@ -16,7 +16,7 @@
 #include <wangle/codec/StringCodec.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 DEFINE_int32(port, 23, "test telnet server port");
 

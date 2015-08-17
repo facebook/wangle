@@ -12,7 +12,7 @@
 
 #include <glog/logging.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T>
 class BlockingQueue {
@@ -29,4 +29,4 @@ class BlockingQueue {
   virtual size_t size() = 0;
 };
 
-}} // folly::wangle
+} // namespace wangle

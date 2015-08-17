@@ -18,7 +18,7 @@
 #include <wangle/codec/StringCodec.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 DEFINE_int32(port, 23, "test telnet server port");
 DEFINE_string(host, "::1", "test telnet server address");
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   ClientBootstrap<TelnetPipeline> client;
-  client.group(std::make_shared<folly::wangle::IOThreadPoolExecutor>(1));
+  client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));
   client.pipelineFactory(std::make_shared<TelnetPipelineFactory>());
   auto pipeline = client.connect(SocketAddress(FLAGS_host,FLAGS_port)).get();
 

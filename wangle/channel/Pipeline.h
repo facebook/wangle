@@ -18,7 +18,7 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Memory.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class PipelineBase;
 
@@ -28,7 +28,7 @@ class PipelineManager {
   virtual void deletePipeline(PipelineBase* pipeline) = 0;
 };
 
-class PipelineBase : public DelayedDestruction {
+class PipelineBase : public folly::DelayedDestruction {
  public:
   virtual ~PipelineBase() = default;
 
@@ -42,16 +42,16 @@ class PipelineBase : public DelayedDestruction {
     }
   }
 
-  void setTransport(std::shared_ptr<AsyncTransport> transport) {
+  void setTransport(std::shared_ptr<folly::AsyncTransport> transport) {
     transport_ = transport;
   }
 
-  std::shared_ptr<AsyncTransport> getTransport() {
+  std::shared_ptr<folly::AsyncTransport> getTransport() {
     return transport_;
   }
 
-  void setWriteFlags(WriteFlags flags);
-  WriteFlags getWriteFlags();
+  void setWriteFlags(folly::WriteFlags flags);
+  folly::WriteFlags getWriteFlags();
 
   void setReadBufferSettings(uint64_t minAvailable, uint64_t allocationSize);
   std::pair<uint64_t, uint64_t> getReadBufferSettings();
@@ -108,7 +108,7 @@ class PipelineBase : public DelayedDestruction {
 
  private:
   PipelineManager* manager_{nullptr};
-  std::shared_ptr<AsyncTransport> transport_;
+  std::shared_ptr<folly::AsyncTransport> transport_;
 
   template <class Context>
   PipelineBase& addHelper(std::shared_ptr<Context>&& ctx, bool front);
@@ -121,7 +121,7 @@ class PipelineBase : public DelayedDestruction {
 
   ContextIterator removeAt(const ContextIterator& it);
 
-  WriteFlags writeFlags_{WriteFlags::NONE};
+  folly::WriteFlags writeFlags_{folly::WriteFlags::NONE};
   std::pair<uint64_t, uint64_t> readBufferSettings_{2048, 2048};
 
   std::shared_ptr<PipelineContext> owner_;
@@ -135,7 +135,7 @@ class PipelineBase : public DelayedDestruction {
  * If R is Unit, read(), readEOF(), and readException() will be disabled.
  * If W is Unit, write() and close() will be disabled.
  */
-template <class R, class W = Unit>
+template <class R, class W = folly::Unit>
 class Pipeline : public PipelineBase {
  public:
   typedef std::unique_ptr<Pipeline, Destructor> UniquePtr;
@@ -144,31 +144,33 @@ class Pipeline : public PipelineBase {
   ~Pipeline();
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, Unit>::value>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
   read(R msg);
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, Unit>::value>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
   readEOF();
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, Unit>::value>::type
-  readException(exception_wrapper e);
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
+  readException(folly::exception_wrapper e);
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, Unit>::value>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
   transportActive();
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, Unit>::value>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
   transportInactive();
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, Unit>::value, Future<Unit>>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
+                          folly::Future<folly::Unit>>::type
   write(W msg);
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, Unit>::value, Future<Unit>>::type
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
+                          folly::Future<folly::Unit>>::type
   close();
 
   void finalize() override;
@@ -183,17 +185,21 @@ class Pipeline : public PipelineBase {
   OutboundLink<W>* back_{nullptr};
 };
 
-}}
+} // namespace wangle
 
 namespace folly {
 
 class AsyncSocket;
 
+}
+
+namespace wangle {
+
 template <typename Pipeline>
 class PipelineFactory {
  public:
   virtual typename Pipeline::UniquePtr newPipeline(
-      std::shared_ptr<AsyncSocket>) = 0;
+      std::shared_ptr<folly::AsyncSocket>) = 0;
 
   virtual ~PipelineFactory() = default;
 };

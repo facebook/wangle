@@ -11,7 +11,7 @@
 #pragma once
 #include <folly/futures/Future.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename ExecutorImpl>
 class FutureExecutor : public ExecutorImpl {
@@ -30,16 +30,16 @@ class FutureExecutor : public ExecutorImpl {
    *              });
    */
   template <typename F>
-  typename std::enable_if<isFuture<typename std::result_of<F()>::type>::value,
+  typename std::enable_if<folly::isFuture<typename std::result_of<F()>::type>::value,
                           typename std::result_of<F()>::type>::type
   addFuture(F func) {
     typedef typename std::result_of<F()>::type::value_type T;
-    Promise<T> promise;
+    folly::Promise<T> promise;
     auto future = promise.getFuture();
     auto movePromise = folly::makeMoveWrapper(std::move(promise));
     auto moveFunc = folly::makeMoveWrapper(std::move(func));
     ExecutorImpl::add([movePromise, moveFunc] () mutable {
-      (*moveFunc)().then([movePromise] (Try<T>&& t) mutable {
+      (*moveFunc)().then([movePromise] (folly::Try<T>&& t) mutable {
         movePromise->setTry(std::move(t));
       });
     });
@@ -55,11 +55,11 @@ class FutureExecutor : public ExecutorImpl {
    *              });
    */
   template <typename F>
-  typename std::enable_if<!isFuture<typename std::result_of<F()>::type>::value,
-                          Future<typename Unit::Lift<typename std::result_of<F()>::type>::type>>::type
+  typename std::enable_if<!folly::isFuture<typename std::result_of<F()>::type>::value,
+                          folly::Future<typename folly::Unit::Lift<typename std::result_of<F()>::type>::type>>::type
   addFuture(F func) {
-    using T = typename Unit::Lift<typename std::result_of<F()>::type>::type;
-    Promise<T> promise;
+    using T = typename folly::Unit::Lift<typename std::result_of<F()>::type>::type;
+    folly::Promise<T> promise;
     auto future = promise.getFuture();
     auto movePromise = folly::makeMoveWrapper(std::move(promise));
     auto moveFunc = folly::makeMoveWrapper(std::move(func));
@@ -70,4 +70,4 @@ class FutureExecutor : public ExecutorImpl {
   }
 };
 
-}}
+} // namespace wangle

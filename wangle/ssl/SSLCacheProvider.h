@@ -11,7 +11,7 @@
 
 #include <folly/io/async/AsyncSSLSocket.h>
 
-namespace folly {
+namespace wangle {
 
 class SSLSessionCacheManager;
 
@@ -28,7 +28,7 @@ public:
     std::string sessionId;
     SSL_SESSION* session;
     SSLSessionCacheManager* manager;
-    AsyncSSLSocket* sslSocket;
+    folly::AsyncSSLSocket* sslSocket;
     std::unique_ptr<
       folly::DelayedDestruction::DestructorGuard> guard;
   } CacheContext;
@@ -66,4 +66,4 @@ public:
 
 };
 
-}
+} // namespace wangle

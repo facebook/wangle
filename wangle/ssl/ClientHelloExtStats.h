@@ -9,7 +9,7 @@
  */
 #pragma once
 
-namespace folly {
+namespace wangle {
 
 class ClientHelloExtStats {
  public:
@@ -21,4 +21,4 @@ class ClientHelloExtStats {
   virtual void recordNotMatch() noexcept = 0;
 };
 
-}
+} // namespace wangle

@@ -27,13 +27,13 @@
 #include <wangle/example/rpc/SerializeHandler.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 using thrift::test::Bonk;
 
 DEFINE_int32(port, 8080, "test server port");
 DEFINE_string(host, "::1", "test server address");
 
-typedef folly::wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
+typedef wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
 
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
    * TODO: examples of ServiceFactoryFilters, for connection pooling, etc.
    */
   ClientBootstrap<SerializePipeline> client;
-  client.group(std::make_shared<folly::wangle::IOThreadPoolExecutor>(1));
+  client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));
   client.pipelineFactory(std::make_shared<RpcPipelineFactory>());
   auto pipeline = client.connect(SocketAddress(FLAGS_host, FLAGS_port)).get();
   // A serial dispatcher would assert if we tried to send more than one

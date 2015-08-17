@@ -12,7 +12,7 @@
 #include <wangle/deprecated/rx/Subject.h>
 #include <gtest/gtest.h>
 
-using namespace folly::wangle;
+using namespace wangle;
 
 static std::unique_ptr<Observer<int>> incrementer(int& counter) {
   return Observer<int>::create([&] (int x) {

@@ -19,6 +19,10 @@
 #include <gflags/gflags.h>
 #endif
 
+using folly::SSLContext;
+using folly::EventBase;
+using folly::AsyncSSLSocket;
+using folly::DelayedDestruction;
 using std::string;
 using std::shared_ptr;
 
@@ -38,7 +42,7 @@ DEFINE_bool(dcache_unit_test, false, "All VIPs share one session cache");
 const bool FLAGS_dcache_unit_test = false;
 #endif
 
-namespace folly {
+namespace wangle {
 
 
 int SSLSessionCacheManager::sExDataIndex_ = -1;
@@ -350,4 +354,4 @@ void SSLSessionCacheManager::onGetFailure(
   delete cacheCtx;
 }
 
-} // namespace
+} // namespace wangle

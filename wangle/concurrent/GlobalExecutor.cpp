@@ -14,7 +14,7 @@
 #include <folly/futures/InlineExecutor.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 namespace {
 
@@ -46,7 +46,7 @@ Singleton<std::shared_ptr<IOThreadPoolExecutor>> globalIOThreadPool(
 
 }
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class Exe, class DefaultExe, class LockTag>
 std::shared_ptr<Exe> getExecutor(
@@ -115,4 +115,4 @@ void setIOExecutor(std::shared_ptr<IOExecutor> executor) {
       globalIOExecutorLock);
 }
 
-}} // folly::wangle
+} // namespace wangle

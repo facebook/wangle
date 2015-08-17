@@ -13,7 +13,7 @@
 #include <folly/io/Cursor.h>
 #include <wangle/channel/Handler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * An encoder that prepends the length of the message.  The length value is
@@ -48,7 +48,9 @@ class LengthFieldPrepender : public OutboundBytesToBytesHandler {
                                 bool lengthIncludesLengthField = false,
                                 bool networkByteOrder = true);
 
-  Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf);
+  folly::Future<folly::Unit> write(
+      Context* ctx,
+      std::unique_ptr<folly::IOBuf> buf);
 
  private:
   int lengthFieldLength_;
@@ -57,4 +59,4 @@ class LengthFieldPrepender : public OutboundBytesToBytesHandler {
   bool networkByteOrder_;
 };
 
-}} // namespace
+} // namespace wangle

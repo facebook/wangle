@@ -23,9 +23,9 @@
 
 #include <glog/logging.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
-class ThreadPoolExecutor : public virtual Executor {
+class ThreadPoolExecutor : public virtual folly::Executor {
  public:
   explicit ThreadPoolExecutor(
       size_t numThreads,
@@ -33,11 +33,11 @@ class ThreadPoolExecutor : public virtual Executor {
 
   ~ThreadPoolExecutor();
 
-  virtual void add(Func func) override = 0;
+  virtual void add(folly::Func func) override = 0;
   virtual void add(
-      Func func,
+      folly::Func func,
       std::chrono::milliseconds expiration,
-      Func expireCallback) = 0;
+      folly::Func expireCallback) = 0;
 
   void setThreadFactory(std::shared_ptr<ThreadFactory> threadFactory) {
     CHECK(numThreads() == 0);
@@ -129,7 +129,7 @@ class ThreadPoolExecutor : public virtual Executor {
     uint64_t id;
     std::thread handle;
     bool idle;
-    Baton<> startupBaton;
+    folly::Baton<> startupBaton;
     std::shared_ptr<Subject<TaskStats>> taskStatsSubject;
   };
 
@@ -137,14 +137,14 @@ class ThreadPoolExecutor : public virtual Executor {
 
   struct Task {
     explicit Task(
-        Func&& func,
+        folly::Func&& func,
         std::chrono::milliseconds expiration,
-        Func&& expireCallback);
-    Func func_;
+        folly::Func&& expireCallback);
+    folly::Func func_;
     TaskStats stats_;
     std::chrono::steady_clock::time_point enqueueTime_;
     std::chrono::milliseconds expiration_;
-    Func expireCallback_;
+    folly::Func expireCallback_;
   };
 
   static void runTask(const ThreadPtr& thread, Task&& task);
@@ -210,14 +210,14 @@ class ThreadPoolExecutor : public virtual Executor {
     size_t size() override;
 
    private:
-    LifoSem sem_;
+    folly::LifoSem sem_;
     std::mutex mutex_;
     std::queue<ThreadPtr> queue_;
   };
 
   std::shared_ptr<ThreadFactory> threadFactory_;
   ThreadList threadList_;
-  RWSpinLock threadListLock_;
+  folly::RWSpinLock threadListLock_;
   StoppedThreadQueue stoppedThreads_;
   std::atomic<bool> isJoin_; // whether the current downsizing is a join
 
@@ -225,4 +225,4 @@ class ThreadPoolExecutor : public virtual Executor {
   std::vector<std::shared_ptr<Observer>> observers_;
 };
 
-}} // folly::wangle
+} // namespace wangle

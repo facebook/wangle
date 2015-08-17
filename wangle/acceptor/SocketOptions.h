@@ -11,14 +11,14 @@
 
 #include <folly/io/async/AsyncSocket.h>
 
-namespace folly {
+namespace wangle {
 
 /**
  * Returns a copy of the socket options excluding options with the given
  * level.
  */
-AsyncSocket::OptionMap filterIPSocketOptions(
-  const AsyncSocket::OptionMap& allOptions,
+folly::AsyncSocket::OptionMap filterIPSocketOptions(
+  const folly::AsyncSocket::OptionMap& allOptions,
   const int addrFamily);
 
-}
+} // namespace wangle

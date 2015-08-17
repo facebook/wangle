@@ -12,7 +12,7 @@
 
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class CPUThreadPoolExecutor : public ThreadPoolExecutor {
  public:
@@ -44,27 +44,27 @@ CPUThreadPoolExecutor(
 
   ~CPUThreadPoolExecutor();
 
-  void add(Func func) override;
+  void add(folly::Func func) override;
   void add(
-      Func func,
+      folly::Func func,
       std::chrono::milliseconds expiration,
-      Func expireCallback = nullptr) override;
+      folly::Func expireCallback = nullptr) override;
 
-  void addWithPriority(Func func, int8_t priority) override;
+  void addWithPriority(folly::Func func, int8_t priority) override;
   void add(
-      Func func,
+      folly::Func func,
       int8_t priority,
       std::chrono::milliseconds expiration,
-      Func expireCallback = nullptr);
+      folly::Func expireCallback = nullptr);
 
   uint8_t getNumPriorities() const override;
 
   struct CPUTask : public ThreadPoolExecutor::Task {
     // Must be noexcept move constructible so it can be used in MPMCQueue
     explicit CPUTask(
-        Func&& f,
+        folly::Func&& f,
         std::chrono::milliseconds expiration,
-        Func&& expireCallback)
+        folly::Func&& expireCallback)
       : Task(std::move(f), expiration, std::move(expireCallback)),
         poison(false) {}
     CPUTask()
@@ -90,4 +90,4 @@ CPUThreadPoolExecutor(
   std::atomic<ssize_t> threadsToStop_{0};
 };
 
-}} // folly::wangle
+} // namespace wangle

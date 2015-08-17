@@ -2,7 +2,7 @@
 
 #include <wangle/service/Service.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A service that runs all requests through an executor.
@@ -11,11 +11,12 @@ template <typename Req, typename Resp = Req>
 class ExecutorFilter : public ServiceFilter<Req, Resp> {
  public:
  explicit ExecutorFilter(
-   std::shared_ptr<Executor> exe, std::shared_ptr<Service<Req, Resp>> service)
+   std::shared_ptr<folly::Executor> exe,
+   std::shared_ptr<Service<Req, Resp>> service)
       : ServiceFilter<Req, Resp>(service)
       , exe_(exe) {}
 
-  Future<Resp> operator()(Req req) override {
+ folly::Future<Resp> operator()(Req req) override {
     folly::MoveWrapper<Req> wrapped(std::move(req));
     return via(exe_.get()).then([wrapped,this]() mutable {
       return (*this->service_)(wrapped.move());
@@ -23,7 +24,7 @@ class ExecutorFilter : public ServiceFilter<Req, Resp> {
   }
 
  private:
-  std::shared_ptr<Executor> exe_;
+  std::shared_ptr<folly::Executor> exe_;
 };
 
-}} // namespace
+} // namespace wangle

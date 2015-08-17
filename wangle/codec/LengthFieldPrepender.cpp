@@ -10,7 +10,11 @@
 
 #include <wangle/codec/LengthFieldPrepender.h>
 
-namespace folly { namespace wangle {
+using folly::Future;
+using folly::Unit;
+using folly::IOBuf;
+
+namespace wangle {
 
 LengthFieldPrepender::LengthFieldPrepender(
     int lengthFieldLength,
@@ -91,4 +95,4 @@ Future<Unit> LengthFieldPrepender::write(
 }
 
 
-}} // Namespace
+} // namespace wangle

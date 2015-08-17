@@ -10,14 +10,14 @@
 
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class EventBaseHandler : public OutboundBytesToBytesHandler {
  public:
-  folly::Future<Unit> write(
+  folly::Future<folly::Unit> write(
       Context* ctx,
       std::unique_ptr<folly::IOBuf> buf) override {
-    folly::Future<Unit> retval;
+    folly::Future<folly::Unit> retval;
     DCHECK(ctx->getTransport());
     DCHECK(ctx->getTransport()->getEventBase());
     ctx->getTransport()->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
@@ -26,10 +26,10 @@ class EventBaseHandler : public OutboundBytesToBytesHandler {
     return retval;
   }
 
-  Future<Unit> close(Context* ctx) override {
+  folly::Future<folly::Unit> close(Context* ctx) override {
     DCHECK(ctx->getTransport());
     DCHECK(ctx->getTransport()->getEventBase());
-    Future<Unit> retval;
+    folly::Future<folly::Unit> retval;
     ctx->getTransport()->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
         retval = ctx->fireClose();
     });
@@ -37,4 +37,4 @@ class EventBaseHandler : public OutboundBytesToBytesHandler {
   }
 };
 
-}} // namespace
+} // namespace

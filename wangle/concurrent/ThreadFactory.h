@@ -13,12 +13,12 @@
 
 #include <thread>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class ThreadFactory {
  public:
   virtual ~ThreadFactory() = default;
-  virtual std::thread newThread(Func&& func) = 0;
+  virtual std::thread newThread(folly::Func&& func) = 0;
 };
 
-}} // folly::wangle
+} // namespace wangle

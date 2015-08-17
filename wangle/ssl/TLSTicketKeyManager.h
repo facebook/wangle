@@ -12,7 +12,7 @@
 #include <folly/io/async/SSLContext.h>
 #include <folly/io/async/EventBase.h>
 
-namespace folly {
+namespace wangle {
 
 #ifndef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
 class TLSTicketKeyManager {};
@@ -173,7 +173,7 @@ class TLSTicketKeyManager : private boost::noncopyable {
   /**
    * For standalone decryption utility
    */
-  friend int decrypt_fb_ticket(folly::TLSTicketKeyManager* manager,
+  friend int decrypt_fb_ticket(TLSTicketKeyManager* manager,
                                const std::string& testTicket,
                                SSL_SESSION **psess);
 
@@ -195,4 +195,5 @@ class TLSTicketKeyManager : private boost::noncopyable {
   static int32_t sExDataIndex_;
 };
 #endif
-}
+
+} // namespace wangle

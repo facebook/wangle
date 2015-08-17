@@ -13,10 +13,10 @@
 #include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBaseManager.h>
 
-namespace folly {
+namespace wangle {
 
 void ServerWorkerPool::threadStarted(
-  folly::wangle::ThreadPoolExecutor::ThreadHandle* h) {
+  wangle::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = acceptorFactory_->newAcceptor(exec_->getEventBase(h));
   workers_.insert({h, worker});
 
@@ -30,7 +30,7 @@ void ServerWorkerPool::threadStarted(
 }
 
 void ServerWorkerPool::threadStopped(
-  folly::wangle::ThreadPoolExecutor::ThreadHandle* h) {
+  wangle::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = workers_.find(h);
   CHECK(worker != workers_.end());
 
@@ -54,4 +54,4 @@ void ServerWorkerPool::threadStopped(
   workers_.erase(worker);
 }
 
-} // namespace
+} // namespace wangle

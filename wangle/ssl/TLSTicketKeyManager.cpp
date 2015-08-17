@@ -28,13 +28,13 @@ const int kTLSTicketKeySaltLen = 12;
 
 }
 
-namespace folly {
+namespace wangle {
 
 
 // TLSTicketKeyManager Implementation
 int32_t TLSTicketKeyManager::sExDataIndex_ = -1;
 
-TLSTicketKeyManager::TLSTicketKeyManager(SSLContext* ctx, SSLStats* stats)
+TLSTicketKeyManager::TLSTicketKeyManager(folly::SSLContext* ctx, SSLStats* stats)
   : ctx_(ctx),
     randState_(0),
     stats_(stats) {
@@ -301,5 +301,5 @@ TLSTicketKeyManager::makeUniqueKeys(unsigned char* parentKey,
   SHA256_Final(output, &hash_ctx);
 }
 
-} // namespace
+} // namespace wangle
 #endif

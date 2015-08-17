@@ -9,7 +9,7 @@
  */
 #pragma once
 
-namespace folly {
+namespace wangle {
 
 class IConnectionCounter {
  public:
@@ -51,4 +51,4 @@ class SimpleConnectionCounter: public IConnectionCounter {
   uint64_t numConnections_{0};
 };
 
-}
+} // namespace wangle

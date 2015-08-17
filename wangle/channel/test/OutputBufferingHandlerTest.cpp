@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 using namespace testing;
 
 typedef StrictMock<MockHandlerAdapter<

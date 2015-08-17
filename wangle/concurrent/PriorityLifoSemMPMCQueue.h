@@ -13,7 +13,7 @@
 #include <folly/LifoSem.h>
 #include <folly/MPMCQueue.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T>
 class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
@@ -31,7 +31,7 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
 
   // Add at medium priority by default
   void add(T item) override {
-    addWithPriority(std::move(item), Executor::MID_PRI);
+    addWithPriority(std::move(item), folly::Executor::MID_PRI);
   }
 
   void addWithPriority(T item, int8_t priority) override {
@@ -67,8 +67,8 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
   }
 
  private:
-  LifoSem sem_;
-  std::vector<MPMCQueue<T>> queues_;
+  folly::LifoSem sem_;
+  std::vector<folly::MPMCQueue<T>> queues_;
 };
 
-}} // folly::wangle
+} // namespace wangle

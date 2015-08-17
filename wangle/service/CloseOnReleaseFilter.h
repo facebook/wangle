@@ -12,7 +12,7 @@
 
 #include <wangle/service/Service.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A service that rejects all requests after its 'close' method has
@@ -24,24 +24,24 @@ class CloseOnReleaseFilter : public ServiceFilter<Req, Resp> {
   explicit CloseOnReleaseFilter(std::shared_ptr<Service<Req, Resp>> service)
       : ServiceFilter<Req, Resp>(service) {}
 
-  Future<Resp> operator()(Req req) override {
+  folly::Future<Resp> operator()(Req req) override {
     if (!released ){
       return (*this->service_)(std::move(req));
     } else {
-      return makeFuture<Resp>(
-        make_exception_wrapper<std::runtime_error>("Service Closed"));
+      return folly::makeFuture<Resp>(
+        folly::make_exception_wrapper<std::runtime_error>("Service Closed"));
     }
   }
 
-  Future<Unit> close() override {
+  folly::Future<folly::Unit> close() override {
     if (!released.exchange(true)) {
       return this->service_->close();
     } else {
-      return makeFuture();
+      return folly::makeFuture();
     }
   }
  private:
   std::atomic<bool> released{false};
 };
 
-}} // namespace
+} // namespace wangle

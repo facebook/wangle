@@ -22,15 +22,10 @@
 #include <folly/io/async/AsyncServerSocket.h>
 #include <folly/io/async/AsyncUDPServerSocket.h>
 
-namespace folly { namespace wangle {
-class ManagedConnection;
-}}
+namespace wangle {
 
-namespace folly {
-
-class SocketAddress;
-class SSLContext;
 class AsyncTransport;
+class ManagedConnection;
 class SSLContextManager;
 
 /**
@@ -47,8 +42,8 @@ class SSLContextManager;
  */
 class Acceptor :
   public folly::AsyncServerSocket::AcceptCallback,
-  public folly::wangle::ConnectionManager::Callback,
-  public AsyncUDPServerSocket::Callback  {
+  public wangle::ConnectionManager::Callback,
+  public folly::AsyncUDPServerSocket::Callback  {
  public:
 
   enum class State : uint32_t {
@@ -77,8 +72,8 @@ class Acceptor :
    * This method will be called from the AsyncServerSocket's primary thread,
    * not the specified EventBase thread.
    */
-  virtual void init(AsyncServerSocket* serverSocket,
-                    EventBase* eventBase);
+  virtual void init(folly::AsyncServerSocket* serverSocket,
+                    folly::EventBase* eventBase);
 
   /**
    * Dynamically add a new SSLContextConfig
@@ -100,12 +95,12 @@ class Acceptor :
   /**
    * Access the Acceptor's event base.
    */
-  virtual EventBase* getEventBase() const { return base_; }
+  virtual folly::EventBase* getEventBase() const { return base_; }
 
   /**
    * Access the Acceptor's downstream (client-side) ConnectionManager
    */
-  virtual folly::wangle::ConnectionManager* getConnectionManager() {
+  virtual wangle::ConnectionManager* getConnectionManager() {
     return downstreamConnectionManager_.get();
   }
 
@@ -116,7 +111,7 @@ class Acceptor :
    * for tracking timeouts and for ensuring that all connections have been
    * drained on shutdown.
    */
-  void addConnection(folly::wangle::ManagedConnection* connection);
+  void addConnection(wangle::ManagedConnection* connection);
 
   /**
    * Get this acceptor's current state.
@@ -162,7 +157,7 @@ class Acceptor :
    */
   virtual void onDoneAcceptingConnection(
     int fd,
-    const SocketAddress& clientAddr,
+    const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime
   ) noexcept;
 
@@ -171,7 +166,7 @@ class Acceptor :
    */
   void processEstablishedConnection(
     int fd,
-    const SocketAddress& clientAddr,
+    const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo
   ) noexcept;
@@ -200,7 +195,7 @@ class Acceptor :
    * implementation. Also visible in case a subclass wishes to do additional
    * things w/ the event loop (e.g. in attach()).
    */
-  EventBase* base_{nullptr};
+  folly::EventBase* base_{nullptr};
 
   virtual uint64_t getConnectionCountForLoadShedding(void) const { return 0; }
 
@@ -226,7 +221,7 @@ class Acceptor :
    *                            or an empty string if unknown
    */
   virtual void onNewConnection(
-      AsyncSocket::UniquePtr /*sock*/,
+      folly::AsyncSocket::UniquePtr /*sock*/,
       const folly::SocketAddress* /*address*/,
       const std::string& /*nextProtocolName*/,
       const TransportInfo& /*tinfo*/) {}
@@ -234,24 +229,28 @@ class Acceptor :
   void onListenStarted() noexcept {}
   void onListenStopped() noexcept {}
   void onDataAvailable(
-    std::shared_ptr<AsyncUDPSocket> /*socket*/,
-    const SocketAddress&,
-    std::unique_ptr<IOBuf>, bool) noexcept {}
+    std::shared_ptr<folly::AsyncUDPSocket> /*socket*/,
+    const folly::SocketAddress&,
+    std::unique_ptr<folly::IOBuf>, bool) noexcept {}
 
-  virtual AsyncSocket::UniquePtr makeNewAsyncSocket(EventBase* base, int fd) {
-    return AsyncSocket::UniquePtr(new AsyncSocket(base, fd));
+  virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
+      folly::EventBase* base,
+      int fd) {
+    return folly::AsyncSocket::UniquePtr(
+        new folly::AsyncSocket(base, fd));
   }
 
-  virtual AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
-    const std::shared_ptr<SSLContext>& ctx, EventBase* base, int fd) {
-    return AsyncSSLSocket::UniquePtr(new AsyncSSLSocket(ctx, base, fd));
+  virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
+    const std::shared_ptr<folly::SSLContext>& ctx, folly::EventBase* base, int fd) {
+    return folly::AsyncSSLSocket::UniquePtr(
+        new folly::AsyncSSLSocket(ctx, base, fd));
   }
 
   /**
    * Hook for subclasses to record stats about SSL connection establishment.
    */
   virtual void updateSSLStats(
-      const AsyncSSLSocket* /*sock*/,
+      const folly::AsyncSSLSocket* /*sock*/,
       std::chrono::milliseconds /*acceptLatency*/,
       SSLErrorEnum /*error*/) noexcept {}
 
@@ -274,9 +273,9 @@ class Acceptor :
   void acceptStopped() noexcept;
 
   // ConnectionManager::Callback methods
-  void onEmpty(const folly::wangle::ConnectionManager& cm);
-  void onConnectionAdded(const folly::wangle::ConnectionManager& /*cm*/) {}
-  void onConnectionRemoved(const folly::wangle::ConnectionManager& /*cm*/) {}
+  void onEmpty(const wangle::ConnectionManager& cm);
+  void onConnectionAdded(const wangle::ConnectionManager& /*cm*/) {}
+  void onConnectionRemoved(const wangle::ConnectionManager& /*cm*/) {}
 
   /**
    * Process a connection that is to ready to receive L7 traffic.
@@ -285,7 +284,7 @@ class Acceptor :
    * for SSL connections.
    */
    void connectionReady(
-      AsyncSocket::UniquePtr sock,
+      folly::AsyncSocket::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocolName,
       TransportInfo& tinfo);
@@ -302,7 +301,7 @@ class Acceptor :
   /**
    * Socket options to apply to the client socket
    */
-  AsyncSocket::OptionMap socketOptions_;
+  folly::AsyncSocket::OptionMap socketOptions_;
 
   std::unique_ptr<SSLContextManager> sslCtxManager_;
 
@@ -312,7 +311,7 @@ class Acceptor :
    */
   bool parseClientHello_{false};
 
-  folly::wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
+  wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
 
  private:
 
@@ -324,7 +323,7 @@ class Acceptor :
    * Wrapper for connectionReady() that decrements the count of
    * pending SSL connections.
    */
-  void sslConnectionReady(AsyncSocket::UniquePtr sock,
+  void sslConnectionReady(folly::AsyncSocket::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocol,
       TransportInfo& tinfo);

@@ -14,7 +14,7 @@
 
 #include <wangle/channel/Pipeline.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /*
  * StaticPipeline allows you to create a Pipeline with minimal allocations.
@@ -128,4 +128,4 @@ class StaticPipeline<R, W, Handler, Handlers...>
   typename ContextType<Handler>::type ctx_;
 };
 
-}} // folly::wangle
+} // namespace wangle

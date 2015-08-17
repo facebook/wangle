@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename T>
 void BroadcastHandler<T>::read(Context* ctx, T data) {
@@ -53,4 +53,4 @@ void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
   }
 }
 
-}} // namespace folly::wangle
+} // namespace wangle

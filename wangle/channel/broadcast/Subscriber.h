@@ -3,7 +3,7 @@
 
 #include <folly/ExceptionWrapper.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * Subscriber interface for listening to a stream.
@@ -18,4 +18,4 @@ class Subscriber {
   virtual void onCompleted() = 0;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle

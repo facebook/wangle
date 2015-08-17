@@ -9,7 +9,7 @@
  */
 #pragma once
 
-namespace folly {
+namespace wangle {
 
 struct TLSTicketKeySeeds {
   std::vector<std::string> oldSeeds;
@@ -17,4 +17,4 @@ struct TLSTicketKeySeeds {
   std::vector<std::string> newSeeds;
 };
 
-}
+} // namespace wangle

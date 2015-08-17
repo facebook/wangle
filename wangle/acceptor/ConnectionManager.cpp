@@ -16,9 +16,9 @@
 using folly::HHWheelTimer;
 using std::chrono::milliseconds;
 
-namespace folly { namespace wangle {
+namespace wangle {
 
-ConnectionManager::ConnectionManager(EventBase* eventBase,
+ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
     milliseconds timeout, Callback* callback)
   : connTimeouts_(new HHWheelTimer(eventBase)),
     callback_(callback),
@@ -224,4 +224,4 @@ ConnectionManager::dropIdleConnections(size_t num) {
 }
 
 
-}} // folly::wangle
+} // wangle

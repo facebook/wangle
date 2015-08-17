@@ -10,9 +10,11 @@
 
 #include <wangle/codec/LineBasedFrameDecoder.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 using folly::io::Cursor;
+using folly::IOBuf;
+using folly::IOBufQueue;
 
 LineBasedFrameDecoder::LineBasedFrameDecoder(uint32_t maxLength,
                                              bool stripDelimiter,
@@ -98,4 +100,4 @@ int64_t LineBasedFrameDecoder::findEndOfLine(IOBufQueue& buf) {
   return -1;
 }
 
-}} // namespace
+} // namespace wangle

@@ -14,7 +14,7 @@
 #include <folly/futures/Future.h>
 #include <folly/ExceptionWrapper.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class PipelineBase;
 
@@ -25,20 +25,20 @@ class HandlerContext {
 
   virtual void fireRead(In msg) = 0;
   virtual void fireReadEOF() = 0;
-  virtual void fireReadException(exception_wrapper e) = 0;
+  virtual void fireReadException(folly::exception_wrapper e) = 0;
   virtual void fireTransportActive() = 0;
   virtual void fireTransportInactive() = 0;
 
-  virtual Future<Unit> fireWrite(Out msg) = 0;
-  virtual Future<Unit> fireClose() = 0;
+  virtual folly::Future<folly::Unit> fireWrite(Out msg) = 0;
+  virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
-  std::shared_ptr<AsyncTransport> getTransport() {
+  std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }
 
-  virtual void setWriteFlags(WriteFlags flags) = 0;
-  virtual WriteFlags getWriteFlags() = 0;
+  virtual void setWriteFlags(folly::WriteFlags flags) = 0;
+  virtual folly::WriteFlags getWriteFlags() = 0;
 
   virtual void setReadBufferSettings(
       uint64_t minAvailable,
@@ -63,12 +63,12 @@ class InboundHandlerContext {
 
   virtual void fireRead(In msg) = 0;
   virtual void fireReadEOF() = 0;
-  virtual void fireReadException(exception_wrapper e) = 0;
+  virtual void fireReadException(folly::exception_wrapper e) = 0;
   virtual void fireTransportActive() = 0;
   virtual void fireTransportInactive() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
-  std::shared_ptr<AsyncTransport> getTransport() {
+  std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }
 
@@ -82,11 +82,11 @@ class OutboundHandlerContext {
  public:
   virtual ~OutboundHandlerContext() = default;
 
-  virtual Future<Unit> fireWrite(Out msg) = 0;
-  virtual Future<Unit> fireClose() = 0;
+  virtual folly::Future<folly::Unit> fireWrite(Out msg) = 0;
+  virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
-  std::shared_ptr<AsyncTransport> getTransport() {
+  std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }
 };
@@ -107,6 +107,6 @@ enum class HandlerDir {
   BOTH
 };
 
-}} // folly::wangle
+} // namespace wangle
 
 #include <wangle/channel/HandlerContext-inl.h>

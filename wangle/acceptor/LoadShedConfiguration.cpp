@@ -13,8 +13,9 @@
 #include <openssl/ssl.h>
 
 using std::string;
+using folly::SocketAddress;
 
-namespace folly {
+namespace wangle {
 
 void LoadShedConfiguration::addWhitelistAddr(folly::StringPiece input) {
   auto addr = input.str();
@@ -40,4 +41,4 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
   return false;
 }
 
-}
+} // namespace wangle

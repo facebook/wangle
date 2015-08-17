@@ -13,17 +13,19 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Executor.h>
 
-namespace folly { namespace wangle {
-  typedef folly::exception_wrapper Error;
-  // The Executor is basically an rx Scheduler (by design). So just
-  // alias it.
-  typedef std::shared_ptr<folly::Executor> SchedulerPtr;
+namespace wangle {
 
-  template <class T, size_t InlineObservers = 3> class Observable;
-  template <class T> struct Observer;
-  template <class T> struct Subject;
+typedef folly::exception_wrapper Error;
+// The Executor is basically an rx Scheduler (by design). So just
+// alias it.
+typedef std::shared_ptr<folly::Executor> SchedulerPtr;
 
-  template <class T> using ObservablePtr = std::shared_ptr<Observable<T>>;
-  template <class T> using ObserverPtr = std::shared_ptr<Observer<T>>;
-  template <class T> using SubjectPtr = std::shared_ptr<Subject<T>>;
-}}
+template <class T, size_t InlineObservers = 3> class Observable;
+template <class T> struct Observer;
+template <class T> struct Subject;
+
+template <class T> using ObservablePtr = std::shared_ptr<Observable<T>>;
+template <class T> using ObserverPtr = std::shared_ptr<Observer<T>>;
+template <class T> using SubjectPtr = std::shared_ptr<Subject<T>>;
+
+} // namespace wangle

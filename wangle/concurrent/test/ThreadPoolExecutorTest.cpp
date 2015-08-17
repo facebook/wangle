@@ -17,7 +17,7 @@
 #include <gtest/gtest.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 using namespace std::chrono;
 
 static folly::Func burnMs(uint64_t ms) {

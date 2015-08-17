@@ -3,10 +3,10 @@
 
 #include <wangle/channel/AsyncSocketHandler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename R>
-class RoutingDataHandler : public folly::wangle::BytesToBytesHandler {
+class RoutingDataHandler : public wangle::BytesToBytesHandler {
  public:
   struct RoutingData {
     RoutingData() : bufQueue(folly::IOBufQueue::cacheChainLength()) {}
@@ -58,6 +58,6 @@ class RoutingDataHandlerFactory {
       uint64_t connId, typename RoutingDataHandler<R>::Callback* cob) = 0;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle
 
 #include <wangle/bootstrap/RoutingDataHandler-inl.h>

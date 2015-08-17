@@ -24,8 +24,12 @@
 #include <gflags/gflags.h>
 #include <unistd.h>
 
-using folly::wangle::ConnectionManager;
-using folly::wangle::ManagedConnection;
+using folly::AsyncSocket;
+using folly::AsyncSSLSocket;
+using folly::AsyncSocketException;
+using folly::AsyncServerSocket;
+using folly::EventBase;
+using folly::SocketAddress;
 using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::filebuf;
@@ -34,7 +38,7 @@ using std::ios;
 using std::shared_ptr;
 using std::string;
 
-namespace folly {
+namespace wangle {
 
 #ifndef NO_LIB_GFLAGS
 DEFINE_int32(shutdown_idle_grace_ms, 5000, "milliseconds to wait before "
@@ -450,4 +454,4 @@ Acceptor::dropAllConnections() {
   onConnectionsDrained();
 }
 
-} // namespace
+} // namespace wangle

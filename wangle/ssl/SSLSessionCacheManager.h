@@ -16,7 +16,7 @@
 #include <mutex>
 #include <folly/io/async/AsyncSSLSocket.h>
 
-namespace folly {
+namespace wangle {
 
 class SSLStats;
 
@@ -130,8 +130,8 @@ class ShardedLocalSSLSessionCache : private boost::noncopyable {
 };
 
 /* A socket/DestructorGuard pair */
-typedef std::pair<AsyncSSLSocket *,
-                  std::unique_ptr<DelayedDestruction::DestructorGuard>>
+typedef std::pair<folly::AsyncSSLSocket *,
+                  std::unique_ptr<folly::DelayedDestruction::DestructorGuard>>
   AttachedLookup;
 
 /**
@@ -194,10 +194,10 @@ class SSLSessionCacheManager : private boost::noncopyable {
   SSLSessionCacheManager(
     uint32_t maxCacheSize,
     uint32_t cacheCullSize,
-    SSLContext* ctx,
+    folly::SSLContext* ctx,
     const folly::SocketAddress& sockaddr,
     const std::string& context,
-    EventBase* eventBase,
+    folly::EventBase* eventBase,
     SSLStats* stats,
     const std::shared_ptr<SSLCacheProvider>& externalCache);
 
@@ -227,7 +227,7 @@ class SSLSessionCacheManager : private boost::noncopyable {
 
  private:
 
-  SSLContext* ctx_;
+  folly::SSLContext* ctx_;
   std::shared_ptr<ShardedLocalSSLSessionCache> localCache_;
   PendingLookupMap pendingLookups_;
   SSLStats* stats_{nullptr};
@@ -262,7 +262,7 @@ class SSLSessionCacheManager : private boost::noncopyable {
    * Lookup a session in the external cache for the specified SSL socket.
    */
   bool lookupCacheRecord(const std::string& sessionId,
-                         AsyncSSLSocket* sslSock);
+                         folly::AsyncSSLSocket* sslSock);
 
   /**
    * Restart all clients waiting for the answer to an external cache query
@@ -289,4 +289,4 @@ class SSLSessionCacheManager : private boost::noncopyable {
   static std::mutex sCacheLock_;
 };
 
-}
+} // namespace wangle

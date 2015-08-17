@@ -1,6 +1,6 @@
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 /**
  * A service filter that expires the self service after a certain
  * amount of idle time, or after a maximum amount of time total.
@@ -15,14 +15,14 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
                  = std::chrono::milliseconds(0),
                   std::chrono::milliseconds maxTime
                  = std::chrono::milliseconds(0),
-                 Timekeeper* timekeeper = nullptr)
+                 folly::Timekeeper* timekeeper = nullptr)
   : ServiceFilter<Req, Resp>(service)
   , idleTimeoutTime_(idleTimeoutTime)
   , maxTime_(maxTime)
   , timekeeper_(timekeeper) {
 
     if (maxTime_ > std::chrono::milliseconds(0)) {
-      maxTimeout_ = futures::sleep(maxTime_, timekeeper_);
+      maxTimeout_ = folly::futures::sleep(maxTime_, timekeeper_);
       maxTimeout_.then([this](){
         this->close();
       });
@@ -44,14 +44,14 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
       return;
     }
     if (idleTimeoutTime_ > std::chrono::milliseconds(0)) {
-      idleTimeout_ = futures::sleep(idleTimeoutTime_, timekeeper_);
+      idleTimeout_ = folly::futures::sleep(idleTimeoutTime_, timekeeper_);
       idleTimeout_.then([this](){
         this->close();
       });
     }
   };
 
-  virtual Future<Resp> operator()(Req req) override {
+  virtual folly::Future<Resp> operator()(Req req) override {
     if (!idleTimeout_.isReady()) {
       idleTimeout_.cancel();
     }
@@ -63,12 +63,12 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
   }
 
  private:
-  Future<Unit> idleTimeout_;
-  Future<Unit> maxTimeout_;
+  folly::Future<folly::Unit> idleTimeout_;
+  folly::Future<folly::Unit> maxTimeout_;
   std::chrono::milliseconds idleTimeoutTime_{0};
   std::chrono::milliseconds maxTime_{0};
-  Timekeeper* timekeeper_;
+  folly::Timekeeper* timekeeper_;
   uint32_t requests_{0};
 };
 
-}} // namespace
+} // namespace wangle

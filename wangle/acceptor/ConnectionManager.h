@@ -19,7 +19,7 @@
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A ConnectionManager keeps track of ManagedConnections.
@@ -236,4 +236,4 @@ class ConnectionManager: public folly::DelayedDestruction,
   std::chrono::milliseconds idleConnEarlyDropThreshold_;
 };
 
-}} // folly::wangle
+} // wangle

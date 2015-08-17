@@ -16,7 +16,7 @@
 #include <iostream>
 #include <thread>
 
-namespace folly {
+namespace wangle {
 
 /*
  * ServerBootstrap is a parent class intended to set up a
@@ -93,7 +93,7 @@ class ServerBootstrap {
    * @param io_group - io executor to use for IO threads.
    */
   ServerBootstrap* group(
-      std::shared_ptr<folly::wangle::IOThreadPoolExecutor> io_group) {
+      std::shared_ptr<wangle::IOThreadPoolExecutor> io_group) {
     return group(nullptr, io_group);
   }
 
@@ -107,10 +107,10 @@ class ServerBootstrap {
    * @param io_group - io executor to use for IO threads.
    */
   ServerBootstrap* group(
-      std::shared_ptr<folly::wangle::IOThreadPoolExecutor> accept_group,
+      std::shared_ptr<wangle::IOThreadPoolExecutor> accept_group,
       std::shared_ptr<wangle::IOThreadPoolExecutor> io_group) {
     if (!accept_group) {
-      accept_group = std::make_shared<folly::wangle::IOThreadPoolExecutor>(
+      accept_group = std::make_shared<wangle::IOThreadPoolExecutor>(
         1, std::make_shared<wangle::NamedThreadFactory>("Acceptor Thread"));
     }
     if (!io_group) {
@@ -119,7 +119,7 @@ class ServerBootstrap {
         // Reasonable mid-point for concurrency when actual value unknown
         threads = 8;
       }
-      io_group = std::make_shared<folly::wangle::IOThreadPoolExecutor>(
+      io_group = std::make_shared<wangle::IOThreadPoolExecutor>(
         threads, std::make_shared<wangle::NamedThreadFactory>("IO Thread"));
     }
 
@@ -161,11 +161,11 @@ class ServerBootstrap {
     CHECK(acceptor_group_->numThreads() == 1);
 
     std::shared_ptr<folly::AsyncServerSocket> socket(
-      s.release(), DelayedDestruction::Destructor());
+      s.release(), folly::DelayedDestruction::Destructor());
 
     folly::Baton<> barrier;
     acceptor_group_->add([&](){
-      socket->attachEventBase(EventBaseManager::get()->getEventBase());
+      socket->attachEventBase(folly::EventBaseManager::get()->getEventBase());
       socket->listen(socketConfig.acceptBacklog);
       socket->startAccepting();
       barrier.post();
@@ -347,4 +347,4 @@ class ServerBootstrap {
   bool stopped_{false};
 };
 
-} // namespace
+} // namespace wangle

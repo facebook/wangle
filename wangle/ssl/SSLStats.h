@@ -9,7 +9,7 @@
  */
 #pragma once
 
-namespace folly {
+namespace wangle {
 
 class SSLStats {
  public:
@@ -39,4 +39,4 @@ class SSLStats {
 
 };
 
-}
+} // namespace wangle

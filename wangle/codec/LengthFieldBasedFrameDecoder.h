@@ -13,7 +13,7 @@
 #include <folly/io/Cursor.h>
 #include <wangle/codec/ByteToMessageDecoder.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * A decoder that splits the received IOBufs dynamically by the
@@ -184,14 +184,14 @@ class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
                                         bool networkByteOrder = true);
 
   bool decode(Context* ctx,
-              IOBufQueue& buf,
-              std::unique_ptr<IOBuf>& result,
+              folly::IOBufQueue& buf,
+              std::unique_ptr<folly::IOBuf>& result,
               size_t&) override;
 
  private:
 
   uint64_t getUnadjustedFrameLength(
-    IOBufQueue& buf, int offset, int length, bool networkByteOrder);
+    folly::IOBufQueue& buf, int offset, int length, bool networkByteOrder);
 
   uint32_t lengthFieldLength_;
   uint32_t maxFrameLength_;
@@ -203,4 +203,4 @@ class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
   uint32_t lengthFieldEndOffset_;
 };
 
-}} // namespace
+} // namespace wangle

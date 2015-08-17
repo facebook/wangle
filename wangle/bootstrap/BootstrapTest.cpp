@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <boost/thread.hpp>
 
-using namespace folly::wangle;
+using namespace wangle;
 using namespace folly;
 
 typedef Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> BytesPipeline;

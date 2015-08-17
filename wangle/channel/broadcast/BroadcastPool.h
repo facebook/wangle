@@ -5,7 +5,7 @@
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class ServerPool {
  public:
@@ -58,7 +58,7 @@ class BroadcastPool {
     BroadcastPool<T, R>* pool_{nullptr};
     R routingData_;
     std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
-    folly::ClientBootstrap<DefaultPipeline> client_;
+    ClientBootstrap<DefaultPipeline> client_;
 
     bool connectStarted_{false};
     folly::SharedPromise<BroadcastHandler<T>*> sharedPromise_;
@@ -102,6 +102,6 @@ class BroadcastPool {
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle
 
 #include <wangle/channel/broadcast/BroadcastPool-inl.h>

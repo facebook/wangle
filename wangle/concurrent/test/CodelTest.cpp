@@ -15,7 +15,7 @@
 
 TEST(CodelTest, Basic) {
   using std::chrono::milliseconds;
-  folly::wangle::Codel c;
+  wangle::Codel c;
   std::this_thread::sleep_for(milliseconds(110));
   // This interval is overloaded
   EXPECT_FALSE(c.overloaded(milliseconds(100)));

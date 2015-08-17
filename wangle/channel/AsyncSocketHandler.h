@@ -17,15 +17,15 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 // This handler may only be used in a single Pipeline
 class AsyncSocketHandler
-  : public folly::wangle::BytesToBytesHandler,
-    public AsyncSocket::ReadCallback {
+  : public wangle::BytesToBytesHandler,
+    public folly::AsyncSocket::ReadCallback {
  public:
   explicit AsyncSocketHandler(
-      std::shared_ptr<AsyncSocket> socket)
+      std::shared_ptr<folly::AsyncSocket> socket)
     : socket_(std::move(socket)) {}
 
   AsyncSocketHandler(AsyncSocketHandler&&) = default;
@@ -78,7 +78,7 @@ class AsyncSocketHandler
     detachReadCallback();
   }
 
-  folly::Future<Unit> write(
+  folly::Future<folly::Unit> write(
       Context* ctx,
       std::unique_ptr<folly::IOBuf> buf) override {
     if (UNLIKELY(!buf)) {
@@ -87,8 +87,8 @@ class AsyncSocketHandler
 
     if (!socket_->good()) {
       VLOG(5) << "socket is closed in write()";
-      return folly::makeFuture<Unit>(AsyncSocketException(
-          AsyncSocketException::AsyncSocketExceptionType::NOT_OPEN,
+      return folly::makeFuture<folly::Unit>(folly::AsyncSocketException(
+          folly::AsyncSocketException::AsyncSocketExceptionType::NOT_OPEN,
           "socket is closed in write()"));
     }
 
@@ -98,7 +98,7 @@ class AsyncSocketHandler
     return future;
   };
 
-  folly::Future<Unit> close(Context* ctx) override {
+  folly::Future<folly::Unit> close(Context* ctx) override {
     if (socket_) {
       detachReadCallback();
       socket_->closeNow();
@@ -131,21 +131,21 @@ class AsyncSocketHandler
     getContext()->fireReadEOF();
   }
 
-  void readErr(const AsyncSocketException& ex)
+  void readErr(const folly::AsyncSocketException& ex)
     noexcept override {
     getContext()->fireReadException(
-        make_exception_wrapper<AsyncSocketException>(ex));
+        folly::make_exception_wrapper<folly::AsyncSocketException>(ex));
   }
 
  private:
-  class WriteCallback : private AsyncSocket::WriteCallback {
+  class WriteCallback : private folly::AsyncSocket::WriteCallback {
     void writeSuccess() noexcept override {
       promise_.setValue();
       delete this;
     }
 
     void writeErr(size_t bytesWritten,
-                    const AsyncSocketException& ex)
+                  const folly::AsyncSocketException& ex)
       noexcept override {
       promise_.setException(ex);
       delete this;
@@ -153,12 +153,12 @@ class AsyncSocketHandler
 
    private:
     friend class AsyncSocketHandler;
-    folly::Promise<Unit> promise_;
+    folly::Promise<folly::Unit> promise_;
   };
 
   folly::IOBufQueue bufQueue_{folly::IOBufQueue::cacheChainLength()};
-  std::shared_ptr<AsyncSocket> socket_{nullptr};
+  std::shared_ptr<folly::AsyncSocket> socket_{nullptr};
   bool firedInactive_{false};
 };
 
-}}
+} // namespace wangle

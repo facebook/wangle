@@ -13,7 +13,7 @@
 #include <atomic>
 #include <chrono>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /* Codel algorithm implementation:
  * http://en.wikipedia.org/wiki/CoDel
@@ -57,4 +57,4 @@ class Codel {
   bool overloaded_;
 };
 
-}} // Namespace
+} // namespace wangle

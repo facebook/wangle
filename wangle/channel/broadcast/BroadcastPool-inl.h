@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <typename T, typename R>
 folly::Future<BroadcastHandler<T>*>
@@ -59,4 +59,4 @@ folly::Future<BroadcastHandler<T>*> BroadcastPool<T, R>::getHandler(
   return broadcastPtr->getHandler();
 }
 
-}} // namespace folly::wangle
+} // namespace wangle

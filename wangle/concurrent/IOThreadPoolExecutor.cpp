@@ -15,9 +15,14 @@
 
 #include <folly/detail/MemoryIdler.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 using folly::detail::MemoryIdler;
+using folly::AsyncTimeout;
+using folly::EventBase;
+using folly::EventBaseManager;
+using folly::Func;
+using folly::RWSpinLock;
 
 /* Class that will free jemalloc caches and madvise the stack away
  * if the event loop is unused for some period of time
@@ -180,4 +185,4 @@ uint64_t IOThreadPoolExecutor::getPendingTaskCount() {
   return count;
 }
 
-}} // folly::wangle
+} // namespace wangle

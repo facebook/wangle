@@ -11,7 +11,9 @@
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
 #include <wangle/concurrent/PriorityLifoSemMPMCQueue.h>
 
-namespace folly { namespace wangle {
+using folly::Func;
+
+namespace wangle {
 
 const size_t CPUThreadPoolExecutor::kDefaultMaxQueueSize = 1 << 14;
 
@@ -143,4 +145,4 @@ uint64_t CPUThreadPoolExecutor::getPendingTaskCount() {
   return taskQueue_->size();
 }
 
-}} // folly::wangle
+} // namespace wangle

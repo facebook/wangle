@@ -13,7 +13,7 @@
 #include <wangle/deprecated/rx/Subject.h>
 #include <gflags/gflags.h>
 
-using namespace folly::wangle;
+using namespace wangle;
 using folly::BenchmarkSuspender;
 
 static std::unique_ptr<Observer<int>> makeObserver() {

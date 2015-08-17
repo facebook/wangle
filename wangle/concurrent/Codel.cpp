@@ -20,7 +20,7 @@
                "Target codel queueing delay in ms");
 #endif
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 #ifdef NO_LIB_GFLAGS
   int32_t FLAGS_codel_interval = 100;
@@ -82,4 +82,4 @@ int Codel::getMinDelay() {
   return (int) codelMinDelay_.count();
 }
 
-}} //namespace
+} // namespace wangle

@@ -30,7 +30,7 @@
 #include <folly/io/async/SSLContext.h>
 #include <folly/SocketAddress.h>
 
-namespace folly {
+namespace wangle {
 
 /**
  * Configuration for a single Acceptor.
@@ -54,14 +54,14 @@ struct ServerSocketConfig {
    * Set/get the socket options to apply on all downstream connections.
    */
   void setSocketOptions(
-    const AsyncSocket::OptionMap& opts) {
+    const folly::AsyncSocket::OptionMap& opts) {
     socketOptions_ = filterIPSocketOptions(opts, bindAddress.getFamily());
   }
-  AsyncSocket::OptionMap&
+  folly::AsyncSocket::OptionMap&
   getSocketOptions() {
     return socketOptions_;
   }
-  const AsyncSocket::OptionMap&
+  const folly::AsyncSocket::OptionMap&
   getSocketOptions() const {
     return socketOptions_;
   }
@@ -93,7 +93,7 @@ struct ServerSocketConfig {
   /**
    * The address to bind to.
    */
-  SocketAddress bindAddress;
+  folly::SocketAddress bindAddress;
 
   /**
    * Options for controlling the SSL cache.
@@ -122,7 +122,7 @@ struct ServerSocketConfig {
   uint32_t maxConcurrentSSLHandshakes{30720};
 
  private:
-  AsyncSocket::OptionMap socketOptions_;
+  folly::AsyncSocket::OptionMap socketOptions_;
 };
 
-} // folly
+} // namespace wangle

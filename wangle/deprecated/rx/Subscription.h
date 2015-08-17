@@ -13,7 +13,7 @@
 #include <wangle/deprecated/rx/types.h> // must come first
 #include <wangle/deprecated/rx/Observable.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T>
 class Subscription {
@@ -61,4 +61,4 @@ class Subscription {
   friend class Observable<T>;
 };
 
-}}
+} // namespace wangle

@@ -13,7 +13,7 @@
 #include <mutex>
 #include <folly/io/async/AsyncSSLSocket.h>
 
-namespace folly {
+namespace wangle {
 
 /**
  * SSL session establish/resume status
@@ -74,7 +74,7 @@ class SSLUtil {
    * Return the SSL resume type for the given socket.
    */
   static inline SSLResumeEnum getResumeState(
-    AsyncSSLSocket* sslSocket) {
+    folly::AsyncSSLSocket* sslSocket) {
     return sslSocket->getSSLSessionReused() ?
       (sslSocket->sessionIDResumed() ?
         SSLResumeEnum::RESUME_SESSION_ID :
@@ -99,4 +99,4 @@ class SSLUtil {
       const X509* cert);
 };
 
-}
+} // namespace wangle

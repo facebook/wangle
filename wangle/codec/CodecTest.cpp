@@ -16,7 +16,7 @@
 #include <wangle/codec/LineBasedFrameDecoder.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 using namespace folly::io;
 
 class FrameTester

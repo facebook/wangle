@@ -12,7 +12,7 @@
 
 #include <wangle/codec/ByteToMessageDecoder.h>
 
-namespace folly {namespace wangle {
+namespace wangle {
 
 /**
  * A decoder that splits the received IOBufs by the fixed number
@@ -36,8 +36,8 @@ class FixedLengthFrameDecoder : public ByteToByteDecoder {
   explicit FixedLengthFrameDecoder(size_t length) : length_(length) {}
 
   bool decode(Context* ctx,
-              IOBufQueue& q,
-              std::unique_ptr<IOBuf>& result,
+              folly::IOBufQueue& q,
+              std::unique_ptr<folly::IOBuf>& result,
               size_t& needed) override {
     if (q.chainLength() < length_) {
       needed = length_ - q.chainLength();
@@ -52,4 +52,4 @@ class FixedLengthFrameDecoder : public ByteToByteDecoder {
   size_t length_;
 };
 
-}} // Namespace
+} // namespace wangle

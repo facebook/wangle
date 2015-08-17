@@ -18,7 +18,7 @@
 #include <sys/sendfile.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 DEFINE_int32(port, 11219, "test file server port");
 

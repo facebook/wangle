@@ -18,9 +18,10 @@
 #include <wangle/service/CloseOnReleaseFilter.h>
 #include <wangle/service/ExpiringFilter.h>
 
-namespace folly {
+namespace wangle {
 
 using namespace wangle;
+using namespace folly;
 
 typedef Pipeline<IOBufQueue&, std::string> ServicePipeline;
 
@@ -328,4 +329,4 @@ int main(int argc, char** argv) {
   return RUN_ALL_TESTS();
 }
 
-} // namespace
+} // namespace wangle

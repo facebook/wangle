@@ -12,7 +12,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace folly {
+namespace wangle {
 
 struct SSLCacheOptions {
   std::chrono::seconds sslCacheTimeout;
@@ -20,4 +20,4 @@ struct SSLCacheOptions {
   uint64_t sslCacheFlushSize;
 };
 
-}
+} // namespace wangle

@@ -19,7 +19,7 @@
 #undef OPENSSL_GE_101
 #endif
 
-namespace folly {
+namespace wangle {
 
 std::mutex SSLUtil::sIndexLock_;
 
@@ -73,4 +73,4 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
 #endif
 }
 
-}
+} // namespace wangle

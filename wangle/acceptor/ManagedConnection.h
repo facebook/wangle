@@ -15,7 +15,7 @@
 #include <folly/io/async/HHWheelTimer.h>
 #include <folly/io/async/DelayedDestruction.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class ConnectionManager;
 
@@ -131,4 +131,4 @@ class ManagedConnection:
 
 std::ostream& operator<<(std::ostream& os, const ManagedConnection& conn);
 
-}} // folly::wangle
+} // wangle

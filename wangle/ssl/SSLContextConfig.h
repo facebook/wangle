@@ -24,7 +24,7 @@
  *   5. Is it the default X509 in SNI operation?
  *   6. .... and a few more
  */
-namespace folly {
+namespace wangle {
 
 struct SSLContextConfig {
   SSLContextConfig() = default;
@@ -96,4 +96,4 @@ struct SSLContextConfig {
   std::string clientCAFile;
 };
 
-}
+} // namespace wangle

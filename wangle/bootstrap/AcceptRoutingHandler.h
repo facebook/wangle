@@ -5,7 +5,7 @@
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/Pipeline.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * An AcceptPipeline with the ability to hash connections to
@@ -21,17 +21,17 @@ namespace folly { namespace wangle {
  * worker thread, and resumes reading from the socket on the child pipeline.
  */
 
-typedef folly::PipelineFactory<AcceptPipeline> AcceptPipelineFactory;
+typedef PipelineFactory<AcceptPipeline> AcceptPipelineFactory;
 
 template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory;
 
 template <typename Pipeline, typename R>
-class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
+class AcceptRoutingHandler : public wangle::InboundHandler<void*>,
                              public RoutingDataHandler<R>::Callback {
  public:
   AcceptRoutingHandler(
-      folly::ServerBootstrap<Pipeline>* server,
+      ServerBootstrap<Pipeline>* server,
       std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory,
       std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
           childPipelineFactory)
@@ -51,12 +51,12 @@ class AcceptRoutingHandler : public folly::wangle::InboundHandler<void*>,
  private:
   void populateAcceptors();
 
-  folly::ServerBootstrap<Pipeline>* server_;
+  ServerBootstrap<Pipeline>* server_;
   std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;
   std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
       childPipelineFactory_;
 
-  std::vector<folly::Acceptor*> acceptors_;
+  std::vector<Acceptor*> acceptors_;
   std::map<uint64_t, DefaultPipeline::UniquePtr> routingPipelines_;
   uint64_t nextConnId_{0};
 };
@@ -65,7 +65,7 @@ template <typename Pipeline, typename R>
 class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
  public:
   AcceptRoutingPipelineFactory(
-      folly::ServerBootstrap<Pipeline>* server,
+      ServerBootstrap<Pipeline>* server,
       std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory,
       std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
           childPipelineFactory)
@@ -84,7 +84,7 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
   }
 
  private:
-  folly::ServerBootstrap<Pipeline>* server_;
+  ServerBootstrap<Pipeline>* server_;
   std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;
   std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
       childPipelineFactory_;
@@ -99,6 +99,6 @@ class RoutingDataPipelineFactory {
       std::shared_ptr<folly::AsyncSocket> socket, const R& routingData) = 0;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle
 
 #include <wangle/bootstrap/AcceptRoutingHandler-inl.h>

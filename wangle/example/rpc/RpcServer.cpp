@@ -29,12 +29,12 @@
 #include <wangle/example/rpc/SerializeHandler.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 using thrift::test::Bonk;
 
 DEFINE_int32(port, 8080, "test server port");
 
-typedef folly::wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
+typedef wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
 
 class RpcService : public Service<Bonk> {
  public:

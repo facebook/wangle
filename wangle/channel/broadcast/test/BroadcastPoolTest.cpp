@@ -3,7 +3,7 @@
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/test/Mocks.h>
 
-using namespace folly::wangle;
+using namespace wangle;
 using namespace folly;
 using namespace testing;
 

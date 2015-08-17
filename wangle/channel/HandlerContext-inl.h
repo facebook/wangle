@@ -10,7 +10,7 @@
 
 #pragma once
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class PipelineContext {
  public:
@@ -40,7 +40,7 @@ class InboundLink {
   virtual ~InboundLink() = default;
   virtual void read(In msg) = 0;
   virtual void readEOF() = 0;
-  virtual void readException(exception_wrapper e) = 0;
+  virtual void readException(folly::exception_wrapper e) = 0;
   virtual void transportActive() = 0;
   virtual void transportInactive() = 0;
 };
@@ -49,8 +49,8 @@ template <class Out>
 class OutboundLink {
  public:
   virtual ~OutboundLink() = default;
-  virtual Future<Unit> write(Out msg) = 0;
-  virtual Future<Unit> close() = 0;
+  virtual folly::Future<folly::Unit> write(Out msg) = 0;
+  virtual folly::Future<folly::Unit> close() = 0;
 };
 
 template <class H, class Context>
@@ -120,7 +120,7 @@ class ContextImplBase : public PipelineContext {
 
  private:
   bool attached_{false};
-  using DestructorGuard = typename DelayedDestruction::DestructorGuard;
+  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -169,7 +169,7 @@ class ContextImpl
     }
   }
 
-  void fireReadException(exception_wrapper e) override {
+  void fireReadException(folly::exception_wrapper e) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextIn_) {
       this->nextIn_->readException(std::move(e));
@@ -192,23 +192,23 @@ class ContextImpl
     }
   }
 
-  Future<Unit> fireWrite(Wout msg) override {
+  folly::Future<folly::Unit> fireWrite(Wout msg) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
     } else {
       LOG(WARNING) << "write reached end of pipeline";
-      return makeFuture();
+      return folly::makeFuture();
     }
   }
 
-  Future<Unit> fireClose() override {
+  folly::Future<folly::Unit> fireClose() override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->close();
     } else {
       LOG(WARNING) << "close reached end of pipeline";
-      return makeFuture();
+      return folly::makeFuture();
     }
   }
 
@@ -216,11 +216,11 @@ class ContextImpl
     return this->pipeline_;
   }
 
-  void setWriteFlags(WriteFlags flags) override {
+  void setWriteFlags(folly::WriteFlags flags) override {
     this->pipeline_->setWriteFlags(flags);
   }
 
-  WriteFlags getWriteFlags() override {
+  folly::WriteFlags getWriteFlags() override {
     return this->pipeline_->getWriteFlags();
   }
 
@@ -245,7 +245,7 @@ class ContextImpl
     this->handler_->readEOF(this);
   }
 
-  void readException(exception_wrapper e) override {
+  void readException(folly::exception_wrapper e) override {
     DestructorGuard dg(this->pipeline_);
     this->handler_->readException(this, std::move(e));
   }
@@ -261,18 +261,18 @@ class ContextImpl
   }
 
   // OutboundLink overrides
-  Future<Unit> write(Win msg) override {
+  folly::Future<folly::Unit> write(Win msg) override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
-  Future<Unit> close() override {
+  folly::Future<folly::Unit> close() override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->close(this);
   }
 
  private:
-  using DestructorGuard = typename DelayedDestruction::DestructorGuard;
+  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -320,7 +320,7 @@ class InboundContextImpl
     }
   }
 
-  void fireReadException(exception_wrapper e) override {
+  void fireReadException(folly::exception_wrapper e) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextIn_) {
       this->nextIn_->readException(std::move(e));
@@ -358,7 +358,7 @@ class InboundContextImpl
     this->handler_->readEOF(this);
   }
 
-  void readException(exception_wrapper e) override {
+  void readException(folly::exception_wrapper e) override {
     DestructorGuard dg(this->pipeline_);
     this->handler_->readException(this, std::move(e));
   }
@@ -374,7 +374,7 @@ class InboundContextImpl
   }
 
  private:
-  using DestructorGuard = typename DelayedDestruction::DestructorGuard;
+  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -404,23 +404,23 @@ class OutboundContextImpl
   ~OutboundContextImpl() = default;
 
   // OutboundHandlerContext overrides
-  Future<Unit> fireWrite(Wout msg) override {
+  folly::Future<folly::Unit> fireWrite(Wout msg) override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
     } else {
       LOG(WARNING) << "write reached end of pipeline";
-      return makeFuture();
+      return folly::makeFuture();
     }
   }
 
-  Future<Unit> fireClose() override {
+  folly::Future<folly::Unit> fireClose() override {
     DestructorGuard dg(this->pipeline_);
     if (this->nextOut_) {
       return this->nextOut_->close();
     } else {
       LOG(WARNING) << "close reached end of pipeline";
-      return makeFuture();
+      return folly::makeFuture();
     }
   }
 
@@ -429,18 +429,18 @@ class OutboundContextImpl
   }
 
   // OutboundLink overrides
-  Future<Unit> write(Win msg) override {
+  folly::Future<folly::Unit> write(Win msg) override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
-  Future<Unit> close() override {
+  folly::Future<folly::Unit> close() override {
     DestructorGuard dg(this->pipeline_);
     return this->handler_->close(this);
   }
 
  private:
-  using DestructorGuard = typename DelayedDestruction::DestructorGuard;
+  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class Handler>
@@ -456,4 +456,4 @@ struct ContextType {
   type;
 };
 
-}} // folly::wangle
+} // namespace wangle

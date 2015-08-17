@@ -16,7 +16,12 @@
 #include <string>
 
 namespace folly {
+
 class AsyncSocket;
+
+}
+
+namespace wangle {
 
 /**
  * A structure that encapsulates byte counters related to the HTTP headers.
@@ -283,21 +288,21 @@ struct TransportInfo {
   /*
    * initialize the fields related with tcp_info
    */
-  bool initWithSocket(const AsyncSocket* sock);
+  bool initWithSocket(const folly::AsyncSocket* sock);
 
   /*
    * Get the kernel's estimate of round-trip time (RTT) to the transport's peer
    * in microseconds. Returns -1 on error.
    */
-  static int64_t readRTT(const AsyncSocket* sock);
+  static int64_t readRTT(const folly::AsyncSocket* sock);
 
 #if defined(__linux__) || defined(__FreeBSD__)
   /*
    * perform the getsockopt(2) syscall to fetch TCP info for a given socket
    */
   static bool readTcpInfo(struct tcp_info* tcpinfo,
-                          const AsyncSocket* sock);
+                          const folly::AsyncSocket* sock);
 #endif
 };
 
-} // folly
+} // namespace wangle

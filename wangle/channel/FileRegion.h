@@ -23,15 +23,16 @@
 #include <folly/futures/Promise.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 class FileRegion {
  public:
   FileRegion(int fd, off_t offset, size_t count)
     : fd_(fd), offset_(offset), count_(count) {}
 
-  Future<Unit> transferTo(std::shared_ptr<AsyncTransport> transport) {
-    auto socket = std::dynamic_pointer_cast<AsyncSocket>(
+  folly::Future<folly::Unit> transferTo(
+      std::shared_ptr<folly::AsyncTransport> transport) {
+    auto socket = std::dynamic_pointer_cast<folly::AsyncSocket>(
         transport);
     CHECK(socket);
     auto cb = new WriteCallback();
@@ -42,31 +43,31 @@ class FileRegion {
   }
 
  private:
-  class WriteCallback : private AsyncSocket::WriteCallback {
+  class WriteCallback : private folly::AsyncSocket::WriteCallback {
     void writeSuccess() noexcept override {
       promise_.setValue();
       delete this;
     }
 
     void writeErr(size_t bytesWritten,
-                  const AsyncSocketException& ex)
+                  const folly::AsyncSocketException& ex)
       noexcept override {
       promise_.setException(ex);
       delete this;
     }
 
     friend class FileRegion;
-    folly::Promise<Unit> promise_;
+    folly::Promise<folly::Unit> promise_;
   };
 
   const int fd_;
   const off_t offset_;
   const size_t count_;
 
-  class FileWriteRequest : public AsyncSocket::WriteRequest,
-                           public NotificationQueue<size_t>::Consumer {
+  class FileWriteRequest : public folly::AsyncSocket::WriteRequest,
+                           public folly::NotificationQueue<size_t>::Consumer {
    public:
-    FileWriteRequest(AsyncSocket* socket, WriteCallback* callback,
+    FileWriteRequest(folly::AsyncSocket* socket, WriteCallback* callback,
                      int fd, off_t offset, size_t count);
 
     void destroy() override;
@@ -98,7 +99,7 @@ class FileRegion {
    private:
     ~FileWriteRequest();
 
-    void fail(const char* fn, const AsyncSocketException& ex);
+    void fail(const char* fn, const folly::AsyncSocketException& ex);
 
     const int readFd_;
     off_t offset_;
@@ -113,4 +114,4 @@ class FileRegion {
   };
 };
 
-}} // folly::wangle
+} // wangle

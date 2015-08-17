@@ -17,9 +17,9 @@ using std::chrono::microseconds;
 using std::map;
 using std::string;
 
-namespace folly {
+namespace wangle {
 
-bool TransportInfo::initWithSocket(const AsyncSocket* sock) {
+bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
 #if defined(__linux__) || defined(__FreeBSD__)
   if (!TransportInfo::readTcpInfo(&tcpinfo, sock)) {
     tcpinfoErrno = errno;
@@ -55,7 +55,7 @@ bool TransportInfo::initWithSocket(const AsyncSocket* sock) {
   return true;
 }
 
-int64_t TransportInfo::readRTT(const AsyncSocket* sock) {
+int64_t TransportInfo::readRTT(const folly::AsyncSocket* sock) {
 #if defined(__linux__) || defined(__FreeBSD__)
   struct tcp_info tcpinfo;
   if (!TransportInfo::readTcpInfo(&tcpinfo, sock)) {
@@ -69,7 +69,7 @@ int64_t TransportInfo::readRTT(const AsyncSocket* sock) {
 
 #if defined(__linux__) || defined(__FreeBSD__)
 bool TransportInfo::readTcpInfo(struct tcp_info* tcpinfo,
-                                const AsyncSocket* sock) {
+                                const folly::AsyncSocket* sock) {
   socklen_t len = sizeof(struct tcp_info);
   if (!sock) {
     return false;
@@ -83,4 +83,4 @@ bool TransportInfo::readTcpInfo(struct tcp_info* tcpinfo,
 }
 #endif
 
-} // folly
+} // namespace wangle

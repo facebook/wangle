@@ -13,7 +13,7 @@
 #include <wangle/channel/Handler.h>
 #include <wangle/service/Service.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * Dispatch requests from pipeline one at a time synchronously.
@@ -103,4 +103,4 @@ class MultiplexServerDispatcher : public HandlerAdapter<Req, Resp> {
   Service<Req, Resp>* service_;
 };
 
-}} // namespace
+} // namespace wangle

@@ -16,7 +16,9 @@
 
 #include <wangle/channel/Pipeline.h>
 
-namespace folly { namespace wangle {
+using folly::WriteFlags;
+
+namespace wangle {
 
 void PipelineBase::setWriteFlags(WriteFlags flags) {
   writeFlags_ = flags;
@@ -80,4 +82,4 @@ void PipelineBase::detachHandlers() {
   }
 }
 
-}} // folly::wangle
+} // namespace wangle

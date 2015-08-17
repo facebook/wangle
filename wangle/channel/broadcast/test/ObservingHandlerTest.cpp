@@ -2,7 +2,7 @@
 #include <wangle/channel/broadcast/test/Mocks.h>
 #include <wangle/codec/MessageToByteEncoder.h>
 
-using namespace folly::wangle;
+using namespace wangle;
 using namespace folly;
 using namespace testing;
 

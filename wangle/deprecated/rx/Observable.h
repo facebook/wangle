@@ -23,7 +23,7 @@
 #include <map>
 #include <memory>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T, size_t InlineObservers>
 class Observable {
@@ -70,7 +70,7 @@ class Observable {
       }
       newObservers_->push_back(observer);
     } else {
-      RWSpinLock::WriteHolder{&observersLock_};
+      folly::RWSpinLock::WriteHolder{&observersLock_};
       observers_.push_back(observer);
     }
   }
@@ -146,7 +146,7 @@ class Observable {
     *inCallback_ = true;
 
     {
-      RWSpinLock::ReadHolder rh(observersLock_);
+      folly::RWSpinLock::ReadHolder rh(observersLock_);
       for (auto o : observers_) {
         f(o);
       }
@@ -160,7 +160,7 @@ class Observable {
                  (newSubscribers_ && !newSubscribers_->empty()) ||
                  (oldSubscribers_ && !oldSubscribers_->empty()))) {
       {
-        RWSpinLock::WriteHolder wh(observersLock_);
+        folly::RWSpinLock::WriteHolder wh(observersLock_);
         if (newObservers_) {
           for (auto observer : *(newObservers_)) {
             observers_.push_back(observer);
@@ -194,7 +194,7 @@ class Observable {
       }
       newSubscribers_->insert(std::move(kv));
     } else {
-      RWSpinLock::WriteHolder{&observersLock_};
+      folly::RWSpinLock::WriteHolder{&observersLock_};
       subscribers_.insert(std::move(kv));
     }
     return subscription;
@@ -208,24 +208,24 @@ class Observable {
 
     void unsubscribe(uint64_t id) {
       CHECK(id > 0);
-      RWSpinLock::ReadHolder guard(lock_);
+      folly::RWSpinLock::ReadHolder guard(lock_);
       if (observable_) {
         observable_->unsubscribe(id);
       }
     }
 
     void disable() {
-      RWSpinLock::WriteHolder guard(lock_);
+      folly::RWSpinLock::WriteHolder guard(lock_);
       observable_ = nullptr;
     }
 
    private:
-    RWSpinLock lock_;
+    folly::RWSpinLock lock_;
     Observable* observable_;
   };
 
   std::shared_ptr<Unsubscriber> unsubscriber_{nullptr};
-  MicroSpinLock unsubscriberLock_{0};
+  folly::MicroSpinLock unsubscriberLock_{0};
 
   friend class Subscription<T>;
 
@@ -243,7 +243,7 @@ class Observable {
       }
       oldSubscribers_->push_back(id);
     } else {
-      RWSpinLock::WriteHolder{&observersLock_};
+      folly::RWSpinLock::WriteHolder{&observersLock_};
       subscribers_.erase(id);
     }
   }
@@ -253,7 +253,7 @@ class Observable {
       return Subscription<T>(nullptr, nextSubscriptionId_++);
     } else {
       if (!unsubscriber_) {
-        std::lock_guard<MicroSpinLock> guard(unsubscriberLock_);
+        std::lock_guard<folly::MicroSpinLock> guard(unsubscriberLock_);
         if (!unsubscriber_) {
           unsubscriber_ = std::make_shared<Unsubscriber>(this);
         }
@@ -263,7 +263,7 @@ class Observable {
   }
 
   std::atomic<uint64_t> nextSubscriptionId_;
-  RWSpinLock observersLock_;
+  folly::RWSpinLock observersLock_;
   folly::ThreadLocalPtr<bool> inCallback_;
 
   typedef folly::small_vector<Observer<T>*, InlineObservers> ObserverList;
@@ -276,4 +276,4 @@ class Observable {
   folly::ThreadLocalPtr<std::vector<uint64_t>> oldSubscribers_;
 };
 
-}}
+} // namespace wangle

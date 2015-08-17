@@ -16,7 +16,7 @@
 #include <wangle/channel/FileRegion.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 namespace {
 
@@ -31,7 +31,7 @@ Singleton<IOThreadPoolExecutor, FileRegionReadPool> readPool(
 
 }
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 FileRegion::FileWriteRequest::FileWriteRequest(AsyncSocket* socket,
     WriteCallback* callback, int fd, off_t offset, size_t count)
@@ -213,4 +213,5 @@ void FileRegion::FileWriteRequest::FileReadHandler::handlerReady(
     }
   }
 }
-}} // folly::wangle
+
+} // wangle

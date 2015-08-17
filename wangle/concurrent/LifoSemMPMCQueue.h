@@ -13,7 +13,7 @@
 #include <folly/LifoSem.h>
 #include <folly/MPMCQueue.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 template <class T>
 class LifoSemMPMCQueue : public BlockingQueue<T> {
@@ -44,8 +44,8 @@ class LifoSemMPMCQueue : public BlockingQueue<T> {
   }
 
  private:
-  LifoSem sem_;
-  MPMCQueue<T> queue_;
+  folly::LifoSem sem_;
+  folly::MPMCQueue<T> queue_;
 };
 
-}} // folly::wangle
+} // namespace wangle

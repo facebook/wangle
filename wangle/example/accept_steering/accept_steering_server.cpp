@@ -16,7 +16,7 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 DEFINE_int32(port, 23, "test server port");
 

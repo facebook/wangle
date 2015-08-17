@@ -6,16 +6,16 @@
 #include <wangle/channel/Pipeline.h>
 #include <wangle/channel/broadcast/Subscriber.h>
 
-namespace folly { namespace wangle {
+namespace wangle {
 
 /**
  * An Observable type handler for broadcasting/streaming data to a list
  * of subscribers.
  */
 template <typename T>
-class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<IOBuf>> {
+class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>> {
  public:
-  typedef typename HandlerAdapter<T, std::unique_ptr<IOBuf>>::Context Context;
+  typedef typename HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>::Context Context;
 
   virtual ~BroadcastHandler() {
     CHECK(subscribers_.empty());
@@ -62,7 +62,7 @@ class BroadcastHandlerFactory {
 
 template <typename T, typename R>
 class BroadcastPipelineFactory
-    : public folly::PipelineFactory<DefaultPipeline> {
+    : public PipelineFactory<DefaultPipeline> {
  public:
   virtual DefaultPipeline::UniquePtr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket) override = 0;
@@ -74,6 +74,6 @@ class BroadcastPipelineFactory
                               const R& routingData) noexcept = 0;
 };
 
-}} // namespace folly::wangle
+} // namespace wangle
 
 #include <wangle/channel/broadcast/BroadcastHandler-inl.h>

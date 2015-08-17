@@ -15,7 +15,7 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 
 using namespace folly;
-using namespace folly::wangle;
+using namespace wangle;
 
 DEFINE_int32(port, 1080, "proxy server port");
 DEFINE_string(remote_host, "127.0.0.1", "remote host");
