@@ -91,8 +91,11 @@ class ServerAcceptor
 
   /* See Acceptor::onNewConnection for details */
   void onNewConnection(
-    folly::AsyncSocket::UniquePtr transport, const folly::SocketAddress* address,
-    const std::string& nextProtocolName, const TransportInfo& tinfo) {
+    folly::AsyncSocket::UniquePtr transport,
+    const folly::SocketAddress* address,
+    const std::string& nextProtocolName,
+    SecureTransportType secureTransportType,
+    const TransportInfo& tinfo) {
     acceptorPipeline_->read(transport.release());
   }
 

@@ -13,6 +13,7 @@
 #include <wangle/acceptor/ConnectionCounter.h>
 #include <wangle/acceptor/ConnectionManager.h>
 #include <wangle/acceptor/LoadShedConfiguration.h>
+#include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/ssl/SSLCacheProvider.h>
 #include <wangle/acceptor/TransportInfo.h>
 
@@ -172,6 +173,16 @@ class Acceptor :
   ) noexcept;
 
   /**
+   * Creates and starts the handshake helper.
+   */
+  virtual void startHandshakeHelper(
+    folly::AsyncSSLSocket::UniquePtr sslSock,
+    Acceptor* acceptor,
+    const folly::SocketAddress& clientAddr,
+    std::chrono::steady_clock::time_point acceptTime,
+    TransportInfo& tinfo) noexcept;
+
+  /**
    * Drains all open connections of their outstanding transactions. When
    * a connection's transaction count reaches zero, the connection closes.
    */
@@ -184,6 +195,21 @@ class Acceptor :
    * thread.
    */
   void dropAllConnections();
+
+  /**
+   * Wrapper for connectionReady() that decrements the count of
+   * pending SSL connections. This should normally not be overridden.
+   */
+  virtual void sslConnectionReady(folly::AsyncSocket::UniquePtr sock,
+      const folly::SocketAddress& clientAddr,
+      const std::string& nextProtocol,
+      SecureTransportType secureTransportType,
+      TransportInfo& tinfo);
+
+  /**
+   * Notification callback for SSL handshake failures.
+   */
+  virtual void sslConnectionError();
 
  protected:
   friend class AcceptorHandshakeHelper;
@@ -213,17 +239,20 @@ class Acceptor :
    *       downstreamConnectionManager so that it can be garbage collected after
    *       certain period of idleness.
    *
-   * @param sock              the socket connected to the client
-   * @param address           the address of the client
-   * @param nextProtocolName  the name of the L6 or L7 protocol to be
-   *                            spoken on the connection, if known (e.g.,
-   *                            from TLS NPN during secure connection setup),
-   *                            or an empty string if unknown
+   * @param sock                the socket connected to the client
+   * @param address             the address of the client
+   * @param nextProtocolName    the name of the L6 or L7 protocol to be
+   *                              spoken on the connection, if known (e.g.,
+   *                              from TLS NPN during secure connection setup),
+   *                              or an empty string if unknown
+   * @param secureTransportType the name of the secure transport type that was
+   *                            requested by the client.
    */
   virtual void onNewConnection(
       folly::AsyncSocket::UniquePtr /*sock*/,
       const folly::SocketAddress* /*address*/,
       const std::string& /*nextProtocolName*/,
+      SecureTransportType /*secureTransportType*/,
       const TransportInfo& /*tinfo*/) {}
 
   void onListenStarted() noexcept {}
@@ -243,7 +272,12 @@ class Acceptor :
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
     const std::shared_ptr<folly::SSLContext>& ctx, folly::EventBase* base, int fd) {
     return folly::AsyncSSLSocket::UniquePtr(
-        new folly::AsyncSSLSocket(ctx, base, fd));
+        new folly::AsyncSSLSocket(
+          ctx,
+          base,
+          fd,
+          true, /* set server */
+          true /* defer the security negotiation until sslAccept */));
   }
 
   /**
@@ -287,6 +321,7 @@ class Acceptor :
       folly::AsyncSocket::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocolName,
+      SecureTransportType secureTransportType,
       TransportInfo& tinfo);
 
   const LoadShedConfiguration& getLoadShedConfiguration() const {
@@ -318,20 +353,6 @@ class Acceptor :
   // Forbidden copy constructor and assignment opererator
   Acceptor(Acceptor const &) = delete;
   Acceptor& operator=(Acceptor const &) = delete;
-
-  /**
-   * Wrapper for connectionReady() that decrements the count of
-   * pending SSL connections.
-   */
-  void sslConnectionReady(folly::AsyncSocket::UniquePtr sock,
-      const folly::SocketAddress& clientAddr,
-      const std::string& nextProtocol,
-      TransportInfo& tinfo);
-
-  /**
-   * Notification callback for SSL handshake failures.
-   */
-  void sslConnectionError();
 
   void checkDrained();
 

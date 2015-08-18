@@ -58,6 +58,7 @@ EventBase base_;
   void onNewConnection(AsyncSocket::UniquePtr sock,
                        const folly::SocketAddress* address,
                        const std::string& nextProtocolName,
+                       SecureTransportType secureTransportType,
                        const TransportInfo& tinfo) override {}
 };
 
