@@ -86,6 +86,21 @@ class TLSTicketKeyManager : private boost::noncopyable {
                             const std::vector<std::string>& currentSeeds,
                             const std::vector<std::string>& newSeeds);
 
+  struct Unsafe {
+    TLSTicketKeyManager* obj;
+    int processTicket(SSL* ssl,
+                      uint8_t* keyName,
+                      uint8_t* iv,
+                      EVP_CIPHER_CTX* cipherCtx,
+                      HMAC_CTX* hmacCtx,
+                      int encrypt) {
+      return CHECK_NOTNULL(obj)
+        ->processTicket(ssl, keyName, iv, cipherCtx, hmacCtx, encrypt);
+    }
+  };
+
+  Unsafe unsafe() { return Unsafe{this}; }
+
  private:
   enum TLSTicketSeedType {
     SEED_OLD = 0,
@@ -169,13 +184,6 @@ class TLSTicketKeyManager : private boost::noncopyable {
    */
   void makeUniqueKeys(unsigned char* parentKey, size_t keyLen,
                       unsigned char* salt, unsigned char* output);
-
-  /**
-   * For standalone decryption utility
-   */
-  friend int decrypt_fb_ticket(TLSTicketKeyManager* manager,
-                               const std::string& testTicket,
-                               SSL_SESSION **psess);
 
   typedef std::vector<std::unique_ptr<TLSTicketSeed>> TLSTicketSeedList;
   typedef std::map<std::string, std::unique_ptr<TLSTicketKeySource> >
