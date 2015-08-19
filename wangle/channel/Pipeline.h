@@ -87,6 +87,15 @@ class PipelineBase : public folly::DelayedDestruction {
   template <class H>
   H* getHandler(int i);
 
+  template <class H>
+  H* getHandler();
+
+  template <class H>
+  typename ContextType<H>::type* getContext(int i);
+
+  template <class H>
+  typename ContextType<H>::type* getContext();
+
   // If one of the handlers owns the pipeline itself, use setOwner to ensure
   // that the pipeline doesn't try to detach the handler during destruction,
   // lest destruction ordering issues occur.

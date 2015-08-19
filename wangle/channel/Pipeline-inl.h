@@ -100,10 +100,31 @@ PipelineBase& PipelineBase::remove(H* handler) {
 
 template <class H>
 H* PipelineBase::getHandler(int i) {
-  typedef typename ContextType<H>::type Context;
-  auto ctx = dynamic_cast<Context*>(ctxs_[i].get());
+  return getContext<H>(i)->getHandler();
+}
+
+template <class H>
+H* PipelineBase::getHandler() {
+  auto ctx = getContext<H>();
+  return ctx ? ctx->getHandler() : nullptr;
+}
+
+template <class H>
+typename ContextType<H>::type* PipelineBase::getContext(int i) {
+  auto ctx = dynamic_cast<typename ContextType<H>::type*>(ctxs_[i].get());
   CHECK(ctx);
-  return ctx->getHandler();
+  return ctx;
+}
+
+template <class H>
+typename ContextType<H>::type* PipelineBase::getContext() {
+  for (auto pipelineCtx : ctxs_) {
+    auto ctx = dynamic_cast<typename ContextType<H>::type*>(pipelineCtx.get());
+    if (ctx) {
+      return ctx;
+    }
+  }
+  return nullptr;
 }
 
 template <class H>
