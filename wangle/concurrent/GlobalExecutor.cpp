@@ -54,22 +54,23 @@ std::shared_ptr<Exe> getExecutor(
     Singleton<std::shared_ptr<DefaultExe>>& sDefaultExecutor,
     Singleton<RWSpinLock, LockTag>& sExecutorLock) {
   std::shared_ptr<Exe> executor;
-  auto singleton = sExecutor.get();
-  auto lock = sExecutorLock.get();
+  auto singleton = sExecutor.try_get();
+  auto lock = sExecutorLock.try_get();
 
   {
-    RWSpinLock::ReadHolder guard(lock);
-    if ((executor = sExecutor->lock())) {
+    RWSpinLock::ReadHolder guard(lock.get());
+    if ((executor = sExecutor.try_get()->lock())) {
       return executor;
     }
   }
 
 
-  RWSpinLock::WriteHolder guard(lock);
+  RWSpinLock::WriteHolder guard(lock.get());
   executor = singleton->lock();
   if (!executor) {
-    executor = *sDefaultExecutor.get();
-    *singleton = executor;
+    std::weak_ptr<Exe> defaultExecutor = *sDefaultExecutor.try_get().get();
+    executor = defaultExecutor.lock();
+    sExecutor.try_get().get()->swap(defaultExecutor);
   }
   return executor;
 }
@@ -80,7 +81,8 @@ void setExecutor(
     Singleton<std::weak_ptr<Exe>>& sExecutor,
     Singleton<RWSpinLock, LockTag>& sExecutorLock) {
   RWSpinLock::WriteHolder guard(sExecutorLock.get());
-  *sExecutor.get() = std::move(executor);
+  std::weak_ptr<Exe> executor_weak = executor;
+  sExecutor.try_get().get()->swap(executor_weak);
 }
 
 std::shared_ptr<Executor> getCPUExecutor() {
