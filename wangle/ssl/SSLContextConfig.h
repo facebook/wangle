@@ -94,6 +94,9 @@ struct SSLContextConfig {
   SNINoMatchFn sniNoMatchFn;
   // File containing trusted CA's to validate client certificates
   std::string clientCAFile;
+  // Sets the level of peer verification required for the client.
+  folly::SSLContext::SSLVerifyPeerEnum
+    verifyPeer{folly::SSLContext::SSLVerifyPeerEnum::NO_VERIFY};
 };
 
 } // namespace wangle

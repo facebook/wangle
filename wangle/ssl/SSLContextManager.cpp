@@ -331,6 +331,7 @@ void SSLContextManager::addSSLContextConfig(
         externalCache);
   }
   // - end - SSL session cache config
+  sslCtx->setVerificationOption(ctxConfig.verifyPeer);
 
   std::unique_ptr<TLSTicketKeyManager> ticketManager =
     createTicketManagerHelper(sslCtx, ticketSeeds, ctxConfig, stats_);
