@@ -65,7 +65,7 @@ class ClientBootstrap {
 
   folly::Future<Pipeline*> connect(
       folly::SocketAddress address,
-      std::chrono::milliseconds timeout = 0) {
+      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) {
     DCHECK(pipelineFactory_);
     auto base = folly::EventBaseManager::get()->getEventBase();
     if (group_) {
