@@ -63,7 +63,9 @@ class ClientBootstrap {
     return this;
   }
 
-  folly::Future<Pipeline*> connect(folly::SocketAddress address) {
+  folly::Future<Pipeline*> connect(
+      folly::SocketAddress address,
+      std::chrono::milliseconds timeout = 0) {
     DCHECK(pipelineFactory_);
     auto base = folly::EventBaseManager::get()->getEventBase();
     if (group_) {
@@ -75,7 +77,9 @@ class ClientBootstrap {
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
       socket->connect(
-        new ConnectCallback(std::move(promise), this), address);
+          new ConnectCallback(std::move(promise), this),
+          address,
+          timeout.count());
       pipeline_ = pipelineFactory_->newPipeline(socket);
     });
     return retval;
