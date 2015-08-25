@@ -16,7 +16,7 @@ class MockPeekingCallback :
   public PeekingAcceptorHandshakeHelper<N>::Callback {
   public:
     MOCK_METHOD1_T(getSecureTransportType,
-        Optional<SecureTransportType>(std::array<unsigned char, N>));
+        Optional<SecureTransportType>(std::array<uint8_t, N>));
 };
 
 class MockAcceptor : public Acceptor {
@@ -82,7 +82,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestNonSSLPeekSuccess) {
   EXPECT_CALL(*sslSock_, setReadCB(_));
   EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start();
-  unsigned char* buf = nullptr;
+  uint8_t* buf = nullptr;
   size_t len = 0;
   helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
   EXPECT_EQ(2, len);
@@ -102,7 +102,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestSSLPeekSuccess) {
   EXPECT_CALL(*sslSock_, setReadCB(_));
   EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start();
-  unsigned char* buf = nullptr;
+  uint8_t* buf = nullptr;
   size_t len = 0;
   helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
   EXPECT_EQ(2, len);
@@ -132,7 +132,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestErrAfterData) {
   EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start();
 
-  unsigned char* buf = nullptr;
+  uint8_t* buf = nullptr;
   size_t len = 0;
   helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
   EXPECT_EQ(2, len);

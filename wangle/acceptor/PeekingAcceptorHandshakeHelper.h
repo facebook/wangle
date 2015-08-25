@@ -22,8 +22,8 @@ class PeekingAcceptorHandshakeHelper :
       public:
         virtual ~Callback() {}
 
-        virtual Optional<SecureTransportType> getSecureTransportType(
-            std::array<unsigned char, N> peekedBytes) = 0;
+        virtual folly::Optional<SecureTransportType> getSecureTransportType(
+            std::array<uint8_t, N> peekedBytes) = 0;
     };
 
     PeekingAcceptorHandshakeHelper(
@@ -112,7 +112,7 @@ class PeekingAcceptorHandshakeHelper :
     }
 
   private:
-    std::array<unsigned char, N> peekBytes_;
+    std::array<uint8_t, N> peekBytes_;
     Callback* peekCallback_;
 };
 
