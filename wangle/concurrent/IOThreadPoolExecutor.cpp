@@ -143,7 +143,8 @@ void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
   auto idler = new MemoryIdlerTimeout(ioThread->eventBase);
   ioThread->eventBase->runBeforeLoop(idler);
 
-  thread->startupBaton.post();
+  ioThread->eventBase->runInEventBaseThread(
+      [thread]{ thread->startupBaton.post(); });
   while (ioThread->shouldRun) {
     ioThread->eventBase->loopForever();
   }
