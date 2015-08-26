@@ -8,7 +8,7 @@
 
 using namespace folly;
 using namespace folly::test;
-using namespace folly::wangle;
+using namespace wangle;
 using namespace testing;
 
 template<size_t N>
