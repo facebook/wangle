@@ -33,6 +33,7 @@ class HandlerContext {
   virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
+  virtual std::shared_ptr<PipelineBase> getPipelineShared() = 0;
   std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }
@@ -68,6 +69,7 @@ class InboundHandlerContext {
   virtual void fireTransportInactive() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
+  virtual std::shared_ptr<PipelineBase> getPipelineShared() = 0;
   std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }
@@ -86,6 +88,7 @@ class OutboundHandlerContext {
   virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
+  virtual std::shared_ptr<PipelineBase> getPipelineShared() = 0;
   std::shared_ptr<folly::AsyncTransport> getTransport() {
     return getPipeline()->getTransport();
   }

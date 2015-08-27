@@ -14,7 +14,7 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
 
   // Create a new routing pipeline for this connection to read from
   // the socket until it parses the routing data
-  DefaultPipeline::UniquePtr routingPipeline(new DefaultPipeline);
+  auto routingPipeline = DefaultPipeline::create();
   routingPipeline->addBack(wangle::AsyncSocketHandler(socket));
   routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();
@@ -53,7 +53,6 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
     auto pipeline =
         childPipelineFactory_->newPipeline(socket, mwRoutingData->routingData);
     auto pipelinePtr = pipeline.get();
-    folly::DelayedDestruction::DestructorGuard dg(pipelinePtr);
 
     auto connection = new typename ServerAcceptor<Pipeline>::ServerConnection(
         std::move(pipeline));

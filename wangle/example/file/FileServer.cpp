@@ -48,9 +48,9 @@ class FileServerHandler : public HandlerAdapter<std::string> {
     }
 
     FileRegion fileRegion(fd, 0, buf.st_size);
-    FileServerPipeline::DestructorGuard dg(ctx->getPipeline());
+    auto guard = ctx->getPipelineShared();
     fileRegion.transferTo(ctx->getTransport())
-      .onError([this, dg, ctx, filename](const std::exception& e){
+      .onError([this, guard, ctx, filename](const std::exception& e){
         write(ctx, sformat("Error sending file {}: {}\r\n",
                            filename,
                            exceptionStr(e)));
@@ -74,11 +74,8 @@ class FileServerHandler : public HandlerAdapter<std::string> {
 
 class FileServerPipelineFactory : public PipelineFactory<FileServerPipeline> {
  public:
-  std::unique_ptr<FileServerPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-
-    std::unique_ptr<FileServerPipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new FileServerPipeline);
+  FileServerPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    auto pipeline = FileServerPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder());
     pipeline->addBack(StringCodec());

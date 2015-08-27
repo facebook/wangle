@@ -57,7 +57,7 @@ class AcceptRoutingHandler : public wangle::InboundHandler<void*>,
       childPipelineFactory_;
 
   std::vector<Acceptor*> acceptors_;
-  std::map<uint64_t, DefaultPipeline::UniquePtr> routingPipelines_;
+  std::map<uint64_t, DefaultPipeline::Ptr> routingPipelines_;
   uint64_t nextConnId_{0};
 };
 
@@ -73,9 +73,9 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
         routingHandlerFactory_(routingHandlerFactory),
         childPipelineFactory_(childPipelineFactory) {}
 
-  AcceptPipeline::UniquePtr newPipeline(
+  AcceptPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket>) override {
-    AcceptPipeline::UniquePtr pipeline(new AcceptPipeline);
+    auto pipeline = AcceptPipeline::create();
     pipeline->addBack(AcceptRoutingHandler<Pipeline, R>(
         server_, routingHandlerFactory_, childPipelineFactory_));
     pipeline->finalize();
@@ -95,7 +95,7 @@ class RoutingDataPipelineFactory {
  public:
   virtual ~RoutingDataPipelineFactory() {}
 
-  virtual typename Pipeline::UniquePtr newPipeline(
+  virtual typename Pipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket, const R& routingData) = 0;
 };
 

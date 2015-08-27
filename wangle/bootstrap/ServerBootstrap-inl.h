@@ -25,13 +25,10 @@ class ServerAcceptor
     : public Acceptor
     , public wangle::InboundHandler<void*> {
  public:
-  typedef std::unique_ptr<Pipeline,
-                          folly::DelayedDestruction::Destructor> PipelinePtr;
-
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
    public:
-    explicit ServerConnection(PipelinePtr pipeline)
+    explicit ServerConnection(typename Pipeline::Ptr pipeline)
         : pipeline_(std::move(pipeline)) {
       pipeline_->setPipelineManager(this);
     }
@@ -58,7 +55,7 @@ class ServerAcceptor
     }
 
    private:
-    PipelinePtr pipeline_;
+    typename Pipeline::Ptr pipeline_;
   };
 
   explicit ServerAcceptor(
@@ -78,12 +75,10 @@ class ServerAcceptor
 
   void read(Context* ctx, void* conn) {
     folly::AsyncSocket::UniquePtr transport((folly::AsyncSocket*)conn);
-      std::unique_ptr<Pipeline,
-                       folly::DelayedDestruction::Destructor>
-      pipeline(childPipelineFactory_->newPipeline(
+    auto pipeline = childPipelineFactory_->newPipeline(
         std::shared_ptr<folly::AsyncSocket>(
-          transport.release(),
-          folly::DelayedDestruction::Destructor())));
+            transport.release(),
+            folly::DelayedDestruction::Destructor()));
     pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
@@ -184,8 +179,9 @@ class DefaultAcceptPipelineFactory
     : public PipelineFactory<wangle::Pipeline<void*>> {
 
  public:
-  wangle::AcceptPipeline::UniquePtr newPipeline(std::shared_ptr<folly::AsyncSocket>) {
-    return wangle::AcceptPipeline::UniquePtr(new wangle::AcceptPipeline);
+  typename wangle::AcceptPipeline::Ptr newPipeline(
+      std::shared_ptr<folly::AsyncSocket>) {
+    return wangle::AcceptPipeline::create();
   }
 };
 

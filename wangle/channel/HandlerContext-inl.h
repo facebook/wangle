@@ -62,8 +62,11 @@ class ContextImplBase : public PipelineContext {
     return handler_.get();
   }
 
-  void initialize(PipelineBase* pipeline, std::shared_ptr<H> handler) {
-    pipeline_ = pipeline;
+  void initialize(
+      std::weak_ptr<PipelineBase> pipeline,
+      std::shared_ptr<H> handler) {
+    pipelineWeak_ = pipeline;
+    pipelineRaw_ = pipeline.lock().get();
     handler_ = std::move(handler);
   }
 
@@ -113,14 +116,14 @@ class ContextImplBase : public PipelineContext {
 
  protected:
   Context* impl_;
-  PipelineBase* pipeline_;
+  std::weak_ptr<PipelineBase> pipelineWeak_;
+  PipelineBase* pipelineRaw_;
   std::shared_ptr<H> handler_;
   InboundLink<typename H::rout>* nextIn_{nullptr};
   OutboundLink<typename H::wout>* nextOut_{nullptr};
 
  private:
   bool attached_{false};
-  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -138,7 +141,9 @@ class ContextImpl
   typedef typename H::wout Wout;
   static const HandlerDir dir = HandlerDir::BOTH;
 
-  explicit ContextImpl(PipelineBase* pipeline, std::shared_ptr<H> handler) {
+  explicit ContextImpl(
+      std::weak_ptr<PipelineBase> pipeline,
+      std::shared_ptr<H> handler) {
     this->impl_ = this;
     this->initialize(pipeline, std::move(handler));
   }
@@ -152,7 +157,7 @@ class ContextImpl
 
   // HandlerContext overrides
   void fireRead(Rout msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->read(std::forward<Rout>(msg));
     } else {
@@ -161,7 +166,7 @@ class ContextImpl
   }
 
   void fireReadEOF() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->readEOF();
     } else {
@@ -170,7 +175,7 @@ class ContextImpl
   }
 
   void fireReadException(folly::exception_wrapper e) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->readException(std::move(e));
     } else {
@@ -179,21 +184,21 @@ class ContextImpl
   }
 
   void fireTransportActive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->transportActive();
     }
   }
 
   void fireTransportInactive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->transportInactive();
     }
   }
 
   folly::Future<folly::Unit> fireWrite(Wout msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
     } else {
@@ -203,7 +208,7 @@ class ContextImpl
   }
 
   folly::Future<folly::Unit> fireClose() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
       return this->nextOut_->close();
     } else {
@@ -213,66 +218,67 @@ class ContextImpl
   }
 
   PipelineBase* getPipeline() override {
-    return this->pipeline_;
+    return this->pipelineRaw_;
+  }
+
+  std::shared_ptr<PipelineBase> getPipelineShared() override {
+    return this->pipelineWeak_.lock();
   }
 
   void setWriteFlags(folly::WriteFlags flags) override {
-    this->pipeline_->setWriteFlags(flags);
+    this->pipelineRaw_->setWriteFlags(flags);
   }
 
   folly::WriteFlags getWriteFlags() override {
-    return this->pipeline_->getWriteFlags();
+    return this->pipelineRaw_->getWriteFlags();
   }
 
   void setReadBufferSettings(
       uint64_t minAvailable,
       uint64_t allocationSize) override {
-    this->pipeline_->setReadBufferSettings(minAvailable, allocationSize);
+    this->pipelineRaw_->setReadBufferSettings(minAvailable, allocationSize);
   }
 
   std::pair<uint64_t, uint64_t> getReadBufferSettings() override {
-    return this->pipeline_->getReadBufferSettings();
+    return this->pipelineRaw_->getReadBufferSettings();
   }
 
   // InboundLink overrides
   void read(Rin msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->read(this, std::forward<Rin>(msg));
   }
 
   void readEOF() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->readEOF(this);
   }
 
   void readException(folly::exception_wrapper e) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->readException(this, std::move(e));
   }
 
   void transportActive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->transportActive(this);
   }
 
   void transportInactive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->transportInactive(this);
   }
 
   // OutboundLink overrides
   folly::Future<folly::Unit> write(Win msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
   folly::Future<folly::Unit> close() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     return this->handler_->close(this);
   }
-
- private:
-  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -288,7 +294,7 @@ class InboundContextImpl
   static const HandlerDir dir = HandlerDir::IN;
 
   explicit InboundContextImpl(
-      PipelineBase* pipeline,
+      std::weak_ptr<PipelineBase> pipeline,
       std::shared_ptr<H> handler) {
     this->impl_ = this;
     this->initialize(pipeline, std::move(handler));
@@ -303,7 +309,7 @@ class InboundContextImpl
 
   // InboundHandlerContext overrides
   void fireRead(Rout msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->read(std::forward<Rout>(msg));
     } else {
@@ -312,7 +318,7 @@ class InboundContextImpl
   }
 
   void fireReadEOF() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->readEOF();
     } else {
@@ -321,7 +327,7 @@ class InboundContextImpl
   }
 
   void fireReadException(folly::exception_wrapper e) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->readException(std::move(e));
     } else {
@@ -330,51 +336,52 @@ class InboundContextImpl
   }
 
   void fireTransportActive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->transportActive();
     }
   }
 
   void fireTransportInactive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextIn_) {
       this->nextIn_->transportInactive();
     }
   }
 
   PipelineBase* getPipeline() override {
-    return this->pipeline_;
+    return this->pipelineRaw_;
+  }
+
+  std::shared_ptr<PipelineBase> getPipelineShared() override {
+    return this->pipelineWeak_.lock();
   }
 
   // InboundLink overrides
   void read(Rin msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->read(this, std::forward<Rin>(msg));
   }
 
   void readEOF() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->readEOF(this);
   }
 
   void readException(folly::exception_wrapper e) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->readException(this, std::move(e));
   }
 
   void transportActive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->transportActive(this);
   }
 
   void transportInactive() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     this->handler_->transportInactive(this);
   }
-
- private:
-  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class H>
@@ -390,7 +397,7 @@ class OutboundContextImpl
   static const HandlerDir dir = HandlerDir::OUT;
 
   explicit OutboundContextImpl(
-      PipelineBase* pipeline,
+      std::weak_ptr<PipelineBase> pipeline,
       std::shared_ptr<H> handler) {
     this->impl_ = this;
     this->initialize(pipeline, std::move(handler));
@@ -405,7 +412,7 @@ class OutboundContextImpl
 
   // OutboundHandlerContext overrides
   folly::Future<folly::Unit> fireWrite(Wout msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
       return this->nextOut_->write(std::forward<Wout>(msg));
     } else {
@@ -415,7 +422,7 @@ class OutboundContextImpl
   }
 
   folly::Future<folly::Unit> fireClose() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
       return this->nextOut_->close();
     } else {
@@ -425,22 +432,23 @@ class OutboundContextImpl
   }
 
   PipelineBase* getPipeline() override {
-    return this->pipeline_;
+    return this->pipelineRaw_;
+  }
+
+  std::shared_ptr<PipelineBase> getPipelineShared() override {
+    return this->pipelineWeak_.lock();
   }
 
   // OutboundLink overrides
   folly::Future<folly::Unit> write(Win msg) override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     return this->handler_->write(this, std::forward<Win>(msg));
   }
 
   folly::Future<folly::Unit> close() override {
-    DestructorGuard dg(this->pipeline_);
+    auto guard = this->pipelineWeak_.lock();
     return this->handler_->close(this);
   }
-
- private:
-  using DestructorGuard = typename folly::DelayedDestruction::DestructorGuard;
 };
 
 template <class Handler>

@@ -28,7 +28,7 @@ class PipelineManager {
   virtual void deletePipeline(PipelineBase* pipeline) = 0;
 };
 
-class PipelineBase : public folly::DelayedDestruction {
+class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
  public:
   virtual ~PipelineBase() = default;
 
@@ -147,9 +147,12 @@ class PipelineBase : public folly::DelayedDestruction {
 template <class R, class W = folly::Unit>
 class Pipeline : public PipelineBase {
  public:
-  typedef std::unique_ptr<Pipeline, Destructor> UniquePtr;
+  using Ptr = std::shared_ptr<Pipeline>;
 
-  Pipeline();
+  static Ptr create() {
+    return std::shared_ptr<Pipeline>(new Pipeline());
+  }
+
   ~Pipeline();
 
   template <class T = R>
@@ -185,6 +188,7 @@ class Pipeline : public PipelineBase {
   void finalize() override;
 
  protected:
+  Pipeline();
   explicit Pipeline(bool isStatic);
 
  private:
@@ -207,7 +211,7 @@ namespace wangle {
 template <typename Pipeline>
 class PipelineFactory {
  public:
-  virtual typename Pipeline::UniquePtr newPipeline(
+  virtual typename Pipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket>) = 0;
 
   virtual ~PipelineFactory() = default;

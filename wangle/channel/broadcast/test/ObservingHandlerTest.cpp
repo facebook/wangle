@@ -20,7 +20,7 @@ class ObservingHandlerTest : public Test {
     observingHandler = new StrictMock<MockObservingHandler>();
     broadcastHandler = make_unique<StrictMock<MockBroadcastHandler>>();
 
-    pipeline.reset(new ObservingPipeline<int>);
+    pipeline = ObservingPipeline<int>::create();
     pipeline->addBack(
         std::shared_ptr<StrictMock<MockBytesToBytesHandler>>(prevHandler));
     pipeline->addBack(MockIntToByteEncoder());
@@ -39,7 +39,7 @@ class ObservingHandlerTest : public Test {
   }
 
  protected:
-  ObservingPipeline<int>::UniquePtr pipeline;
+  ObservingPipeline<int>::Ptr pipeline;
 
   StrictMock<MockBytesToBytesHandler>* prevHandler{nullptr};
   StrictMock<MockObservingHandler>* observingHandler{nullptr};

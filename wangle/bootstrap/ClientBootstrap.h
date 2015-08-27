@@ -98,8 +98,7 @@ class ClientBootstrap {
   virtual ~ClientBootstrap() = default;
 
  protected:
-  std::unique_ptr<Pipeline,
-                  folly::DelayedDestruction::Destructor> pipeline_;
+  typename Pipeline::Ptr pipeline_;
 
   int port_;
 

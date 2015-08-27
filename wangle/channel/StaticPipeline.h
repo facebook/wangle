@@ -44,6 +44,9 @@ template <class R, class W>
 class StaticPipeline<R, W> : public Pipeline<R, W> {
  protected:
   explicit StaticPipeline(bool) : Pipeline<R, W>(true) {}
+  void initialize() {
+    Pipeline<R, W>::finalize();
+  }
 };
 
 template <class Handler>
@@ -63,10 +66,14 @@ class StaticPipeline<R, W, Handler, Handlers...>
                               BaseWithoutOptional<Handler>,
                               BaseWithOptional<Handler>>::type {
  public:
+  using Ptr = std::shared_ptr<StaticPipeline>;
+
   template <class... HandlerArgs>
-  explicit StaticPipeline(HandlerArgs&&... handlers)
-    : StaticPipeline(true, std::forward<HandlerArgs>(handlers)...) {
-    isFirst_ = true;
+  static Ptr create(HandlerArgs&&... handlers) {
+    auto ptr =  std::shared_ptr<StaticPipeline>(
+        new StaticPipeline(std::forward<HandlerArgs>(handlers)...));
+    ptr->initialize();
+    return ptr;
   }
 
   ~StaticPipeline() {
@@ -76,6 +83,12 @@ class StaticPipeline<R, W, Handler, Handlers...>
   }
 
  protected:
+  template <class... HandlerArgs>
+  explicit StaticPipeline(HandlerArgs&&... handlers)
+    : StaticPipeline(true, std::forward<HandlerArgs>(handlers)...) {
+    isFirst_ = true;
+  }
+
   template <class HandlerArg, class... HandlerArgs>
   StaticPipeline(
       bool isFirst,
@@ -86,12 +99,13 @@ class StaticPipeline<R, W, Handler, Handlers...>
           std::forward<HandlerArgs>(handlers)...) {
     isFirst_ = isFirst;
     setHandler(std::forward<HandlerArg>(handler));
-    CHECK(handlerPtr_);
-    ctx_.initialize(this, handlerPtr_);
     Pipeline<R, W>::addContextFront(&ctx_);
-    if (isFirst_) {
-      Pipeline<R, W>::finalize();
-    }
+  }
+
+  void initialize() {
+    CHECK(handlerPtr_);
+    ctx_.initialize(Pipeline<R, W>::shared_from_this(), handlerPtr_);
+    StaticPipeline<R, W, Handlers...>::initialize();
   }
 
  private:
@@ -102,7 +116,9 @@ class StaticPipeline<R, W, Handler, Handlers...>
   >::value>::type
   setHandler(HandlerArg&& arg) {
     BaseWithOptional<Handler>::handler_.emplace(std::forward<HandlerArg>(arg));
-    handlerPtr_ = std::shared_ptr<Handler>(&(*BaseWithOptional<Handler>::handler_), [](Handler*){});
+    handlerPtr_ = std::shared_ptr<Handler>(
+        &(*BaseWithOptional<Handler>::handler_),
+        [](Handler*){});
   }
 
   template <class HandlerArg>

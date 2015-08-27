@@ -21,7 +21,7 @@ class BroadcastHandlerTest : public Test {
     decoder = new StrictMock<MockByteToMessageDecoder<std::string>>();
     handler = new StrictMock<MockBroadcastHandler>();
 
-    pipeline.reset(new DefaultPipeline);
+    pipeline = DefaultPipeline::create();
     pipeline->addBack(
         std::shared_ptr<StrictMock<MockBytesToBytesHandler>>(prevHandler));
     pipeline->addBack(
@@ -40,7 +40,7 @@ class BroadcastHandlerTest : public Test {
   }
 
  protected:
-  DefaultPipeline::UniquePtr pipeline;
+  DefaultPipeline::Ptr pipeline;
 
   StrictMock<MockBytesToBytesHandler>* prevHandler{nullptr};
   StrictMock<MockByteToMessageDecoder<std::string>>* decoder{nullptr};

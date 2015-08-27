@@ -37,11 +37,8 @@ typedef wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
 
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
-  std::unique_ptr<SerializePipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) {
-
-    std::unique_ptr<SerializePipeline, folly::DelayedDestruction::Destructor>
-      pipeline(new SerializePipeline);
+  SerializePipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+    auto pipeline = SerializePipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     // ensure we can write from any thread
     pipeline->addBack(EventBaseHandler());

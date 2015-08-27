@@ -74,9 +74,10 @@ class ThreadPrintingHandler : public BytesToBytesHandler {
 class ServerPipelineFactory
     : public RoutingDataPipelineFactory<DefaultPipeline, char> {
  public:
-  DefaultPipeline::UniquePtr newPipeline(std::shared_ptr<AsyncSocket> sock,
-                                         const char& routingData) {
-    DefaultPipeline::UniquePtr pipeline(new DefaultPipeline);
+  DefaultPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncSocket> sock,
+      const char& routingData) {
+    auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ThreadPrintingHandler(routingData));
     pipeline->finalize();

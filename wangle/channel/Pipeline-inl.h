@@ -37,7 +37,9 @@ Pipeline<R, W>::~Pipeline() {
 template <class H>
 PipelineBase& PipelineBase::addBack(std::shared_ptr<H> handler) {
   typedef typename ContextType<H>::type Context;
-  return addHelper(std::make_shared<Context>(this, std::move(handler)), false);
+  return addHelper(
+      std::make_shared<Context>(shared_from_this(), std::move(handler)),
+      false);
 }
 
 template <class H>
@@ -53,7 +55,9 @@ PipelineBase& PipelineBase::addBack(H* handler) {
 template <class H>
 PipelineBase& PipelineBase::addFront(std::shared_ptr<H> handler) {
   typedef typename ContextType<H>::type Context;
-  return addHelper(std::make_shared<Context>(this, std::move(handler)), true);
+  return addHelper(
+      std::make_shared<Context>(shared_from_this(), std::move(handler)),
+      true);
 }
 
 template <class H>

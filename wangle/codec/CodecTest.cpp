@@ -49,10 +49,10 @@ class BytesReflector
 };
 
 TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(FixedLengthFrameDecoder(10))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -71,23 +71,23 @@ TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf3));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(buf11));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   q.append(std::move(buf16));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 3);
 }
 
 TEST(LengthFieldFramePipeline, SimpleTest) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(BytesReflector())
     .addBack(LengthFieldPrepender())
     .addBack(LengthFieldBasedFrameDecoder())
@@ -100,15 +100,15 @@ TEST(LengthFieldFramePipeline, SimpleTest) {
 
   auto buf = IOBuf::create(2);
   buf->append(2);
-  pipeline.write(std::move(buf));
+  pipeline->write(std::move(buf));
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFramePipeline, LittleEndian) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(BytesReflector())
     .addBack(LengthFieldBasedFrameDecoder(4, 100, 0, 0, 4, false))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
@@ -121,15 +121,15 @@ TEST(LengthFieldFramePipeline, LittleEndian) {
 
   auto buf = IOBuf::create(1);
   buf->append(1);
-  pipeline.write(std::move(buf));
+  pipeline->write(std::move(buf));
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, Simple) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder())
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -148,19 +148,19 @@ TEST(LengthFieldFrameDecoder, Simple) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, NoStrip) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 0, 0))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -179,19 +179,19 @@ TEST(LengthFieldFrameDecoder, NoStrip) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, Adjustment) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, -2, 0))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -210,19 +210,19 @@ TEST(LengthFieldFrameDecoder, Adjustment) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, PreHeader) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 0, 0))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -242,19 +242,19 @@ TEST(LengthFieldFrameDecoder, PreHeader) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, PostHeader) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 2, 0))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -274,19 +274,19 @@ TEST(LengthFieldFrameDecoder, PostHeader) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoderStrip, PrePostHeader) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 2, 4))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -307,19 +307,19 @@ TEST(LengthFieldFrameDecoderStrip, PrePostHeader) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, StripPrePostHeaderFrameInclHeader) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, -2, 4))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -340,19 +340,19 @@ TEST(LengthFieldFrameDecoder, StripPrePostHeaderFrameInclHeader) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   q.append(std::move(bufData));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, FailTestLengthFieldEndOffset) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 4, -2, 4))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
@@ -369,15 +369,15 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldEndOffset) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, FailTestLengthFieldFrameSize) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 4))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
@@ -396,15 +396,15 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldFrameSize) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LengthFieldFrameDecoder, FailTestLengthFieldInitialBytes) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 10))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
@@ -423,15 +423,15 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldInitialBytes) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(bufFrame));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LineBasedFrameDecoder, Simple) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LineBasedFrameDecoder(10))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -446,7 +446,7 @@ TEST(LineBasedFrameDecoder, Simple) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   buf = IOBuf::create(1);
@@ -454,7 +454,7 @@ TEST(LineBasedFrameDecoder, Simple) {
   RWPrivateCursor c(buf.get());
   c.write<char>('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(4);
@@ -466,7 +466,7 @@ TEST(LineBasedFrameDecoder, Simple) {
 
   c1.write('\r');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(1);
@@ -474,15 +474,15 @@ TEST(LineBasedFrameDecoder, Simple) {
   RWPrivateCursor c2(buf.get());
   c2.write('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 2);
 }
 
 TEST(LineBasedFrameDecoder, SaveDelimiter) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LineBasedFrameDecoder(10, false))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
@@ -497,7 +497,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 0);
 
   buf = IOBuf::create(1);
@@ -505,7 +505,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   RWPrivateCursor c(buf.get());
   c.write<char>('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(3);
@@ -515,7 +515,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   c1.write(' ');
   c1.write('\r');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(1);
@@ -523,15 +523,15 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   RWPrivateCursor c2(buf.get());
   c2.write('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 2);
 }
 
 TEST(LineBasedFrameDecoder, Fail) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LineBasedFrameDecoder(10))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
@@ -545,13 +545,13 @@ TEST(LineBasedFrameDecoder, Fail) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(1);
   buf->append(1);
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(2);
@@ -560,7 +560,7 @@ TEST(LineBasedFrameDecoder, Fail) {
   c.write(' ');
   c.write<char>('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 
   buf = IOBuf::create(12);
@@ -571,15 +571,15 @@ TEST(LineBasedFrameDecoder, Fail) {
   }
   c2.write<char>('\n');
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 2);
 }
 
 TEST(LineBasedFrameDecoder, NewLineOnly) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LineBasedFrameDecoder(
                10, true, LineBasedFrameDecoder::TerminatorType::NEWLINE))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
@@ -598,15 +598,15 @@ TEST(LineBasedFrameDecoder, NewLineOnly) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }
 
 TEST(LineBasedFrameDecoder, CarriageNewLineOnly) {
-  Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>> pipeline;
+  auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
-  pipeline
+  (*pipeline)
     .addBack(LineBasedFrameDecoder(
               10, true, LineBasedFrameDecoder::TerminatorType::CARRIAGENEWLINE))
     .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
@@ -626,6 +626,6 @@ TEST(LineBasedFrameDecoder, CarriageNewLineOnly) {
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
   q.append(std::move(buf));
-  pipeline.read(q);
+  pipeline->read(q);
   EXPECT_EQ(called, 1);
 }

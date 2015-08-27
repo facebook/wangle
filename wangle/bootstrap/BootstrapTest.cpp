@@ -26,8 +26,7 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) override {
+  BytesPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) override {
     // We probably aren't connected immedately, check after a small delay
     EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
       CHECK(sock->good());
@@ -39,12 +38,9 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>
-  newPipeline(std::shared_ptr<AsyncSocket> sock) override {
-
+  BytesPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) override {
     pipelines++;
-    return std::unique_ptr<BytesPipeline, folly::DelayedDestruction::Destructor>(
-      new BytesPipeline());
+    return BytesPipeline::create();
   }
   std::atomic<int> pipelines{0};
 };
@@ -275,13 +271,9 @@ template <typename HandlerPipeline>
 class TestHandlerPipelineFactory
     : public PipelineFactory<ServerBootstrap<BytesPipeline>::AcceptPipeline> {
  public:
-  std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
-                  folly::DelayedDestruction::Destructor>
-      newPipeline(std::shared_ptr<AsyncSocket>) override {
-
-    std::unique_ptr<ServerBootstrap<BytesPipeline>::AcceptPipeline,
-                    folly::DelayedDestruction::Destructor> pipeline(
-                      new ServerBootstrap<BytesPipeline>::AcceptPipeline);
+  ServerBootstrap<BytesPipeline>::AcceptPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncSocket>) override {
+    auto pipeline = ServerBootstrap<BytesPipeline>::AcceptPipeline::create();
     pipeline->addBack(HandlerPipeline());
     return pipeline;
   }
