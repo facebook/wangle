@@ -39,7 +39,8 @@ void SSLSessionPersistentCache::setSSLSession(
 }
 
 SSLSessionPtr
-SSLSessionPersistentCache::getSSLSession(const std::string& hostname) noexcept {
+SSLSessionPersistentCache::getSSLSession(
+    const std::string& hostname) const noexcept {
   auto hit = persistentCache_->get(hostname);
   if (!hit) {
     return nullptr;
@@ -57,7 +58,6 @@ SSLSessionPersistentCache::getSSLSession(const std::string& hostname) noexcept {
     auto secsBetween =
       std::chrono::duration_cast<std::chrono::seconds>(now - value.addedTime);
     if (secsBetween >= std::chrono::seconds(sess->tlsext_tick_lifetime_hint)) {
-      removeSSLSession(hostname);
       return nullptr;
     }
   }

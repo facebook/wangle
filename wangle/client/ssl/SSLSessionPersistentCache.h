@@ -43,7 +43,8 @@ class SSLSessionPersistentCache : public SSLSessionCallbacks {
   // Return a SSL session if the cache contained session information for the
   // specified hostname. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
-  SSLSessionPtr getSSLSession(const std::string& hostname) noexcept override;
+  SSLSessionPtr getSSLSession(
+      const std::string& hostname) const noexcept override;
 
   // Remove session data of the specified hostname from cache. Return true if
   // there was session data associated with the hostname before removal, or

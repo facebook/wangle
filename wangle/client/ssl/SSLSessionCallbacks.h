@@ -26,7 +26,7 @@ class SSLSessionCallbacks {
   // specified hostname. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
   virtual SSLSessionPtr
-  getSSLSession(const std::string& hostname) noexcept = 0;
+  getSSLSession(const std::string& hostname) const noexcept = 0;
 
   // Remove session data of the specified hostname from cache. Return true if
   // there was session data associated with the hostname before removal, or

@@ -10,12 +10,13 @@ class MockSSLSessionCallbacks : public SSLSessionCallbacks {
   GMOCK_METHOD2_(, noexcept,, setSSLSessionInternal,
     void(const std::string&, SSL_SESSION*));
 
-  GMOCK_METHOD1_(, noexcept,, getSSLSessionInternal,
+  GMOCK_METHOD1_(, const,, getSSLSessionInternal,
     SSL_SESSION*(const std::string&));
 
   GMOCK_METHOD1_(, noexcept,, removeSSLSession, bool(const std::string&));
 
-  SSLSessionPtr getSSLSession(const std::string& host) noexcept override {
+  SSLSessionPtr getSSLSession(
+      const std::string& host) const noexcept override {
     return SSLSessionPtr(getSSLSessionInternal(host));
   }
 
