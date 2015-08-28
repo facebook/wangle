@@ -109,6 +109,11 @@ struct TransportInfo {
   std::shared_ptr<std::string> sslClientExts{nullptr};
 
   /*
+   * list of hash and signature algorithms sent by the client
+   */
+  std::shared_ptr<std::string> sslClientSigAlgs{nullptr};
+
+  /*
    * hash of all the SSL parameters sent by the client
    */
   std::shared_ptr<std::string> sslSignature{nullptr};

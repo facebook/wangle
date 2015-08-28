@@ -50,6 +50,8 @@ void AcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
       std::make_shared<std::string>(sock->getSSLClientComprMethods());
   tinfo_.sslClientExts =
       std::make_shared<std::string>(sock->getSSLClientExts());
+  tinfo_.sslClientSigAlgs =
+      std::make_shared<std::string>(sock->getSSLClientSigAlgs());
   tinfo_.sslNextProtocol = std::make_shared<std::string>();
   tinfo_.sslNextProtocol->assign(reinterpret_cast<const char*>(nextProto),
                                 nextProtoLength);
