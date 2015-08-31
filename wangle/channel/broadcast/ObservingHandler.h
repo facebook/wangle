@@ -81,10 +81,10 @@ class ObservingPipelineFactory
       : serverPool_(serverPool),
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
 
-  typename ObservingPipeline<T>::UniquePtr newPipeline(
+  typename ObservingPipeline<T>::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket,
       const R& routingData) override {
-    typename ObservingPipeline<T>::UniquePtr pipeline(new ObservingPipeline<T>);
+    auto pipeline = ObservingPipeline<T>::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     auto handler = std::make_shared<ObservingHandler<T, R>>(
         routingData, serverPool_, broadcastPipelineFactory_);
