@@ -214,8 +214,17 @@ class SSLSessionCacheManager : private boost::noncopyable {
    * @param context  The context that was passed to the async get request
    * @param value    Serialized session
    */
-  void onGetSuccess(SSLCacheProvider::CacheContext* context,
+  void onGetSuccess(SSLCacheProvider::CacheContext* cacheCtx,
                     const std::string& value);
+
+  /**
+   * Callback for ExternalCache to call when an async get succeeds
+   * @param context  The context that was passed to the async get request
+   * @param valueBuf Serialized session stored in folly::IOBuf, this should
+   *                 NOT be called with valueBuf == nullptr.
+   */
+  void onGetSuccess(SSLCacheProvider::CacheContext* cacheCtx,
+                    std::unique_ptr<folly::IOBuf> valueBuf);
 
   /**
    * Callback for ExternalCache to call when an async get fails, either
@@ -223,7 +232,7 @@ class SSLSessionCacheManager : private boost::noncopyable {
    * of an error.
    * @param context  The context that was passed to the async get request
    */
-  void onGetFailure(SSLCacheProvider::CacheContext* context);
+  void onGetFailure(SSLCacheProvider::CacheContext* cacheCtx);
 
  private:
 
@@ -252,6 +261,16 @@ class SSLSessionCacheManager : private boost::noncopyable {
    */
   SSL_SESSION* getSession(SSL* ssl, unsigned char* session_id,
                           int id_len, int* copyflag);
+
+  /**
+   * Invoked by onGetSuccess callback, to restore session from cache.
+   * @param context  The context that was passed to the async get request
+   * @param data     Buffer that stores serialized session
+   * @param length   Buffer size
+   */
+  void restoreSession(SSLCacheProvider::CacheContext* cacheCtx,
+                      const uint8_t* data,
+                      size_t length);
 
   /**
    * Store a new session record in the external cache

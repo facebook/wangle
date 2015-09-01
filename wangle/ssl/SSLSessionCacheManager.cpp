@@ -334,11 +334,11 @@ void SSLSessionCacheManager::restartSSLAccept(
   pendingLookups_.erase(pit);
 }
 
-void SSLSessionCacheManager::onGetSuccess(
+void SSLSessionCacheManager::restoreSession(
     SSLCacheProvider::CacheContext* cacheCtx,
-    const std::string& value) {
-  const uint8_t* cp = (uint8_t*)value.data();
-  cacheCtx->session = d2i_SSL_SESSION(nullptr, &cp, value.length());
+    const uint8_t* data,
+    size_t length) {
+  cacheCtx->session = d2i_SSL_SESSION(nullptr, &data, length);
   restartSSLAccept(cacheCtx);
 
   /* Insert in the LRU after restarting all clients.  The stats logic
@@ -346,6 +346,22 @@ void SSLSessionCacheManager::onGetSuccess(
    */
   localCache_->storeSession(cacheCtx->sessionId, cacheCtx->session, stats_);
   delete cacheCtx;
+}
+
+void SSLSessionCacheManager::onGetSuccess(
+    SSLCacheProvider::CacheContext* cacheCtx,
+    const std::string& value) {
+  restoreSession(cacheCtx, (uint8_t*)value.data(), value.length());
+}
+
+void SSLSessionCacheManager::onGetSuccess(
+    SSLCacheProvider::CacheContext* cacheCtx,
+    std::unique_ptr<folly::IOBuf> valueBuf) {
+  if (!valueBuf) {
+    return;
+  }
+  valueBuf->coalesce();
+  restoreSession(cacheCtx, valueBuf->data(), valueBuf->length());
 }
 
 void SSLSessionCacheManager::onGetFailure(
