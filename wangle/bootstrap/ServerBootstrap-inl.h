@@ -136,7 +136,8 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
     wangle::IOThreadPoolExecutor* exec,
     std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets,
     std::shared_ptr<ServerSocketFactory> socketFactory)
-      : acceptorFactory_(acceptorFactory)
+      : workers_(std::make_shared<WorkerMap>())
+      , acceptorFactory_(acceptorFactory)
       , exec_(exec)
       , sockets_(sockets)
       , socketFactory_(socketFactory) {
@@ -160,8 +161,9 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
   }
 
  private:
-  std::map<wangle::ThreadPoolExecutor::ThreadHandle*,
-           std::shared_ptr<Acceptor>> workers_;
+  using WorkerMap = std::map<wangle::ThreadPoolExecutor::ThreadHandle*,
+        std::shared_ptr<Acceptor>>;
+  std::shared_ptr<WorkerMap> workers_;
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   wangle::IOThreadPoolExecutor* exec_{nullptr};
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets_;
@@ -170,7 +172,7 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
 
 template <typename F>
 void ServerWorkerPool::forEachWorker(F&& f) const {
-  for (const auto& kv : workers_) {
+  for (const auto& kv : *workers_) {
     f(kv.second.get());
   }
 }

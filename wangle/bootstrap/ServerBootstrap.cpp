@@ -18,7 +18,7 @@ namespace wangle {
 void ServerWorkerPool::threadStarted(
   wangle::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = acceptorFactory_->newAcceptor(exec_->getEventBase(h));
-  workers_.insert({h, worker});
+  workers_->insert({h, worker});
 
   for(auto socket : *sockets_) {
     socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
@@ -31,8 +31,8 @@ void ServerWorkerPool::threadStarted(
 
 void ServerWorkerPool::threadStopped(
   wangle::ThreadPoolExecutor::ThreadHandle* h) {
-  auto worker = workers_.find(h);
-  CHECK(worker != workers_.end());
+  auto worker = workers_->find(h);
+  CHECK(worker != workers_->end());
 
   for (auto socket : *sockets_) {
     socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
@@ -51,7 +51,10 @@ void ServerWorkerPool::threadStopped(
     worker->second->dropAllConnections();
   }
 
-  workers_.erase(worker);
+  auto workers = workers_;
+  worker->second->getEventBase()->runAfterDrain([workers, worker]() {
+    workers->erase(worker);
+  });
 }
 
 } // namespace wangle
