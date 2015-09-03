@@ -52,7 +52,7 @@ class SSLSessionPersistentCache : public SSLSessionCallbacks {
   bool removeSSLSession(const std::string& hostname) noexcept override;
 
   // Return true if the underlying cache supports persistence
-  bool supportsPersistence() noexcept override {
+  bool supportsPersistence() const noexcept override {
     return true;
   }
 

@@ -34,7 +34,7 @@ class SSLSessionCallbacks {
   virtual bool removeSSLSession(const std::string& hostname) noexcept = 0;
 
   // Return true if the underlying cache supports persistence
-  virtual bool supportsPersistence() noexcept {
+  virtual bool supportsPersistence() const noexcept {
     return false;
   }
 
