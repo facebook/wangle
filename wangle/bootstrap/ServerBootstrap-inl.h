@@ -23,7 +23,7 @@ namespace wangle {
 template <typename Pipeline>
 class ServerAcceptor
     : public Acceptor
-    , public wangle::InboundHandler<void*> {
+    , public wangle::InboundHandler<AcceptPipelineType> {
  public:
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
@@ -60,7 +60,7 @@ class ServerAcceptor
 
   explicit ServerAcceptor(
         std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory,
-        std::shared_ptr<wangle::Pipeline<void*>> acceptorPipeline,
+        std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline,
         folly::EventBase* base)
       : Acceptor(ServerSocketConfig())
       , base_(base)
@@ -73,9 +73,11 @@ class ServerAcceptor
     acceptorPipeline_->finalize();
   }
 
-  void read(Context* ctx, void* conn) {
-    folly::AsyncSocket::UniquePtr transport((folly::AsyncSocket*)conn);
-    auto pipeline = childPipelineFactory_->newPipeline(
+  void read(Context* ctx, AcceptPipelineType conn) {
+    // Did you mean to use pipeline() instead of childPipeline() ?
+    folly::AsyncSocket::UniquePtr transport(
+      boost::get<folly::AsyncSocket*>(conn));
+      auto pipeline = childPipelineFactory_->newPipeline(
         std::shared_ptr<folly::AsyncSocket>(
             transport.release(),
             folly::DelayedDestruction::Destructor()));
@@ -99,34 +101,35 @@ class ServerAcceptor
                        const folly::SocketAddress& addr,
                        std::unique_ptr<folly::IOBuf> buf,
                        bool truncated) noexcept {
-    acceptorPipeline_->read(buf.release());
+    acceptorPipeline_->read(
+        AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }
 
  private:
   folly::EventBase* base_;
 
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
-  std::shared_ptr<wangle::Pipeline<void*>> acceptorPipeline_;
+  std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline_;
 };
 
 template <typename Pipeline>
 class ServerAcceptorFactory : public AcceptorFactory {
  public:
   explicit ServerAcceptorFactory(
-    std::shared_ptr<PipelineFactory<Pipeline>> factory,
-    std::shared_ptr<PipelineFactory<wangle::Pipeline<void*>>> pipeline)
-    : factory_(factory)
-    , pipeline_(pipeline) {}
+      std::shared_ptr<PipelineFactory<Pipeline>> factory,
+      std::shared_ptr<PipelineFactory<wangle::Pipeline<AcceptPipelineType>>>
+          pipeline)
+      : factory_(factory), pipeline_(pipeline) {}
 
   std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) {
-    std::shared_ptr<wangle::Pipeline<void*>> pipeline(
+    std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> pipeline(
         pipeline_->newPipeline(nullptr));
     return std::make_shared<ServerAcceptor<Pipeline>>(factory_, pipeline, base);
   }
  private:
   std::shared_ptr<PipelineFactory<Pipeline>> factory_;
   std::shared_ptr<PipelineFactory<
-    wangle::Pipeline<void*>>> pipeline_;
+    wangle::Pipeline<AcceptPipelineType>>> pipeline_;
 };
 
 class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
@@ -166,7 +169,8 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
   std::shared_ptr<WorkerMap> workers_;
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   wangle::IOThreadPoolExecutor* exec_{nullptr};
-  std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets_;
+  std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
+      sockets_;
   std::shared_ptr<ServerSocketFactory> socketFactory_;
 };
 
@@ -178,7 +182,7 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
 }
 
 class DefaultAcceptPipelineFactory
-    : public PipelineFactory<wangle::Pipeline<void*>> {
+    : public PipelineFactory<wangle::Pipeline<AcceptPipelineType>> {
 
  public:
   typename wangle::AcceptPipeline::Ptr newPipeline(

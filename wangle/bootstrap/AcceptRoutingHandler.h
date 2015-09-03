@@ -27,7 +27,7 @@ template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory;
 
 template <typename Pipeline, typename R>
-class AcceptRoutingHandler : public wangle::InboundHandler<void*>,
+class AcceptRoutingHandler : public wangle::InboundHandler<AcceptPipelineType>,
                              public RoutingDataHandler<R>::Callback {
  public:
   AcceptRoutingHandler(
@@ -40,7 +40,7 @@ class AcceptRoutingHandler : public wangle::InboundHandler<void*>,
         childPipelineFactory_(childPipelineFactory) {}
 
   // InboundHandler implementation
-  void read(Context* ctx, void* conn) override;
+  void read(Context* ctx, AcceptPipelineType conn) override;
 
   // RoutingDataHandler::Callback implementation
   void onRoutingData(

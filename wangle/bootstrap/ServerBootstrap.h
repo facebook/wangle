@@ -18,6 +18,12 @@
 
 namespace wangle {
 
+typedef boost::variant<folly::IOBuf*,
+                       folly::AsyncSocket*,
+                       std::tuple<folly::IOBuf*,
+                                  std::shared_ptr<folly::AsyncUDPSocket>,
+                                  folly::SocketAddress>> AcceptPipelineType;
+
 /*
  * ServerBootstrap is a parent class intended to set up a
  * high-performance TCP accepting server.  It will manage a pool of
@@ -36,6 +42,8 @@ template <typename Pipeline = wangle::DefaultPipeline>
 class ServerBootstrap {
  public:
 
+  typedef wangle::Pipeline<AcceptPipelineType> AcceptPipeline;
+
   ServerBootstrap(const ServerBootstrap& that) = delete;
   ServerBootstrap(ServerBootstrap&& that) = default;
 
@@ -46,7 +54,6 @@ class ServerBootstrap {
     join();
   }
 
-  typedef wangle::Pipeline<void*> AcceptPipeline;
   /*
    * Pipeline used to add connections to event bases.
    * This is used for UDP or for load balancing

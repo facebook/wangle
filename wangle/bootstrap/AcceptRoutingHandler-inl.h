@@ -4,12 +4,13 @@
 namespace wangle {
 
 template <typename Pipeline, typename R>
-void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx, void* conn) {
+void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
+                                             AcceptPipelineType conn) {
   populateAcceptors();
 
   uint64_t connId = nextConnId_++;
   auto socket = std::shared_ptr<folly::AsyncSocket>(
-      reinterpret_cast<folly::AsyncSocket*>(conn),
+      boost::get<folly::AsyncSocket*>(conn),
       folly::DelayedDestruction::Destructor());
 
   // Create a new routing pipeline for this connection to read from

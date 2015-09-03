@@ -11,11 +11,18 @@
 #pragma once
 
 #include <folly/io/IOBufQueue.h>
+#include <folly/io/async/AsyncUDPSocket.h>
 #include <glog/logging.h>
+#include <boost/variant.hpp>
 
 namespace wangle {
 
-typedef Pipeline<void*> AcceptPipeline;
+typedef boost::variant<folly::IOBuf*,
+                       folly::AsyncSocket*,
+                       std::tuple<folly::IOBuf*,
+                                  std::shared_ptr<folly::AsyncUDPSocket>,
+                                  folly::SocketAddress>> AcceptPipelineType;
+typedef Pipeline<AcceptPipelineType> AcceptPipeline;
 typedef Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
     DefaultPipeline;
 

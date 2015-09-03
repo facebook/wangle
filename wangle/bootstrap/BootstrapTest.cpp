@@ -259,9 +259,9 @@ TEST(Bootstrap, ExistingSocket) {
 
 std::atomic<int> connections{0};
 
-class TestHandlerPipeline : public InboundHandler<void*> {
+class TestHandlerPipeline : public InboundHandler<AcceptPipelineType> {
  public:
-  void read(Context* ctx, void* conn) override {
+  void read(Context* ctx, AcceptPipelineType conn) override {
     connections++;
     return ctx->fireRead(conn);
   }
@@ -303,9 +303,9 @@ TEST(Bootstrap, LoadBalanceHandler) {
   CHECK(connections == 1);
 }
 
-class TestUDPPipeline : public InboundHandler<void*> {
+class TestUDPPipeline : public InboundHandler<AcceptPipelineType> {
  public:
-  void read(Context* ctx, void* conn) override { connections++; }
+  void read(Context* ctx, AcceptPipelineType conn) override { connections++; }
 };
 
 TEST(Bootstrap, UDP) {
