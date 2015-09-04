@@ -11,9 +11,12 @@
 #pragma once
 
 #include <folly/io/IOBufQueue.h>
-#include <folly/io/async/AsyncUDPSocket.h>
 #include <glog/logging.h>
 #include <boost/variant.hpp>
+
+namespace folly {
+class AsyncUDPSocket;
+};
 
 namespace wangle {
 
