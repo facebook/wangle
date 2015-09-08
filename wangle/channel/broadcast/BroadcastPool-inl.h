@@ -18,8 +18,20 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
 
   // Kickoff connect request and fulfill all pending promises on completion
   connectStarted_ = true;
-  const auto& addr = pool_->getServer();
-  client_.connect(addr)
+  auto addr = pool_->getServer();
+
+  // No servers available
+  if (addr == nullptr) {
+    LOG(ERROR) << "No servers available in server pool";
+    std::runtime_error ex("No servers available in server pool");
+    auto ew = folly::make_exception_wrapper<std::exception>(ex);
+    auto sharedPromise = std::move(sharedPromise_);
+    pool_->deleteBroadcast(routingData_);
+    sharedPromise.setException(ew);
+    return future;
+  }
+
+  client_.connect(*addr)
       .then([this](DefaultPipeline* pipeline) {
         pipeline->setPipelineManager(this);
 

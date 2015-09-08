@@ -42,10 +42,12 @@ class BroadcastPoolTest : public Test {
   };
 
   void startServer() {
+    addr = std::make_shared<SocketAddress>();
+
     server = folly::make_unique<ServerBootstrap<DefaultPipeline>>();
     server->childPipeline(std::make_shared<ServerPipelineFactory>());
     server->bind(0);
-    server->getSockets()[0]->getAddress(&addr);
+    server->getSockets()[0]->getAddress(addr.get());
   }
 
   void stopServer() {
@@ -56,7 +58,7 @@ class BroadcastPoolTest : public Test {
   std::shared_ptr<StrictMock<MockServerPool>> serverPool;
   std::shared_ptr<StrictMock<MockBroadcastPipelineFactory>> pipelineFactory;
   std::unique_ptr<ServerBootstrap<DefaultPipeline>> server;
-  SocketAddress addr;
+  std::shared_ptr<SocketAddress> addr;
 };
 
 TEST_F(BroadcastPoolTest, BasicConnect) {
@@ -256,6 +258,33 @@ TEST_F(BroadcastPoolTest, ConnectErrorPoolDeletion) {
   EXPECT_TRUE(pool->isBroadcasting(routingData));
   base->loopOnce();
   EXPECT_TRUE(pool.get() == nullptr);
+}
+
+TEST_F(BroadcastPoolTest, ConnectErrorNoServerInPool) {
+  // Test that an exception occurs when the server in the pool becomes unhealthy
+  std::string routingData = "url1";
+  BroadcastHandler<int>* handler1 = nullptr;
+  BroadcastHandler<int>* handler2 = nullptr;
+  bool handler1Error = false;
+  bool handler2Error = false;
+  auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
+
+  EXPECT_CALL(*serverPool, getServer()).WillRepeatedly(Return(nullptr));
+
+  // Connect fails because no server available to connect
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler1 = h;
+      })
+      .onError([&] (const std::exception& ex) {
+        handler1Error = true;
+        EXPECT_FALSE(pool->isBroadcasting(routingData));
+      });
+  EXPECT_TRUE(handler1 == nullptr);
+  EXPECT_TRUE(handler1Error);
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
 }
 
 TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {

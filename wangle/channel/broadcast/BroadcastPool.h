@@ -7,6 +7,8 @@
 
 namespace wangle {
 
+typedef std::shared_ptr<folly::SocketAddress> AddressPtr;
+
 class ServerPool {
  public:
   virtual ~ServerPool() {}
@@ -15,7 +17,7 @@ class ServerPool {
    * Get a server for establishing upstream connection when a broadcast
    * is not available locally.
    */
-  virtual folly::SocketAddress getServer() noexcept = 0;
+  virtual AddressPtr getServer() noexcept = 0;
 };
 
 /**
@@ -66,7 +68,7 @@ class BroadcastPool {
 
   BroadcastPool(std::shared_ptr<ServerPool> serverPool,
                 std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
-      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
+      : pool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
 
   virtual ~BroadcastPool() {}
 
@@ -89,15 +91,15 @@ class BroadcastPool {
   }
 
  private:
-  folly::SocketAddress getServer() {
-    return serverPool_->getServer();
+  AddressPtr getServer() {
+    return pool_->getServer();
   }
 
   void deleteBroadcast(const R& routingData) {
     broadcasts_.erase(routingData);
   }
 
-  std::shared_ptr<ServerPool> serverPool_;
+  std::shared_ptr<ServerPool> pool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
 };

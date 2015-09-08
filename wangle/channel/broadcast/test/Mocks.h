@@ -47,7 +47,8 @@ class MockByteToMessageDecoder : public ByteToMessageDecoder<T> {
 
 class MockServerPool : public ServerPool {
  public:
-  GMOCK_METHOD0_(, noexcept, , getServer, folly::SocketAddress());
+  GMOCK_METHOD0_(, noexcept, , getServer,
+                 std::shared_ptr<folly::SocketAddress>());
 };
 
 class MockBroadcastPool : public BroadcastPool<int, std::string> {
