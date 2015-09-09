@@ -53,16 +53,15 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 
     auto pipeline =
         childPipelineFactory_->newPipeline(socket, mwRoutingData->routingData);
-    auto pipelinePtr = pipeline.get();
 
-    auto connection = new typename ServerAcceptor<Pipeline>::ServerConnection(
-        std::move(pipeline));
+    auto connection =
+        new typename ServerAcceptor<Pipeline>::ServerConnection(pipeline);
     acceptor->addConnection(connection);
 
-    pipelinePtr->transportActive();
+    pipeline->transportActive();
 
     // Pass in the buffered bytes to the pipeline
-    pipelinePtr->read(mwRoutingData->bufQueue);
+    pipeline->read(mwRoutingData->bufQueue);
   });
 }
 
