@@ -57,6 +57,16 @@ struct TransportInfo {
    */
   double rtx{-1};
 
+  /*
+   * The congestion window size in MSS
+   */
+  int64_t cwnd{-1};
+
+  /*
+   * MSS
+   */
+  int64_t mss{-1};
+
 #if defined(__linux__) || defined(__FreeBSD__)
   /*
    * TCP information as fetched from getsockopt(2)

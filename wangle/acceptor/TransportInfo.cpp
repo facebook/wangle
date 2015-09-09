@@ -26,6 +26,8 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
     return false;
   }
   rtt = microseconds(tcpinfo.tcpi_rtt);
+  cwnd = tcpinfo.tcpi_snd_cwnd;
+  mss = tcpinfo.tcpi_snd_mss;
   /* The ratio of packet retransmission (rtx) is a good indicator of network
    * bandwidth condition. Unfortunately, the number of segmentOut is not
    * available in current tcpinfo.  To workaround this limitation, totalBytes
@@ -51,6 +53,8 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
   tcpinfoErrno = EINVAL;
   rtt = microseconds(-1);
   rtx = -1;
+  cwnd = -1;
+  mss = -1;
 #endif
   return true;
 }
