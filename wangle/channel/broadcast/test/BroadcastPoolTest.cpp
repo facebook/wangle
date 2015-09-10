@@ -10,15 +10,15 @@ using namespace testing;
 class BroadcastPoolTest : public Test {
  public:
   void SetUp() override {
-    startServer();
-
-    serverPool = std::make_shared<StrictMock<MockServerPool>>();
-    EXPECT_CALL(*serverPool, getServer()).WillRepeatedly(ReturnPointee(&addr));
+    addr = std::make_shared<SocketAddress>();
+    serverPool = std::make_shared<StrictMock<MockServerPool>>(addr);
 
     pipelineFactory =
         std::make_shared<StrictMock<MockBroadcastPipelineFactory>>();
     pool = folly::make_unique<BroadcastPool<int, std::string>>(serverPool,
                                                                pipelineFactory);
+
+    startServer();
   }
 
   void TearDown() override {
@@ -26,6 +26,7 @@ class BroadcastPoolTest : public Test {
     Mock::VerifyAndClear(pipelineFactory.get());
 
     serverPool.reset();
+    addr.reset();
     pipelineFactory.reset();
     pool.reset();
 
@@ -42,8 +43,6 @@ class BroadcastPoolTest : public Test {
   };
 
   void startServer() {
-    addr = std::make_shared<SocketAddress>();
-
     server = folly::make_unique<ServerBootstrap<DefaultPipeline>>();
     server->childPipeline(std::make_shared<ServerPipelineFactory>());
     server->bind(0);
@@ -260,8 +259,9 @@ TEST_F(BroadcastPoolTest, ConnectErrorPoolDeletion) {
   EXPECT_TRUE(pool.get() == nullptr);
 }
 
-TEST_F(BroadcastPoolTest, ConnectErrorNoServerInPool) {
-  // Test that an exception occurs when the server in the pool becomes unhealthy
+TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
+  // Test when an error occurs in ServerPool when trying to kick off
+  // a connect request
   std::string routingData = "url1";
   BroadcastHandler<int>* handler1 = nullptr;
   BroadcastHandler<int>* handler2 = nullptr;
@@ -271,9 +271,8 @@ TEST_F(BroadcastPoolTest, ConnectErrorNoServerInPool) {
 
   InSequence dummy;
 
-  EXPECT_CALL(*serverPool, getServer()).WillRepeatedly(Return(nullptr));
-
-  // Connect fails because no server available to connect
+  // Inject a ServerPool error
+  serverPool->failConnect();
   pool->getHandler(routingData)
       .then([&](BroadcastHandler<int>* h) {
         handler1 = h;

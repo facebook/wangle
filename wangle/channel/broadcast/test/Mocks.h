@@ -45,10 +45,25 @@ class MockByteToMessageDecoder : public ByteToMessageDecoder<T> {
   MOCK_METHOD4_T(decode, bool(Context*, folly::IOBufQueue&, T&, size_t&));
 };
 
-class MockServerPool : public ServerPool {
+class MockServerPool : public ServerPool<std::string> {
  public:
-  GMOCK_METHOD0_(, noexcept, , getServer,
-                 std::shared_ptr<folly::SocketAddress>());
+  explicit MockServerPool(std::shared_ptr<folly::SocketAddress> addr)
+      : ServerPool(), addr_(addr) {}
+
+  folly::Future<DefaultPipeline*> connect(
+      ClientBootstrap<DefaultPipeline>* client,
+      const std::string& routingData) noexcept override {
+    return failConnect_ ? folly::makeFuture<DefaultPipeline*>(std::exception())
+                        : client->connect(*addr_);
+  }
+
+  void failConnect() {
+    failConnect_ = true;
+  }
+
+ private:
+  std::shared_ptr<folly::SocketAddress> addr_;
+  bool failConnect_{false};
 };
 
 class MockBroadcastPool : public BroadcastPool<int, std::string> {

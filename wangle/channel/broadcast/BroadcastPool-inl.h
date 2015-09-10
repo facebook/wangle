@@ -18,26 +18,15 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
 
   // Kickoff connect request and fulfill all pending promises on completion
   connectStarted_ = true;
-  auto addr = pool_->getServer();
 
-  // No servers available
-  if (addr == nullptr) {
-    LOG(ERROR) << "No servers available in server pool";
-    std::runtime_error ex("No servers available in server pool");
-    auto ew = folly::make_exception_wrapper<std::exception>(ex);
-    auto sharedPromise = std::move(sharedPromise_);
-    pool_->deleteBroadcast(routingData_);
-    sharedPromise.setException(ew);
-    return future;
-  }
-
-  client_.connect(*addr)
+  broadcastPool_->serverPool_->connect(&client_, routingData_)
       .then([this](DefaultPipeline* pipeline) {
         pipeline->setPipelineManager(this);
 
-        broadcastPipelineFactory_->setRoutingData(pipeline, routingData_);
+        auto pipelineFactory = broadcastPool_->broadcastPipelineFactory_;
+        pipelineFactory->setRoutingData(pipeline, routingData_);
 
-        auto handler = broadcastPipelineFactory_->getBroadcastHandler(pipeline);
+        auto handler = pipelineFactory->getBroadcastHandler(pipeline);
         CHECK(handler);
         sharedPromise_.setValue(handler);
       })
@@ -46,9 +35,9 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
         auto ew = folly::make_exception_wrapper<std::exception>(ex);
 
         // Delete the broadcast before fulfilling the promises as the
-        // futures' onError callbacks can delete the pool
+        // futures' onError callbacks can delete the broadcast pool
         auto sharedPromise = std::move(sharedPromise_);
-        pool_->deleteBroadcast(routingData_);
+        broadcastPool_->deleteBroadcast(routingData_);
         sharedPromise.setException(ew);
       });
 
@@ -63,8 +52,7 @@ folly::Future<BroadcastHandler<T>*> BroadcastPool<T, R>::getHandler(
     return iter->second->getHandler();
   }
 
-  auto broadcast = folly::make_unique<BroadcastManager>(
-      this, routingData, broadcastPipelineFactory_);
+  auto broadcast = folly::make_unique<BroadcastManager>(this, routingData);
   auto broadcastPtr = broadcast.get();
   broadcasts_.insert(std::make_pair(routingData, std::move(broadcast)));
 

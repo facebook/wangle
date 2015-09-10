@@ -22,7 +22,7 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
 
   ObservingHandler(
       const R& routingData,
-      std::shared_ptr<ServerPool> serverPool,
+      std::shared_ptr<ServerPool<R>> serverPool,
       std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
       : routingData_(routingData),
         serverPool_(serverPool),
@@ -58,7 +58,7 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   virtual BroadcastPool<T, R>* newBroadcastPool();
 
   R routingData_;
-  std::shared_ptr<ServerPool> serverPool_;
+  std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
 
   BroadcastHandler<T>* broadcastHandler_{nullptr};
@@ -76,7 +76,7 @@ class ObservingPipelineFactory
     : public RoutingDataPipelineFactory<ObservingPipeline<T>, R> {
  public:
   ObservingPipelineFactory(
-      std::shared_ptr<ServerPool> serverPool,
+      std::shared_ptr<ServerPool<R>> serverPool,
       std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
       : serverPool_(serverPool),
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
@@ -95,7 +95,7 @@ class ObservingPipelineFactory
   }
 
  protected:
-  std::shared_ptr<ServerPool> serverPool_;
+  std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
 };
 

@@ -7,17 +7,18 @@
 
 namespace wangle {
 
-typedef std::shared_ptr<folly::SocketAddress> AddressPtr;
-
+template <typename R>
 class ServerPool {
  public:
   virtual ~ServerPool() {}
 
   /**
-   * Get a server for establishing upstream connection when a broadcast
-   * is not available locally.
+   * Kick off an upstream connect request given the ClientBootstrap
+   * when a broadcast is not available locally.
    */
-  virtual AddressPtr getServer() noexcept = 0;
+  virtual folly::Future<DefaultPipeline*> connect(
+      ClientBootstrap<DefaultPipeline>* client,
+      const R& routingData) noexcept = 0;
 };
 
 /**
@@ -32,14 +33,9 @@ class BroadcastPool {
  public:
   class BroadcastManager : PipelineManager {
    public:
-    BroadcastManager(BroadcastPool<T, R>* pool,
-                     const R& routingData,
-                     std::shared_ptr<BroadcastPipelineFactory<T, R>>
-                         broadcastPipelineFactory)
-        : pool_(pool),
-          routingData_(routingData),
-          broadcastPipelineFactory_(broadcastPipelineFactory) {
-      client_.pipelineFactory(broadcastPipelineFactory);
+    BroadcastManager(BroadcastPool<T, R>* broadcastPool, const R& routingData)
+        : broadcastPool_(broadcastPool), routingData_(routingData) {
+      client_.pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
     }
 
     virtual ~BroadcastManager() {
@@ -53,22 +49,21 @@ class BroadcastPool {
     // PipelineManager implementation
     void deletePipeline(PipelineBase* pipeline) override {
       CHECK(client_.getPipeline() == pipeline);
-      pool_->deleteBroadcast(routingData_);
+      broadcastPool_->deleteBroadcast(routingData_);
     }
 
    private:
-    BroadcastPool<T, R>* pool_{nullptr};
+    BroadcastPool<T, R>* broadcastPool_{nullptr};
     R routingData_;
-    std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
     ClientBootstrap<DefaultPipeline> client_;
 
     bool connectStarted_{false};
     folly::SharedPromise<BroadcastHandler<T>*> sharedPromise_;
   };
 
-  BroadcastPool(std::shared_ptr<ServerPool> serverPool,
+  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
                 std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
-      : pool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
+      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
 
   virtual ~BroadcastPool() {}
 
@@ -91,15 +86,11 @@ class BroadcastPool {
   }
 
  private:
-  AddressPtr getServer() {
-    return pool_->getServer();
-  }
-
   void deleteBroadcast(const R& routingData) {
     broadcasts_.erase(routingData);
   }
 
-  std::shared_ptr<ServerPool> pool_;
+  std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
 };
