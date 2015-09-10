@@ -59,13 +59,14 @@ class ServerAcceptor
   };
 
   explicit ServerAcceptor(
-        std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory,
-        std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline,
-        folly::EventBase* base)
-      : Acceptor(ServerSocketConfig())
-      , base_(base)
-      , childPipelineFactory_(pipelineFactory)
-      , acceptorPipeline_(acceptorPipeline) {
+      std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory,
+      std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline,
+      folly::EventBase* base,
+      const ServerSocketConfig& accConfig)
+      : Acceptor(accConfig),
+        base_(base),
+        childPipelineFactory_(pipelineFactory),
+        acceptorPipeline_(acceptorPipeline) {
     Acceptor::init(nullptr, base_);
     CHECK(acceptorPipeline_);
 
@@ -118,18 +119,21 @@ class ServerAcceptorFactory : public AcceptorFactory {
   explicit ServerAcceptorFactory(
       std::shared_ptr<PipelineFactory<Pipeline>> factory,
       std::shared_ptr<PipelineFactory<wangle::Pipeline<AcceptPipelineType>>>
-          pipeline)
-      : factory_(factory), pipeline_(pipeline) {}
+          pipeline,
+      const ServerSocketConfig& accConfig)
+      : factory_(factory), pipeline_(pipeline), accConfig_(accConfig) {}
 
   std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) {
     std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> pipeline(
         pipeline_->newPipeline(nullptr));
-    return std::make_shared<ServerAcceptor<Pipeline>>(factory_, pipeline, base);
+    return std::make_shared<ServerAcceptor<Pipeline>>(
+        factory_, pipeline, base, accConfig_);
   }
  private:
   std::shared_ptr<PipelineFactory<Pipeline>> factory_;
   std::shared_ptr<PipelineFactory<
     wangle::Pipeline<AcceptPipelineType>>> pipeline_;
+  ServerSocketConfig accConfig_;
 };
 
 class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {

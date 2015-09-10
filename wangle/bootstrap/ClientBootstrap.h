@@ -10,10 +10,11 @@
 
 #pragma once
 
-#include <wangle/channel/Pipeline.h>
-#include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBaseManager.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
 
 namespace wangle {
 
@@ -58,13 +59,23 @@ class ClientBootstrap {
     return this;
   }
 
+  ClientBootstrap* sslContext(folly::SSLContextPtr sslContext) {
+    sslContext_ = sslContext;
+    return this;
+  }
+
+  ClientBootstrap* sslSession(SSL_SESSION* sslSession) {
+    sslSession_ = sslSession;
+    return this;
+  }
+
   ClientBootstrap* bind(int port) {
     port_ = port;
     return this;
   }
 
   folly::Future<Pipeline*> connect(
-      folly::SocketAddress address,
+      const folly::SocketAddress& address,
       std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) {
     DCHECK(pipelineFactory_);
     auto base = folly::EventBaseManager::get()->getEventBase();
@@ -73,7 +84,16 @@ class ClientBootstrap {
     }
     folly::Future<Pipeline*> retval((Pipeline*)nullptr);
     base->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
-      auto socket = folly::AsyncSocket::newSocket(base);
+      std::shared_ptr<folly::AsyncSocket> socket;
+      if (sslContext_) {
+        auto sslSocket = folly::AsyncSSLSocket::newSocket(sslContext_, base);
+        if (sslSession_) {
+          sslSocket->setSSLSession(sslSession_, true);
+        }
+        socket = sslSocket;
+      } else {
+        socket = folly::AsyncSocket::newSocket(base);
+      }
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
       socket->connect(
@@ -104,6 +124,7 @@ class ClientBootstrap {
 
   std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory_;
   std::shared_ptr<wangle::IOThreadPoolExecutor> group_;
+  folly::SSLContextPtr sslContext_;
+  SSL_SESSION* sslSession_{nullptr};
 };
-
 } // namespace wangle

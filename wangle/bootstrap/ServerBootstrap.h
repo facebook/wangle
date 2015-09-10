@@ -71,6 +71,11 @@ class ServerBootstrap {
     return this;
   }
 
+  ServerBootstrap* acceptorConfig(const ServerSocketConfig& accConfig) {
+    accConfig_ = accConfig;
+    return this;
+  }
+
   /*
    * BACKWARDS COMPATIBILITY - an acceptor factory can be set.  Your
    * Acceptor is responsible for managing the connection pool.
@@ -139,10 +144,11 @@ class ServerBootstrap {
         acceptorFactory_, io_group.get(), sockets_, socketFactory_);
     } else {
       workerFactory_ = std::make_shared<ServerWorkerPool>(
-        std::make_shared<ServerAcceptorFactory<Pipeline>>(
-          childPipelineFactory_,
-          pipeline_),
-        io_group.get(), sockets_, socketFactory_);
+          std::make_shared<ServerAcceptorFactory<Pipeline>>(
+              childPipelineFactory_, pipeline_, accConfig_),
+          io_group.get(),
+          sockets_,
+          socketFactory_);
     }
 
     io_group->addObserver(workerFactory_);
@@ -348,6 +354,8 @@ class ServerBootstrap {
     std::make_shared<DefaultAcceptPipelineFactory>()};
   std::shared_ptr<ServerSocketFactory> socketFactory_{
     std::make_shared<AsyncServerSocketFactory>()};
+
+  ServerSocketConfig accConfig_;
 
   std::unique_ptr<folly::Baton<>> stopBaton_{
     folly::make_unique<folly::Baton<>>()};
