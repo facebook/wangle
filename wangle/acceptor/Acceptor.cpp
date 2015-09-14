@@ -59,7 +59,7 @@ Acceptor::Acceptor(const ServerSocketConfig& accConfig) :
 void
 Acceptor::init(AsyncServerSocket* serverSocket,
                EventBase* eventBase) {
-  CHECK(nullptr == this->base_);
+  CHECK(nullptr == this->base_ || eventBase == this->base_);
 
   if (accConfig_.isSSL()) {
     if (!sslCtxManager_) {
