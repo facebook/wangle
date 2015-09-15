@@ -45,6 +45,7 @@ bool Codel::overloaded(std::chrono::nanoseconds delay) {
   auto minDelay = codelMinDelay_;
 
   if (now  > codelIntervalTime_ &&
+      // testing before exchanging is more cacheline-friendly
       (!codelResetDelay_.load(std::memory_order_acquire)
        && !codelResetDelay_.exchange(true))) {
     codelIntervalTime_ = now + getInterval();
@@ -67,6 +68,11 @@ bool Codel::overloaded(std::chrono::nanoseconds delay) {
     codelMinDelay_ = delay;
   }
 
+  // Here is where we apply different logic than codel proper. Instead of
+  // adapting the interval until the next drop, we slough off requests with
+  // queueing delay > 2*target_delay while in the overloaded regime. This
+  // empirically works better for our services than the codel approach of
+  // increasingly often dropping packets.
   if (overloaded_ && delay > getSloughTimeout()) {
     ret = true;
   }
