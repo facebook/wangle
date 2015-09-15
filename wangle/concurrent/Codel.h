@@ -36,7 +36,7 @@ class Codel {
   // reject a queued request with this delay.
   //
   // Internally, it also keeps track of the interval
-  bool overloaded(std::chrono::microseconds delay);
+  bool overloaded(std::chrono::nanoseconds delay);
 
   // Get the queue load, as seen by the codel algorithm
   // Gives a rough guess at how bad the queue delay is.
@@ -44,10 +44,13 @@ class Codel {
   // Return:  0 = no delay, 100 = At the queueing limit
   int getLoad();
 
-  int getMinDelay();
+  std::chrono::nanoseconds getMinDelay();
+  std::chrono::milliseconds getInterval();
+  std::chrono::milliseconds getTargetDelay();
+  std::chrono::milliseconds getSloughTimeout();
 
  private:
-  std::chrono::microseconds codelMinDelay_;
+  std::chrono::nanoseconds codelMinDelay_;
   std::chrono::time_point<std::chrono::steady_clock> codelIntervalTime_;
 
   // flag to make overloaded() thread-safe, since we only want

@@ -20,6 +20,9 @@
                "Target codel queueing delay in ms");
 #endif
 
+using std::chrono::nanoseconds;
+using std::chrono::milliseconds;
+
 namespace wangle {
 
 #ifdef NO_LIB_GFLAGS
@@ -33,7 +36,7 @@ Codel::Codel()
       codelResetDelay_(true),
       overloaded_(false) {}
 
-bool Codel::overloaded(std::chrono::microseconds delay) {
+bool Codel::overloaded(std::chrono::nanoseconds delay) {
   bool ret = false;
   auto now = std::chrono::steady_clock::now();
 
@@ -44,9 +47,9 @@ bool Codel::overloaded(std::chrono::microseconds delay) {
   if (now  > codelIntervalTime_ &&
       (!codelResetDelay_.load(std::memory_order_acquire)
        && !codelResetDelay_.exchange(true))) {
-    codelIntervalTime_ = now + std::chrono::milliseconds(FLAGS_codel_interval);
+    codelIntervalTime_ = now + getInterval();
 
-    if (minDelay > std::chrono::milliseconds(FLAGS_codel_target_delay)) {
+    if (minDelay > getTargetDelay()) {
       overloaded_ = true;
     } else {
       overloaded_ = false;
@@ -64,8 +67,7 @@ bool Codel::overloaded(std::chrono::microseconds delay) {
     codelMinDelay_ = delay;
   }
 
-  if (overloaded_ &&
-      delay > std::chrono::milliseconds(FLAGS_codel_target_delay * 2)) {
+  if (overloaded_ && delay > getSloughTimeout()) {
     ret = true;
   }
 
@@ -74,12 +76,25 @@ bool Codel::overloaded(std::chrono::microseconds delay) {
 }
 
 int Codel::getLoad() {
-  return std::min(100, (int)codelMinDelay_.count() /
-                  (2 * FLAGS_codel_target_delay));
+  // it might be better to use the average delay instead of minDelay, but we'd
+  // have to track it. aspiring bootcamper?
+  return std::min(100l, 100 * getMinDelay() / getSloughTimeout());
 }
 
-int Codel::getMinDelay() {
-  return (int) codelMinDelay_.count();
+nanoseconds Codel::getMinDelay() {
+  return codelMinDelay_;
+}
+
+milliseconds Codel::getInterval() {
+  return milliseconds(FLAGS_codel_interval);
+}
+
+milliseconds Codel::getTargetDelay() {
+  return milliseconds(FLAGS_codel_target_delay);
+}
+
+milliseconds Codel::getSloughTimeout() {
+  return getTargetDelay() * 2;
 }
 
 } // namespace wangle
