@@ -38,6 +38,24 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
    */
   virtual void unsubscribe(uint64_t subscriptionId);
 
+  /**
+   * Invoked when a new subscriber is added. Subclasses can override
+   * to add custom behavior.
+   */
+  virtual void onSubscribe(Subscriber<T>* subscriber) {}
+
+  /**
+   * Invoked when a subscriber is removed. Subclasses can override
+   * to add custom behavior.
+   */
+  virtual void onUnsubscribe(Subscriber<T>* subscriber) {}
+
+  /**
+   * Invoked for each data that is about to be broadcasted to the
+   * subscribers. Subclasses can override to add custom behavior.
+   */
+  virtual void onData(T& data) {}
+
  protected:
   template <typename FUNC> // FUNC: Subscriber<T>* -> void
   void forEachSubscriber(FUNC f) {

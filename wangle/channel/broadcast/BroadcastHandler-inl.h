@@ -5,6 +5,7 @@ namespace wangle {
 
 template <typename T>
 void BroadcastHandler<T>::read(Context* ctx, T data) {
+  onData(data);
   forEachSubscriber([&](Subscriber<T>* s) {
     s->onNext(data);
   });
@@ -40,12 +41,20 @@ template <typename T>
 uint64_t BroadcastHandler<T>::subscribe(Subscriber<T>* subscriber) {
   auto subscriptionId = nextSubscriptionId_++;
   subscribers_[subscriptionId] = subscriber;
+  onSubscribe(subscriber);
   return subscriptionId;
 }
 
 template <typename T>
 void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
-  subscribers_.erase(subscriptionId);
+  auto iter = subscribers_.find(subscriptionId);
+  if (iter == subscribers_.end()) {
+    return;
+  }
+
+  onUnsubscribe(iter->second);
+  subscribers_.erase(iter);
+
   if (subscribers_.empty()) {
     // No more subscribers. Clean up.
     // This will delete the broadcast from the pool.
