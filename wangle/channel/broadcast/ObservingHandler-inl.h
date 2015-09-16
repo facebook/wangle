@@ -81,15 +81,7 @@ void ObservingHandler<T, R>::closeHandler() {
 
 template <typename T, typename R>
 BroadcastPool<T, R>* ObservingHandler<T, R>::broadcastPool() {
-  if (!broadcastPool_) {
-    broadcastPool_.reset(newBroadcastPool());
-  }
-  return broadcastPool_.get();
-}
-
-template <typename T, typename R>
-BroadcastPool<T, R>* ObservingHandler<T, R>::newBroadcastPool() {
-  return (new BroadcastPool<T, R>(serverPool_, broadcastPipelineFactory_));
+  return BroadcastPool<T, R>::get(serverPool_, broadcastPipelineFactory_);
 }
 
 } // namespace wangle

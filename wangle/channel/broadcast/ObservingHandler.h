@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
-#include <folly/ThreadLocal.h>
 #include <wangle/bootstrap/AcceptRoutingHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastPool.h>
@@ -49,13 +48,8 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   void closeHandler();
 
  private:
-  /**
-   * Lazily initialize and return a thread-local BroadcastPool.
-   */
-  BroadcastPool<T, R>* broadcastPool();
-
   // For testing
-  virtual BroadcastPool<T, R>* newBroadcastPool();
+  virtual BroadcastPool<T, R>* broadcastPool();
 
   R routingData_;
   std::shared_ptr<ServerPool<R>> serverPool_;
@@ -64,8 +58,6 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   BroadcastHandler<T>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
   bool paused_{false};
-
-  folly::ThreadLocalPtr<BroadcastPool<T, R>> broadcastPool_;
 };
 
 template <typename T>

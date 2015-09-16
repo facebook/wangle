@@ -81,7 +81,7 @@ class MockObservingHandler : public ObservingHandler<int, std::string> {
 
   MOCK_METHOD2(write, folly::Future<folly::Unit>(Context*, int));
   MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
-  MOCK_METHOD0(newBroadcastPool, BroadcastPool<int, std::string>*());
+  MOCK_METHOD0(broadcastPool, BroadcastPool<int, std::string>*());
 };
 
 class MockBroadcastHandler : public BroadcastHandler<int> {

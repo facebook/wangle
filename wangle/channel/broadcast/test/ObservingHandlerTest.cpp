@@ -28,7 +28,8 @@ class ObservingHandlerTest : public Test {
         std::shared_ptr<StrictMock<MockObservingHandler>>(observingHandler));
     pipeline->finalize();
 
-    pool = new MockBroadcastPool();
+    EXPECT_CALL(*observingHandler, broadcastPool())
+        .WillRepeatedly(Return(&pool));
   }
 
   void TearDown() override {
@@ -45,7 +46,7 @@ class ObservingHandlerTest : public Test {
   StrictMock<MockObservingHandler>* observingHandler{nullptr};
   std::unique_ptr<StrictMock<MockBroadcastHandler>> broadcastHandler;
 
-  MockBroadcastPool* pool{nullptr};
+  StrictMock<MockBroadcastPool> pool;
 };
 
 TEST_F(ObservingHandlerTest, Success) {
@@ -57,8 +58,7 @@ TEST_F(ObservingHandlerTest, Success) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
-  EXPECT_CALL(*pool, getHandler(_))
+  EXPECT_CALL(pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
         return makeFuture<BroadcastHandler<int>*>(std::move(handler));
@@ -94,8 +94,7 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
-  EXPECT_CALL(*pool, getHandler(_))
+  EXPECT_CALL(pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
         return makeFuture<BroadcastHandler<int>*>(std::move(handler));
@@ -130,8 +129,7 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
-  EXPECT_CALL(*pool, getHandler(_))
+  EXPECT_CALL(pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
         return makeFuture<BroadcastHandler<int>*>(std::move(handler));
@@ -167,8 +165,7 @@ TEST_F(ObservingHandlerTest, ReadError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
-  EXPECT_CALL(*pool, getHandler(_))
+  EXPECT_CALL(pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
         return makeFuture<BroadcastHandler<int>*>(std::move(handler));
@@ -205,8 +202,7 @@ TEST_F(ObservingHandlerTest, WriteError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(*observingHandler, newBroadcastPool()).WillOnce(Return(pool));
-  EXPECT_CALL(*pool, getHandler(_))
+  EXPECT_CALL(pool, getHandler(_))
       .WillOnce(InvokeWithoutArgs([this] {
         auto handler = broadcastHandler.get();
         return makeFuture<BroadcastHandler<int>*>(std::move(handler));

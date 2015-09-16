@@ -1,6 +1,7 @@
 // Copyright 2004-present Facebook.  All rights reserved.
 #pragma once
 
+#include <folly/ThreadLocal.h>
 #include <folly/futures/SharedPromise.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
@@ -61,9 +62,17 @@ class BroadcastPool {
     folly::SharedPromise<BroadcastHandler<T>*> sharedPromise_;
   };
 
-  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
-                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
-      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
+  /**
+   * Lazily initialize and return a thread-local BroadcastPool.
+   */
+  static BroadcastPool<T, R>* get(
+      std::shared_ptr<ServerPool<R>> serverPool,
+      std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory) {
+    if (!instance_) {
+      instance_.reset(new BroadcastPool<T, R>(serverPool, pipelineFactory));
+    }
+    return instance_.get();
+  }
 
   virtual ~BroadcastPool() {}
 
@@ -85,6 +94,11 @@ class BroadcastPool {
     return (broadcasts_.find(routingData) != broadcasts_.end());
   }
 
+ protected:
+  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
+                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
+      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
+
  private:
   void deleteBroadcast(const R& routingData) {
     broadcasts_.erase(routingData);
@@ -93,6 +107,8 @@ class BroadcastPool {
   std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
+
+  static folly::ThreadLocalPtr<BroadcastPool<T, R>> instance_;
 };
 
 } // namespace wangle

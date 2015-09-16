@@ -4,6 +4,9 @@
 namespace wangle {
 
 template <typename T, typename R>
+folly::ThreadLocalPtr<BroadcastPool<T, R>> BroadcastPool<T, R>::instance_;
+
+template <typename T, typename R>
 folly::Future<BroadcastHandler<T>*>
 BroadcastPool<T, R>::BroadcastManager::getHandler() {
   // getFuture() returns a completed future if we are already connected
@@ -34,8 +37,6 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
         LOG(ERROR) << "Connect error: " << ex.what();
         auto ew = folly::make_exception_wrapper<std::exception>(ex);
 
-        // Delete the broadcast before fulfilling the promises as the
-        // futures' onError callbacks can delete the broadcast pool
         auto sharedPromise = std::move(sharedPromise_);
         broadcastPool_->deleteBroadcast(routingData_);
         sharedPromise.setException(ew);
