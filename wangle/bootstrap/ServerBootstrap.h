@@ -18,12 +18,6 @@
 
 namespace wangle {
 
-typedef boost::variant<folly::IOBuf*,
-                       folly::AsyncSocket*,
-                       std::tuple<folly::IOBuf*,
-                                  std::shared_ptr<folly::AsyncUDPSocket>,
-                                  folly::SocketAddress>> AcceptPipelineType;
-
 /*
  * ServerBootstrap is a parent class intended to set up a
  * high-performance TCP accepting server.  It will manage a pool of

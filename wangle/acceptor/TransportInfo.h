@@ -149,6 +149,18 @@ struct TransportInfo {
   int64_t totalBytes{0};
 
   /**
+   * the address of the remote side. If this is associated with a client socket,
+   * it is a server side address. Otherwise, it is a client side address.
+   */
+  std::shared_ptr<folly::SocketAddress> remoteAddr;
+
+  /**
+   * the address of the local side. If the TransportInfo is associated with the
+   * downstream transport in a proxy server, this is an VIP address.
+   */
+  std::shared_ptr<folly::SocketAddress> localAddr;
+
+  /**
    * If the client passed through one of our L4 proxies (using PROXY Protocol),
    * then this will contain the IP address of the proxy host.
    */

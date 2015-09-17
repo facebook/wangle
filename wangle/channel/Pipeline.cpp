@@ -38,6 +38,14 @@ std::pair<uint64_t, uint64_t> PipelineBase::getReadBufferSettings() {
   return readBufferSettings_;
 }
 
+void PipelineBase::setTransportInfo(std::unique_ptr<TransportInfo>&& tInfo) {
+  transportInfo_ = std::move(tInfo);
+}
+
+TransportInfo* PipelineBase::getTransportInfo() {
+  return transportInfo_.get();
+}
+
 typename PipelineBase::ContextIterator PipelineBase::removeAt(
     const typename PipelineBase::ContextIterator& it) {
   (*it)->detachPipeline();

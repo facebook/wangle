@@ -77,12 +77,23 @@ class ServerAcceptor
 
   void read(Context* ctx, AcceptPipelineType conn) {
     // Did you mean to use pipeline() instead of childPipeline() ?
-    folly::AsyncSocket::UniquePtr transport(
-      boost::get<folly::AsyncSocket*>(conn));
-      auto pipeline = childPipelineFactory_->newPipeline(
-        std::shared_ptr<folly::AsyncSocket>(
-            transport.release(),
-            folly::DelayedDestruction::Destructor()));
+    auto connInfo = boost::get<ConnInfo&>(conn);
+
+    folly::AsyncSocket::UniquePtr transport(connInfo.sock);
+
+    // setup local and remote addresses
+    auto tInfoPtr = folly::make_unique<TransportInfo>(connInfo.tinfo);
+    tInfoPtr->localAddr = std::make_shared<folly::SocketAddress>();
+    transport->getLocalAddress(tInfoPtr->localAddr.get());
+    tInfoPtr->remoteAddr =
+      std::make_shared<folly::SocketAddress>(*connInfo.clientAddr);
+    tInfoPtr->sslNextProtocol =
+      std::make_shared<std::string>(connInfo.nextProtoName);
+
+    auto pipeline = childPipelineFactory_->newPipeline(
+      std::shared_ptr<folly::AsyncSocket>(
+        transport.release(), folly::DelayedDestruction::Destructor()));
+    pipeline->setTransportInfo(std::move(tInfoPtr));
     pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
@@ -91,11 +102,13 @@ class ServerAcceptor
   /* See Acceptor::onNewConnection for details */
   void onNewConnection(
     folly::AsyncSocket::UniquePtr transport,
-    const folly::SocketAddress* address,
+    const folly::SocketAddress* clientAddr,
     const std::string& nextProtocolName,
     SecureTransportType secureTransportType,
     const TransportInfo& tinfo) {
-    acceptorPipeline_->read(transport.release());
+    ConnInfo connInfo = {transport.release(), clientAddr, nextProtocolName,
+                         secureTransportType, tinfo};
+    acceptorPipeline_->read(connInfo);
   }
 
   // UDP thunk
