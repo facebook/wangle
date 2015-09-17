@@ -303,7 +303,7 @@ TEST(Bootstrap, LoadBalanceHandler) {
   CHECK(connections == 1);
 }
 
-class TestUDPPipeline : public InboundHandler<AcceptPipelineType> {
+class TestUDPPipeline : public InboundHandler<AcceptPipelineType, Unit> {
  public:
   void read(Context* ctx, AcceptPipelineType conn) override { connections++; }
 };

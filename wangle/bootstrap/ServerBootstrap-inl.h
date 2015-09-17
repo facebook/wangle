@@ -71,7 +71,9 @@ class ServerAcceptor
     Acceptor::init(nullptr, base_);
     CHECK(acceptorPipeline_);
 
-    acceptorPipeline_->addBack(this);
+    if (childPipelineFactory_) {
+      acceptorPipeline_->addBack(this);
+    }
     acceptorPipeline_->finalize();
   }
 
