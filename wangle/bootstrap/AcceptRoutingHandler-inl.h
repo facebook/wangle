@@ -8,10 +8,11 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
                                              AcceptPipelineType conn) {
   populateAcceptors();
 
-  uint64_t connId = nextConnId_++;
+  const auto& connInfo = boost::get<ConnInfo&>(conn);
   auto socket = std::shared_ptr<folly::AsyncSocket>(
-      boost::get<folly::AsyncSocket*>(conn),
-      folly::DelayedDestruction::Destructor());
+      connInfo.sock, folly::DelayedDestruction::Destructor());
+
+  uint64_t connId = nextConnId_++;
 
   // Create a new routing pipeline for this connection to read from
   // the socket until it parses the routing data
