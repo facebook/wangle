@@ -98,13 +98,13 @@ class AsyncSocketHandler
     return future;
   };
 
+  folly::Future<folly::Unit> writeException(Context* ctx,
+                                            folly::exception_wrapper) override {
+    return shutdown(ctx, true);
+  }
+
   folly::Future<folly::Unit> close(Context* ctx) override {
-    if (socket_) {
-      detachReadCallback();
-      socket_->closeNow();
-    }
-    ctx->getPipeline()->deletePipeline();
-    return folly::makeFuture();
+    return shutdown(ctx, false);
   }
 
   // Must override to avoid warnings about hidden overloaded virtual due to
@@ -138,6 +138,19 @@ class AsyncSocketHandler
   }
 
  private:
+  folly::Future<folly::Unit> shutdown(Context* ctx, bool closeWithReset) {
+    if (socket_) {
+      detachReadCallback();
+      if (closeWithReset) {
+        socket_->closeWithReset();
+      } else {
+        socket_->closeNow();
+      }
+    }
+    ctx->getPipeline()->deletePipeline();
+    return folly::makeFuture();
+  }
+
   class WriteCallback : private folly::AsyncSocket::WriteCallback {
     void writeSuccess() noexcept override {
       promise_.setValue();

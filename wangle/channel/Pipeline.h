@@ -189,6 +189,11 @@ class Pipeline : public PipelineBase {
   template <class T = W>
   typename std::enable_if<!std::is_same<T, folly::Unit>::value,
                           folly::Future<folly::Unit>>::type
+  writeException(folly::exception_wrapper e);
+
+  template <class T = W>
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
+                          folly::Future<folly::Unit>>::type
   close();
 
   void finalize() override;

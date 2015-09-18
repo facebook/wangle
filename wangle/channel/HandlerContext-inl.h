@@ -50,6 +50,8 @@ class OutboundLink {
  public:
   virtual ~OutboundLink() = default;
   virtual folly::Future<folly::Unit> write(Out msg) = 0;
+  virtual folly::Future<folly::Unit> writeException(
+      folly::exception_wrapper e) = 0;
   virtual folly::Future<folly::Unit> close() = 0;
 };
 
@@ -209,6 +211,17 @@ class ContextImpl
     }
   }
 
+  folly::Future<folly::Unit> fireWriteException(
+      folly::exception_wrapper e) override {
+    auto guard = this->pipelineWeak_.lock();
+    if (this->nextOut_) {
+      return this->nextOut_->writeException(std::move(e));
+    } else {
+      LOG(WARNING) << "close reached end of pipeline";
+      return folly::makeFuture();
+    }
+  }
+
   folly::Future<folly::Unit> fireClose() override {
     auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
@@ -275,6 +288,12 @@ class ContextImpl
   folly::Future<folly::Unit> write(Win msg) override {
     auto guard = this->pipelineWeak_.lock();
     return this->handler_->write(this, std::forward<Win>(msg));
+  }
+
+  folly::Future<folly::Unit> writeException(
+      folly::exception_wrapper e) override {
+    auto guard = this->pipelineWeak_.lock();
+    return this->handler_->writeException(this, std::move(e));
   }
 
   folly::Future<folly::Unit> close() override {
@@ -423,6 +442,17 @@ class OutboundContextImpl
     }
   }
 
+  folly::Future<folly::Unit> fireWriteException(
+      folly::exception_wrapper e) override {
+    auto guard = this->pipelineWeak_.lock();
+    if (this->nextOut_) {
+      return this->nextOut_->writeException(std::move(e));
+    } else {
+      LOG(WARNING) << "close reached end of pipeline";
+      return folly::makeFuture();
+    }
+  }
+
   folly::Future<folly::Unit> fireClose() override {
     auto guard = this->pipelineWeak_.lock();
     if (this->nextOut_) {
@@ -445,6 +475,12 @@ class OutboundContextImpl
   folly::Future<folly::Unit> write(Win msg) override {
     auto guard = this->pipelineWeak_.lock();
     return this->handler_->write(this, std::forward<Win>(msg));
+  }
+
+  folly::Future<folly::Unit> writeException(
+      folly::exception_wrapper e) override {
+    auto guard = this->pipelineWeak_.lock();
+    return this->handler_->writeException(this, std::move(e));
   }
 
   folly::Future<folly::Unit> close() override {

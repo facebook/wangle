@@ -66,6 +66,10 @@ class Handler : public HandlerBase<HandlerContext<Rout, Wout>> {
   }
 
   virtual folly::Future<folly::Unit> write(Context* ctx, Win msg) = 0;
+  virtual folly::Future<folly::Unit> writeException(Context* ctx,
+                                                   folly::exception_wrapper e) {
+    return ctx->fireWriteException(std::move(e));
+  }
   virtual folly::Future<folly::Unit> close(Context* ctx) {
     return ctx->fireClose();
   }
@@ -136,6 +140,10 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext<Wout>> {
   virtual ~OutboundHandler() = default;
 
   virtual folly::Future<folly::Unit> write(Context* ctx, Win msg) = 0;
+  virtual folly::Future<folly::Unit> writeException(
+      Context* ctx, folly::exception_wrapper e) {
+    return ctx->fireWriteException(std::move(e));
+  }
   virtual folly::Future<folly::Unit> close(Context* ctx) {
     return ctx->fireClose();
   }

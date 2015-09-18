@@ -30,6 +30,8 @@ class HandlerContext {
   virtual void fireTransportInactive() = 0;
 
   virtual folly::Future<folly::Unit> fireWrite(Out msg) = 0;
+  virtual folly::Future<folly::Unit> fireWriteException(
+      folly::exception_wrapper e) = 0;
   virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
@@ -85,6 +87,8 @@ class OutboundHandlerContext {
   virtual ~OutboundHandlerContext() = default;
 
   virtual folly::Future<folly::Unit> fireWrite(Out msg) = 0;
+  virtual folly::Future<folly::Unit> fireWriteException(
+      folly::exception_wrapper e) = 0;
   virtual folly::Future<folly::Unit> fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;

@@ -260,6 +260,18 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value,
                         folly::Future<folly::Unit>>::type
+  Pipeline<R, W>::writeException(folly::exception_wrapper e) {
+  if (!back_) {
+    throw std::invalid_argument(
+      "writeException(): no outbound handler in Pipeline");
+  }
+  return back_->writeException(std::move(e));
+}
+
+template <class R, class W>
+template <class T>
+typename std::enable_if<!std::is_same<T, folly::Unit>::value,
+                        folly::Future<folly::Unit>>::type
 Pipeline<R, W>::close() {
   if (!back_) {
     throw std::invalid_argument("close(): no outbound handler in Pipeline");
