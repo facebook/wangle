@@ -19,13 +19,9 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
  public:
   typedef typename HandlerAdapter<folly::IOBufQueue&, T>::Context Context;
 
-  ObservingHandler(
-      const R& routingData,
-      std::shared_ptr<ServerPool<R>> serverPool,
-      std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
+  ObservingHandler(const R& routingData, BroadcastPool<T, R>* broadcastPool)
       : routingData_(routingData),
-        serverPool_(serverPool),
-        broadcastPipelineFactory_(broadcastPipelineFactory) {}
+        broadcastPool_(CHECK_NOTNULL(broadcastPool)) {}
 
   virtual ~ObservingHandler() {
     CHECK(!broadcastHandler_);
@@ -48,12 +44,8 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   void closeHandler();
 
  private:
-  // For testing
-  virtual BroadcastPool<T, R>* broadcastPool();
-
   R routingData_;
-  std::shared_ptr<ServerPool<R>> serverPool_;
-  std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
+  BroadcastPool<T, R>* broadcastPool_{nullptr};
 
   BroadcastHandler<T>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
@@ -78,17 +70,26 @@ class ObservingPipelineFactory
       const R& routingData) override {
     auto pipeline = ObservingPipeline<T>::create();
     pipeline->addBack(AsyncSocketHandler(socket));
-    auto handler = std::make_shared<ObservingHandler<T, R>>(
-        routingData, serverPool_, broadcastPipelineFactory_);
+    auto handler =
+        std::make_shared<ObservingHandler<T, R>>(routingData, broadcastPool());
     pipeline->addBack(handler);
     pipeline->finalize();
 
     return pipeline;
   }
 
+  virtual BroadcastPool<T, R>* broadcastPool() {
+    if (!broadcastPool_) {
+      broadcastPool_.reset(
+          new BroadcastPool<T, R>(serverPool_, broadcastPipelineFactory_));
+    }
+    return broadcastPool_.get();
+  }
+
  protected:
   std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
+  folly::ThreadLocalPtr<BroadcastPool<T, R>> broadcastPool_;
 };
 
 } // namespace wangle

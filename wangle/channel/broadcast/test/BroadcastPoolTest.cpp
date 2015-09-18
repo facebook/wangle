@@ -15,7 +15,8 @@ class BroadcastPoolTest : public Test {
 
     pipelineFactory =
         std::make_shared<StrictMock<MockBroadcastPipelineFactory>>();
-    pool = BroadcastPool<int, std::string>::get(serverPool, pipelineFactory);
+    pool = folly::make_unique<BroadcastPool<int, std::string>>(serverPool,
+                                                               pipelineFactory);
 
     startServer();
   }
@@ -27,7 +28,7 @@ class BroadcastPoolTest : public Test {
     serverPool.reset();
     addr.reset();
     pipelineFactory.reset();
-    pool = nullptr;
+    pool.reset();
 
     stopServer();
   }
@@ -52,7 +53,7 @@ class BroadcastPoolTest : public Test {
     server.reset();
   }
 
-  BroadcastPool<int, std::string>* pool{nullptr};
+  std::unique_ptr<BroadcastPool<int, std::string>> pool;
   std::shared_ptr<StrictMock<MockServerPool>> serverPool;
   std::shared_ptr<StrictMock<MockBroadcastPipelineFactory>> pipelineFactory;
   std::unique_ptr<ServerBootstrap<DefaultPipeline>> server;
@@ -297,71 +298,75 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
 }
 
 TEST_F(BroadcastPoolTest, ThreadLocalPool) {
-  // Test that thread-local static broadcast pool works correctly
+  // Test that thread-local broadcast pool works correctly
+  MockObservingPipelineFactory factory1(serverPool, pipelineFactory);
+  MockObservingPipelineFactory factory2(serverPool, pipelineFactory);
   BroadcastHandler<int>* broadcastHandler = nullptr;
+  const std::string kUrl = "url";
 
   InSequence dummy;
 
   // There should be no broadcast available for this routing data
-  EXPECT_FALSE(
-      (BroadcastPool<int, std::string>::get(serverPool, pipelineFactory)
-           ->isBroadcasting("/url1")));
+  EXPECT_FALSE(factory1.broadcastPool()->isBroadcasting(kUrl));
+  EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
 
   // Test creating a new broadcast
-  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "/url1"))
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
       .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
         broadcastHandler = pipelineFactory->getBroadcastHandler(pipeline);
       }));
-  auto handler = std::make_shared<ObservingHandler<int, std::string>>(
-      "/url1", serverPool, pipelineFactory);
-  auto pipeline1 = Pipeline<IOBufQueue&, int>::create();
-  pipeline1->addBack(std::move(handler));
-  pipeline1->finalize();
+  auto pipeline1 = factory1.newPipeline(nullptr, kUrl);
   pipeline1->transportActive();
   EventBaseManager::get()->getEventBase()->loopOnce();
-  EXPECT_TRUE((BroadcastPool<int, std::string>::get(serverPool, pipelineFactory)
-                   ->isBroadcasting("/url1")));
+  EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
+  EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
 
   // Test broadcast with the same routing data in the same thread. No
   // new broadcast handler should be created.
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, _)).Times(0);
-  handler = std::make_shared<ObservingHandler<int, std::string>>(
-      "/url1", serverPool, pipelineFactory);
-  auto pipeline2 = Pipeline<IOBufQueue&, int>::create();
-  pipeline2->addBack(std::move(handler));
-  pipeline2->finalize();
+  auto pipeline2 = factory1.newPipeline(nullptr, kUrl);
   pipeline2->transportActive();
-  EXPECT_TRUE((BroadcastPool<int, std::string>::get(serverPool, pipelineFactory)
-                   ->isBroadcasting("/url1")));
+  EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
+  EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
 
   // Test creating a broadcast with the same routing data but in a
   // different thread. Should return a different broadcast handler.
   std::thread([&] {
     // There should be no broadcast available for this routing data since we
     // are on a different thread.
-    EXPECT_FALSE(
-        (BroadcastPool<int, std::string>::get(serverPool, pipelineFactory)
-             ->isBroadcasting("/url1")));
+    EXPECT_FALSE(factory1.broadcastPool()->isBroadcasting(kUrl));
+    EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
 
-    EXPECT_CALL(*pipelineFactory, setRoutingData(_, "/url1"))
+    EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
         .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
           EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
                     broadcastHandler);
         }));
-    auto handler = std::make_shared<ObservingHandler<int, std::string>>(
-        "/url1", serverPool, pipelineFactory);
-    auto pipeline3 = Pipeline<IOBufQueue&, int>::create();
-    pipeline3->addBack(std::move(handler));
-    pipeline3->finalize();
+    auto pipeline3 = factory1.newPipeline(nullptr, kUrl);
     pipeline3->transportActive();
     EventBaseManager::get()->getEventBase()->loopOnce();
-    EXPECT_TRUE(
-        (BroadcastPool<int, std::string>::get(serverPool, pipelineFactory)
-             ->isBroadcasting("/url1")));
+    EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
+    EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
+
+    // Cleanup
     pipeline3->readEOF();
   }).join();
+
+  // Test creating a broadcast with the same routing data but using a
+  // different ObservingPipelineFactory. Should return a different broadcast
+  // handler since a different thread-local BroadcastPool is used.
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
+      .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
+        EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
+                  broadcastHandler);
+      }));
+  auto pipeline4 = factory2.newPipeline(nullptr, kUrl);
+  pipeline4->transportActive();
+  EventBaseManager::get()->getEventBase()->loopOnce();
+  EXPECT_TRUE(factory2.broadcastPool()->isBroadcasting(kUrl));
 
   // Cleanup
   pipeline1->readEOF();
   pipeline2->readEOF();
+  pipeline4->readEOF();
 }

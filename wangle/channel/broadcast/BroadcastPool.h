@@ -62,17 +62,9 @@ class BroadcastPool {
     folly::SharedPromise<BroadcastHandler<T>*> sharedPromise_;
   };
 
-  /**
-   * Lazily initialize and return a thread-local BroadcastPool.
-   */
-  static BroadcastPool<T, R>* get(
-      std::shared_ptr<ServerPool<R>> serverPool,
-      std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory) {
-    if (!instance_) {
-      instance_.reset(new BroadcastPool<T, R>(serverPool, pipelineFactory));
-    }
-    return instance_.get();
-  }
+  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
+                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
+      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
 
   virtual ~BroadcastPool() {}
 
@@ -94,11 +86,6 @@ class BroadcastPool {
     return (broadcasts_.find(routingData) != broadcasts_.end());
   }
 
- protected:
-  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
-                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
-      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
-
  private:
   void deleteBroadcast(const R& routingData) {
     broadcasts_.erase(routingData);
@@ -107,8 +94,6 @@ class BroadcastPool {
   std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
-
-  static folly::ThreadLocalPtr<BroadcastPool<T, R>> instance_;
 };
 
 } // namespace wangle

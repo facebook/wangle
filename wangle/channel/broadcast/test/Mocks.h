@@ -7,6 +7,7 @@
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/ObservingHandler.h>
 #include <wangle/codec/ByteToMessageDecoder.h>
+#include <wangle/codec/MessageToByteEncoder.h>
 
 namespace wangle {
 
@@ -45,6 +46,14 @@ class MockByteToMessageDecoder : public ByteToMessageDecoder<T> {
   MOCK_METHOD4_T(decode, bool(Context*, folly::IOBufQueue&, T&, size_t&));
 };
 
+template <typename T>
+class MockMessageToByteEncoder : public MessageToByteEncoder<T> {
+ public:
+  typedef typename MessageToByteEncoder<T>::Context Context;
+
+  MOCK_METHOD1_T(encode, std::unique_ptr<folly::IOBuf>(T&));
+};
+
 class MockServerPool : public ServerPool<std::string> {
  public:
   explicit MockServerPool(std::shared_ptr<folly::SocketAddress> addr)
@@ -76,12 +85,11 @@ class MockBroadcastPool : public BroadcastPool<int, std::string> {
 
 class MockObservingHandler : public ObservingHandler<int, std::string> {
  public:
-  MockObservingHandler()
-      : ObservingHandler<int, std::string>("", nullptr, nullptr) {}
+  explicit MockObservingHandler(BroadcastPool<int, std::string>* broadcastPool)
+      : ObservingHandler<int, std::string>("", broadcastPool) {}
 
   MOCK_METHOD2(write, folly::Future<folly::Unit>(Context*, int));
   MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
-  MOCK_METHOD0(broadcastPool, BroadcastPool<int, std::string>*());
 };
 
 class MockBroadcastHandler : public BroadcastHandler<int> {
@@ -111,6 +119,30 @@ class MockBroadcastPipelineFactory
 
   GMOCK_METHOD2_(
       , noexcept, , setRoutingData, void(DefaultPipeline*, const std::string&));
+};
+
+class MockObservingPipelineFactory
+    : public ObservingPipelineFactory<int, std::string> {
+ public:
+  MockObservingPipelineFactory(
+      std::shared_ptr<ServerPool<std::string>> serverPool,
+      std::shared_ptr<BroadcastPipelineFactory<int, std::string>>
+          broadcastPipelineFactory)
+      : ObservingPipelineFactory(serverPool, broadcastPipelineFactory) {}
+
+  ObservingPipeline<int>::Ptr newPipeline(
+      std::shared_ptr<folly::AsyncSocket> socket,
+      const std::string& routingData) override {
+    auto pipeline = ObservingPipeline<int>::create();
+    pipeline->addBack(std::make_shared<wangle::BytesToBytesHandler>());
+    pipeline->addBack(std::make_shared<MockMessageToByteEncoder<int>>());
+    auto handler = std::make_shared<ObservingHandler<int, std::string>>(
+        routingData, broadcastPool());
+    pipeline->addBack(handler);
+    pipeline->finalize();
+
+    return pipeline;
+  }
 };
 
 } // namespace wangle

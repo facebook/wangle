@@ -4,9 +4,6 @@
 namespace wangle {
 
 template <typename T, typename R>
-folly::ThreadLocalPtr<BroadcastPool<T, R>> BroadcastPool<T, R>::instance_;
-
-template <typename T, typename R>
 folly::Future<BroadcastHandler<T>*>
 BroadcastPool<T, R>::BroadcastManager::getHandler() {
   // getFuture() returns a completed future if we are already connected

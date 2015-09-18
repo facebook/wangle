@@ -17,7 +17,7 @@ class ObservingHandlerTest : public Test {
 
   void SetUp() override {
     prevHandler = new StrictMock<MockBytesToBytesHandler>();
-    observingHandler = new StrictMock<MockObservingHandler>();
+    observingHandler = new StrictMock<MockObservingHandler>(&pool);
     broadcastHandler = make_unique<StrictMock<MockBroadcastHandler>>();
 
     pipeline = ObservingPipeline<int>::create();
@@ -27,9 +27,6 @@ class ObservingHandlerTest : public Test {
     pipeline->addBack(
         std::shared_ptr<StrictMock<MockObservingHandler>>(observingHandler));
     pipeline->finalize();
-
-    EXPECT_CALL(*observingHandler, broadcastPool())
-        .WillRepeatedly(Return(&pool));
   }
 
   void TearDown() override {

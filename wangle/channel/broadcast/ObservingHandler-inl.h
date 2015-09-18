@@ -16,8 +16,7 @@ void ObservingHandler<T, R>::transportActive(Context* ctx) {
   CHECK(pipeline);
   pipeline->transportInactive();
 
-  auto pool = broadcastPool();
-  pool->getHandler(routingData_)
+  broadcastPool_->getHandler(routingData_)
       .then([this, pipeline](BroadcastHandler<T>* broadcastHandler) {
         broadcastHandler_ = broadcastHandler;
         subscriptionId_ = broadcastHandler_->subscribe(this);
@@ -77,11 +76,6 @@ void ObservingHandler<T, R>::closeHandler() {
     broadcastHandler->unsubscribe(subscriptionId_);
   }
   this->close(this->getContext());
-}
-
-template <typename T, typename R>
-BroadcastPool<T, R>* ObservingHandler<T, R>::broadcastPool() {
-  return BroadcastPool<T, R>::get(serverPool_, broadcastPipelineFactory_);
 }
 
 } // namespace wangle
