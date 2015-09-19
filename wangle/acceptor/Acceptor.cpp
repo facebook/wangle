@@ -13,7 +13,6 @@
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeHelper.h>
 
-#include <boost/cast.hpp>
 #include <fcntl.h>
 #include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
