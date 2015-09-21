@@ -72,7 +72,7 @@ struct SSLContextConfig {
     folly::SSLContext::TLSv1};
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
-  bool clientHelloParsingEnabled{false};
+  bool clientHelloParsingEnabled{true};
   std::string sslCiphers{
     "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:"
     "ECDHE-ECDSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES128-GCM-SHA256:"
