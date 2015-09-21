@@ -21,19 +21,21 @@
 #include <wangle/channel/EventBaseHandler.h>
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
 
-#include <wangle/example/rpc/SerializeHandler.h>
+#include <wangle/example/rpc/ServerSerializeHandler.h>
 
 using namespace folly;
 using namespace wangle;
+
 using thrift::test::Bonk;
+using thrift::test::Xtruct;
+
+using SerializePipeline = wangle::Pipeline<IOBufQueue&, Xtruct>;
 
 DEFINE_int32(port, 8080, "test server port");
 
-typedef wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
-
-class RpcService : public Service<Bonk> {
+class RpcService : public Service<Bonk, Xtruct> {
  public:
-  virtual Future<Bonk> operator()(Bonk request) {
+  virtual Future<Xtruct> operator()(Bonk request) override {
     // Oh no, we got Bonked!  Quick, Bonk back
     printf("Bonk: %s, %i\n", request.message.c_str(), request.type);
 
@@ -42,12 +44,12 @@ class RpcService : public Service<Bonk> {
      */
     // Wait for a bit
     return futures::sleep(std::chrono::seconds(request.type))
-      .then([request]() {
-        Bonk response;
-        response.message = "Stop saying " + request.message + "!";
-        response.type = request.type;
-        return response;
-      });
+        .then([request]() {
+          Xtruct response;
+          response.string_thing = "Stop saying " + request.message + "!";
+          response.i32_thing = request.type;
+          return response;
+        });
   }
 };
 
@@ -60,20 +62,20 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
     pipeline->addBack(EventBaseHandler());
     pipeline->addBack(LengthFieldBasedFrameDecoder());
     pipeline->addBack(LengthFieldPrepender());
-    pipeline->addBack(SerializeHandler());
+    pipeline->addBack(ServerSerializeHandler());
     // We could use a serial dispatcher instead easily
     // pipeline->addBack(SerialServerDispatcher<Bonk>(&service_));
     // Or a Pipelined Dispatcher
-    //pipeline->addBack(PipelinedServerDispatcher<Bonk>(&service_));
-    pipeline->addBack(MultiplexServerDispatcher<Bonk>(&service_));
+    // pipeline->addBack(PipelinedServerDispatcher<Bonk>(&service_));
+    pipeline->addBack(MultiplexServerDispatcher<Bonk, Xtruct>(&service_));
     pipeline->finalize();
 
     return std::move(pipeline);
   }
 
  private:
-  ExecutorFilter<Bonk> service_{
-    std::make_shared<CPUThreadPoolExecutor>(10),
+  ExecutorFilter<Bonk, Xtruct> service_{
+      std::make_shared<CPUThreadPoolExecutor>(10),
       std::make_shared<RpcService>()};
 };
 

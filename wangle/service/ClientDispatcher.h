@@ -16,10 +16,10 @@
 namespace wangle {
 
 template <typename Pipeline, typename Req, typename Resp = Req>
-class ClientDispatcherBase : public HandlerAdapter<Req, Resp>
+class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
                              , public Service<Req, Resp> {
  public:
-  typedef typename HandlerAdapter<Req, Resp>::Context Context;
+  typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
   ~ClientDispatcherBase() {
     if (pipeline_) {
@@ -43,11 +43,11 @@ class ClientDispatcherBase : public HandlerAdapter<Req, Resp>
   }
 
   virtual folly::Future<folly::Unit> close() override {
-    return HandlerAdapter<Req, Resp>::close(this->getContext());
+    return HandlerAdapter<Resp, Req>::close(this->getContext());
   }
 
   virtual folly::Future<folly::Unit> close(Context* ctx) override {
-    return HandlerAdapter<Req, Resp>::close(ctx);
+    return HandlerAdapter<Resp, Req>::close(ctx);
   }
 
  protected:
@@ -63,9 +63,9 @@ template <typename Pipeline, typename Req, typename Resp = Req>
 class SerialClientDispatcher
     : public ClientDispatcherBase<Pipeline, Req, Resp> {
  public:
-  typedef typename HandlerAdapter<Req, Resp>::Context Context;
+  typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
-  void read(Context* ctx, Req in) override {
+  void read(Context* ctx, Resp in) override {
     DCHECK(p_);
     p_->setValue(std::move(in));
     p_ = folly::none;
@@ -95,9 +95,9 @@ class PipelinedClientDispatcher
     : public ClientDispatcherBase<Pipeline, Req, Resp> {
  public:
 
-  typedef typename HandlerAdapter<Req, Resp>::Context Context;
+  typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
-  void read(Context* ctx, Req in) override {
+  void read(Context* ctx, Resp in) override {
     DCHECK(p_.size() >= 1);
     auto p = std::move(p_.front());
     p_.pop_front();

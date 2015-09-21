@@ -18,50 +18,52 @@
 #include <wangle/codec/LengthFieldPrepender.h>
 #include <wangle/channel/EventBaseHandler.h>
 
-#include <wangle/example/rpc/SerializeHandler.h>
+#include <wangle/example/rpc/ClientSerializeHandler.h>
 
 using namespace folly;
 using namespace wangle;
+
 using thrift::test::Bonk;
+using thrift::test::Xtruct;
+
+using SerializePipeline = wangle::Pipeline<IOBufQueue&, Bonk>;
 
 DEFINE_int32(port, 8080, "test server port");
 DEFINE_string(host, "::1", "test server address");
 
-typedef wangle::Pipeline<IOBufQueue&, Bonk> SerializePipeline;
-
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
-  SerializePipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  SerializePipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncSocket> sock) override {
     auto pipeline = SerializePipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     // ensure we can write from any thread
     pipeline->addBack(EventBaseHandler());
     pipeline->addBack(LengthFieldBasedFrameDecoder());
     pipeline->addBack(LengthFieldPrepender());
-    pipeline->addBack(SerializeHandler());
+    pipeline->addBack(ClientSerializeHandler());
     pipeline->finalize();
 
     return std::move(pipeline);
   }
 };
 
-
 // Client multiplex dispatcher.  Uses Bonk.type as request ID
 class BonkMultiplexClientDispatcher
-    : public ClientDispatcherBase<SerializePipeline, Bonk> {
+    : public ClientDispatcherBase<SerializePipeline, Bonk, Xtruct> {
  public:
-  void read(Context* ctx, Bonk in) override {
-    auto search = requests_.find(in.type);
+  void read(Context* ctx, Xtruct in) override {
+    auto search = requests_.find(in.i32_thing);
     CHECK(search != requests_.end());
     auto p = std::move(search->second);
-    requests_.erase(in.type);
+    requests_.erase(in.i32_thing);
     p.setValue(in);
   }
 
-  Future<Bonk> operator()(Bonk arg) override {
+  Future<Xtruct> operator()(Bonk arg) override {
     auto& p = requests_[arg.type];
     auto f = p.getFuture();
-    p.setInterruptHandler([arg,this](const folly::exception_wrapper& e) {
+    p.setInterruptHandler([arg, this](const folly::exception_wrapper& e) {
       this->requests_.erase(arg.type);
     });
     this->pipeline_->write(arg);
@@ -80,8 +82,9 @@ class BonkMultiplexClientDispatcher
     printf("Channel closed\n");
     return ClientDispatcherBase::close(ctx);
   }
+
  private:
-  std::unordered_map<int32_t, Promise<Bonk>> requests_;
+  std::unordered_map<int32_t, Promise<Xtruct>> requests_;
 };
 
 int main(int argc, char** argv) {
@@ -99,15 +102,15 @@ int main(int argc, char** argv) {
   auto pipeline = client.connect(SocketAddress(FLAGS_host, FLAGS_port)).get();
   // A serial dispatcher would assert if we tried to send more than one
   // request at a time
-  //SerialClientDispatcher<SerializePipeline, Bonk> service;
+  // SerialClientDispatcher<SerializePipeline, Bonk> service;
   // Or we could use a pipelined dispatcher, but responses would always come
   // back in order
-  //PipelinedClientDispatcher<SerializePipeline, Bonk> service;
+  // PipelinedClientDispatcher<SerializePipeline, Bonk> service;
   auto dispatcher = std::make_shared<BonkMultiplexClientDispatcher>();
   dispatcher->setPipeline(pipeline);
 
   // Set an idle timeout of 5s using a filter.
-  ExpiringFilter<Bonk> service(dispatcher, std::chrono::seconds(5));
+  ExpiringFilter<Bonk, Xtruct> service(dispatcher, std::chrono::seconds(5));
 
   try {
     while (true) {
@@ -116,12 +119,12 @@ int main(int argc, char** argv) {
       Bonk request;
       std::cin >> request.message;
       std::cin >> request.type;
-      service(request).then([request](Bonk response){
-        CHECK(request.type == response.type);
-        std::cout << response.message << std::endl;
+      service(request).then([request](Xtruct response) {
+        CHECK(request.type == response.i32_thing);
+        std::cout << response.string_thing << std::endl;
       });
     }
-  } catch(const std::exception& e) {
+  } catch (const std::exception& e) {
     std::cout << exceptionStr(e) << std::endl;
   }
 

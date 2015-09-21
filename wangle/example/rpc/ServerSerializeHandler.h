@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 #pragma once
 
 #include <wangle/channel/Handler.h>
@@ -17,9 +16,9 @@
 
 // Do some serialization / deserialization using thrift.
 // A real rpc server would probably use generated client/server stubs
-class SerializeHandler : public wangle::Handler<
+class ServerSerializeHandler : public wangle::Handler<
   std::unique_ptr<folly::IOBuf>, thrift::test::Bonk,
-  thrift::test::Bonk, std::unique_ptr<folly::IOBuf>> {
+  thrift::test::Xtruct, std::unique_ptr<folly::IOBuf>> {
  public:
   virtual void read(Context* ctx, std::unique_ptr<folly::IOBuf> msg) override {
     thrift::test::Bonk received;
@@ -28,10 +27,10 @@ class SerializeHandler : public wangle::Handler<
   }
 
   virtual folly::Future<folly::Unit> write(
-    Context* ctx, thrift::test::Bonk b) override {
+    Context* ctx, thrift::test::Xtruct b) override {
 
     std::string out;
-    ser.serialize<thrift::test::Bonk>(b, &out);
+    ser.serialize<thrift::test::Xtruct>(b, &out);
     return ctx->fireWrite(folly::IOBuf::copyBuffer(out));
   }
 
