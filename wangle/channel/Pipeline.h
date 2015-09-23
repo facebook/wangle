@@ -58,8 +58,8 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
   void setReadBufferSettings(uint64_t minAvailable, uint64_t allocationSize);
   std::pair<uint64_t, uint64_t> getReadBufferSettings();
 
-  void setTransportInfo(std::unique_ptr<TransportInfo>&& tInfo);
-  TransportInfo* getTransportInfo();
+  void setTransportInfo(std::shared_ptr<TransportInfo> tInfo);
+  std::shared_ptr<TransportInfo> getTransportInfo();
 
   template <class H>
   PipelineBase& addBack(std::shared_ptr<H> handler);
@@ -123,7 +123,7 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
  private:
   PipelineManager* manager_{nullptr};
   std::shared_ptr<folly::AsyncTransport> transport_;
-  std::unique_ptr<TransportInfo> transportInfo_;
+  std::shared_ptr<TransportInfo> transportInfo_;
 
   template <class Context>
   PipelineBase& addHelper(std::shared_ptr<Context>&& ctx, bool front);

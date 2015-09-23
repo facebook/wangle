@@ -84,7 +84,7 @@ class ServerAcceptor
     folly::AsyncSocket::UniquePtr transport(connInfo.sock);
 
     // setup local and remote addresses
-    auto tInfoPtr = folly::make_unique<TransportInfo>(connInfo.tinfo);
+    auto tInfoPtr = std::make_shared<TransportInfo>(connInfo.tinfo);
     tInfoPtr->localAddr = std::make_shared<folly::SocketAddress>();
     transport->getLocalAddress(tInfoPtr->localAddr.get());
     tInfoPtr->remoteAddr =
@@ -95,7 +95,7 @@ class ServerAcceptor
     auto pipeline = childPipelineFactory_->newPipeline(
       std::shared_ptr<folly::AsyncSocket>(
         transport.release(), folly::DelayedDestruction::Destructor()));
-    pipeline->setTransportInfo(std::move(tInfoPtr));
+    pipeline->setTransportInfo(tInfoPtr);
     pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);

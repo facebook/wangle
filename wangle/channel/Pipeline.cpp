@@ -32,12 +32,12 @@ std::pair<uint64_t, uint64_t> PipelineBase::getReadBufferSettings() {
   return readBufferSettings_;
 }
 
-void PipelineBase::setTransportInfo(std::unique_ptr<TransportInfo>&& tInfo) {
-  transportInfo_ = std::move(tInfo);
+void PipelineBase::setTransportInfo(std::shared_ptr<TransportInfo> tInfo) {
+  transportInfo_ = tInfo;
 }
 
-TransportInfo* PipelineBase::getTransportInfo() {
-  return transportInfo_.get();
+std::shared_ptr<TransportInfo> PipelineBase::getTransportInfo() {
+  return transportInfo_;
 }
 
 typename PipelineBase::ContextIterator PipelineBase::removeAt(
