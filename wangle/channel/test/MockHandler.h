@@ -29,6 +29,7 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
 
   MOCK_METHOD2_T(write_, void(Context*, Win&));
   MOCK_METHOD1_T(close_, void(Context*));
+  MOCK_METHOD2_T(writeException_, void(Context*, folly::exception_wrapper));
 
   MOCK_METHOD1_T(attachPipeline, void(Context*));
   MOCK_METHOD1_T(attachTransport, void(Context*));
@@ -48,6 +49,13 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
   folly::Future<folly::Unit> close(Context* ctx) override {
     return folly::makeFutureWith([&](){
       close_(ctx);
+    });
+  }
+
+  folly::Future<folly::Unit> writeException(
+    Context* ctx, folly::exception_wrapper ex) override {
+    return folly::makeFutureWith([&](){
+        writeException_(ctx, ex);
     });
   }
 };
