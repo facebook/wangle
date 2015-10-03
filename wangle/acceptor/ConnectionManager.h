@@ -60,8 +60,7 @@ class ConnectionManager: public folly::DelayedDestruction,
    */
   template<typename... Args>
   static UniquePtr makeUnique(Args&&... args) {
-    return folly::make_unique<ConnectionManager, Destructor>(
-      std::forward<Args>(args)...);
+    return UniquePtr(new ConnectionManager(std::forward<Args>(args)...));
   }
 
   /**
