@@ -159,6 +159,9 @@ void
 Acceptor::connectionAccepted(
     int fd, const SocketAddress& clientAddr) noexcept {
   if (!canAccept(clientAddr)) {
+    // Send a RST to free kernel memory faster
+    struct linger optLinger = {1, 0};
+    ::setsockopt(fd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
     close(fd);
     return;
   }
