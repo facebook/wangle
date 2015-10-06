@@ -52,6 +52,10 @@ public:
     }
   }
 
+  bool operator==(const NetworkAddress& other) const {
+    return addr_ == other.addr_ && prefixLen_ == other.prefixLen_;
+  }
+
 private:
   folly::SocketAddress addr_;
   unsigned prefixLen_;

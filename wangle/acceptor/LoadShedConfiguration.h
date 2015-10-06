@@ -68,6 +68,15 @@ class LoadShedConfiguration {
   uint64_t getMaxConnections() const { return maxConnections_; }
 
   /**
+   * Set/get the maximum number of active downstream connections
+   * across all VIPs.
+   */
+  void setMaxActiveConnections(uint64_t maxActiveConns) {
+    maxActiveConnections_ = maxActiveConns;
+  }
+  uint64_t getMaxActiveConnections() const { return maxActiveConnections_; }
+
+  /**
    * Set/get the maximum cpu usage.
    */
   void setMaxMemUsage(double max) {
@@ -109,6 +118,7 @@ class LoadShedConfiguration {
   AddressSet whitelistAddrs_;
   NetworkSet whitelistNetworks_;
   uint64_t maxConnections_{0};
+  uint64_t maxActiveConnections_{0};
   uint64_t minFreeMem_{0};
   double maxMemUsage_;
   double maxCpuUsage_;
