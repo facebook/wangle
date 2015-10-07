@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <wangle/bootstrap/AcceptRoutingHandler.h>
@@ -19,13 +27,8 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
  public:
   typedef typename HandlerAdapter<folly::IOBufQueue&, T>::Context Context;
 
-  ObservingHandler(const R& routingData, BroadcastPool<T, R>* broadcastPool)
-      : routingData_(routingData),
-        broadcastPool_(CHECK_NOTNULL(broadcastPool)) {}
-
-  virtual ~ObservingHandler() {
-    CHECK(!broadcastHandler_);
-  }
+  ObservingHandler(const R& routingData, BroadcastPool<T, R>* broadcastPool);
+  ~ObservingHandler() override;
 
   // HandlerAdapter implementation
   void transportActive(Context* ctx) override;
