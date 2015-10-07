@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 namespace wangle {
@@ -24,22 +32,39 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
         pipeline->setPipelineManager(this);
 
         auto pipelineFactory = broadcastPool_->broadcastPipelineFactory_;
-        pipelineFactory->setRoutingData(pipeline, routingData_);
+        try {
+          pipelineFactory->setRoutingData(pipeline, routingData_);
+        } catch (const std::exception& ex) {
+          handleConnectError(ex);
+          return;
+        }
 
         auto handler = pipelineFactory->getBroadcastHandler(pipeline);
         CHECK(handler);
         sharedPromise_.setValue(handler);
       })
       .onError([this](const std::exception& ex) {
-        LOG(ERROR) << "Connect error: " << ex.what();
-        auto ew = folly::make_exception_wrapper<std::exception>(ex);
-
-        auto sharedPromise = std::move(sharedPromise_);
-        broadcastPool_->deleteBroadcast(routingData_);
-        sharedPromise.setException(ew);
+        handleConnectError(ex);
       });
 
   return future;
+}
+
+template <typename T, typename R>
+void BroadcastPool<T, R>::BroadcastManager::deletePipeline(
+    PipelineBase* pipeline) {
+  CHECK(client_.getPipeline() == pipeline);
+  broadcastPool_->deleteBroadcast(routingData_);
+}
+
+template <typename T, typename R>
+void BroadcastPool<T, R>::BroadcastManager::handleConnectError(
+    const std::exception& ex) noexcept {
+  LOG(ERROR) << "Error connecting to upstream: " << ex.what();
+
+  auto sharedPromise = std::move(sharedPromise_);
+  broadcastPool_->deleteBroadcast(routingData_);
+  sharedPromise.setException(folly::make_exception_wrapper<std::exception>(ex));
 }
 
 template <typename T, typename R>

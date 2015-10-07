@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <gmock/gmock.h>
@@ -117,8 +125,7 @@ class MockBroadcastPipelineFactory
     return pipeline->getHandler<BroadcastHandler<int>>(2);
   }
 
-  GMOCK_METHOD2_(
-      , noexcept, , setRoutingData, void(DefaultPipeline*, const std::string&));
+  MOCK_METHOD2(setRoutingData, void(DefaultPipeline*, const std::string&));
 };
 
 class MockObservingPipelineFactory

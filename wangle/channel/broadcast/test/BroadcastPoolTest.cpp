@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/test/Mocks.h>
@@ -261,6 +269,34 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_TRUE(handler1Error);
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+}
+
+TEST_F(BroadcastPoolTest, RoutingDataException) {
+  // Test when an exception occurs while setting routing data on
+  // the pipeline after the socket connect succeeds.
+  std::string routingData = "url";
+  BroadcastHandler<int>* handler = nullptr;
+  bool handlerError = false;
+  auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
+
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler = h;
+      })
+      .onError([&] (const std::exception& ex) {
+        handlerError = true;
+        EXPECT_FALSE(pool->isBroadcasting(routingData));
+      });
+  EXPECT_TRUE(handler == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url"))
+      .WillOnce(Throw(std::exception()));
+  base->loopOnce(); // Do async connect
+  EXPECT_TRUE(handler == nullptr);
+  EXPECT_TRUE(handlerError);
   EXPECT_FALSE(pool->isBroadcasting(routingData));
 }
 

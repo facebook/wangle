@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -89,7 +97,7 @@ class BroadcastPipelineFactory
       DefaultPipeline* pipeline) noexcept = 0;
 
   virtual void setRoutingData(DefaultPipeline* pipeline,
-                              const R& routingData) noexcept = 0;
+                              const R& routingData) = 0;
 };
 
 } // namespace wangle

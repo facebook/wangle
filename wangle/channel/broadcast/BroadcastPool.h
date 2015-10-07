@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <folly/ThreadLocal.h>
@@ -48,12 +56,11 @@ class BroadcastPool {
     folly::Future<BroadcastHandler<T>*> getHandler();
 
     // PipelineManager implementation
-    void deletePipeline(PipelineBase* pipeline) override {
-      CHECK(client_.getPipeline() == pipeline);
-      broadcastPool_->deleteBroadcast(routingData_);
-    }
+    void deletePipeline(PipelineBase* pipeline) override;
 
    private:
+    void handleConnectError(const std::exception& ex) noexcept;
+
     BroadcastPool<T, R>* broadcastPool_{nullptr};
     R routingData_;
     ClientBootstrap<DefaultPipeline> client_;
