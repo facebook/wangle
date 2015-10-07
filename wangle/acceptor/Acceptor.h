@@ -224,6 +224,7 @@ class Acceptor :
   folly::EventBase* base_{nullptr};
 
   virtual uint64_t getConnectionCountForLoadShedding(void) const { return 0; }
+  virtual uint64_t getActiveConnectionCountForLoadShedding() const { return 0; }
 
   /**
    * Hook for subclasses to drop newly accepted connections prior

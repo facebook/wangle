@@ -9,8 +9,6 @@
  */
 #include <wangle/acceptor/LoadShedConfiguration.h>
 
-#include <thread>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 using namespace wangle;

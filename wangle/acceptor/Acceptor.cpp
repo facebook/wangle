@@ -144,10 +144,15 @@ bool Acceptor::canAccept(const SocketAddress& address) {
     return true;
   }
 
-  // Take care of comparing connection count against max connections across
-  // all acceptors. Expensive since a lock must be taken to get the counter.
-  auto connectionCountForLoadShedding = getConnectionCountForLoadShedding();
-  if (connectionCountForLoadShedding < loadShedConfig_.getMaxConnections()) {
+  // Take care of the connection counts across all acceptors.
+  // Expensive since a lock must be taken to get the counter.
+  const auto activeConnectionCountForLoadShedding =
+    getActiveConnectionCountForLoadShedding();
+  const auto connectionCountForLoadShedding =
+    getConnectionCountForLoadShedding();
+  if (activeConnectionCountForLoadShedding <
+      loadShedConfig_.getMaxActiveConnections() &&
+      connectionCountForLoadShedding < loadShedConfig_.getMaxConnections()) {
     return true;
   }
 
