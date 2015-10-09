@@ -19,7 +19,7 @@ void ServerWorkerPool::threadStarted(
   wangle::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = acceptorFactory_->newAcceptor(exec_->getEventBase(h));
   {
-    folly::SharedMutex::WriteHolder holder(workersMutex_.get());
+    Mutex::WriteHolder holder(workersMutex_.get());
     workers_->insert({h, worker});
   }
 
@@ -34,7 +34,7 @@ void ServerWorkerPool::threadStarted(
 
 void ServerWorkerPool::threadStopped(
   wangle::ThreadPoolExecutor::ThreadHandle* h) {
-  folly::SharedMutex::ReadHolder holder(workersMutex_.get());
+  Mutex::ReadHolder holder(workersMutex_.get());
   auto worker = workers_->find(h);
   CHECK(worker != workers_->end());
 
@@ -59,7 +59,7 @@ void ServerWorkerPool::threadStopped(
   auto workersMutex = workersMutex_;
   worker->second->getEventBase()->runAfterDrain(
     [workers, worker, workersMutex]() {
-      folly::SharedMutex::WriteHolder writeHolder(workersMutex.get());
+      Mutex::WriteHolder writeHolder(workersMutex.get());
       workers->erase(worker);
     });
 }

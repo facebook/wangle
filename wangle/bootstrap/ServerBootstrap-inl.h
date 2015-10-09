@@ -160,7 +160,7 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
     std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets,
     std::shared_ptr<ServerSocketFactory> socketFactory)
       : workers_(std::make_shared<WorkerMap>())
-      , workersMutex_(std::make_shared<folly::SharedMutex>())
+      , workersMutex_(std::make_shared<Mutex>())
       , acceptorFactory_(acceptorFactory)
       , exec_(exec)
       , sockets_(sockets)
@@ -187,8 +187,10 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
  private:
   using WorkerMap = std::map<wangle::ThreadPoolExecutor::ThreadHandle*,
         std::shared_ptr<Acceptor>>;
+  using Mutex = folly::SharedMutexReadPriority;
+
   std::shared_ptr<WorkerMap> workers_;
-  std::shared_ptr<folly::SharedMutex> workersMutex_;
+  std::shared_ptr<Mutex> workersMutex_;
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   wangle::IOThreadPoolExecutor* exec_{nullptr};
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
@@ -198,7 +200,7 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
 
 template <typename F>
 void ServerWorkerPool::forEachWorker(F&& f) const {
-  folly::SharedMutex::ReadHolder holder(workersMutex_.get());
+  Mutex::ReadHolder holder(workersMutex_.get());
   for (const auto& kv : *workers_) {
     f(kv.second.get());
   }
