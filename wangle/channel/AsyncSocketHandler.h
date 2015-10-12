@@ -104,7 +104,14 @@ class AsyncSocketHandler
   }
 
   folly::Future<folly::Unit> close(Context* ctx) override {
-    return shutdown(ctx, false);
+    bool shutdownWriteOnly = isSet(ctx->getWriteFlags(),
+                                   folly::WriteFlags::WRITE_SHUTDOWN);
+    if (shutdownWriteOnly) {
+      socket_->shutdownWrite();
+      return folly::makeFuture();
+    } else {
+      return shutdown(ctx, false);
+    }
   }
 
   // Must override to avoid warnings about hidden overloaded virtual due to
