@@ -358,12 +358,14 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
   shared_ptr<SSLContext> ctx;
 
   const char* sn = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+  bool reqHasServerName = true;
   if (!sn) {
-    VLOG(6) << "Server Name (tlsext_hostname) is missing";
+    VLOG(6) << "Server Name (tlsext_hostname) is missing, using default";
     if (clientHelloTLSExtStats_) {
       clientHelloTLSExtStats_->recordAbsentHostname();
     }
-    return SSLContext::SERVER_NAME_NOT_FOUND;
+    reqHasServerName = false;
+    sn = defaultCtxDomainName_.c_str();
   }
   size_t snLen = strlen(sn);
   VLOG(6) << "Server Name (SNI TLS extension): '" << sn << "' ";
@@ -398,7 +400,9 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
     if (ctx) {
       sslSocket->switchServerSSLContext(ctx);
       if (clientHelloTLSExtStats_) {
-        clientHelloTLSExtStats_->recordMatch();
+        if (reqHasServerName) {
+          clientHelloTLSExtStats_->recordMatch();
+        }
         clientHelloTLSExtStats_->recordCertCrypto(certCryptoReq, certCryptoReq);
       }
       return SSLContext::SERVER_NAME_FOUND;
@@ -411,7 +415,9 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
       if (ctx) {
         sslSocket->switchServerSSLContext(ctx);
         if (clientHelloTLSExtStats_) {
-          clientHelloTLSExtStats_->recordMatch();
+          if (reqHasServerName) {
+            clientHelloTLSExtStats_->recordMatch();
+          }
           clientHelloTLSExtStats_->recordCertCrypto(
               certCryptoReq, CertCrypto::BEST_AVAILABLE);
         }
@@ -425,7 +431,7 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
 
   VLOG(6) << folly::stringPrintf("Cannot find a SSL_CTX for \"%s\"", sn);
 
-  if (clientHelloTLSExtStats_) {
+  if (clientHelloTLSExtStats_ && reqHasServerName) {
     clientHelloTLSExtStats_->recordNotMatch();
   }
   return SSLContext::SERVER_NAME_NOT_FOUND;
@@ -568,6 +574,10 @@ SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
     for (auto& name : *altNames) {
       insertSSLCtxByDomainName(name.c_str(), name.length(), sslCtx, certCrypto);
     }
+  }
+
+  if (defaultFallback) {
+    defaultCtxDomainName_ = *cn;
   }
 
   ctxs_.emplace_back(sslCtx);

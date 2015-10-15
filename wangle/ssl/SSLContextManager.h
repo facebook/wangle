@@ -182,6 +182,7 @@ class SSLContextManager {
   std::vector<std::unique_ptr<TLSTicketKeyManager>> ticketManagers_;
 
   std::shared_ptr<folly::SSLContext> defaultCtx_;
+  std::string defaultCtxDomainName_;
 
   /**
    * Container to store the (DomainName -> SSL_CTX) mapping
