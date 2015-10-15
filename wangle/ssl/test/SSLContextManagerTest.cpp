@@ -12,7 +12,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <wangle/ssl/SSLContextManager.h>
-#include <wangle/acceptor/DomainNameMisc.h>
+#include <wangle/acceptor/SSLContextSelectionMisc.h>
 
 using std::shared_ptr;
 using namespace folly;
@@ -27,8 +27,16 @@ TEST(SSLContextManagerTest, Test1)
   auto www_facebook_com_ctx = std::make_shared<SSLContext>();
   auto start_facebook_com_ctx = std::make_shared<SSLContext>();
   auto start_abc_facebook_com_ctx = std::make_shared<SSLContext>();
+  auto www_facebook_com_ctx_sha1 = std::make_shared<SSLContext>();
+  auto start_facebook_com_ctx_sha1 = std::make_shared<SSLContext>();
+  auto www_bookface_com_ctx_sha1 = std::make_shared<SSLContext>();
 
   sslCtxMgr.insertSSLCtxByDomainName(
+    "*.facebook.com",
+    strlen("*.facebook.com"),
+    start_facebook_com_ctx_sha1,
+    CertCrypto::SHA1_SIGNATURE);
+  sslCtxMgr.insertSSLCtxByDomainName(
     "www.facebook.com",
     strlen("www.facebook.com"),
     www_facebook_com_ctx);
@@ -36,13 +44,6 @@ TEST(SSLContextManagerTest, Test1)
     "www.facebook.com",
     strlen("www.facebook.com"),
     www_facebook_com_ctx);
-  try {
-    sslCtxMgr.insertSSLCtxByDomainName(
-      "www.facebook.com",
-      strlen("www.facebook.com"),
-      std::make_shared<SSLContext>());
-  } catch (const std::exception& ex) {
-  }
   sslCtxMgr.insertSSLCtxByDomainName(
     "*.facebook.com",
     strlen("*.facebook.com"),
@@ -51,36 +52,58 @@ TEST(SSLContextManagerTest, Test1)
     "*.abc.facebook.com",
     strlen("*.abc.facebook.com"),
     start_abc_facebook_com_ctx);
-  try {
-    sslCtxMgr.insertSSLCtxByDomainName(
-      "*.abc.facebook.com",
-      strlen("*.abc.facebook.com"),
-      std::make_shared<SSLContext>());
-    FAIL();
-  } catch (const std::exception& ex) {
-  }
+  sslCtxMgr.insertSSLCtxByDomainName(
+    "www.facebook.com",
+    strlen("www.facebook.com"),
+    www_facebook_com_ctx_sha1,
+    CertCrypto::SHA1_SIGNATURE);
+  sslCtxMgr.insertSSLCtxByDomainName(
+    "www.bookface.com",
+    strlen("www.bookface.com"),
+    www_bookface_com_ctx_sha1,
+    CertCrypto::SHA1_SIGNATURE);
+
 
   shared_ptr<SSLContext> retCtx;
-  retCtx = sslCtxMgr.getSSLCtx(DNString("www.facebook.com"));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.facebook.com"));
   EXPECT_EQ(retCtx, www_facebook_com_ctx);
-  retCtx = sslCtxMgr.getSSLCtx(DNString("WWW.facebook.com"));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("WWW.facebook.com"));
   EXPECT_EQ(retCtx, www_facebook_com_ctx);
-  EXPECT_FALSE(sslCtxMgr.getSSLCtx(DNString("xyz.facebook.com")));
+  EXPECT_FALSE(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("xyz.facebook.com")));
 
-  retCtx = sslCtxMgr.getSSLCtxBySuffix(DNString("xyz.facebook.com"));
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("xyz.facebook.com"));
   EXPECT_EQ(retCtx, start_facebook_com_ctx);
-  retCtx = sslCtxMgr.getSSLCtxBySuffix(DNString("XYZ.facebook.com"));
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("XYZ.facebook.com"));
   EXPECT_EQ(retCtx, start_facebook_com_ctx);
 
-  retCtx = sslCtxMgr.getSSLCtxBySuffix(DNString("www.abc.facebook.com"));
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("www.abc.facebook.com"));
   EXPECT_EQ(retCtx, start_abc_facebook_com_ctx);
 
   // ensure "facebook.com" does not match "*.facebook.com"
-  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(DNString("facebook.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("facebook.com")));
   // ensure "Xfacebook.com" does not match "*.facebook.com"
-  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(DNString("Xfacebook.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("Xfacebook.com")));
   // ensure wildcard name only matches one domain up
-  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(DNString("abc.xyz.facebook.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(
+        SSLContextKey("abc.xyz.facebook.com")));
+
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.facebook.com",
+        CertCrypto::SHA1_SIGNATURE));
+  EXPECT_EQ(retCtx, www_facebook_com_ctx_sha1);
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("abc.facebook.com",
+        CertCrypto::SHA1_SIGNATURE));
+  EXPECT_EQ(retCtx, start_facebook_com_ctx_sha1);
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("xyz.abc.facebook.com",
+        CertCrypto::SHA1_SIGNATURE));
+  EXPECT_FALSE(retCtx);
+
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.bookface.com",
+        CertCrypto::SHA1_SIGNATURE));
+  EXPECT_EQ(retCtx, www_bookface_com_ctx_sha1);
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.bookface.com"));
+  EXPECT_EQ(retCtx, www_bookface_com_ctx_sha1);
+
 
   eventBase.loop(); // Clean up events before SSLContextManager is destructed
 }

@@ -372,27 +372,51 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
   folly::AsyncSSLSocket* sslSocket = folly::AsyncSSLSocket::getFromSSL(ssl);
   CHECK(sslSocket);
 
-  DNString dnstr(sn, snLen);
+  // Check if we think the client is outdated and require weak crypto.
+  CertCrypto certCryptoReq = CertCrypto::BEST_AVAILABLE;
 
+  // TODO: use SSL_get_sigalgs (requires openssl 1.0.2).
+  auto clientInfo = sslSocket->getClientHelloInfo();
+  if (clientInfo) {
+    certCryptoReq = CertCrypto::SHA1_SIGNATURE;
+    for (const auto& sigAlgPair : clientInfo->clientHelloSigAlgs_) {
+      if (sigAlgPair.first == folly::AsyncSSLSocket::HashAlgorithm::SHA256) {
+        certCryptoReq = CertCrypto::BEST_AVAILABLE;
+        break;
+      }
+    }
+  }
+
+  DNString dnstr(sn, snLen);
   uint32_t count = 0;
   do {
-    // Try exact match first
-    ctx = getSSLCtx(dnstr);
+    // First look for a context with the exact crypto needed. Weaker crypto will
+    // be in the map as best available if it is the best we have for that
+    // subject name.
+    SSLContextKey key(dnstr, certCryptoReq);
+    ctx = getSSLCtx(key);
     if (ctx) {
       sslSocket->switchServerSSLContext(ctx);
       if (clientHelloTLSExtStats_) {
         clientHelloTLSExtStats_->recordMatch();
+        clientHelloTLSExtStats_->recordCertCrypto(certCryptoReq, certCryptoReq);
       }
       return SSLContext::SERVER_NAME_FOUND;
     }
 
-    ctx = getSSLCtxBySuffix(dnstr);
-    if (ctx) {
-      sslSocket->switchServerSSLContext(ctx);
-      if (clientHelloTLSExtStats_) {
-        clientHelloTLSExtStats_->recordMatch();
+    // If we didn't find an exact match, look for a cert with upgraded crypto.
+    if (certCryptoReq != CertCrypto::BEST_AVAILABLE) {
+      SSLContextKey fallbackKey(dnstr, CertCrypto::BEST_AVAILABLE);
+      ctx = getSSLCtx(fallbackKey);
+      if (ctx) {
+        sslSocket->switchServerSSLContext(ctx);
+        if (clientHelloTLSExtStats_) {
+          clientHelloTLSExtStats_->recordMatch();
+          clientHelloTLSExtStats_->recordCertCrypto(
+              certCryptoReq, CertCrypto::BEST_AVAILABLE);
+        }
+        return SSLContext::SERVER_NAME_FOUND;
       }
-      return SSLContext::SERVER_NAME_FOUND;
     }
 
     // Give the noMatchFn one chance to add the correct cert
@@ -524,14 +548,25 @@ SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
     return;
   }
 
+  CertCrypto certCrypto;
+  int sigAlg = OBJ_obj2nid(x509->sig_alg->algorithm);
+  if (sigAlg == NID_sha1WithRSAEncryption ||
+      sigAlg == NID_ecdsa_with_SHA1) {
+    certCrypto = CertCrypto::SHA1_SIGNATURE;
+    VLOG(4) << "Adding SSLContext with SHA1 Signature";
+  } else {
+    certCrypto = CertCrypto::BEST_AVAILABLE;
+    VLOG(4) << "Adding SSLContext with best available crypto";
+  }
+
   // Insert by CN
-  insertSSLCtxByDomainName(cn->c_str(), cn->length(), sslCtx);
+  insertSSLCtxByDomainName(cn->c_str(), cn->length(), sslCtx, certCrypto);
 
   // Insert by subject alternative name(s)
   auto altNames = SSLUtil::getSubjectAltName(x509);
   if (altNames) {
     for (auto& name : *altNames) {
-      insertSSLCtxByDomainName(name.c_str(), name.length(), sslCtx);
+      insertSSLCtxByDomainName(name.c_str(), name.length(), sslCtx, certCrypto);
     }
   }
 
@@ -542,9 +577,10 @@ SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
 
 void
 SSLContextManager::insertSSLCtxByDomainName(const char* dn, size_t len,
-                                            shared_ptr<SSLContext> sslCtx) {
+                                            shared_ptr<SSLContext> sslCtx,
+                                            CertCrypto certCrypto) {
   try {
-    insertSSLCtxByDomainNameImpl(dn, len, sslCtx);
+    insertSSLCtxByDomainNameImpl(dn, len, sslCtx, certCrypto);
   } catch (const std::runtime_error& ex) {
     if (strict_) {
       throw ex;
@@ -555,7 +591,8 @@ SSLContextManager::insertSSLCtxByDomainName(const char* dn, size_t len,
 }
 void
 SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn, size_t len,
-                                                shared_ptr<SSLContext> sslCtx)
+                                                shared_ptr<SSLContext> sslCtx,
+                                                CertCrypto certCrypto)
 {
   VLOG(4) <<
     folly::stringPrintf("Adding CN/Subject-alternative-name \"%s\" for "
@@ -587,48 +624,78 @@ SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn, size_t len,
   }
 
   DNString dnstr(dn, len);
-  const auto v = dnMap_.find(dnstr);
+  insertIntoDnMap(SSLContextKey(dnstr, certCrypto), sslCtx, true);
+  if (certCrypto != CertCrypto::BEST_AVAILABLE) {
+    // Note: there's no partial ordering here (you either get what you request,
+    // or you get best available).
+    VLOG(6) << "Attempting insert of weak crypto SSLContext as best available.";
+    insertIntoDnMap(
+        SSLContextKey(dnstr, CertCrypto::BEST_AVAILABLE), sslCtx, false);
+  }
+}
+
+void SSLContextManager::insertIntoDnMap(SSLContextKey key,
+                                        shared_ptr<SSLContext> sslCtx,
+                                        bool overwrite)
+{
+  const auto v = dnMap_.find(key);
   if (v == dnMap_.end()) {
-    dnMap_.emplace(dnstr, sslCtx);
+    VLOG(6) << "Inserting SSLContext into map.";
+    dnMap_.emplace(key, sslCtx);
   } else if (v->second == sslCtx) {
     VLOG(6)<< "Duplicate CN or subject alternative name found in the same X509."
       "  Ignore the later name.";
+  } else if (overwrite) {
+    VLOG(6) << "Overwriting SSLContext.";
+    v->second = sslCtx;
   } else {
-    throw std::runtime_error("Duplicate CN or subject alternative name found: \"" +
-                             std::string(dnstr.c_str()) + "\"");
+    VLOG(6) << "Leaving existing SSLContext in map.";
   }
 }
 
 shared_ptr<SSLContext>
-SSLContextManager::getSSLCtxBySuffix(const DNString& dnstr) const
+SSLContextManager::getSSLCtx(const SSLContextKey& key) const
+{
+  auto ctx = getSSLCtxByExactDomain(key);
+  if (ctx) {
+    return ctx;
+  }
+  return getSSLCtxBySuffix(key);
+}
+
+shared_ptr<SSLContext>
+SSLContextManager::getSSLCtxBySuffix(const SSLContextKey& key) const
 {
   size_t dot;
 
-  if ((dot = dnstr.find_first_of(".")) != DNString::npos) {
-    DNString suffixDNStr(dnstr, dot);
-    const auto v = dnMap_.find(suffixDNStr);
+  if ((dot = key.dnString.find_first_of(".")) != DNString::npos) {
+    SSLContextKey suffixKey(DNString(key.dnString, dot),
+        key.certCrypto);
+    const auto v = dnMap_.find(suffixKey);
     if (v != dnMap_.end()) {
       VLOG(6) << folly::stringPrintf("\"%s\" is a willcard match to \"%s\"",
-                                     dnstr.c_str(), suffixDNStr.c_str());
+                                     key.dnString.c_str(),
+                                     suffixKey.dnString.c_str());
       return v->second;
     }
   }
 
   VLOG(6) << folly::stringPrintf("\"%s\" is not a wildcard match",
-                                 dnstr.c_str());
+                                 key.dnString.c_str());
   return shared_ptr<SSLContext>();
 }
 
 shared_ptr<SSLContext>
-SSLContextManager::getSSLCtx(const DNString& dnstr) const
+SSLContextManager::getSSLCtxByExactDomain(const SSLContextKey& key) const
 {
-  const auto v = dnMap_.find(dnstr);
+  const auto v = dnMap_.find(key);
   if (v == dnMap_.end()) {
     VLOG(6) << folly::stringPrintf("\"%s\" is not an exact match",
-                                   dnstr.c_str());
+                                   key.dnString.c_str());
     return shared_ptr<SSLContext>();
   } else {
-    VLOG(6) << folly::stringPrintf("\"%s\" is an exact match", dnstr.c_str());
+    VLOG(6) << folly::stringPrintf("\"%s\" is an exact match",
+                                   key.dnString.c_str());
     return v->second;
   }
 }

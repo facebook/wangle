@@ -280,6 +280,11 @@ struct TransportInfo {
   uint16_t sslVersion{0};
 
   /*
+   * The signature algorithm used in the certificate.
+   */
+  std::shared_ptr<std::string> sslCertSigAlgName{nullptr};
+
+  /*
    * The SSL certificate size.
    */
   uint16_t sslCertSize{0};

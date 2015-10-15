@@ -10,8 +10,15 @@
 #pragma once
 
 #include <string>
+#include <folly/Hash.h>
+#include <folly/String.h>
 
 namespace wangle {
+
+enum class CertCrypto {
+  BEST_AVAILABLE,
+  SHA1_SIGNATURE
+};
 
 struct dn_char_traits : public std::char_traits<char> {
   static bool eq(char c1, char c2) {
@@ -56,12 +63,28 @@ struct dn_char_traits : public std::char_traits<char> {
 // Case insensitive string
 typedef std::basic_string<char, dn_char_traits> DNString;
 
-struct DNStringHash : public std::hash<std::string> {
-  size_t operator()(const DNString& s1) const noexcept {
-    std::string s2(s1.data(), s1.size());
-    for (char& c : s2)
-      c = ::tolower(c);
-    return std::hash<std::string>()(s2);
+struct SSLContextKey {
+  DNString dnString;
+  CertCrypto certCrypto;
+
+  explicit SSLContextKey(DNString dnString,
+                         CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE) :
+    dnString(dnString),
+    certCrypto(certCrypto) {
+  }
+
+  bool operator==(const SSLContextKey& rhs) const {
+    return dnString == rhs.dnString && certCrypto == rhs.certCrypto;
+  }
+};
+
+struct SSLContextKeyHash {
+  size_t operator()(const SSLContextKey& sslContextKey) const noexcept {
+    std::string lowercase(sslContextKey.dnString.data(),
+                          sslContextKey.dnString.size());
+    folly::toLowerAscii((char *) lowercase.data(), lowercase.size());
+    return folly::hash::hash_combine(lowercase,
+        static_cast<int>(sslContextKey.certCrypto));
   }
 };
 

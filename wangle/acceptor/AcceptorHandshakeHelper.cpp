@@ -1,3 +1,12 @@
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #include <wangle/acceptor/AcceptorHandshakeHelper.h>
 
 #include <string>
@@ -40,6 +49,9 @@ void AcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   tinfo_.sslCipher = sock->getNegotiatedCipherName() ?
     std::make_shared<std::string>(sock->getNegotiatedCipherName()) : nullptr;
   tinfo_.sslVersion = sock->getSSLVersion();
+  const char* sigAlgName = sock->getSSLCertSigAlgName();
+  tinfo_.sslCertSigAlgName =
+    std::make_shared<std::string>(sigAlgName ? sigAlgName : "");
   tinfo_.sslCertSize = sock->getSSLCertSize();
   tinfo_.sslResume = SSLUtil::getResumeState(sock);
   tinfo_.sslClientCiphers = std::make_shared<std::string>();

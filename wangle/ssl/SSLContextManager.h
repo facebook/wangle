@@ -18,7 +18,7 @@
 #include <wangle/ssl/SSLContextConfig.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
-#include <wangle/acceptor/DomainNameMisc.h>
+#include <wangle/acceptor/SSLContextSelectionMisc.h>
 #include <vector>
 
 namespace folly {
@@ -70,16 +70,22 @@ class SSLContextManager {
     getDefaultSSLCtx() const;
 
   /**
+   * Search first by exact domain, then by one level up
+   */
+  std::shared_ptr<folly::SSLContext>
+    getSSLCtx(const SSLContextKey& key) const;
+
+  /**
    * Search by the _one_ level up subdomain
    */
   std::shared_ptr<folly::SSLContext>
-    getSSLCtxBySuffix(const DNString& dnstr) const;
+    getSSLCtxBySuffix(const SSLContextKey& key) const;
 
   /**
    * Search by the full-string domain name
    */
   std::shared_ptr<folly::SSLContext>
-    getSSLCtx(const DNString& dnstr) const;
+    getSSLCtxByExactDomain(const SSLContextKey& key) const;
 
   /**
    * Insert a SSLContext by domain name.
@@ -87,12 +93,8 @@ class SSLContextManager {
   void insertSSLCtxByDomainName(
     const char* dn,
     size_t len,
-    std::shared_ptr<folly::SSLContext> sslCtx);
-
-  void insertSSLCtxByDomainNameImpl(
-    const char* dn,
-    size_t len,
-    std::shared_ptr<folly::SSLContext> sslCtx);
+    std::shared_ptr<folly::SSLContext> sslCtx,
+    CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
 
   void reloadTLSTicketKeys(const std::vector<std::string>& oldSeeds,
                            const std::vector<std::string>& currentSeeds,
@@ -159,6 +161,17 @@ class SSLContextManager {
     std::unique_ptr<TLSTicketKeyManager> tManager,
     bool defaultFallback);
 
+  void insertSSLCtxByDomainNameImpl(
+    const char* dn,
+    size_t len,
+    std::shared_ptr<folly::SSLContext> sslCtx,
+    CertCrypto certCrypto);
+
+  void insertIntoDnMap(SSLContextKey key,
+    std::shared_ptr<folly::SSLContext> sslCtx,
+    bool overwrite);
+
+
   /**
    * Container to own the SSLContext, SSLSessionCacheManager and
    * TLSTicketKeyManager.
@@ -174,9 +187,9 @@ class SSLContextManager {
    * Container to store the (DomainName -> SSL_CTX) mapping
    */
   std::unordered_map<
-    DNString,
+    SSLContextKey,
     std::shared_ptr<folly::SSLContext>,
-    DNStringHash> dnMap_;
+    SSLContextKeyHash> dnMap_;
 
   folly::EventBase* eventBase_;
   ClientHelloExtStats* clientHelloTLSExtStats_{nullptr};
