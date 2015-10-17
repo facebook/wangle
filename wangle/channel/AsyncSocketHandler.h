@@ -154,7 +154,10 @@ class AsyncSocketHandler
         socket_->closeNow();
       }
     }
-    ctx->getPipeline()->deletePipeline();
+    if (!pipelineDeleted_) {
+      pipelineDeleted_ = true;
+      ctx->getPipeline()->deletePipeline();
+    }
     return folly::makeFuture();
   }
 
@@ -179,6 +182,7 @@ class AsyncSocketHandler
   folly::IOBufQueue bufQueue_{folly::IOBufQueue::cacheChainLength()};
   std::shared_ptr<folly::AsyncSocket> socket_{nullptr};
   bool firedInactive_{false};
+  bool pipelineDeleted_{false};
 };
 
 } // namespace wangle
