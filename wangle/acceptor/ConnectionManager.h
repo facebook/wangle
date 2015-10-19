@@ -164,22 +164,23 @@ class ConnectionManager: public folly::DelayedDestruction,
 
     void timeoutExpired() noexcept override {
       VLOG(3) << "Idle grace expired";
-      manager_->drainAllConnections();
+      manager_->idleGracefulTimeoutExpired();
     }
 
    private:
     ConnectionManager* manager_;
   };
 
-  enum class ShutdownAction : uint8_t {
-    /**
-     * Drain part 1: inform remote that you will soon reject new requests.
-     */
-    DRAIN1 = 0,
-    /**
-     * Drain part 2: start rejecting new requests.
-     */
-    DRAIN2 = 1,
+  enum class ShutdownState : uint8_t {
+    NONE = 0,
+    // All ManagedConnections receive notifyPendingShutdown
+    NOTIFY_PENDING_SHUTDOWN = 1,
+    // All ManagedConnections have received notifyPendingShutdown
+    NOTIFY_PENDING_SHUTDOWN_COMPLETE = 2,
+    // All ManagedConnections receive closeWhenIdle
+    CLOSE_WHEN_IDLE = 3,
+    // All ManagedConnections have received closeWhenIdle
+    CLOSE_WHEN_IDLE_COMPLETE = 4,
   };
 
   ~ConnectionManager() = default;
@@ -193,6 +194,8 @@ class ConnectionManager: public folly::DelayedDestruction,
    * isBusy() method.
    */
   void drainAllConnections();
+
+  void idleGracefulTimeoutExpired();
 
   /**
    * All the managed connections. idleIterator_ seperates them into two parts:
@@ -215,7 +218,7 @@ class ConnectionManager: public folly::DelayedDestruction,
   folly::CountedIntrusiveList<
     ManagedConnection,&ManagedConnection::listHook_>::iterator idleIterator_;
   CloseIdleConnsCallback idleLoopCallback_;
-  ShutdownAction action_{ShutdownAction::DRAIN1};
+  ShutdownState shutdownState_{ShutdownState::NONE};
 
   /**
    * the default idle timeout for downstream sessions when no system resource

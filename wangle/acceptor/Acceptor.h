@@ -136,6 +136,19 @@ class Acceptor :
   }
 
   /**
+   * Time after drainAllConnections() or acceptStopped() during which
+   * new requests on connections owned by the downstream
+   * ConnectionManager will be processed normally.
+   */
+  void setGracefulShutdownTimeout(std::chrono::milliseconds gracefulShutdown) {
+    gracefulShutdownTimeout_ = gracefulShutdown;
+  }
+
+  std::chrono::milliseconds getGracefulShutdownTimeout() const {
+    return gracefulShutdownTimeout_;
+  }
+
+  /**
    * Force the acceptor to drop all connections and stop processing.
    *
    * This function may be called from any thread.  The acceptor will not
@@ -366,6 +379,7 @@ class Acceptor :
   LoadShedConfiguration loadShedConfig_;
   IConnectionCounter* connectionCounter_{nullptr};
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
+  std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 };
 
 class AcceptorFactory {
