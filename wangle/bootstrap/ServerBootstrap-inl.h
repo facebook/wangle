@@ -10,16 +10,37 @@
 
 #pragma once
 
-#include <wangle/acceptor/Acceptor.h>
-#include <wangle/bootstrap/ServerSocketFactory.h>
-#include <folly/io/async/EventBaseManager.h>
-#include <wangle/concurrent/IOThreadPoolExecutor.h>
-#include <wangle/acceptor/ManagedConnection.h>
-#include <wangle/channel/Pipeline.h>
-#include <wangle/channel/Handler.h>
+#include <folly/ExceptionWrapper.h>
 #include <folly/SharedMutex.h>
+#include <folly/io/async/EventBaseManager.h>
+#include <wangle/acceptor/Acceptor.h>
+#include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/bootstrap/ServerSocketFactory.h>
+#include <wangle/channel/Handler.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/concurrent/IOThreadPoolExecutor.h>
 
 namespace wangle {
+
+class AcceptorException : public std::runtime_error {
+ public:
+  enum class ExceptionType {
+    UNKNOWN = 0,
+    TIMED_OUT = 1,
+    INTERNAL_ERROR = 2,
+  };
+
+  explicit AcceptorException(ExceptionType type) :
+      std::runtime_error(""), type_(type) {}
+
+  AcceptorException(ExceptionType type, const std::string& message) :
+      std::runtime_error(message), type_(type) {}
+
+  ExceptionType getType() const noexcept { return type_; }
+
+ protected:
+  const ExceptionType type_;
+};
 
 template <typename Pipeline>
 class ServerAcceptor
@@ -37,6 +58,9 @@ class ServerAcceptor
     ~ServerConnection() = default;
 
     void timeoutExpired() noexcept override {
+      auto ew = folly::make_exception_wrapper<AcceptorException>(
+          AcceptorException::ExceptionType::TIMED_OUT);
+      pipeline_->readException(ew);
     }
 
     void describe(std::ostream& os) const override {}
