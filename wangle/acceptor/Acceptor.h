@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <event.h>
+#include <folly/ExceptionWrapper.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncServerSocket.h>
 #include <folly/io/async/AsyncUDPServerSocket.h>
@@ -222,7 +223,7 @@ class Acceptor :
   /**
    * Notification callback for SSL handshake failures.
    */
-  virtual void sslConnectionError();
+  virtual void sslConnectionError(const folly::exception_wrapper& ex);
 
  protected:
   friend class AcceptorHandshakeHelper;

@@ -195,9 +195,12 @@ Acceptor::processEstablishedConnection(
     if (totalNumPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name <<
         " too many handshakes in progress";
-      updateSSLStats(sslSock.get(), std::chrono::milliseconds(0),
-                     SSLErrorEnum::DROPPED);
-      sslConnectionError();
+      auto error = SSLErrorEnum::DROPPED;
+      auto latency = std::chrono::milliseconds(0);
+      updateSSLStats(sslSock.get(), latency, error);
+      auto ex = folly::make_exception_wrapper<SSLException>(
+          error, latency, sslSock->getBytesRead());
+      sslConnectionError(ex);
       return;
     }
     startHandshakeHelper(
@@ -276,8 +279,7 @@ Acceptor::sslConnectionReady(AsyncSocket::UniquePtr sock,
   }
 }
 
-void
-Acceptor::sslConnectionError() {
+void Acceptor::sslConnectionError(const folly::exception_wrapper& ex) {
   CHECK(numPendingSSLConns_ > 0);
   --numPendingSSLConns_;
   --totalNumPendingSSLConns_;

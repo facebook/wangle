@@ -84,30 +84,32 @@ class ServerAcceptor
   };
 
   explicit ServerAcceptor(
-      std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory,
-      std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline,
+      std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory,
+      std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory,
       folly::EventBase* base,
       const ServerSocketConfig& accConfig)
-      : Acceptor(accConfig),
-        base_(base),
-        childPipelineFactory_(pipelineFactory),
-        acceptorPipeline_(acceptorPipeline) {
-    Acceptor::init(nullptr, base_);
-    CHECK(acceptorPipeline_);
+      : Acceptor(accConfig), childPipelineFactory_(childPipelineFactory) {
+    Acceptor::init(nullptr, base);
 
+    acceptPipeline_ = acceptPipelineFactory->newPipeline(this);
     if (childPipelineFactory_) {
-      acceptorPipeline_->addBack(this);
+      // This means a custom AcceptPipelineFactory was not passed in via
+      // pipeline() and we're using the DefaultAcceptPipelineFactory.
+      // Add the default inbound handler here.
+      acceptPipeline_->addBack(this);
     }
-    acceptorPipeline_->finalize();
+    acceptPipeline_->finalize();
   }
 
-  void read(Context* ctx, AcceptPipelineType conn) {
-    // Did you mean to use pipeline() instead of childPipeline() ?
-    auto connInfo = boost::get<ConnInfo&>(conn);
+  void read(Context* ctx, AcceptPipelineType conn) override {
+    if (conn.type() != typeid(ConnInfo&)) {
+      return;
+    }
 
+    auto connInfo = boost::get<ConnInfo&>(conn);
     folly::AsyncSocket::UniquePtr transport(connInfo.sock);
 
-    // setup local and remote addresses
+    // Setup local and remote addresses
     auto tInfoPtr = std::make_shared<TransportInfo>(connInfo.tinfo);
     tInfoPtr->localAddr = std::make_shared<folly::SocketAddress>();
     transport->getLocalAddress(tInfoPtr->localAddr.get());
@@ -125,54 +127,69 @@ class ServerAcceptor
     Acceptor::addConnection(connection);
   }
 
+  // Null implementation to terminate the call in this handler
+  // and suppress warnings
+  void readEOF(Context* ctx) override {}
+  void readException(Context* ctx,
+                     folly::exception_wrapper ex) override {}
+
   /* See Acceptor::onNewConnection for details */
-  void onNewConnection(
-    folly::AsyncSocket::UniquePtr transport,
-    const folly::SocketAddress* clientAddr,
-    const std::string& nextProtocolName,
-    SecureTransportType secureTransportType,
-    const TransportInfo& tinfo) {
+  void onNewConnection(folly::AsyncSocket::UniquePtr transport,
+                       const folly::SocketAddress* clientAddr,
+                       const std::string& nextProtocolName,
+                       SecureTransportType secureTransportType,
+                       const TransportInfo& tinfo) override {
     ConnInfo connInfo = {transport.release(), clientAddr, nextProtocolName,
                          secureTransportType, tinfo};
-    acceptorPipeline_->read(connInfo);
+    acceptPipeline_->read(connInfo);
   }
 
   // UDP thunk
   void onDataAvailable(std::shared_ptr<folly::AsyncUDPSocket> socket,
                        const folly::SocketAddress& addr,
                        std::unique_ptr<folly::IOBuf> buf,
-                       bool truncated) noexcept {
-    acceptorPipeline_->read(
+                       bool truncated) noexcept override {
+    acceptPipeline_->read(
         AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }
 
- private:
-  folly::EventBase* base_;
+  void onConnectionAdded(const wangle::ConnectionManager&) override {
+    acceptPipeline_->read(ConnEvent::CONN_ADDED);
+  }
 
+  void onConnectionRemoved(const wangle::ConnectionManager&) override {
+    acceptPipeline_->read(ConnEvent::CONN_REMOVED);
+  }
+
+  void sslConnectionError(const folly::exception_wrapper& ex) override {
+    acceptPipeline_->readException(ex);
+    Acceptor::sslConnectionError(ex);
+  }
+
+ private:
+  std::shared_ptr<AcceptPipeline> acceptPipeline_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
-  std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> acceptorPipeline_;
 };
 
 template <typename Pipeline>
 class ServerAcceptorFactory : public AcceptorFactory {
  public:
   explicit ServerAcceptorFactory(
-      std::shared_ptr<PipelineFactory<Pipeline>> factory,
-      std::shared_ptr<PipelineFactory<wangle::Pipeline<AcceptPipelineType>>>
-          pipeline,
+      std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory,
+      std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory,
       const ServerSocketConfig& accConfig)
-      : factory_(factory), pipeline_(pipeline), accConfig_(accConfig) {}
+      : acceptPipelineFactory_(acceptPipelineFactory),
+        childPipelineFactory_(childPipelineFactory),
+        accConfig_(accConfig) {}
 
   std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) {
-    std::shared_ptr<wangle::Pipeline<AcceptPipelineType>> pipeline(
-        pipeline_->newPipeline(nullptr));
     return std::make_shared<ServerAcceptor<Pipeline>>(
-        factory_, pipeline, base, accConfig_);
+        acceptPipelineFactory_, childPipelineFactory_, base, accConfig_);
   }
+
  private:
-  std::shared_ptr<PipelineFactory<Pipeline>> factory_;
-  std::shared_ptr<PipelineFactory<
-    wangle::Pipeline<AcceptPipelineType>>> pipeline_;
+  std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_;
+  std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
   ServerSocketConfig accConfig_;
 };
 
@@ -230,13 +247,10 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
   }
 }
 
-class DefaultAcceptPipelineFactory
-    : public PipelineFactory<wangle::Pipeline<AcceptPipelineType>> {
-
+class DefaultAcceptPipelineFactory : public AcceptPipelineFactory {
  public:
-  typename wangle::AcceptPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket>) {
-    return wangle::AcceptPipeline::create();
+  typename AcceptPipeline::Ptr newPipeline(Acceptor* acceptor) {
+    return AcceptPipeline::create();
   }
 };
 

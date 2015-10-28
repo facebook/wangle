@@ -10,10 +10,12 @@
 
 #pragma once
 
+#include <boost/variant.hpp>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Memory.h>
 #include <folly/futures/Future.h>
 #include <folly/futures/Unit.h>
+#include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <wangle/acceptor/SecureTransportType.h>
@@ -23,6 +25,7 @@
 namespace wangle {
 
 class PipelineBase;
+class Acceptor;
 
 class PipelineManager {
  public:
@@ -214,10 +217,14 @@ class Pipeline : public PipelineBase {
 namespace folly {
 
 class AsyncSocket;
+class AsyncUDPSocket;
 
 }
 
 namespace wangle {
+
+using DefaultPipeline =
+    Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>;
 
 template <typename Pipeline>
 class PipelineFactory {
@@ -226,6 +233,35 @@ class PipelineFactory {
       std::shared_ptr<folly::AsyncSocket>) = 0;
 
   virtual ~PipelineFactory() = default;
+};
+
+struct ConnInfo {
+  folly::AsyncSocket* sock;
+  const folly::SocketAddress* clientAddr;
+  const std::string& nextProtoName;
+  SecureTransportType secureType;
+  const TransportInfo& tinfo;
+};
+
+enum class ConnEvent {
+  CONN_ADDED,
+  CONN_REMOVED,
+};
+
+typedef boost::variant<folly::IOBuf*,
+                       folly::AsyncSocket*,
+                       ConnInfo&,
+                       ConnEvent,
+                       std::tuple<folly::IOBuf*,
+                                  std::shared_ptr<folly::AsyncUDPSocket>,
+                                  folly::SocketAddress>> AcceptPipelineType;
+typedef Pipeline<AcceptPipelineType> AcceptPipeline;
+
+class AcceptPipelineFactory {
+ public:
+  virtual typename AcceptPipeline::Ptr newPipeline(Acceptor* acceptor) = 0;
+
+  virtual ~AcceptPipelineFactory() = default;
 };
 
 }

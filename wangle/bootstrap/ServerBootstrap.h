@@ -35,9 +35,6 @@ namespace wangle {
 template <typename Pipeline = wangle::DefaultPipeline>
 class ServerBootstrap {
  public:
-
-  typedef wangle::Pipeline<AcceptPipelineType> AcceptPipeline;
-
   ServerBootstrap(const ServerBootstrap& that) = delete;
   ServerBootstrap(ServerBootstrap&& that) = default;
 
@@ -53,9 +50,8 @@ class ServerBootstrap {
    * This is used for UDP or for load balancing
    * TCP connections to IO threads explicitly
    */
-  ServerBootstrap* pipeline(
-      std::shared_ptr<PipelineFactory<wangle::AcceptPipeline>> factory) {
-    pipeline_ = factory;
+  ServerBootstrap* pipeline(std::shared_ptr<AcceptPipelineFactory> factory) {
+    acceptPipelineFactory_ = factory;
     return this;
   }
 
@@ -139,7 +135,7 @@ class ServerBootstrap {
     } else {
       workerFactory_ = std::make_shared<ServerWorkerPool>(
           std::make_shared<ServerAcceptorFactory<Pipeline>>(
-              childPipelineFactory_, pipeline_, accConfig_),
+              acceptPipelineFactory_, childPipelineFactory_, accConfig_),
           io_group.get(),
           sockets_,
           socketFactory_);
@@ -344,8 +340,8 @@ class ServerBootstrap {
 
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
-  std::shared_ptr<PipelineFactory<wangle::AcceptPipeline>> pipeline_{
-    std::make_shared<DefaultAcceptPipelineFactory>()};
+  std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_{
+      std::make_shared<DefaultAcceptPipelineFactory>()};
   std::shared_ptr<ServerSocketFactory> socketFactory_{
     std::make_shared<AsyncServerSocketFactory>()};
 

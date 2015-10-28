@@ -10,33 +10,9 @@
 
 #pragma once
 
-#include <folly/io/IOBufQueue.h>
 #include <glog/logging.h>
-#include <boost/variant.hpp>
-
-namespace folly {
-class AsyncUDPSocket;
-};
 
 namespace wangle {
-
-struct ConnInfo {
-  folly::AsyncSocket* sock;
-  const folly::SocketAddress* clientAddr;
-  const std::string& nextProtoName;
-  SecureTransportType secureType;
-  const TransportInfo& tinfo;
-};
-
-typedef boost::variant<folly::IOBuf*,
-                       folly::AsyncSocket*,
-                       ConnInfo&,
-                       std::tuple<folly::IOBuf*,
-                                  std::shared_ptr<folly::AsyncUDPSocket>,
-                                  folly::SocketAddress>> AcceptPipelineType;
-typedef Pipeline<AcceptPipelineType> AcceptPipeline;
-typedef Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
-    DefaultPipeline;
 
 template <class R, class W>
 Pipeline<R, W>::Pipeline() : isStatic_(false) {}

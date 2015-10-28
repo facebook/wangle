@@ -1,3 +1,12 @@
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #include <wangle/acceptor/PeekingAcceptorHandshakeHelper.h>
 
 #include <thread>
@@ -32,7 +41,7 @@ class MockAcceptor : public Acceptor {
           SecureTransportType secureTransportType,
           TransportInfo& tinfo));
 
-    MOCK_METHOD0(sslConnectionError, void());
+    MOCK_METHOD1(sslConnectionError, void(const folly::exception_wrapper&));
 
     void sslConnectionReady(
         AsyncSocket::UniquePtr socket,
@@ -123,7 +132,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
   EXPECT_CALL(*sslSock_, setReadCB(_));
   EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start();
-  EXPECT_CALL(*acceptor_, sslConnectionError());
+  EXPECT_CALL(*acceptor_, sslConnectionError(_));
   helper_->readEOF();
 }
 
@@ -140,7 +149,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestErrAfterData) {
   buf[0] = 0x16;
   helper_->readDataAvailable(1);
 
-  EXPECT_CALL(*acceptor_, sslConnectionError());
+  EXPECT_CALL(*acceptor_, sslConnectionError(_));
   helper_->readErr(AsyncSocketException(
         AsyncSocketException::AsyncSocketExceptionType::END_OF_FILE,
           "Unit test"));

@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <wangle/bootstrap/RoutingDataHandler.h>
@@ -21,8 +29,6 @@ namespace wangle {
  * worker thread, and resumes reading from the socket on the child pipeline.
  */
 
-typedef PipelineFactory<AcceptPipeline> AcceptPipelineFactory;
-
 template <typename Pipeline, typename R>
 class RoutingDataPipelineFactory;
 
@@ -41,6 +47,8 @@ class AcceptRoutingHandler : public wangle::InboundHandler<AcceptPipelineType>,
 
   // InboundHandler implementation
   void read(Context* ctx, AcceptPipelineType conn) override;
+  void readEOF(Context* ctx) override;
+  void readException(Context* ctx, folly::exception_wrapper ex) override;
 
   // RoutingDataHandler::Callback implementation
   void onRoutingData(
@@ -73,8 +81,7 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
         routingHandlerFactory_(routingHandlerFactory),
         childPipelineFactory_(childPipelineFactory) {}
 
-  AcceptPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket>) override {
+  AcceptPipeline::Ptr newPipeline(Acceptor* acceptor) override {
     auto pipeline = AcceptPipeline::create();
     pipeline->addBack(AcceptRoutingHandler<Pipeline, R>(
         server_, routingHandlerFactory_, childPipelineFactory_));

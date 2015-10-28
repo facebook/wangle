@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 namespace wangle {
@@ -6,6 +14,10 @@ namespace wangle {
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
                                              AcceptPipelineType conn) {
+  if (conn.type() != typeid(ConnInfo&)) {
+    return;
+  }
+
   populateAcceptors();
 
   const auto& connInfo = boost::get<ConnInfo&>(conn);
@@ -23,6 +35,17 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
 
   routingPipeline->transportActive();
   routingPipelines_[connId] = std::move(routingPipeline);
+}
+
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::readEOF(Context* ctx) {
+  // Null implementation to terminate the call in this handler
+}
+
+template <typename Pipeline, typename R>
+void AcceptRoutingHandler<Pipeline, R>::readException(
+    Context* ctx, folly::exception_wrapper ex) {
+  // Null implementation to terminate the call in this handler
 }
 
 template <typename Pipeline, typename R>

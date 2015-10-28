@@ -262,18 +262,21 @@ std::atomic<int> connections{0};
 class TestHandlerPipeline : public InboundHandler<AcceptPipelineType> {
  public:
   void read(Context* ctx, AcceptPipelineType conn) override {
-    connections++;
+    if (conn.type() == typeid(ConnEvent)) {
+      auto connEvent = boost::get<ConnEvent>(conn);
+      if (connEvent == ConnEvent::CONN_ADDED) {
+        connections++;
+      }
+    }
     return ctx->fireRead(conn);
   }
 };
 
 template <typename HandlerPipeline>
-class TestHandlerPipelineFactory
-    : public PipelineFactory<ServerBootstrap<BytesPipeline>::AcceptPipeline> {
+class TestHandlerPipelineFactory : public AcceptPipelineFactory {
  public:
-  ServerBootstrap<BytesPipeline>::AcceptPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncSocket>) override {
-    auto pipeline = ServerBootstrap<BytesPipeline>::AcceptPipeline::create();
+  AcceptPipeline::Ptr newPipeline(Acceptor*) override {
+    auto pipeline = AcceptPipeline::create();
     pipeline->addBack(HandlerPipeline());
     return pipeline;
   }

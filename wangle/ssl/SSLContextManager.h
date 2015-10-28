@@ -100,10 +100,13 @@ class SSLContextManager {
                            const std::vector<std::string>& currentSeeds,
                            const std::vector<std::string>& newSeeds);
 
+  void setSSLStats(SSLStats* stats) {
+    stats_ = stats;
+  }
+
   /**
    * SSLContextManager only collects SNI stats now
    */
-
   void setClientHelloExtStats(ClientHelloExtStats* stats) {
     clientHelloTLSExtStats_ = stats;
   }
