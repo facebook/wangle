@@ -90,7 +90,7 @@ class AcceptRoutingPipelineFactory : public AcceptPipelineFactory {
     return pipeline;
   }
 
- private:
+ protected:
   ServerBootstrap<Pipeline>* server_;
   std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;
   std::shared_ptr<RoutingDataPipelineFactory<Pipeline, R>>
