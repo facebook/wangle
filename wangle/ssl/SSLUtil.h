@@ -45,8 +45,8 @@ class SSLException : public std::exception {
   uint64_t getBytesRead() const { return bytesRead_; }
 
   const char* what() const noexcept {
-    const auto& err = folly::stringPrintf(
-        "SSL error: %d; Elapsed time: %ld ms; Bytes read: %ld",
+    const auto& err = folly::sformat(
+        "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
         folly::to<int>(error_),
         latency_.count(),
         bytesRead_);
