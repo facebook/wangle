@@ -23,6 +23,14 @@ TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   lsc.setMaxActiveConnections(20);
   EXPECT_EQ(20, lsc.getMaxActiveConnections());
 
+  EXPECT_EQ(0, lsc.getAcceptPauseOnAcceptorQueueSize());
+  lsc.setAcceptPauseOnAcceptorQueueSize(40);
+  EXPECT_EQ(40, lsc.getAcceptPauseOnAcceptorQueueSize());
+
+  EXPECT_EQ(0, lsc.getAcceptResumeOnAcceptorQueueSize());
+  lsc.setAcceptResumeOnAcceptorQueueSize(50);
+  EXPECT_EQ(50, lsc.getAcceptResumeOnAcceptorQueueSize());
+
   lsc.setMinFreeMem(30);
   EXPECT_EQ(30, lsc.getMinFreeMem());
 

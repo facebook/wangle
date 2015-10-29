@@ -77,6 +77,30 @@ class LoadShedConfiguration {
   uint64_t getMaxActiveConnections() const { return maxActiveConnections_; }
 
   /**
+   * Set/get the acceptor queue size which can be used to pause accepting new
+   * client connections.
+   */
+  void setAcceptPauseOnAcceptorQueueSize(
+      const uint64_t acceptPauseOnAcceptorQueueSize) {
+    acceptPauseOnAcceptorQueueSize_ = acceptPauseOnAcceptorQueueSize;
+  }
+  uint64_t getAcceptPauseOnAcceptorQueueSize() const {
+    return acceptPauseOnAcceptorQueueSize_;
+  }
+
+  /**
+   * Set/get the acceptor queue size which can be used to resume accepting new
+   * client connections if accepting is paused.
+   */
+  void setAcceptResumeOnAcceptorQueueSize(
+      const uint64_t acceptResumeOnAcceptorQueueSize) {
+    acceptResumeOnAcceptorQueueSize_ = acceptResumeOnAcceptorQueueSize;
+  }
+  uint64_t getAcceptResumeOnAcceptorQueueSize() const {
+    return acceptResumeOnAcceptorQueueSize_;
+  }
+
+  /**
    * Set/get the maximum cpu usage.
    */
   void setMaxMemUsage(double max) {
@@ -119,6 +143,8 @@ class LoadShedConfiguration {
   NetworkSet whitelistNetworks_;
   uint64_t maxConnections_{0};
   uint64_t maxActiveConnections_{0};
+  uint64_t acceptPauseOnAcceptorQueueSize_{0};
+  uint64_t acceptResumeOnAcceptorQueueSize_{0};
   uint64_t minFreeMem_{0};
   double maxMemUsage_;
   double maxCpuUsage_;
