@@ -65,13 +65,15 @@ class AsyncSocketHandler
   void transportActive(Context* ctx) override {
     ctx->getPipeline()->setTransport(socket_);
     attachReadCallback();
+    firedInactive_ = false;
     ctx->fireTransportActive();
   }
 
   void transportInactive(Context* ctx) override {
+    // detachReadCallback invokes fireTransportInactive() if the transport
+    // is currently active.
     detachReadCallback();
     ctx->getPipeline()->setTransport(nullptr);
-    ctx->fireTransportInactive();
   }
 
   void detachPipeline(Context* ctx) override {

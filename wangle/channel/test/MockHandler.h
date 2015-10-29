@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <wangle/channel/Handler.h>
 #include <gmock/gmock.h>
+#include <wangle/channel/Handler.h>
 
 namespace wangle {
 
@@ -62,5 +62,24 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
 
 template <class R, class W = R>
 using MockHandlerAdapter = MockHandler<R, R, W, W>;
+
+class MockBytesToBytesHandler : public BytesToBytesHandler {
+ public:
+  MOCK_METHOD1(transportActive, void(Context*));
+  MOCK_METHOD1(transportInactive, void(Context*));
+  MOCK_METHOD2(read, void(Context*, folly::IOBufQueue&));
+  MOCK_METHOD1(readEOF, void(Context*));
+  MOCK_METHOD2(readException, void(Context*, folly::exception_wrapper));
+  MOCK_METHOD2(write,
+               folly::Future<folly::Unit>(Context*,
+                                          std::shared_ptr<folly::IOBuf>));
+  MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
+
+  folly::Future<folly::Unit> write(Context* ctx,
+                                   std::unique_ptr<folly::IOBuf> buf) override {
+    std::shared_ptr<folly::IOBuf> sbuf(buf.release());
+    return write(ctx, sbuf);
+  }
+};
 
 } // namespace wangle
