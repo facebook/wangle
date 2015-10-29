@@ -67,11 +67,9 @@ struct SSLContextKey {
   DNString dnString;
   CertCrypto certCrypto;
 
-  explicit SSLContextKey(DNString dnString,
-                         CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE) :
-    dnString(dnString),
-    certCrypto(certCrypto) {
-  }
+  explicit SSLContextKey(DNString dns,
+                         CertCrypto crypto = CertCrypto::BEST_AVAILABLE)
+      : dnString(dns), certCrypto(crypto) {}
 
   bool operator==(const SSLContextKey& rhs) const {
     return dnString == rhs.dnString && certCrypto == rhs.certCrypto;
