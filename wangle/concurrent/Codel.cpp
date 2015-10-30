@@ -84,7 +84,7 @@ bool Codel::overloaded(std::chrono::nanoseconds delay) {
 int Codel::getLoad() {
   // it might be better to use the average delay instead of minDelay, but we'd
   // have to track it. aspiring bootcamper?
-  return std::min(100l, 100 * getMinDelay() / getSloughTimeout());
+  return std::min<int>(100, 100 * getMinDelay() / getSloughTimeout());
 }
 
 nanoseconds Codel::getMinDelay() {
