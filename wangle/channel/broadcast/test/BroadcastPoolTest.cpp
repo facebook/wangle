@@ -351,7 +351,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
       .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
         broadcastHandler = pipelineFactory->getBroadcastHandler(pipeline);
       }));
-  auto pipeline1 = factory1.newPipeline(nullptr, kUrl);
+  auto pipeline1 = factory1.newPipeline(nullptr, kUrl, nullptr);
   pipeline1->transportActive();
   EventBaseManager::get()->getEventBase()->loopOnce();
   EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
@@ -360,7 +360,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
   // Test broadcast with the same routing data in the same thread. No
   // new broadcast handler should be created.
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, _)).Times(0);
-  auto pipeline2 = factory1.newPipeline(nullptr, kUrl);
+  auto pipeline2 = factory1.newPipeline(nullptr, kUrl, nullptr);
   pipeline2->transportActive();
   EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
   EXPECT_FALSE(factory2.broadcastPool()->isBroadcasting(kUrl));
@@ -378,7 +378,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
           EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
                     broadcastHandler);
         }));
-    auto pipeline3 = factory1.newPipeline(nullptr, kUrl);
+    auto pipeline3 = factory1.newPipeline(nullptr, kUrl, nullptr);
     pipeline3->transportActive();
     EventBaseManager::get()->getEventBase()->loopOnce();
     EXPECT_TRUE(factory1.broadcastPool()->isBroadcasting(kUrl));
@@ -396,7 +396,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
         EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
                   broadcastHandler);
       }));
-  auto pipeline4 = factory2.newPipeline(nullptr, kUrl);
+  auto pipeline4 = factory2.newPipeline(nullptr, kUrl, nullptr);
   pipeline4->transportActive();
   EventBaseManager::get()->getEventBase()->loopOnce();
   EXPECT_TRUE(factory2.broadcastPool()->isBroadcasting(kUrl));

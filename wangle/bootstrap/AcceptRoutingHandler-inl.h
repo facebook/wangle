@@ -75,8 +75,11 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
   acceptor->getEventBase()->runInEventBaseThread([=]() mutable {
     socket->attachEventBase(acceptor->getEventBase());
 
-    auto pipeline =
-        childPipelineFactory_->newPipeline(socket, mwRoutingData->routingData);
+    auto routingHandler =
+        routingPipeline->template getHandler<RoutingDataHandler<R>>();
+    DCHECK(routingHandler);
+    auto pipeline = childPipelineFactory_->newPipeline(
+        socket, mwRoutingData->routingData, routingHandler);
 
     auto connection =
         new typename ServerAcceptor<Pipeline>::ServerConnection(pipeline);
