@@ -42,6 +42,12 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
         auto handler = pipelineFactory->getBroadcastHandler(pipeline);
         CHECK(handler);
         sharedPromise_.setValue(handler);
+
+        // If all the observers go away before connect returns, then the
+        // BroadcastHandler will be idle without any subscribers. Close
+        // the pipeline and remove the broadcast from the pool so that
+        // connections are not leaked.
+        handler->closeIfIdle();
       })
       .onError([this](const std::exception& ex) {
         handleConnectError(ex);

@@ -64,6 +64,7 @@ class BroadcastPoolTest : public Test {
   std::unique_ptr<BroadcastPool<int, std::string>> pool;
   std::shared_ptr<StrictMock<MockServerPool>> serverPool;
   std::shared_ptr<StrictMock<MockBroadcastPipelineFactory>> pipelineFactory;
+  NiceMock<MockSubscriber<int>> subscriber;
   std::unique_ptr<ServerBootstrap<DefaultPipeline>> server;
   std::shared_ptr<SocketAddress> addr;
 };
@@ -84,6 +85,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   pool->getHandler(routingData1)
       .then([&](BroadcastHandler<int>* h) {
         handler1 = h;
+        handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
@@ -101,7 +103,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
 
   // Close the handler. This will delete the pipeline and the broadcast.
-  handler1->close(handler1->getContext());
+  handler1->readEOF(handler1->getContext());
   EXPECT_FALSE(pool->isBroadcasting(routingData1));
 
   // routingData1 doesn't have an available broadcast now. Test that a
@@ -110,6 +112,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   pool->getHandler(routingData1)
       .then([&](BroadcastHandler<int>* h) {
         handler1 = h;
+        handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
@@ -117,12 +120,16 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   EXPECT_TRUE(handler1 != nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
 
+  // Cleanup
+  handler1->readEOF(handler1->getContext());
+
   // Test that a new connection is established for routingData2 with
   // a new handler created
   EXPECT_FALSE(pool->isBroadcasting(routingData2));
   pool->getHandler(routingData2)
       .then([&](BroadcastHandler<int>* h) {
         handler2 = h;
+        handler2->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler2 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url2")).Times(1);
@@ -130,6 +137,9 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   EXPECT_TRUE(handler2 != nullptr);
   EXPECT_TRUE(handler2 != handler1);
   EXPECT_TRUE(pool->isBroadcasting(routingData2));
+
+  // Cleanup
+  handler2->readEOF(handler2->getContext());
 }
 
 TEST_F(BroadcastPoolTest, OutstandingConnect) {
@@ -147,6 +157,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   pool->getHandler(routingData)
       .then([&](BroadcastHandler<int>* h) {
         handler1 = h;
+        handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData));
@@ -156,6 +167,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   pool->getHandler(routingData)
       .then([&](BroadcastHandler<int>* h) {
         handler2 = h;
+        handler2->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_TRUE(handler2 == nullptr);
@@ -179,6 +191,9 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
       })
       .wait();
   EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  // Cleanup
+  handler1->readEOF(handler1->getContext());
 }
 
 TEST_F(BroadcastPoolTest, ConnectError) {
@@ -237,12 +252,16 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   pool->getHandler(routingData)
       .then([&](BroadcastHandler<int>* h) {
         handler1 = h;
+        handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler1 != nullptr);
   EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  // Cleanup
+  handler1->readEOF(handler1->getContext());
 }
 
 TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
@@ -306,7 +325,6 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   std::string routingData = "url1";
   BroadcastHandler<int>* handler = nullptr;
   DefaultPipeline* pipeline = nullptr;
-  StrictMock<MockSubscriber<int>> subscriber;
   auto base = EventBaseManager::get()->getEventBase();
 
   InSequence dummy;
@@ -315,6 +333,7 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   pool->getHandler(routingData)
       .then([&](BroadcastHandler<int>* h) {
         handler = h;
+        handler->subscribe(&subscriber);
         pipeline = dynamic_cast<DefaultPipeline*>(
             handler->getContext()->getPipeline());
       });
@@ -324,13 +343,90 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   EXPECT_TRUE(handler != nullptr);
   EXPECT_TRUE(pipeline != nullptr);
 
-  handler->subscribe(&subscriber);
-
   EXPECT_CALL(subscriber, onCompleted()).Times(1);
 
   // This will also delete the pipeline and the handler
   pipeline->readEOF();
   EXPECT_FALSE(pool->isBroadcasting(routingData));
+}
+
+TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
+  // Test when the caller goes away before connect request returns
+  // resulting in a new BroadcastHandler without any subscribers
+  std::string routingData = "url1";
+  BroadcastHandler<int>* handler = nullptr;
+  bool handler1Connected = false;
+  bool handler2Connected = false;
+  auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
+
+  // No broadcast available for routingData. Kick off a connect request.
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler1Connected = true;
+        // Do not subscribe to the handler. This will simulate
+        // the caller going away before we get here.
+      });
+  EXPECT_FALSE(handler1Connected);
+  EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  // Invoke getHandler() for the same routing data when a connect request
+  // is outstanding
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler2Connected = true;
+        // Do not subscribe to the handler.
+      });
+  EXPECT_FALSE(handler2Connected);
+  EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
+
+  base->loopOnce(); // Do async connect
+
+  // Verify that both promises are fulfilled, but the broadcast is
+  // deleted from the pool because no subscriber was added.
+  EXPECT_TRUE(handler1Connected);
+  EXPECT_TRUE(handler2Connected);
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+
+  // Test test same scenario but with one subscriber going away
+  // sooner, but another subscriber being added to the handler.
+  handler1Connected = false;
+  handler2Connected = false;
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler1Connected = true;
+        // Do not subscribe to the handler. This will simulate
+        // the caller going away before we get here.
+      });
+  EXPECT_FALSE(handler1Connected);
+  EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int>* h) {
+        handler2Connected = true;
+        // Subscriber to the handler. The handler should stick around now.
+        handler = h;
+        handler->subscribe(&subscriber);
+      });
+  EXPECT_FALSE(handler2Connected);
+  EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
+
+  base->loopOnce(); // Do async connect
+
+  // Verify that both promises are fulfilled, but the broadcast is
+  // deleted from the pool because no subscriber was added.
+  EXPECT_TRUE(handler1Connected);
+  EXPECT_TRUE(handler2Connected);
+  EXPECT_TRUE(pool->isBroadcasting(routingData));
+
+  // Cleanup
+  handler->readEOF(handler->getContext());
 }
 
 TEST_F(BroadcastPoolTest, ThreadLocalPool) {

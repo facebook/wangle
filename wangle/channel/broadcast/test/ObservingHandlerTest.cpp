@@ -91,6 +91,77 @@ TEST_F(ObservingHandlerTest, Success) {
   observingHandler->onCompleted();
 }
 
+TEST_F(ObservingHandlerTest, ConnectError) {
+  // Test when an error occurs while fetching the broadcast handler
+  InSequence dummy;
+
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
+        ctx->fireTransportActive();
+      }));
+  // Verify that ingress is paused
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(pool, getHandler(_))
+      .WillOnce(InvokeWithoutArgs([this] {
+        // Inject error
+        return makeFuture<BroadcastHandler<int>*>(
+            make_exception_wrapper<std::exception>());
+      }));
+  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+
+  // Initialize the pipeline
+  pipeline->transportActive();
+}
+
+TEST_F(ObservingHandlerTest, ConnectHandlerDeletion) {
+  // Test when the handler goes away before the broadcast handler
+  // is obtained
+  InSequence dummy;
+
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
+        ctx->fireTransportActive();
+      }));
+  // Verify that ingress is paused
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
+  Promise<BroadcastHandler<int>*> promise;
+  EXPECT_CALL(pool, getHandler(_))
+      .WillOnce(InvokeWithoutArgs([&] {
+        return promise.getFuture();
+      }));
+
+  // Initialize the pipeline
+  pipeline->transportActive();
+
+  // Delete the handler and then fulfil the promise
+  EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(0);
+  pipeline.reset();
+  promise.setValue(broadcastHandler.get());
+}
+
+TEST_F(ObservingHandlerTest, ConnectErrorHandlerDeletion) {
+  // Test when an error occurs while fetching the broadcast handler
+  // after the handler is deleted
+  InSequence dummy;
+
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
+        ctx->fireTransportActive();
+      }));
+  // Verify that ingress is paused
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
+  Promise<BroadcastHandler<int>*> promise;
+  EXPECT_CALL(pool, getHandler(_))
+      .WillOnce(InvokeWithoutArgs([&] { return promise.getFuture(); }));
+
+  // Initialize the pipeline
+  pipeline->transportActive();
+
+  // Delete the handler and then inject an error
+  pipeline.reset();
+  promise.setException(std::exception());
+}
+
 TEST_F(ObservingHandlerTest, BroadcastError) {
   InSequence dummy;
 
@@ -233,4 +304,43 @@ TEST_F(ObservingHandlerTest, WriteError) {
 
   // Broadcast some data
   observingHandler->onNext(1);
+}
+
+TEST_F(ObservingHandlerTest, WriteErrorHandlerDeletion) {
+  // Test when write error occurs asynchronously after the handler
+  // has been deleted.
+  InSequence dummy;
+
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
+        ctx->fireTransportActive();
+      }));
+  // Verify that ingress is paused
+  EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
+  EXPECT_CALL(pool, getHandler(_))
+      .WillOnce(InvokeWithoutArgs([this] {
+        auto handler = broadcastHandler.get();
+        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
+      }));
+  EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
+  // Verify that ingress is resumed
+  EXPECT_CALL(*prevHandler, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* ctx) {
+        ctx->fireTransportActive();
+      }));
+
+  // Initialize the pipeline
+  pipeline->transportActive();
+
+  Promise<Unit> promise;
+  EXPECT_CALL(*observingHandler, write(_, _))
+      .WillOnce(InvokeWithoutArgs([&] { return promise.getFuture(); }));
+
+  // Broadcast some data
+  observingHandler->onNext(1);
+
+  // Delete the pipeline and then fail the write
+  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
+  pipeline.reset();
+  promise.setException(std::exception());
 }

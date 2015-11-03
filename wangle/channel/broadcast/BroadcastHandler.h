@@ -47,6 +47,12 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
   virtual void unsubscribe(uint64_t subscriptionId);
 
   /**
+   * If there are no subscribers listening to the broadcast, close the pipeline.
+   * This will also delete the broadcast from the BroadcastPool.
+   */
+  virtual void closeIfIdle();
+
+  /**
    * Invoked when a new subscriber is added. Subclasses can override
    * to add custom behavior.
    */

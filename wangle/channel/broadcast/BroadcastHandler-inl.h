@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 namespace wangle {
@@ -17,9 +25,7 @@ void BroadcastHandler<T>::readEOF(Context* ctx) {
     s->onCompleted();
   });
   subscribers_.clear();
-
-  // This will delete the broadcast from the pool
-  this->close(ctx);
+  closeIfIdle();
 }
 
 template <typename T>
@@ -32,9 +38,7 @@ void BroadcastHandler<T>::readException(Context* ctx,
     s->onError(ex);
   });
   subscribers_.clear();
-
-  // This will delete the broadcast from the pool
-  this->close(ctx);
+  closeIfIdle();
 }
 
 template <typename T>
@@ -54,7 +58,11 @@ void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
 
   onUnsubscribe(iter->second);
   subscribers_.erase(iter);
+  closeIfIdle();
+}
 
+template <typename T>
+void BroadcastHandler<T>::closeIfIdle() {
   if (subscribers_.empty()) {
     // No more subscribers. Clean up.
     // This will delete the broadcast from the pool.

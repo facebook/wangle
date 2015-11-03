@@ -83,6 +83,9 @@ class BroadcastPool {
    * returns the BroadcastHandler from the pipeline. If not, an upstream
    * connection is created and stored along with a new broadcast pipeline
    * for this routingData, and its BroadcastHandler is returned.
+   *
+   * Caller should immediately subscribe to the returned BroadcastHandler
+   * to prevent it from being garbage collected.
    */
   virtual folly::Future<BroadcastHandler<T>*> getHandler(const R& routingData);
 

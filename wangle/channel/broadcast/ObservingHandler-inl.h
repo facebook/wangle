@@ -23,6 +23,8 @@ ObservingHandler<T, R>::~ObservingHandler() {
     broadcastHandler_ = nullptr;
     broadcastHandler->unsubscribe(subscriptionId_);
   }
+
+  *deleted_ = true;
 }
 
 template <typename T, typename R>
@@ -38,8 +40,13 @@ void ObservingHandler<T, R>::transportActive(Context* ctx) {
   CHECK(pipeline);
   pipeline->transportInactive();
 
+  auto deleted = deleted_;
   broadcastPool_->getHandler(routingData_)
-      .then([this, pipeline](BroadcastHandler<T>* broadcastHandler) {
+      .then([this, pipeline, deleted](BroadcastHandler<T>* broadcastHandler) {
+        if (*deleted) {
+          return;
+        }
+
         broadcastHandler_ = broadcastHandler;
         subscriptionId_ = broadcastHandler_->subscribe(this);
         VLOG(10) << "Subscribed to a broadcast";
@@ -47,7 +54,11 @@ void ObservingHandler<T, R>::transportActive(Context* ctx) {
         // Resume ingress
         pipeline->transportActive();
       })
-      .onError([this, ctx](const std::exception& ex) {
+      .onError([this, deleted](const std::exception& ex) {
+        if (*deleted) {
+          return;
+        }
+
         LOG(ERROR) << "Error subscribing to a broadcast: " << ex.what();
         closeHandler();
       });
@@ -67,8 +78,13 @@ void ObservingHandler<T, R>::readException(Context* ctx,
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::onNext(const T& data) {
+  auto deleted = deleted_;
   this->write(this->getContext(), data)
-      .onError([this](const std::exception& ex) {
+      .onError([this, deleted](const std::exception& ex) {
+        if (*deleted) {
+          return;
+        }
+
         LOG(ERROR) << "Error on write: " << ex.what();
         closeHandler();
       });

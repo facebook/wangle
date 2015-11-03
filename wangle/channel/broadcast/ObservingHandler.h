@@ -53,6 +53,9 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   BroadcastHandler<T>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
   bool paused_{false};
+
+  // True iff the handler has been deleted
+  std::shared_ptr<bool> deleted_{new bool(false)};
 };
 
 template <typename T>
