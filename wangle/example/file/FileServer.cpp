@@ -82,7 +82,7 @@ class FileServerPipelineFactory : public PipelineFactory<FileServerPipeline> {
     pipeline->addBack(FileServerHandler());
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
 };
 

@@ -250,14 +250,14 @@ class TimekeeperTester : public Timekeeper {
     Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));
-    return std::move(f);
+    return f;
   }
   template <class Clock>
   Future<Unit> at(std::chrono::time_point<Clock> when) {
     Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));
-    return std::move(f);
+    return f;
   }
   std::vector<Promise<Unit>> promises_;
 };

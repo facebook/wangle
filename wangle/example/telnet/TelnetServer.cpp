@@ -55,7 +55,7 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
     pipeline->addBack(TelnetHandler());
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
 };
 

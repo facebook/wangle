@@ -70,7 +70,7 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
     pipeline->addBack(MultiplexServerDispatcher<Bonk, Xtruct>(&service_));
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
 
  private:

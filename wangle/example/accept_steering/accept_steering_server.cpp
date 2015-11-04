@@ -82,7 +82,7 @@ class ServerPipelineFactory
     pipeline->addBack(ThreadPrintingHandler(routingData));
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
 };
 

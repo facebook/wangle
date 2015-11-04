@@ -44,7 +44,7 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
     pipeline->addBack(ClientSerializeHandler());
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
 };
 

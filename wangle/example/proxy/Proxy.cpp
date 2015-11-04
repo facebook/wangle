@@ -55,7 +55,7 @@ class ProxyBackendPipelineFactory : public PipelineFactory<DefaultPipeline> {
     pipeline->addBack(ProxyBackendHandler(frontendPipeline_));
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
  private:
   DefaultPipeline* frontendPipeline_;
@@ -125,7 +125,7 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
     pipeline->addBack(std::make_shared<ProxyFrontendHandler>(remoteAddress_));
     pipeline->finalize();
 
-    return std::move(pipeline);
+    return pipeline;
   }
  private:
   SocketAddress remoteAddress_;
