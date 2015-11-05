@@ -179,7 +179,7 @@ class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
   explicit LengthFieldBasedFrameDecoder(uint32_t lengthFieldLength = 4,
                                         uint32_t maxFrameLength = UINT_MAX,
                                         uint32_t lengthFieldOffset = 0,
-                                        uint32_t lengthAdjustment = 0,
+                                        int32_t lengthAdjustment = 0,
                                         uint32_t initialBytesToStrip = 4,
                                         bool networkByteOrder = true);
 
@@ -196,7 +196,7 @@ class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
   uint32_t lengthFieldLength_;
   uint32_t maxFrameLength_;
   uint32_t lengthFieldOffset_;
-  uint32_t lengthAdjustment_;
+  int32_t lengthAdjustment_;
   uint32_t initialBytesToStrip_;
   bool networkByteOrder_;
 

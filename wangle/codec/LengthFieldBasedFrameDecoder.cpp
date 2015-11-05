@@ -19,7 +19,7 @@ LengthFieldBasedFrameDecoder::LengthFieldBasedFrameDecoder(
   uint32_t lengthFieldLength,
   uint32_t maxFrameLength,
   uint32_t lengthFieldOffset,
-  uint32_t lengthAdjustment,
+  int32_t lengthAdjustment,
   uint32_t initialBytesToStrip,
   bool networkByteOrder)
     : lengthFieldLength_(lengthFieldLength)
