@@ -23,6 +23,7 @@ ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
   : connTimeouts_(new HHWheelTimer(eventBase)),
     callback_(callback),
     eventBase_(eventBase),
+    drainIterator_(conns_.end()),
     idleIterator_(conns_.end()),
     idleLoopCallback_(this),
     timeout_(timeout),
@@ -86,6 +87,9 @@ ConnectionManager::removeConnection(ManagedConnection* connection) {
     // Un-link the connection from our list, being careful to keep the iterator
     // that we're using for idle shedding valid
     auto it = conns_.iterator_to(*connection);
+    if (it == drainIterator_) {
+      ++drainIterator_;
+    }
     if (it == idleIterator_) {
       ++idleIterator_;
     }
@@ -103,6 +107,7 @@ ConnectionManager::removeConnection(ManagedConnection* connection) {
 void
 ConnectionManager::initiateGracefulShutdown(
   std::chrono::milliseconds idleGrace) {
+  VLOG(3) << this << " initiateGracefulShutdown with nconns=" << conns_.size();
   if (shutdownState_ != ShutdownState::NONE) {
     VLOG(3) << "Ignoring redundant call to initiateGracefulShutdown";
     return;
@@ -115,6 +120,7 @@ ConnectionManager::initiateGracefulShutdown(
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
     VLOG(3) << "proceeding directly to closing idle connections";
   }
+  drainIterator_ = conns_.begin();
   drainAllConnections();
 }
 
@@ -124,8 +130,7 @@ ConnectionManager::drainAllConnections() {
   size_t numCleared = 0;
   size_t numKept = 0;
 
-  auto it = idleIterator_ == conns_.end() ?
-    conns_.begin() : idleIterator_;
+  auto it = drainIterator_;
 
   CHECK(shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN ||
         shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE);
@@ -133,6 +138,7 @@ ConnectionManager::drainAllConnections() {
     ManagedConnection& conn = *it++;
     if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
       conn.notifyPendingShutdown();
+      numKept++;
     } else { // CLOSE_WHEN_IDLE
       // Second time around: close idle sessions. If they aren't idle yet,
       // have them close when they are idle
@@ -148,16 +154,20 @@ ConnectionManager::drainAllConnections() {
   if (shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE) {
     VLOG(2) << "Idle connections cleared: " << numCleared <<
       ", busy conns kept: " << numKept;
+  } else {
+    VLOG(3) << this << " notified n=" << numKept;
   }
+  drainIterator_ = it;
   if (it != conns_.end()) {
-    idleIterator_ = it;
     eventBase_->runInLoop(&idleLoopCallback_);
   } else {
     if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
+      VLOG(3) << this << " finished notify_pending_shutdown";
       shutdownState_ = ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE;
       if (!idleLoopCallback_.isScheduled()) {
         // The idle grace timer already fired, start over immediately
         shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
+        drainIterator_ = conns_.begin();
         eventBase_->runInLoop(&idleLoopCallback_);
       }
     } else {
@@ -168,12 +178,14 @@ ConnectionManager::drainAllConnections() {
 
 void
 ConnectionManager::idleGracefulTimeoutExpired() {
+  VLOG(2) << this << " idleGracefulTimeoutExpired";
   if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE) {
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
+    drainIterator_ = conns_.begin();
     drainAllConnections();
   } else {
-    LOG(DFATAL) << "ConnectionManager in unexpected state=" <<
-      (uint8_t)shutdownState_;
+    VLOG(4) << this << " idleGracefulTimeoutExpired during "
+      "NOTIFY_PENDING_SHUTDOWN, ignoring";
   }
 }
 
@@ -199,6 +211,7 @@ ConnectionManager::dropAllConnections() {
     }
     conn.dropConnection();
   }
+  drainIterator_ = conns_.end();
   idleIterator_ = conns_.end();
   idleLoopCallback_.cancelLoopCallback();
 
@@ -220,10 +233,18 @@ ConnectionManager::onActivated(ManagedConnection& conn) {
 void
 ConnectionManager::onDeactivated(ManagedConnection& conn) {
   auto it = conns_.iterator_to(conn);
+  bool moveDrainIter = false;
+  if (it == drainIterator_) {
+    drainIterator_++;
+    moveDrainIter = true;
+  }
   conns_.erase(it);
   conns_.push_back(conn);
   if (idleIterator_ == conns_.end()) {
     idleIterator_--;
+  }
+  if (moveDrainIter && drainIterator_ == conns_.end()) {
+    drainIterator_--;
   }
 }
 

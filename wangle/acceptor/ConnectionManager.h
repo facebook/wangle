@@ -216,6 +216,8 @@ class ConnectionManager: public folly::DelayedDestruction,
 
   /** Iterator to the next connection to shed; used by drainAllConnections() */
   folly::CountedIntrusiveList<
+    ManagedConnection,&ManagedConnection::listHook_>::iterator drainIterator_;
+  folly::CountedIntrusiveList<
     ManagedConnection,&ManagedConnection::listHook_>::iterator idleIterator_;
   CloseIdleConnsCallback idleLoopCallback_;
   ShutdownState shutdownState_{ShutdownState::NONE};
