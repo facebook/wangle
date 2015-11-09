@@ -19,6 +19,7 @@
 #include <wangle/channel/Handler.h>
 #include <wangle/channel/Pipeline.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/ssl/SSLStats.h>
 
 namespace wangle {
 
@@ -86,12 +87,20 @@ class ServerAcceptor
   explicit ServerAcceptor(
       std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory,
       std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory,
-      folly::EventBase* base,
       const ServerSocketConfig& accConfig)
-      : Acceptor(accConfig), childPipelineFactory_(childPipelineFactory) {
-    Acceptor::init(nullptr, base);
+      : Acceptor(accConfig),
+        acceptPipelineFactory_(acceptPipelineFactory),
+        childPipelineFactory_(childPipelineFactory) {
+  }
 
-    acceptPipeline_ = acceptPipelineFactory->newPipeline(this);
+  void init(folly::AsyncServerSocket* serverSocket,
+            folly::EventBase* eventBase,
+            SSLStats* stats = nullptr) override {
+    Acceptor::init(serverSocket, eventBase, stats);
+
+    // newPipeline() invokes acceptor->setSSLStats() to set customized SSLStats
+    acceptPipeline_ = acceptPipelineFactory_->newPipeline(this);
+
     if (childPipelineFactory_) {
       // This means a custom AcceptPipelineFactory was not passed in via
       // pipeline() and we're using the DefaultAcceptPipelineFactory.
@@ -167,6 +176,7 @@ class ServerAcceptor
   }
 
  private:
+  std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_;
   std::shared_ptr<AcceptPipeline> acceptPipeline_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
 };
@@ -183,8 +193,10 @@ class ServerAcceptorFactory : public AcceptorFactory {
         accConfig_(accConfig) {}
 
   std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) {
-    return std::make_shared<ServerAcceptor<Pipeline>>(
-        acceptPipelineFactory_, childPipelineFactory_, base, accConfig_);
+    auto acceptor = std::make_shared<ServerAcceptor<Pipeline>>(
+        acceptPipelineFactory_, childPipelineFactory_, accConfig_);
+    acceptor->init(nullptr, base, nullptr);
+    return acceptor;
   }
 
  private:

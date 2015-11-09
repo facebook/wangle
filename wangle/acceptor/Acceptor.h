@@ -16,6 +16,7 @@
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/ssl/SSLCacheProvider.h>
 #include <wangle/acceptor/TransportInfo.h>
+#include <wangle/ssl/SSLStats.h>
 
 #include <chrono>
 #include <event.h>
@@ -75,7 +76,8 @@ class Acceptor :
    * not the specified EventBase thread.
    */
   virtual void init(folly::AsyncServerSocket* serverSocket,
-                    folly::EventBase* eventBase);
+                    folly::EventBase* eventBase,
+                    SSLStats* stats = nullptr);
 
   /**
    * Dynamically add a new SSLContextConfig

@@ -51,7 +51,8 @@ Acceptor::Acceptor(const ServerSocketConfig& accConfig) :
 
 void
 Acceptor::init(AsyncServerSocket* serverSocket,
-               EventBase* eventBase) {
+               EventBase* eventBase,
+               SSLStats* stats) {
   CHECK(nullptr == this->base_ || eventBase == this->base_);
 
   if (accConfig_.isSSL()) {
@@ -59,7 +60,7 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       sslCtxManager_ = folly::make_unique<SSLContextManager>(
         eventBase,
         "vip_" + getName(),
-        accConfig_.strictSSL, nullptr);
+        accConfig_.strictSSL, stats);
     }
     for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
       sslCtxManager_->addSSLContextConfig(
