@@ -8,11 +8,12 @@
  *
  */
 
-#include <wangle/concurrent/FutureExecutor.h>
-#include <wangle/concurrent/ThreadPoolExecutor.h>
+#include <wangle/concurrent/BlockingMPMCQueue.h>
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
+#include <wangle/concurrent/FutureExecutor.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 #include <wangle/concurrent/PriorityThreadFactory.h>
+#include <wangle/concurrent/ThreadPoolExecutor.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -383,6 +384,32 @@ TEST(ThreadPoolExecutorTest, AddWithPriority) {
   cpuExe.join();
 
   EXPECT_EQ(7, c);
+}
+
+TEST(ThreadPoolExecutorTest, BlockingQueue) {
+  std::atomic_int c{0};
+  auto f = [&]{ burnMs(1)(); c++; };
+  const int kQueueCapacity = 1;
+  const int kThreads = 1;
+
+  auto queue =
+    folly::make_unique<BlockingMPMCQueue<CPUThreadPoolExecutor::CPUTask>>(
+        kQueueCapacity);
+
+  CPUThreadPoolExecutor cpuExe(
+      kThreads,
+      std::move(queue),
+      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
+
+  // Add `f` five times. It sleeps for 1ms every time. Calling
+  // `cppExec.add()` is *almost* guaranteed to block because there's
+  // only 1 cpu worker thread.
+  for (int i = 0; i < 5; i++) {
+    EXPECT_NO_THROW(cpuExe.add(f));
+  }
+  cpuExe.join();
+
+  EXPECT_EQ(5, c);
 }
 
 TEST(PriorityThreadFactoryTest, ThreadPriority) {
