@@ -65,20 +65,30 @@ using MockHandlerAdapter = MockHandler<R, R, W, W>;
 
 class MockBytesToBytesHandler : public BytesToBytesHandler {
  public:
+  folly::MoveWrapper<folly::Future<folly::Unit>> defaultFuture() {
+    return folly::MoveWrapper<folly::Future<folly::Unit>>();
+  }
+
   MOCK_METHOD1(transportActive, void(Context*));
   MOCK_METHOD1(transportInactive, void(Context*));
   MOCK_METHOD2(read, void(Context*, folly::IOBufQueue&));
   MOCK_METHOD1(readEOF, void(Context*));
   MOCK_METHOD2(readException, void(Context*, folly::exception_wrapper));
   MOCK_METHOD2(write,
-               folly::Future<folly::Unit>(Context*,
-                                          std::shared_ptr<folly::IOBuf>));
-  MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
+               folly::MoveWrapper<folly::Future<folly::Unit>>(
+                 Context*,
+                 std::shared_ptr<folly::IOBuf>));
+  MOCK_METHOD1(mockClose,
+               folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
 
   folly::Future<folly::Unit> write(Context* ctx,
                                    std::unique_ptr<folly::IOBuf> buf) override {
     std::shared_ptr<folly::IOBuf> sbuf(buf.release());
-    return write(ctx, sbuf);
+    return write(ctx, sbuf).move();
+  }
+
+  folly::Future<folly::Unit> close(Context* ctx) override {
+    return mockClose(ctx).move();
   }
 };
 
