@@ -207,10 +207,7 @@ class ServerBootstrap {
       group(nullptr);
     }
 
-    bool reusePort = false;
-    if (acceptor_group_->numThreads() > 1) {
-      reusePort = true;
-    }
+    bool reusePort = reusePort_ || (acceptor_group_->numThreads() > 1);
 
     std::mutex sock_lock;
     std::vector<std::shared_ptr<folly::AsyncSocketBase>> new_sockets;
@@ -218,7 +215,7 @@ class ServerBootstrap {
 
     std::exception_ptr exn;
 
-    auto startupFunc = [&](std::shared_ptr<folly::Baton<>> barrier){
+    auto startupFunc = [&](std::shared_ptr<folly::Baton<>> barrier) {
 
       try {
         auto socket = socketFactory_->newSocket(
@@ -240,8 +237,6 @@ class ServerBootstrap {
 
         return;
       }
-
-
 
     };
 
@@ -330,6 +325,11 @@ class ServerBootstrap {
 
   ServerSocketConfig socketConfig;
 
+  ServerBootstrap* reusePort(bool reusePort) {
+    reusePort_ = reusePort;
+    return this;
+  }
+
  private:
   std::shared_ptr<wangle::IOThreadPoolExecutor> acceptor_group_;
   std::shared_ptr<wangle::IOThreadPoolExecutor> io_group_;
@@ -346,6 +346,8 @@ class ServerBootstrap {
     std::make_shared<AsyncServerSocketFactory>()};
 
   ServerSocketConfig accConfig_;
+
+  bool reusePort_{false};
 
   std::unique_ptr<folly::Baton<>> stopBaton_{
     folly::make_unique<folly::Baton<>>()};
