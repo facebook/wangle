@@ -219,8 +219,7 @@ class ServerBootstrap {
 
       try {
         auto socket = socketFactory_->newSocket(
-          port, address, socketConfig.acceptBacklog, reusePort, socketConfig);
-
+            port, address, socketConfig.acceptBacklog, reusePort, socketConfig);
         sock_lock.lock();
         new_sockets.push_back(socket);
         sock_lock.unlock();
@@ -325,7 +324,7 @@ class ServerBootstrap {
 
   ServerSocketConfig socketConfig;
 
-  ServerBootstrap* reusePort(bool reusePort) {
+  ServerBootstrap* setReusePort(bool reusePort) {
     reusePort_ = reusePort;
     return this;
   }
