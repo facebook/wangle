@@ -34,7 +34,7 @@ DEFINE_string(host, "::1", "test server address");
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
   SerializePipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncSocket> sock) override {
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = SerializePipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     // ensure we can write from any thread

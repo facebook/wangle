@@ -55,7 +55,8 @@ class RpcService : public Service<Bonk, Xtruct> {
 
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
-  SerializePipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  SerializePipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) {
     auto pipeline = SerializePipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     // ensure we can write from any thread

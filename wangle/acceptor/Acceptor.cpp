@@ -29,6 +29,7 @@ using folly::AsyncSocket;
 using folly::AsyncSSLSocket;
 using folly::AsyncSocketException;
 using folly::AsyncServerSocket;
+using folly::AsyncTransportWrapper;
 using folly::EventBase;
 using folly::SocketAddress;
 using std::chrono::microseconds;
@@ -242,7 +243,7 @@ Acceptor::startHandshakeHelper(
 
 void
 Acceptor::connectionReady(
-    AsyncSocket::UniquePtr sock,
+    AsyncTransportWrapper::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocolName,
     SecureTransportType secureTransportType,
@@ -250,8 +251,9 @@ Acceptor::connectionReady(
   // Limit the number of reads from the socket per poll loop iteration,
   // both to keep memory usage under control and to prevent one fast-
   // writing client from starving other connections.
-  sock->setMaxReadsPerEvent(16);
-  tinfo.initWithSocket(sock.get());
+  auto asyncSocket = sock->getUnderlyingTransport<AsyncSocket>();
+  asyncSocket->setMaxReadsPerEvent(16);
+  tinfo.initWithSocket(asyncSocket);
   onNewConnection(
       std::move(sock),
       &clientAddr,
@@ -261,7 +263,7 @@ Acceptor::connectionReady(
 }
 
 void
-Acceptor::sslConnectionReady(AsyncSocket::UniquePtr sock,
+Acceptor::sslConnectionReady(AsyncTransportWrapper::UniquePtr sock,
                              const SocketAddress& clientAddr,
                              const string& nextProtocol,
                              SecureTransportType secureTransportType,

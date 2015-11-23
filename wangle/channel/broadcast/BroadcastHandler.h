@@ -97,7 +97,7 @@ class BroadcastPipelineFactory
     : public PipelineFactory<DefaultPipeline> {
  public:
   virtual DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket) override = 0;
+      std::shared_ptr<folly::AsyncTransportWrapper> socket) override = 0;
 
   virtual BroadcastHandler<T>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept = 0;

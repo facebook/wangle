@@ -116,7 +116,7 @@ class ServerAcceptor
     }
 
     auto connInfo = boost::get<ConnInfo&>(conn);
-    folly::AsyncSocket::UniquePtr transport(connInfo.sock);
+    folly::AsyncTransportWrapper::UniquePtr transport(connInfo.sock);
 
     // Setup local and remote addresses
     auto tInfoPtr = std::make_shared<TransportInfo>(connInfo.tinfo);
@@ -128,7 +128,7 @@ class ServerAcceptor
       std::make_shared<std::string>(connInfo.nextProtoName);
 
     auto pipeline = childPipelineFactory_->newPipeline(
-      std::shared_ptr<folly::AsyncSocket>(
+      std::shared_ptr<folly::AsyncTransportWrapper>(
         transport.release(), folly::DelayedDestruction::Destructor()));
     pipeline->setTransportInfo(tInfoPtr);
     pipeline->transportActive();
@@ -143,7 +143,7 @@ class ServerAcceptor
                      folly::exception_wrapper ex) override {}
 
   /* See Acceptor::onNewConnection for details */
-  void onNewConnection(folly::AsyncSocket::UniquePtr transport,
+  void onNewConnection(folly::AsyncTransportWrapper::UniquePtr transport,
                        const folly::SocketAddress* clientAddr,
                        const std::string& nextProtocolName,
                        SecureTransportType secureTransportType,

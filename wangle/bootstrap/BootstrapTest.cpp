@@ -26,7 +26,8 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  BytesPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) override {
+  BytesPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     // We probably aren't connected immedately, check after a small delay
     EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
       CHECK(sock->good());
@@ -38,7 +39,8 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  BytesPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) override {
+  BytesPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     pipelines++;
     return BytesPipeline::create();
   }
@@ -51,7 +53,7 @@ EventBase base_;
   TestAcceptor() : Acceptor(ServerSocketConfig()) {
     Acceptor::init(nullptr, &base_);
   }
-  void onNewConnection(AsyncSocket::UniquePtr sock,
+  void onNewConnection(AsyncTransportWrapper::UniquePtr sock,
                        const folly::SocketAddress* address,
                        const std::string& nextProtocolName,
                        SecureTransportType secureTransportType,

@@ -49,7 +49,8 @@ class ProxyBackendPipelineFactory : public PipelineFactory<DefaultPipeline> {
   explicit ProxyBackendPipelineFactory(DefaultPipeline* frontendPipeline) :
       frontendPipeline_(frontendPipeline) {}
 
-  DefaultPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  DefaultPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ProxyBackendHandler(frontendPipeline_));
@@ -119,7 +120,8 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
   explicit ProxyFrontendPipelineFactory(SocketAddress remoteAddress) :
       remoteAddress_(remoteAddress) {}
 
-  DefaultPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock) {
+  DefaultPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(std::make_shared<ProxyFrontendHandler>(remoteAddress_));

@@ -216,7 +216,7 @@ class Acceptor :
    * Wrapper for connectionReady() that decrements the count of
    * pending SSL connections. This should normally not be overridden.
    */
-  virtual void sslConnectionReady(folly::AsyncSocket::UniquePtr sock,
+  virtual void sslConnectionReady(folly::AsyncTransportWrapper::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocol,
       SecureTransportType secureTransportType,
@@ -266,7 +266,7 @@ class Acceptor :
    *                            requested by the client.
    */
   virtual void onNewConnection(
-      folly::AsyncSocket::UniquePtr /*sock*/,
+      folly::AsyncTransportWrapper::UniquePtr /*sock*/,
       const folly::SocketAddress* /*address*/,
       const std::string& /*nextProtocolName*/,
       SecureTransportType /*secureTransportType*/,
@@ -335,7 +335,7 @@ class Acceptor :
    * for SSL connections.
    */
    void connectionReady(
-      folly::AsyncSocket::UniquePtr sock,
+      folly::AsyncTransportWrapper::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocolName,
       SecureTransportType secureTransportType,

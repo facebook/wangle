@@ -91,7 +91,7 @@ class MockBroadcastPipelineFactory
     : public BroadcastPipelineFactory<int, std::string> {
  public:
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket) override {
+      std::shared_ptr<folly::AsyncTransportWrapper> socket) override {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(std::make_shared<MockByteToMessageDecoder<int>>());

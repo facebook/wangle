@@ -54,7 +54,7 @@ class ServerPipelineFactory
  public:
 
   typename ServicePipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncSocket> socket) override {
+      std::shared_ptr<AsyncTransportWrapper> socket) override {
     auto pipeline = ServicePipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(SimpleDecode());
@@ -73,7 +73,7 @@ class ClientPipelineFactory : public PipelineFactory<ServicePipeline> {
  public:
 
   typename ServicePipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncSocket> socket) override {
+      std::shared_ptr<AsyncTransportWrapper> socket) override {
     auto pipeline = ServicePipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(SimpleDecode());

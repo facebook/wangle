@@ -45,7 +45,7 @@ class BroadcastPoolTest : public Test {
   class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
    public:
     DefaultPipeline::Ptr newPipeline(
-        std::shared_ptr<AsyncSocket> sock) override {
+        std::shared_ptr<AsyncTransportWrapper> sock) override {
       return DefaultPipeline::create();
     }
   };

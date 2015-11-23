@@ -35,7 +35,7 @@ class MockAcceptor : public Acceptor {
 
     MOCK_METHOD5(sslConnectionReadyInternal,
         void(
-          std::shared_ptr<AsyncSocket> sock,
+          std::shared_ptr<AsyncTransportWrapper> sock,
           const SocketAddress& clientAddr,
           const std::string& nextProtocol,
           SecureTransportType secureTransportType,
@@ -44,13 +44,13 @@ class MockAcceptor : public Acceptor {
     MOCK_METHOD1(sslConnectionError, void(const folly::exception_wrapper&));
 
     void sslConnectionReady(
-        AsyncSocket::UniquePtr socket,
+        AsyncTransportWrapper::UniquePtr socket,
         const SocketAddress& clientAddr,
         const std::string& nextProtocol,
         SecureTransportType secureTransportType,
         TransportInfo& tinfo) override {
       sslConnectionReadyInternal(
-          std::shared_ptr<AsyncSocket>(std::move(socket)),
+          std::shared_ptr<AsyncTransportWrapper>(std::move(socket)),
           clientAddr,
           nextProtocol,
           secureTransportType,
