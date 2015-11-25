@@ -120,7 +120,8 @@ class ServerAcceptor
 
     // Setup local and remote addresses
     auto tInfoPtr = std::make_shared<TransportInfo>(connInfo.tinfo);
-    tInfoPtr->localAddr = std::make_shared<folly::SocketAddress>();
+    tInfoPtr->localAddr =
+      std::make_shared<folly::SocketAddress>(accConfig_.bindAddress);
     transport->getLocalAddress(tInfoPtr->localAddr.get());
     tInfoPtr->remoteAddr =
       std::make_shared<folly::SocketAddress>(*connInfo.clientAddr);
