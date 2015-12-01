@@ -80,6 +80,9 @@ class MockBytesToBytesHandler : public BytesToBytesHandler {
                  std::shared_ptr<folly::IOBuf>));
   MOCK_METHOD1(mockClose,
                folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
+  MOCK_METHOD2(mockWriteException,
+               folly::MoveWrapper<folly::Future<folly::Unit>>(
+                   Context*, folly::exception_wrapper));
 
   folly::Future<folly::Unit> write(Context* ctx,
                                    std::unique_ptr<folly::IOBuf> buf) override {
@@ -89,6 +92,11 @@ class MockBytesToBytesHandler : public BytesToBytesHandler {
 
   folly::Future<folly::Unit> close(Context* ctx) override {
     return mockClose(ctx).move();
+  }
+
+  folly::Future<folly::Unit> writeException(
+      Context* ctx, folly::exception_wrapper ex) override {
+    return mockWriteException(ctx, ex).move();
   }
 };
 
