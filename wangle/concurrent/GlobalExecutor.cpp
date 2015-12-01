@@ -80,7 +80,8 @@ void setExecutor(
     std::shared_ptr<Exe> executor,
     Singleton<std::weak_ptr<Exe>>& sExecutor,
     Singleton<RWSpinLock, LockTag>& sExecutorLock) {
-  RWSpinLock::WriteHolder guard(sExecutorLock.get());
+  auto lock = sExecutorLock.try_get();
+  RWSpinLock::WriteHolder guard(*lock);
   std::weak_ptr<Exe> executor_weak = executor;
   sExecutor.try_get().get()->swap(executor_weak);
 }
