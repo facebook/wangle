@@ -80,7 +80,7 @@ struct SSLContextConfig {
     "AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA:"
     "ECDHE-ECDSA-RC4-SHA:ECDHE-RSA-RC4-SHA:RC4-SHA:RC4-MD5:"
     "ECDHE-RSA-DES-CBC3-SHA:DES-CBC3-SHA"};
-  std::string eccCurveName;
+  std::string eccCurveName{"prime256v1"};
   // Ciphers to negotiate if TLS version >= 1.1
   std::string tls11Ciphers{""};
   // Weighted lists of NPN strings to advertise
