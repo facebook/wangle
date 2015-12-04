@@ -201,7 +201,7 @@ Acceptor::processEstablishedConnection(
       auto latency = std::chrono::milliseconds(0);
       updateSSLStats(sslSock.get(), latency, error);
       auto ex = folly::make_exception_wrapper<SSLException>(
-          error, latency, sslSock->getBytesRead());
+          error, latency, sslSock->getRawBytesReceived());
       sslConnectionError(ex);
       return;
     }

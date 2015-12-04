@@ -98,7 +98,7 @@ void AcceptorHandshakeHelper::handshakeErr(
       ex.what();
   acceptor_->updateSSLStats(sock, elapsedTime, sslError_);
   auto sslEx = folly::make_exception_wrapper<SSLException>(
-      sslError_, elapsedTime, sock->getBytesRead());
+      sslError_, elapsedTime, sock->getRawBytesReceived());
   acceptor_->sslConnectionError(sslEx);
   destroy();
 }
