@@ -301,9 +301,10 @@ class Acceptor :
    * Hook for subclasses to record stats about SSL connection establishment.
    */
   virtual void updateSSLStats(
-      const folly::AsyncSSLSocket* /*sock*/,
+      const folly::AsyncTransportWrapper* /*sock*/,
       std::chrono::milliseconds /*acceptLatency*/,
-      SSLErrorEnum /*error*/) noexcept {}
+      SSLErrorEnum /*error*/,
+      SecureTransportType /*type*/ = SecureTransportType::TLS) noexcept {}
 
  protected:
 
