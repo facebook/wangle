@@ -83,6 +83,7 @@ class AsyncSocketHandler
   folly::Future<folly::Unit> write(
       Context* ctx,
       std::unique_ptr<folly::IOBuf> buf) override {
+    refreshTimeout();
     if (UNLIKELY(!buf)) {
       return folly::makeFuture();
     }
@@ -132,6 +133,7 @@ class AsyncSocketHandler
   }
 
   void readDataAvailable(size_t len) noexcept override {
+    refreshTimeout();
     bufQueue_.postallocate(len);
     getContext()->fireRead(bufQueue_);
   }
@@ -147,6 +149,13 @@ class AsyncSocketHandler
   }
 
  private:
+  void refreshTimeout() {
+    auto manager = getContext()->getPipeline()->getPipelineManager();
+    if (manager) {
+      manager->refreshTimeout();
+    }
+  }
+
   folly::Future<folly::Unit> shutdown(Context* ctx, bool closeWithReset) {
     if (socket_) {
       detachReadCallback();

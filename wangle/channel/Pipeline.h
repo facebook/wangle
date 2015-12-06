@@ -31,6 +31,7 @@ class PipelineManager {
  public:
   virtual ~PipelineManager() = default;
   virtual void deletePipeline(PipelineBase* pipeline) = 0;
+  virtual void refreshTimeout() {};
 };
 
 class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
@@ -39,6 +40,10 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
 
   void setPipelineManager(PipelineManager* manager) {
     manager_ = manager;
+  }
+
+  PipelineManager* getPipelineManager() {
+    return manager_;
   }
 
   void deletePipeline() {

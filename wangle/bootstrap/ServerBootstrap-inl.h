@@ -56,7 +56,9 @@ class ServerAcceptor
       pipeline_->setPipelineManager(this);
     }
 
-    ~ServerConnection() = default;
+    ~ServerConnection() {
+      pipeline_->setPipelineManager(nullptr);
+    }
 
     void timeoutExpired() noexcept override {
       auto ew = folly::make_exception_wrapper<AcceptorException>(
@@ -66,7 +68,7 @@ class ServerAcceptor
 
     void describe(std::ostream& os) const override {}
     bool isBusy() const override {
-      return false;
+      return true;
     }
     void notifyPendingShutdown() override {}
     void closeWhenIdle() override {}
@@ -82,6 +84,10 @@ class ServerAcceptor
 
     void init() {
       pipeline_->transportActive();
+    }
+
+    void refreshTimeout() override {
+      resetTimeout();
     }
 
    private:
