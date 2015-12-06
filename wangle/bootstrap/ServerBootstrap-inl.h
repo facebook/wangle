@@ -80,6 +80,10 @@ class ServerAcceptor
       delete this;
     }
 
+    void init() {
+      pipeline_->transportActive();
+    }
+
    private:
     typename Pipeline::Ptr pipeline_;
   };
@@ -132,9 +136,9 @@ class ServerAcceptor
       std::shared_ptr<folly::AsyncTransportWrapper>(
         transport.release(), folly::DelayedDestruction::Destructor()));
     pipeline->setTransportInfo(tInfoPtr);
-    pipeline->transportActive();
     auto connection = new ServerConnection(std::move(pipeline));
     Acceptor::addConnection(connection);
+    connection->init();
   }
 
   // Null implementation to terminate the call in this handler
