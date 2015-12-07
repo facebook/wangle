@@ -44,11 +44,11 @@ endforeach()
 
 set(WANGLE_SOURCES
   acceptor/Acceptor.cpp
-  acceptor/AcceptorHandshakeHelper.cpp
   acceptor/ConnectionManager.cpp
   acceptor/LoadShedConfiguration.cpp
   acceptor/ManagedConnection.cpp
   acceptor/SocketOptions.cpp
+  acceptor/SSLAcceptorHandshakeHelper.cpp
   acceptor/TransportInfo.cpp
   bootstrap/ServerBootstrap.cpp
   channel/FileRegion.cpp

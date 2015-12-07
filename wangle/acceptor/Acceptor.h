@@ -189,9 +189,9 @@ class Acceptor :
   ) noexcept;
 
   /**
-   * Creates and starts the handshake helper.
+   * Creates and starts the handshake manager.
    */
-  virtual void startHandshakeHelper(
+  virtual void startHandshakeManager(
     folly::AsyncSSLSocket::UniquePtr sslSock,
     Acceptor* acceptor,
     const folly::SocketAddress& clientAddr,
@@ -227,8 +227,20 @@ class Acceptor :
    */
   virtual void sslConnectionError(const folly::exception_wrapper& ex);
 
+  /**
+   * Hook for subclasses to record stats about SSL connection establishment.
+   */
+  virtual void updateSSLStats(
+      const folly::AsyncTransportWrapper* /*sock*/,
+      std::chrono::milliseconds /*acceptLatency*/,
+      SSLErrorEnum /*error*/,
+      SecureTransportType /*type*/ = SecureTransportType::TLS) noexcept {}
+
+  bool getParseClientHello() {
+    return parseClientHello_;
+  }
+
  protected:
-  friend class AcceptorHandshakeHelper;
 
   /**
    * Our event loop.
@@ -296,15 +308,6 @@ class Acceptor :
           true, /* set server */
           true /* defer the security negotiation until sslAccept */));
   }
-
-  /**
-   * Hook for subclasses to record stats about SSL connection establishment.
-   */
-  virtual void updateSSLStats(
-      const folly::AsyncTransportWrapper* /*sock*/,
-      std::chrono::milliseconds /*acceptLatency*/,
-      SSLErrorEnum /*error*/,
-      SecureTransportType /*type*/ = SecureTransportType::TLS) noexcept {}
 
  protected:
 

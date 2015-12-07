@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <wangle/acceptor/AcceptorHandshakeHelper.h>
+#include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 
 #include <string>
 #include <wangle/acceptor/SecureTransportType.h>
@@ -18,11 +18,20 @@ static const std::string empty_string;
 
 using namespace folly;
 
-void AcceptorHandshakeHelper::start() noexcept {
+void SSLAcceptorHandshakeHelper::start(
+    folly::AsyncSSLSocket::UniquePtr sock,
+    AcceptorHandshakeHelper::Callback* callback) noexcept {
+  socket_ = std::move(sock);
+  callback_ = callback;
+
+  if (acceptor_->getParseClientHello()) {
+    socket_->enableClientHelloParsing();
+  }
+
   socket_->sslAccept(this);
 }
 
-void AcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
+void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   const unsigned char* nextProto = nullptr;
   unsigned nextProtoLength = 0;
   sock->getSelectedNextProtocol(&nextProto, &nextProtoLength);
@@ -73,20 +82,17 @@ void AcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
     tinfo_.sslSetupTime,
     SSLErrorEnum::NO_ERROR
   );
-  acceptor_->downstreamConnectionManager_->removeConnection(this);
   auto nextProtocol = nextProto ?
     std::string((const char*)nextProto, nextProtoLength) : empty_string;
 
-  acceptor_->sslConnectionReady(
+  // The callback will delete this.
+  callback_->connectionReady(
       std::move(socket_),
-      clientAddr_,
       std::move(nextProtocol),
-      SecureTransportType::TLS,
-      tinfo_);
-  destroy();
+      SecureTransportType::TLS);
 }
 
-void AcceptorHandshakeHelper::handshakeErr(
+void SSLAcceptorHandshakeHelper::handshakeErr(
     AsyncSSLSocket* sock,
     const AsyncSocketException& ex) noexcept {
   auto elapsedTime =
@@ -99,8 +105,9 @@ void AcceptorHandshakeHelper::handshakeErr(
   acceptor_->updateSSLStats(sock, elapsedTime, sslError_);
   auto sslEx = folly::make_exception_wrapper<SSLException>(
       sslError_, elapsedTime, sock->getRawBytesReceived());
-  acceptor_->sslConnectionError(sslEx);
-  destroy();
+
+  // The callback will delete this.
+  callback_->connectionError(sslEx);
 }
 
 }

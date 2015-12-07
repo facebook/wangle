@@ -11,7 +11,8 @@
 
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/ssl/SSLContextManager.h>
-#include <wangle/acceptor/AcceptorHandshakeHelper.h>
+#include <wangle/acceptor/AcceptorHandshakeManager.h>
+#include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 
 #include <boost/cast.hpp>
 #include <fcntl.h>
@@ -205,7 +206,7 @@ Acceptor::processEstablishedConnection(
       sslConnectionError(ex);
       return;
     }
-    startHandshakeHelper(
+    startHandshakeManager(
         std::move(sslSock),
         this,
         clientAddr,
@@ -225,20 +226,19 @@ Acceptor::processEstablishedConnection(
 }
 
 void
-Acceptor::startHandshakeHelper(
+Acceptor::startHandshakeManager(
     AsyncSSLSocket::UniquePtr sslSock,
     Acceptor* acceptor,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) noexcept {
-  auto helper = new AcceptorHandshakeHelper(
-    std::move(sslSock),
-    this,
+  auto manager = new SSLAcceptorHandshakeManager(
+    acceptor,
     clientAddr,
     acceptTime,
     tinfo
   );
-  helper->start();
+  manager->start(std::move(sslSock));
 }
 
 void
