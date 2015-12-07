@@ -41,6 +41,14 @@ struct HTTPHeaderSize {
   size_t uncompressed{0};
 };
 
+/**
+ * A struct that can store additional information specific to the protocol being
+ * used.
+ */
+struct ProtocolInfo {
+  virtual ~ProtocolInfo() = default;
+};
+
 struct TransportInfo {
   /*
    * timestamp of when the connection handshake was completed
@@ -309,6 +317,11 @@ struct TransportInfo {
    * true if the connection is SSL, false otherwise
    */
   bool ssl{false};
+
+  /*
+   * Additional protocol info.
+   */
+  std::shared_ptr<ProtocolInfo> protocolInfo{nullptr};
 
   /*
    * get the RTT value in milliseconds
