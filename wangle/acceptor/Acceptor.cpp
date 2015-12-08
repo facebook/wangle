@@ -14,7 +14,6 @@
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 
-#include <boost/cast.hpp>
 #include <fcntl.h>
 #include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
