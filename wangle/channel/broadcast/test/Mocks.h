@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <folly/MoveWrapper.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
@@ -40,7 +41,12 @@ class MockMessageToByteEncoder : public MessageToByteEncoder<T> {
  public:
   typedef typename MessageToByteEncoder<T>::Context Context;
 
-  MOCK_METHOD1_T(encode, std::unique_ptr<folly::IOBuf>(T&));
+  MOCK_METHOD1_T(mockEncode,
+                 folly::MoveWrapper<std::unique_ptr<folly::IOBuf>>(T&));
+
+  std::unique_ptr<folly::IOBuf> encode(T& data) override {
+    return mockEncode(data).move();
+  }
 };
 
 class MockServerPool : public ServerPool<std::string> {
@@ -68,8 +74,14 @@ class MockBroadcastPool : public BroadcastPool<int, std::string> {
  public:
   MockBroadcastPool() : BroadcastPool<int, std::string>(nullptr, nullptr) {}
 
-  MOCK_METHOD1_T(getHandler,
-                 folly::Future<BroadcastHandler<int>*>(const std::string&));
+  MOCK_METHOD1_T(mockGetHandler,
+                 folly::MoveWrapper<folly::Future<BroadcastHandler<int>*>>(
+                     const std::string&));
+
+  folly::Future<BroadcastHandler<int>*> getHandler(
+      const std::string& routingData) override {
+    return mockGetHandler(routingData).move();
+  }
 };
 
 class MockObservingHandler : public ObservingHandler<int, std::string> {
@@ -77,8 +89,18 @@ class MockObservingHandler : public ObservingHandler<int, std::string> {
   explicit MockObservingHandler(BroadcastPool<int, std::string>* broadcastPool)
       : ObservingHandler<int, std::string>("", broadcastPool) {}
 
-  MOCK_METHOD2(write, folly::Future<folly::Unit>(Context*, int));
-  MOCK_METHOD1(close, folly::Future<folly::Unit>(Context*));
+  MOCK_METHOD2(mockWrite,
+               folly::MoveWrapper<folly::Future<folly::Unit>>(Context*, int));
+  MOCK_METHOD1(mockClose,
+               folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
+
+  folly::Future<folly::Unit> write(Context* ctx, int data) override {
+    return mockWrite(ctx, data).move();
+  }
+
+  folly::Future<folly::Unit> close(Context* ctx) override {
+    return mockClose(ctx).move();
+  }
 };
 
 class MockBroadcastHandler : public BroadcastHandler<int> {

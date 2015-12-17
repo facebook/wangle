@@ -64,11 +64,9 @@ TEST_F(ObservingHandlerTest, Success) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -79,13 +77,17 @@ TEST_F(ObservingHandlerTest, Success) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(2);
+  EXPECT_CALL(*observingHandler, mockWrite(_, 1))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
+  EXPECT_CALL(*observingHandler, mockWrite(_, 2))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
   observingHandler->onNext(2);
 
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Finish the broadcast
   observingHandler->onCompleted();
@@ -101,13 +103,12 @@ TEST_F(ObservingHandlerTest, ConnectError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        // Inject error
-        return makeFuture<BroadcastHandler<int>*>(
-            make_exception_wrapper<std::exception>());
-      }));
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  // Inject error
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(MoveWrapper<Future<BroadcastHandler<int>*>>(
+                           make_exception_wrapper<std::exception>())));
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Initialize the pipeline
   pipeline->transportActive();
@@ -125,10 +126,8 @@ TEST_F(ObservingHandlerTest, ConnectHandlerDeletion) {
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   Promise<BroadcastHandler<int>*> promise;
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([&] {
-        return promise.getFuture();
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(makeMoveWrapper(promise.getFuture())));
 
   // Initialize the pipeline
   pipeline->transportActive();
@@ -151,8 +150,8 @@ TEST_F(ObservingHandlerTest, ConnectErrorHandlerDeletion) {
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
   Promise<BroadcastHandler<int>*> promise;
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([&] { return promise.getFuture(); }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(makeMoveWrapper(promise.getFuture())));
 
   // Initialize the pipeline
   pipeline->transportActive();
@@ -171,11 +170,9 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -186,12 +183,14 @@ TEST_F(ObservingHandlerTest, BroadcastError) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
+  EXPECT_CALL(*observingHandler, mockWrite(_, _))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
 
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Inject broadcast error
   observingHandler->onError(make_exception_wrapper<std::exception>());
@@ -206,11 +205,9 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -221,13 +218,15 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
+  EXPECT_CALL(*observingHandler, mockWrite(_, _))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
 
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Client closes connection
   observingHandler->readEOF(nullptr);
@@ -242,11 +241,9 @@ TEST_F(ObservingHandlerTest, ReadError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -257,13 +254,15 @@ TEST_F(ObservingHandlerTest, ReadError) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  EXPECT_CALL(*observingHandler, write(_, _)).Times(1);
+  EXPECT_CALL(*observingHandler, mockWrite(_, _))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
 
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Inject read error
   observingHandler->readException(nullptr,
@@ -279,11 +278,9 @@ TEST_F(ObservingHandlerTest, WriteError) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -294,13 +291,13 @@ TEST_F(ObservingHandlerTest, WriteError) {
   // Initialize the pipeline
   pipeline->transportActive();
 
-  EXPECT_CALL(*observingHandler, write(_, _))
-      .WillOnce(InvokeWithoutArgs([&] {
-        // Inject write error
-        return makeFuture<Unit>(make_exception_wrapper<std::exception>());
-      }));
+  // Inject write error
+  EXPECT_CALL(*observingHandler, mockWrite(_, _))
+      .WillOnce(Return(
+          MoveWrapper<Future<Unit>>(make_exception_wrapper<std::exception>())));
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
-  EXPECT_CALL(*observingHandler, close(_)).Times(1);
+  EXPECT_CALL(*observingHandler, mockClose(_))
+      .WillOnce(Return(makeMoveWrapper(makeFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
@@ -317,11 +314,9 @@ TEST_F(ObservingHandlerTest, WriteErrorHandlerDeletion) {
       }));
   // Verify that ingress is paused
   EXPECT_CALL(*prevHandler, transportInactive(_)).WillOnce(Return());
-  EXPECT_CALL(pool, getHandler(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        auto handler = broadcastHandler.get();
-        return makeFuture<BroadcastHandler<int>*>(std::move(handler));
-      }));
+  EXPECT_CALL(pool, mockGetHandler(_))
+      .WillOnce(Return(
+          MoveWrapper<Future<BroadcastHandler<int>*>>(broadcastHandler.get())));
   EXPECT_CALL(*broadcastHandler, subscribe(_)).Times(1);
   // Verify that ingress is resumed
   EXPECT_CALL(*prevHandler, transportActive(_))
@@ -333,8 +328,8 @@ TEST_F(ObservingHandlerTest, WriteErrorHandlerDeletion) {
   pipeline->transportActive();
 
   Promise<Unit> promise;
-  EXPECT_CALL(*observingHandler, write(_, _))
-      .WillOnce(InvokeWithoutArgs([&] { return promise.getFuture(); }));
+  EXPECT_CALL(*observingHandler, mockWrite(_, _))
+      .WillOnce(Return(makeMoveWrapper(promise.getFuture())));
 
   // Broadcast some data
   observingHandler->onNext(1);
