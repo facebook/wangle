@@ -33,6 +33,15 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
   routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();
 
+  // Initialize TransportInfo and set it on the routing pipeline
+  auto transportInfo = std::make_shared<TransportInfo>(connInfo.tinfo);
+  folly::SocketAddress localAddr, peerAddr;
+  socket->getLocalAddress(&localAddr);
+  socket->getPeerAddress(&peerAddr);
+  transportInfo->localAddr = std::make_shared<folly::SocketAddress>(localAddr);
+  transportInfo->remoteAddr = std::make_shared<folly::SocketAddress>(peerAddr);
+  routingPipeline->setTransportInfo(transportInfo);
+
   routingPipeline->transportActive();
   routingPipelines_[connId] = std::move(routingPipeline);
 }
@@ -78,8 +87,9 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
     auto routingHandler =
         routingPipeline->template getHandler<RoutingDataHandler<R>>();
     DCHECK(routingHandler);
+    auto transportInfo = routingPipeline->getTransportInfo();
     auto pipeline = childPipelineFactory_->newPipeline(
-        socket, mwRoutingData->routingData, routingHandler);
+        socket, mwRoutingData->routingData, routingHandler, transportInfo);
 
     auto connection =
         new typename ServerAcceptor<Pipeline>::ServerConnection(pipeline);

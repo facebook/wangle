@@ -74,13 +74,21 @@ class ThreadPrintingHandler : public BytesToBytesHandler {
 class ServerPipelineFactory
     : public RoutingDataPipelineFactory<DefaultPipeline, char> {
  public:
-  DefaultPipeline::Ptr newPipeline(std::shared_ptr<AsyncSocket> sock,
-                                   const char& routingData,
-                                   RoutingDataHandler<char>* routingHandler) {
+  DefaultPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncSocket> sock,
+      const char& routingData,
+      RoutingDataHandler<char>* routingHandler,
+      std::shared_ptr<TransportInfo> transportInfo) override {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(ThreadPrintingHandler(routingData));
     pipeline->finalize();
+
+    pipeline->setTransportInfo(transportInfo);
+
+    LOG(INFO) << "Created new server pipeline. Local address = "
+              << *(transportInfo->localAddr)
+              << ", remote address = " << *(transportInfo->remoteAddr);
 
     return pipeline;
   }

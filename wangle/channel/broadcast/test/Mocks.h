@@ -143,7 +143,8 @@ class MockObservingPipelineFactory
   ObservingPipeline<int>::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket,
       const std::string& routingData,
-      RoutingDataHandler<std::string>* routingHandler) override {
+      RoutingDataHandler<std::string>* routingHandler,
+      std::shared_ptr<TransportInfo> transportInfo) override {
     auto pipeline = ObservingPipeline<int>::create();
     pipeline->addBack(std::make_shared<wangle::BytesToBytesHandler>());
     pipeline->addBack(std::make_shared<MockMessageToByteEncoder<int>>());
