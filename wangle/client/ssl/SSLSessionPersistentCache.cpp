@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #include <wangle/client/ssl/SSLSessionPersistentCache.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
@@ -50,6 +58,7 @@ SSLSessionPersistentCache::getSSLSession(
   auto& value = hit.value();
   auto sess = SSLSessionPtr(fbStringToSession(value.sessionData));
 
+#if OPENSSL_TICKETS
   if (enableTicketLifetimeExpiration_ &&
       sess &&
       sess->tlsext_ticklen > 0 &&
@@ -61,6 +70,7 @@ SSLSessionPersistentCache::getSSLSession(
       return nullptr;
     }
   }
+#endif
 
   return sess;
 }

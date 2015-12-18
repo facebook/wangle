@@ -1,9 +1,21 @@
+/*
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <openssl/ssl.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/client/ssl/SSLSession.h>
+
+#define OPENSSL_TICKETS \
+  OPENSSL_VERSION_NUMBER >= 0x1000105fL && !defined(OPENSSL_NO_TLSEXT)
 
 namespace wangle {
 
@@ -110,9 +122,12 @@ class SSLSessionCallbacks {
   static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session) {
     SSLSessionCallbacks* sslSessionCache =
       (SSLSessionCallbacks*) SSL_CTX_get_ex_data(ctx, getCacheIndex());
+#if OPENSSL_TICKETS
+    // we need tls servername support
     if (session->tlsext_hostname) {
       sslSessionCache->removeSSLSession(std::string(session->tlsext_hostname));
     }
+#endif
   }
 
   static int32_t& getCacheIndex() {
