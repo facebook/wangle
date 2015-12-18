@@ -80,7 +80,8 @@ target_link_libraries(wangle
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   -lglog
-  -lgflags)
+  -lgflags
+  -latomic)
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
