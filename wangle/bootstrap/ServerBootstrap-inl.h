@@ -108,7 +108,6 @@ class ServerAcceptor
             SSLStats* stats = nullptr) override {
     Acceptor::init(serverSocket, eventBase, stats);
 
-    // newPipeline() invokes acceptor->setSSLStats() to set customized SSLStats
     acceptPipeline_ = acceptPipelineFactory_->newPipeline(this);
 
     if (childPipelineFactory_) {
