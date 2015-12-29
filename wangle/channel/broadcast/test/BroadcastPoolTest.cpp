@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include "wangle/channel/Handler.h"
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/test/Mocks.h>
@@ -46,7 +47,10 @@ class BroadcastPoolTest : public Test {
    public:
     DefaultPipeline::Ptr newPipeline(
         std::shared_ptr<AsyncTransportWrapper> sock) override {
-      return DefaultPipeline::create();
+      auto pipeline = DefaultPipeline::create();
+      pipeline->addBack(new BytesToBytesHandler());
+      pipeline->finalize();
+      return pipeline;
     }
   };
 

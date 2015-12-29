@@ -12,6 +12,7 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/SharedMutex.h>
+#include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/ManagedConnection.h>
@@ -28,7 +29,8 @@ class AcceptorException : public std::runtime_error {
   enum class ExceptionType {
     UNKNOWN = 0,
     TIMED_OUT = 1,
-    INTERNAL_ERROR = 2,
+    DROPPED = 2,
+    INTERNAL_ERROR = 3,
   };
 
   explicit AcceptorException(ExceptionType type) :
@@ -56,10 +58,6 @@ class ServerAcceptor
       pipeline_->setPipelineManager(this);
     }
 
-    ~ServerConnection() {
-      pipeline_->setPipelineManager(nullptr);
-    }
-
     void timeoutExpired() noexcept override {
       auto ew = folly::make_exception_wrapper<AcceptorException>(
           AcceptorException::ExceptionType::TIMED_OUT);
@@ -73,13 +71,17 @@ class ServerAcceptor
     void notifyPendingShutdown() override {}
     void closeWhenIdle() override {}
     void dropConnection() override {
-      delete this;
+      DestructorGuard dg(this);
+      auto ew = folly::make_exception_wrapper<AcceptorException>(
+          AcceptorException::ExceptionType::DROPPED);
+      pipeline_->readException(ew);
+      destroy();
     }
     void dumpConnectionState(uint8_t loglevel) override {}
 
     void deletePipeline(wangle::PipelineBase* p) override {
       CHECK(p == pipeline_.get());
-      delete this;
+      destroy();
     }
 
     void init() {
@@ -91,6 +93,9 @@ class ServerAcceptor
     }
 
    private:
+    ~ServerConnection() {
+      pipeline_->setPipelineManager(nullptr);
+    }
     typename Pipeline::Ptr pipeline_;
   };
 

@@ -42,7 +42,10 @@ class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
   BytesPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransportWrapper> sock) override {
     pipelines++;
-    return BytesPipeline::create();
+    auto pipeline = BytesPipeline::create();
+    pipeline->addBack(new BytesToBytesHandler());
+    pipeline->finalize();
+    return pipeline;
   }
   std::atomic<int> pipelines{0};
 };
