@@ -84,14 +84,6 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
   uint64_t nextSubscriptionId_{0};
 };
 
-template <typename T>
-class BroadcastHandlerFactory {
- public:
-  virtual ~BroadcastHandlerFactory() {}
-
-  virtual std::shared_ptr<BroadcastHandler<T>> newHandler() = 0;
-};
-
 template <typename T, typename R>
 class BroadcastPipelineFactory
     : public PipelineFactory<DefaultPipeline> {
