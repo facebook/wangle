@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Facebook, Inc.
+ *  Copyright (c) 2016, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
@@ -60,7 +59,7 @@ class ServerAcceptor
 
     void timeoutExpired() noexcept override {
       auto ew = folly::make_exception_wrapper<AcceptorException>(
-          AcceptorException::ExceptionType::TIMED_OUT);
+          AcceptorException::ExceptionType::TIMED_OUT, "timeout");
       pipeline_->readException(ew);
     }
 
@@ -73,7 +72,7 @@ class ServerAcceptor
     void dropConnection() override {
       DestructorGuard dg(this);
       auto ew = folly::make_exception_wrapper<AcceptorException>(
-          AcceptorException::ExceptionType::DROPPED);
+          AcceptorException::ExceptionType::DROPPED, "dropped");
       pipeline_->readException(ew);
       destroy();
     }
