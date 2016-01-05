@@ -29,7 +29,9 @@ class AcceptorException : public std::runtime_error {
     UNKNOWN = 0,
     TIMED_OUT = 1,
     DROPPED = 2,
-    INTERNAL_ERROR = 3,
+    ACCEPT_STOPPED = 3,
+    FORCE_STOP = 4,
+    INTERNAL_ERROR = 5,
   };
 
   explicit AcceptorException(ExceptionType type) :
@@ -165,6 +167,25 @@ class ServerAcceptor
     ConnInfo connInfo = {transport.release(), clientAddr, nextProtocolName,
                          secureTransportType, tinfo};
     acceptPipeline_->read(connInfo);
+  }
+
+  // notify the acceptors in the acceptPipeline to drain & drop conns
+  void acceptStopped() noexcept override {
+    auto ew = folly::make_exception_wrapper<AcceptorException>(
+      AcceptorException::ExceptionType::ACCEPT_STOPPED,
+      "graceful shutdown timeout");
+
+    acceptPipeline_->readException(ew);
+    Acceptor::acceptStopped();
+  }
+
+  void forceStop() noexcept override {
+    auto ew = folly::make_exception_wrapper<AcceptorException>(
+      AcceptorException::ExceptionType::FORCE_STOP,
+      "hard shutdown timeout");
+
+    acceptPipeline_->readException(ew);
+    Acceptor::forceStop();
   }
 
   // UDP thunk
