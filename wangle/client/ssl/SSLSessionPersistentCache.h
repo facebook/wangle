@@ -1,7 +1,15 @@
-// Copyright 2004-present Facebook.  All rights reserved.
-//
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <map>
 #include <openssl/ssl.h>
@@ -14,10 +22,11 @@
 namespace wangle {
 
 /**
- * This cache is not thread-safe, so it is not meant to be used among multiple
- * threads.
+ * This cache is as threadsafe as the underlying PersistentCache used.
+ * Multiple instances may delegate to the same persistence layer
  */
-class SSLSessionPersistentCache : public SSLSessionCallbacks {
+template<typename K>
+class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
 
  public:
   class TimeUtil {
@@ -29,8 +38,13 @@ class SSLSessionPersistentCache : public SSLSessionCallbacks {
      }
   };
 
-  explicit SSLSessionPersistentCache(
-    const std::string& filename, std::size_t cacheCapacity,
+  explicit SSLSessionPersistentCacheBase(
+    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache,
+    bool doTicketLifetimeExpiration = false);
+
+  explicit SSLSessionPersistentCacheBase(
+    const std::string& filename,
+    const std::size_t cacheCapacity,
     const std::chrono::seconds& syncInterval,
     bool doTicketLifetimeExpiration = false);
 
@@ -44,7 +58,7 @@ class SSLSessionPersistentCache : public SSLSessionCallbacks {
   // specified hostname. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
   SSLSessionPtr getSSLSession(
-      const std::string& hostname) const noexcept override;
+    const std::string& hostname) const noexcept override;
 
   // Remove session data of the specified hostname from cache. Return true if
   // there was session data associated with the hostname before removal, or
@@ -68,10 +82,32 @@ class SSLSessionPersistentCache : public SSLSessionCallbacks {
   size_t size() const override;
 
  protected:
-  std::unique_ptr<PersistentCache<std::string, SSLSessionCacheData>>
+  // Get the persistence key from the session's hostname
+  virtual K getKey(const std::string& hostname) const = 0;
+
+  std::shared_ptr<PersistentCache<K, SSLSessionCacheData>>
     persistentCache_;
-  bool enableTicketLifetimeExpiration_;
+  std::atomic<bool> enableTicketLifetimeExpiration_;
   std::unique_ptr<TimeUtil> timeUtil_;
 };
 
+class SSLSessionPersistentCache :
+      public SSLSessionPersistentCacheBase<std::string> {
+ public:
+  SSLSessionPersistentCache(
+    const std::string& filename,
+    const std::size_t cacheCapacity,
+    const std::chrono::seconds& syncInterval,
+    bool doTicketLifetimeExpiration = false) :
+      SSLSessionPersistentCacheBase(
+        filename, cacheCapacity, syncInterval, doTicketLifetimeExpiration) {}
+
+ protected:
+  std::string getKey(const std::string& hostname) const override {
+    return hostname;
+  }
+
+};
 }
+
+#include <wangle/client/ssl/SSLSessionPersistentCache-inl.h>
