@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Facebook, Inc.
+ *  Copyright (c) 2016, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -7,10 +7,14 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <folly/Memory.h>
+#include <folly/Format.h>
 #include <folly/DynamicConverter.h>
-#include <gtest/gtest.h>
+#include <folly/Memory.h>
+
 #include <gmock/gmock.h>
+
+#include <gtest/gtest.h>
+
 #include <vector>
 
 #include <wangle/client/ssl/SSLSessionPersistentCache.h>
@@ -92,7 +96,7 @@ class SSLSessionPersistentCacheTest : public Test {
 
 TEST_F(SSLSessionPersistentCacheTest, Basic) {
   for (size_t i = 0; i < sessions_.size(); ++i) {
-    std::string hostname("host" + std::to_string(i));
+    auto hostname = folly::sformat("host{}", i);
 
     // The session data does not exist before set.
     ASSERT_EQ(i, cache_->size());
@@ -108,7 +112,7 @@ TEST_F(SSLSessionPersistentCacheTest, Basic) {
   // The previously inserted sessions shouldn't have changed. Then remove them
   // one by one and verify they are not in cache after the removal.
   for (size_t i = 0; i < sessions_.size(); ++i) {
-    std::string hostname("host" + std::to_string(i));
+    auto hostname = folly::sformat("host{}", i);
     verifyEntryInCache(hostname, sessions_[i]);
     cache_->removeSSLSession(hostname);
     verifyEntryInCache(hostname, sessions_[i], false);
