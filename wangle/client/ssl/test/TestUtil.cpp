@@ -345,7 +345,7 @@ std::string getSessionData(SSL_SESSION* s, size_t expectedLength) {
   std::unique_ptr<unsigned char[]>
     sessionData(new unsigned char[expectedLength]);
   auto p = sessionData.get();
-  auto len = i2d_SSL_SESSION(s, &p);
+  auto len = (size_t)i2d_SSL_SESSION(s, &p);
   CHECK(expectedLength == len);
   return std::string(reinterpret_cast<const char*>(sessionData.get()), len);
 }
