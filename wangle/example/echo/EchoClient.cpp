@@ -25,7 +25,7 @@ DEFINE_string(host, "::1", "echo server address");
 
 typedef Pipeline<folly::IOBufQueue&, std::string> EchoPipeline;
 
-// 
+// the handler for receiving messages back from the server 
 class EchoHandler : public HandlerAdapter<std::string> {
 public:
 	virtual void read(Context* ctx, std::string msg) override {
@@ -41,6 +41,7 @@ public:
   	}
 };
 
+// chains the handlers together to define the response pipeline
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 public:
 	EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
