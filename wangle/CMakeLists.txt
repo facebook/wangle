@@ -17,6 +17,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(Folly REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
@@ -79,7 +80,8 @@ target_link_libraries(wangle
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   -lglog
-  -lgflags)
+  -lgflags
+  -latomic)
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
