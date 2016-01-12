@@ -43,6 +43,7 @@ foreach(dir ${WANGLE_HEADER_DIRS})
     ${headers})
 endforeach()
 
+if (LINUX)
 set(WANGLE_SOURCES
   acceptor/Acceptor.cpp
   acceptor/ConnectionManager.cpp
@@ -69,12 +70,40 @@ set(WANGLE_SOURCES
   ssl/SSLUtil.cpp
   ssl/TLSTicketKeyManager.cpp
 )
+else()
+set(WANGLE_SOURCES
+  acceptor/Acceptor.cpp
+  acceptor/ConnectionManager.cpp
+  acceptor/LoadShedConfiguration.cpp
+  acceptor/ManagedConnection.cpp
+  acceptor/SocketOptions.cpp
+  acceptor/SSLAcceptorHandshakeHelper.cpp
+  acceptor/TransportInfo.cpp
+  bootstrap/ServerBootstrap.cpp
+  channel/Pipeline.cpp
+  codec/LengthFieldBasedFrameDecoder.cpp
+  codec/LengthFieldPrepender.cpp
+  codec/LineBasedFrameDecoder.cpp
+  concurrent/CPUThreadPoolExecutor.cpp
+  concurrent/Codel.cpp
+  concurrent/GlobalExecutor.cpp
+  concurrent/IOThreadPoolExecutor.cpp
+  concurrent/ThreadPoolExecutor.cpp
+  deprecated/rx/Dummy.cpp
+  ssl/PasswordInFile.cpp
+  ssl/SSLContextManager.cpp
+  ssl/SSLSessionCacheManager.cpp
+  ssl/SSLUtil.cpp
+  ssl/TLSTicketKeyManager.cpp
+)
+endif()
 
 add_library(wangle STATIC
   ${WANGLE_HEADERS}
   ${WANGLE_SOURCES}
 )
 
+if(LINUX)
 target_link_libraries(wangle
   ${FOLLY_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -82,6 +111,14 @@ target_link_libraries(wangle
   -lglog
   -lgflags
   -latomic)
+else()
+target_link_libraries(wangle
+  ${FOLLY_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  -lglog
+  -lgflags)
+endif()
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})

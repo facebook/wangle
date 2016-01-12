@@ -17,6 +17,10 @@
 #include <folly/futures/Promise.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 
+#ifndef __LINUX__
+#error "FileRegion can be supported by LINUX only"
+#endif
+
 namespace wangle {
 
 class FileRegion {
