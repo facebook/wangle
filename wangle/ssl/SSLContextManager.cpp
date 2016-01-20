@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Facebook, Inc.
+ *  Copyright (c) 2016, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -297,7 +297,7 @@ void SSLContextManager::addSSLContextConfig(
 
   if (!ctxConfig.clientCAFile.empty()) {
     try {
-      sslCtx->setVerificationOption(SSLContext::VERIFY_REQ_CLIENT_CERT);
+      sslCtx->setVerificationOption(ctxConfig.clientVerification);
       sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
       sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
     } catch (const std::exception& ex) {
