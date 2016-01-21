@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gflags/gflags.h>
 
 using namespace folly;
 using namespace testing;
