@@ -12,6 +12,7 @@
 #include <string>
 #include <folly/io/async/SSLContext.h>
 #include <vector>
+#include <set>
 
 /**
  * SSLContextConfig helps to describe the configs/options for
@@ -38,6 +39,15 @@ struct SSLContextConfig {
     std::string certPath;
     std::string keyPath;
     std::string passwordPath;
+  };
+
+  struct KeyOffloadParams {
+    // What keys do we want to offload
+    // Currently supported values: "rsa", "ec" (can also be empty)
+    // Note that the corresponding thrift IDL has a list instead
+    std::set<std::string> offloadType;
+    // Whether this set of keys need local fallback
+    bool localFallback{false};
   };
 
   /**
@@ -97,6 +107,8 @@ struct SSLContextConfig {
   // Verification method to use for client certificates.
   folly::SSLContext::SSLVerifyPeerEnum clientVerification{
     folly::SSLContext::SSLVerifyPeerEnum::VERIFY_REQ_CLIENT_CERT};
+  // Key offload configuration
+  KeyOffloadParams keyOffloadParams;
 };
 
 } // namespace wangle

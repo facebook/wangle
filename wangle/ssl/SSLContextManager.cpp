@@ -225,12 +225,8 @@ void SSLContextManager::addSSLContextConfig(
     }
     lastCertPath = cert.certPath;
 
-    // TODO t4438250 - Add ECDSA support to the crypto_ssl offload server
-    //                 so we can avoid storing the ECDSA private key in the
-    //                 address space of the Internet-facing process.  For
-    //                 now, if cert name includes "-EC" to denote elliptic
-    //                 curve, we load its private key even if the server as
-    //                 a whole has been configured for async crypto.
+    // TODO (avr) t8134901
+    // This is going away after ECDSA offload lands
     if (ctxConfig.isLocalPrivateKey ||
         (cert.certPath.find("-EC") != std::string::npos)) {
       // The private key lives in the same process
@@ -254,8 +250,9 @@ void SSLContextManager::addSSLContextConfig(
       }
     }
   }
+
   if (!ctxConfig.isLocalPrivateKey) {
-    enableAsyncCrypto(sslCtx);
+    enableAsyncCrypto(sslCtx, ctxConfig);
   }
 
   // Let the server pick the highest performing cipher from among the client's
