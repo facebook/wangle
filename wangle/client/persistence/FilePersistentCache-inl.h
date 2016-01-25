@@ -154,10 +154,9 @@ void FilePersistentCache<K, V>::sync() {
       ec = gettimeofday(&tv, nullptr);
       CHECK_EQ(0, ec);
 
-      timespec ts = {
-          .tv_sec = tv.tv_sec + folly::to<time_t>(syncInterval_.count()),
-          .tv_nsec = 0
-        };
+      timespec ts;
+      ts.tv_sec = tv.tv_sec + folly::to<time_t>(syncInterval_.count());
+      ts.tv_nsec = 0;
       ec = pthread_cond_timedwait(&stopSyncerCV_, &stopSyncerMutex_, &ts);
       CHECK_NE(EINVAL, ec);
     }
