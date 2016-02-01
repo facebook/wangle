@@ -15,14 +15,21 @@
 
 namespace wangle {
 
-template <class T>
+template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
 class LifoSemMPMCQueue : public BlockingQueue<T> {
  public:
   explicit LifoSemMPMCQueue(size_t max_capacity) : queue_(max_capacity) {}
 
   void add(T item) override {
-    if (!queue_.write(std::move(item))) {
-      throw std::runtime_error("LifoSemMPMCQueue full, can't add item");
+    switch (kBehavior) { // static
+    case QueueBehaviorIfFull::THROW:
+      if (!queue_.write(std::move(item))) {
+        throw std::runtime_error("LifoSemMPMCQueue full, can't add item");
+      }
+      break;
+    case QueueBehaviorIfFull::BLOCK:
+      queue_.blockingWrite(std::move(item));
+      break;
     }
     sem_.post();
   }

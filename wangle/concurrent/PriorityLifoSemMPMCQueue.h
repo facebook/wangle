@@ -15,7 +15,7 @@
 
 namespace wangle {
 
-template <class T>
+template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
 class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
  public:
   explicit PriorityLifoSemMPMCQueue(uint8_t numPriorities, size_t capacity) {
@@ -39,9 +39,16 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
     size_t queue = priority < 0 ?
                    std::max(0, mid + priority) :
                    std::min(getNumPriorities() - 1, mid + priority);
-    CHECK(queue < queues_.size());
-    if (!queues_[queue].write(std::move(item))) {
-      throw std::runtime_error("LifoSemMPMCQueue full, can't add item");
+    CHECK_LT(queue, queues_.size());
+    switch (kBehavior) { // static
+    case QueueBehaviorIfFull::THROW:
+      if (!queues_[queue].write(std::move(item))) {
+        throw std::runtime_error("LifoSemMPMCQueue full, can't add item");
+      }
+      break;
+    case QueueBehaviorIfFull::BLOCK:
+      queues_[queue].blockingWrite(std::move(item));
+      break;
     }
     sem_.post();
   }
