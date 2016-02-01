@@ -14,8 +14,9 @@
 
 namespace wangle {
 
-// Some of queue implementations (like LifoSemMPMCQueue or LifoSemMPMCQueue)
-// support both blocking (BLOCK) and non-blocking (THROW) behaviors.
+// Some queue implementations (for example, LifoSemMPMCQueue or
+// PriorityLifoSemMPMCQueue) support both blocking (BLOCK) and
+// non-blocking (THROW) behaviors.
 enum class QueueBehaviorIfFull { THROW, BLOCK };
 
 template <class T>

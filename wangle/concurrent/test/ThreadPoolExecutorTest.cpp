@@ -8,10 +8,10 @@
  *
  */
 
-#include <wangle/concurrent/BlockingMPMCQueue.h>
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
 #include <wangle/concurrent/FutureExecutor.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/PriorityThreadFactory.h>
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 #include <glog/logging.h>
@@ -393,8 +393,9 @@ TEST(ThreadPoolExecutorTest, BlockingQueue) {
   const int kThreads = 1;
 
   auto queue =
-    folly::make_unique<BlockingMPMCQueue<CPUThreadPoolExecutor::CPUTask>>(
-        kQueueCapacity);
+      folly::make_unique<LifoSemMPMCQueue<CPUThreadPoolExecutor::CPUTask,
+                                          QueueBehaviorIfFull::BLOCK>>(
+          kQueueCapacity);
 
   CPUThreadPoolExecutor cpuExe(
       kThreads,
