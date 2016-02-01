@@ -36,7 +36,6 @@ int32_t TLSTicketKeyManager::sExDataIndex_ = -1;
 
 TLSTicketKeyManager::TLSTicketKeyManager(folly::SSLContext* ctx, SSLStats* stats)
   : ctx_(ctx),
-    randState_(0),
     stats_(stats) {
   SSLUtil::getSSLCtxExIndex(&sExDataIndex_);
   SSL_CTX_set_ex_data(ctx_->getSSLCtx(), sExDataIndex_, this);
@@ -272,7 +271,7 @@ TLSTicketKeyManager::findEncryptionKey() {
   // likely only 1.
   size_t numKeys = activeKeys_.size();
   if (numKeys > 0) {
-    result = activeKeys_[rand_r(&randState_) % numKeys];
+    result = activeKeys_[folly::Random::rand32() % numKeys];
   }
   return result;
 }
