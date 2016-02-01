@@ -40,6 +40,9 @@ TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   lsc.setMaxCpuUsage(0.2);
   EXPECT_EQ(0.2, lsc.getMaxCpuUsage());
 
+  lsc.setMinCpuIdle(0.03);
+  EXPECT_EQ(0.03, lsc.getMinCpuIdle());
+
   lsc.setLoadUpdatePeriod(std::chrono::milliseconds(1200));
   EXPECT_EQ(std::chrono::milliseconds(1200), lsc.getLoadUpdatePeriod());
 

@@ -101,7 +101,7 @@ class LoadShedConfiguration {
   }
 
   /**
-   * Set/get the maximum cpu usage.
+   * Set/get the maximum memory usage.
    */
   void setMaxMemUsage(double max) {
     CHECK(max >= 0);
@@ -111,7 +111,7 @@ class LoadShedConfiguration {
   double getMaxMemUsage() const { return maxMemUsage_; }
 
   /**
-   * Set/get the maximum memory usage.
+   * Set/get the maximum cpu usage.
    */
   void setMaxCpuUsage(double max) {
     CHECK(max >= 0);
@@ -119,6 +119,16 @@ class LoadShedConfiguration {
     maxCpuUsage_ = max;
   }
   double getMaxCpuUsage() const { return maxCpuUsage_; }
+
+  /**
+   * Set/get the minimum cpu idle.
+   */
+  void setMinCpuIdle(double min) {
+    CHECK(min >= 0);
+    CHECK(min <= 1);
+    minCpuIdle_ = min;
+  }
+  double getMinCpuIdle() const { return minCpuIdle_; }
 
   /**
    * Set/get the minium actual free memory on the system.
@@ -148,6 +158,7 @@ class LoadShedConfiguration {
   uint64_t minFreeMem_{0};
   double maxMemUsage_;
   double maxCpuUsage_;
+  double minCpuIdle_{0.0};
   std::chrono::milliseconds period_;
 };
 
