@@ -24,7 +24,9 @@ ObservingHandler<T, R>::~ObservingHandler() {
     broadcastHandler->unsubscribe(subscriptionId_);
   }
 
-  *deleted_ = true;
+  if (deleted_) {
+    *deleted_ = true;
+  }
 }
 
 template <typename T, typename R>

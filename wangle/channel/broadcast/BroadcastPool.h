@@ -75,6 +75,14 @@ class BroadcastPool {
 
   virtual ~BroadcastPool() {}
 
+  // Non-copyable
+  BroadcastPool(const BroadcastPool&) = delete;
+  BroadcastPool& operator=(const BroadcastPool&) = delete;
+
+  // Movable
+  BroadcastPool(BroadcastPool&&) = default;
+  BroadcastPool& operator=(BroadcastPool&&) = default;
+
   /**
    * Gets the BroadcastHandler, or creates one if it doesn't exist already,
    * for the given routingData.

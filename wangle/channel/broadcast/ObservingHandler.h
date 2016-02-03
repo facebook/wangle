@@ -30,6 +30,14 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   ObservingHandler(const R& routingData, BroadcastPool<T, R>* broadcastPool);
   ~ObservingHandler() override;
 
+  // Non-copyable
+  ObservingHandler(const ObservingHandler&) = delete;
+  ObservingHandler& operator=(const ObservingHandler&) = delete;
+
+  // Movable
+  ObservingHandler(ObservingHandler&&) = default;
+  ObservingHandler& operator=(ObservingHandler&&) = default;
+
   // HandlerAdapter implementation
   void transportActive(Context* ctx) override;
   void readEOF(Context* ctx) override;
