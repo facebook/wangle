@@ -86,7 +86,7 @@ void FileRegion::FileWriteRequest::messageAvailable(size_t&& count) {
 
 void FileRegion::FileWriteRequest::start() {
   started_ = true;
-  readBase_ = readPool.get()->getEventBase();
+  readBase_ = readPool.try_get()->getEventBase();
   readBase_->runInEventBaseThread([this]{
     auto flags = fcntl(readFd_, F_GETFL);
     if (flags == -1) {

@@ -14,6 +14,30 @@
 
 namespace wangle {
 
+/**
+ * A Thread pool for CPU bound tasks.
+ *
+ * @note A single queue backed by folly/LifoSem and folly/MPMC queue.
+ * Because of this contention can be quite high,
+ * since all the worker threads and all the producer threads hit
+ * the same queue. MPMC queue excels in this situation but dictates a max queue
+ * size
+ *
+ * @note LifoSem wakes up threads in Lifo order - i.e. there are only few
+ * threads as necessary running, and we always try to reuse the same few threads
+ * for better cache locality.
+ * Inactive threads have their stack madvised away. This works quite well in
+ * combination with Lifosem - it almost doesn't matter if more threads than are
+ * necessary are specified at startup.
+ *
+ * @note stop() will finish all outstanding tasks at exit
+ *
+ * @note Supports priorities - priorities are implemented as multiple queues -
+ * each worker thread checks the highest priority queue first. Threads
+ * themselves don't have priorities set, so a series of long running low
+ * priority tasks could still hog all the threads. (at last check pthreads
+ * thread priorities didn't work very well)
+ */
 class CPUThreadPoolExecutor : public ThreadPoolExecutor {
  public:
   struct CPUTask;

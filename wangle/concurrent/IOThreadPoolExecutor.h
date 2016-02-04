@@ -16,8 +16,31 @@
 
 namespace wangle {
 
-// N.B. For this thread pool, stop() behaves like join() because outstanding
-// tasks belong to the event base and will be executed upon its destruction.
+/**
+ * A Thread Pool for IO bound tasks
+ *
+ * @note Uses event_fd for notification, and waking an epoll loop.
+ * There is one queue (NotificationQueue specifically) per thread/epoll.
+ * If the thread is already running and not waiting on epoll,
+ * we don't make any additional syscalls to wake up the loop,
+ * just put the new task in the queue.
+ * If any thread has been waiting for more than a few seconds,
+ * its stack is madvised away. Currently however tasks are scheduled round
+ * robin on the queues, so unless there is no work going on,
+ * this isn't very effective.
+ * Since there is one queue per thread, there is hardly any contention
+ * on the queues - so a simple spinlock around an std::deque is used for
+ * the tasks. There is no max queue size.
+ * By default, there is one thread per core - it usually doesn't make sense to
+ * have more IO threads than this, assuming they don't block.
+ *
+ * @note ::getEventBase() will return an EventBase you can schedule IO work on
+ * directly, chosen round-robin.
+ *
+ * @note N.B. For this thread pool, stop() behaves like join() because
+ * outstanding tasks belong to the event base and will be executed upon its
+ * destruction.
+ */
 class IOThreadPoolExecutor : public ThreadPoolExecutor, public IOExecutor {
  public:
   explicit IOThreadPoolExecutor(
