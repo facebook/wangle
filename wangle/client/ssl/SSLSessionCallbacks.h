@@ -102,15 +102,13 @@ class SSLSessionCallbacks {
     SSLSessionPtr sessionPtr(session);
     SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
     auto sslSessionCache = getCacheFromContext(ctx);
-    folly::AsyncSSLSocket *sslSocket = folly::AsyncSSLSocket::getFromSSL(ssl);
-    if (sslSocket) {
-      const char* serverName = sslSocket->getSSLServerNameNoThrow();
-      if (serverName) {
-        sslSessionCache->setSSLSession(
-            std::string(serverName),
-            std::move(sessionPtr));
-        return 1;
-      }
+    const char* serverName =
+      folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
+    if (serverName) {
+      sslSessionCache->setSSLSession(
+        std::string(serverName),
+        std::move(sessionPtr));
+      return 1;
     }
     return -1;
   }
