@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 namespace wangle {
@@ -17,14 +25,15 @@ void RoutingDataHandler<R>::read(Context* ctx, folly::IOBufQueue& q) {
 
 template <typename R>
 void RoutingDataHandler<R>::readEOF(Context* ctx) {
-  VLOG(4) << "Received EOF before parsing routing data";
-  cob_->onError(connId_);
+  const auto& ex = folly::make_exception_wrapper<folly::AsyncSocketException>(
+      folly::AsyncSocketException::END_OF_FILE,
+      "Received EOF before parsing routing data");
+  cob_->onError(connId_, ex);
 }
 
 template <typename R>
 void RoutingDataHandler<R>::readException(Context* ctx, folly::exception_wrapper ex) {
-  VLOG(4) << "Received exception before parsing routing data: " << ex.what();
-  cob_->onError(connId_);
+  cob_->onError(connId_, ex);
 }
 
 } // namespace wangle

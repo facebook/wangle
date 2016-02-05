@@ -54,7 +54,7 @@ class AcceptRoutingHandler : public wangle::InboundHandler<AcceptPipelineType>,
   void onRoutingData(
       uint64_t connId,
       typename RoutingDataHandler<R>::RoutingData& routingData) override;
-  void onError(uint64_t connId) override;
+  void onError(uint64_t connId, folly::exception_wrapper ex) override;
 
  private:
   void populateAcceptors();

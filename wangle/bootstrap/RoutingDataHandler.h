@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -19,7 +27,7 @@ class RoutingDataHandler : public wangle::BytesToBytesHandler {
    public:
     virtual ~Callback() {}
     virtual void onRoutingData(uint64_t connId, RoutingData& routingData) = 0;
-    virtual void onError(uint64_t connId) = 0;
+    virtual void onError(uint64_t connId, folly::exception_wrapper ex) = 0;
   };
 
   RoutingDataHandler(uint64_t connId, Callback* cob);
@@ -44,7 +52,7 @@ class RoutingDataHandler : public wangle::BytesToBytesHandler {
   virtual bool parseRoutingData(folly::IOBufQueue& bufQueue,
                                 RoutingData& routingData) = 0;
 
- protected:
+ private:
   uint64_t connId_;
   Callback* cob_{nullptr};
 };
