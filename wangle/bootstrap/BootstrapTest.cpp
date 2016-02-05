@@ -30,8 +30,8 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
       std::shared_ptr<AsyncTransportWrapper> sock) override {
     // We probably aren't connected immedately, check after a small delay
     EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
-      CHECK(sock->good());
-      CHECK(sock->readable());
+      EXPECT_TRUE(sock->good());
+      EXPECT_TRUE(sock->readable());
     }, 100);
     return nullptr;
   }
@@ -104,8 +104,9 @@ TEST(Bootstrap, ClientServerTest) {
   client.connect(address);
   base->loop();
   server.stop();
+  server.join();
 
-  CHECK(factory->pipelines == 1);
+  EXPECT_EQ(factory->pipelines, 1);
 }
 
 TEST(Bootstrap, ClientConnectionManagerTest) {
@@ -133,8 +134,9 @@ TEST(Bootstrap, ClientConnectionManagerTest) {
 
   base->loop();
   server.stop();
+  server.join();
 
-  CHECK(factory->pipelines == 2);
+  EXPECT_EQ(factory->pipelines, 2);
 }
 
 TEST(Bootstrap, ServerAcceptGroupTest) {
@@ -160,8 +162,9 @@ TEST(Bootstrap, ServerAcceptGroupTest) {
   barrier.wait();
   server.stop();
   thread.join();
+  server.join();
 
-  CHECK(factory->pipelines == 1);
+  EXPECT_EQ(factory->pipelines, 1);
 }
 
 TEST(Bootstrap, ServerAcceptGroup2Test) {
@@ -197,8 +200,9 @@ TEST(Bootstrap, ServerAcceptGroup2Test) {
   EventBaseManager::get()->getEventBase()->loop();
 
   server.stop();
+  server.join();
 
-  CHECK(factory->pipelines == 1);
+  EXPECT_EQ(factory->pipelines, 1);
 }
 
 TEST(Bootstrap, SharedThreadPool) {
@@ -251,7 +255,9 @@ TEST(Bootstrap, SharedThreadPool) {
   EventBaseManager::get()->getEventBase()->loop();
 
   server.stop();
-  CHECK(factory->pipelines == 5);
+  server.join();
+
+  EXPECT_EQ(factory->pipelines, 5);
 }
 
 TEST(Bootstrap, ExistingSocket) {
@@ -306,9 +312,10 @@ TEST(Bootstrap, LoadBalanceHandler) {
   client.connect(address);
   base->loop();
   server.stop();
+  server.join();
 
-  CHECK(factory->pipelines == 1);
-  CHECK(connections == 1);
+  EXPECT_EQ(factory->pipelines, 1);
+  EXPECT_EQ(connections, 1);
 }
 
 class TestUDPPipeline : public InboundHandler<AcceptPipelineType, Unit> {
@@ -351,6 +358,7 @@ TEST(Bootstrap, UDPClientServerTest) {
   client.write(address, std::move(data));
   base->loop();
   server.stop();
+  server.join();
 
-  CHECK(connections == 1);
+  EXPECT_EQ(connections, 1);
 }
