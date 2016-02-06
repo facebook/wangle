@@ -224,9 +224,13 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   // Broadcast some data
   observingHandler->onNext(1);
 
-  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(Return(makeMoveWrapper(makeFuture())));
+      .WillOnce(InvokeWithoutArgs([&] {
+        // Delete the pipeline
+        pipeline.reset();
+        return makeMoveWrapper(makeFuture());
+      }));
+  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Client closes connection
   observingHandler->readEOF(nullptr);
@@ -260,9 +264,13 @@ TEST_F(ObservingHandlerTest, ReadError) {
   // Broadcast some data
   observingHandler->onNext(1);
 
-  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(Return(makeMoveWrapper(makeFuture())));
+      .WillOnce(InvokeWithoutArgs([&] {
+        // Delete the pipeline
+        pipeline.reset();
+        return makeMoveWrapper(makeFuture());
+      }));
+  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Inject read error
   observingHandler->readException(nullptr,
@@ -295,9 +303,13 @@ TEST_F(ObservingHandlerTest, WriteError) {
   EXPECT_CALL(*observingHandler, mockWrite(_, _))
       .WillOnce(Return(
           MoveWrapper<Future<Unit>>(make_exception_wrapper<std::exception>())));
-  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
   EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(Return(makeMoveWrapper(makeFuture())));
+      .WillOnce(InvokeWithoutArgs([&] {
+        // Delete the pipeline
+        pipeline.reset();
+        return makeMoveWrapper(makeFuture());
+      }));
+  EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Broadcast some data
   observingHandler->onNext(1);

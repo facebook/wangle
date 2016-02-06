@@ -56,39 +56,40 @@ void ObservingHandler<T, R>::transportActive(Context* ctx) {
         // Resume ingress
         pipeline->transportActive();
       })
-      .onError([this, deleted](const std::exception& ex) {
+      .onError([this, ctx, deleted](const std::exception& ex) {
         if (*deleted) {
           return;
         }
 
         LOG(ERROR) << "Error subscribing to a broadcast: " << ex.what();
-        closeHandler();
+        this->close(ctx);
       });
 }
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::readEOF(Context* ctx) {
-  closeHandler();
+  this->close(ctx);
 }
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::readException(Context* ctx,
                                         folly::exception_wrapper ex) {
   LOG(ERROR) << "Error on read: " << exceptionStr(ex);
-  closeHandler();
+  this->close(ctx);
 }
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::onNext(const T& data) {
+  auto ctx = this->getContext();
   auto deleted = deleted_;
-  this->write(this->getContext(), data)
-      .onError([this, deleted](const std::exception& ex) {
+  this->write(ctx, data)
+      .onError([this, ctx, deleted](const std::exception& ex) {
         if (*deleted) {
           return;
         }
 
         LOG(ERROR) << "Error on write: " << ex.what();
-        closeHandler();
+        this->close(ctx);
       });
 }
 
@@ -98,23 +99,13 @@ void ObservingHandler<T, R>::onError(folly::exception_wrapper ex) {
 
   // broadcastHandler_ will clear its subscribers and delete itself
   broadcastHandler_ = nullptr;
-  closeHandler();
+  this->close(this->getContext());
 }
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::onCompleted() {
   // broadcastHandler_ will clear its subscribers and delete itself
   broadcastHandler_ = nullptr;
-  closeHandler();
-}
-
-template <typename T, typename R>
-void ObservingHandler<T, R>::closeHandler() {
-  if (broadcastHandler_) {
-    auto broadcastHandler = broadcastHandler_;
-    broadcastHandler_ = nullptr;
-    broadcastHandler->unsubscribe(subscriptionId_);
-  }
   this->close(this->getContext());
 }
 

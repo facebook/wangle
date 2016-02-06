@@ -48,12 +48,6 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   void onError(folly::exception_wrapper ex) override;
   void onCompleted() override;
 
- protected:
-  /**
-   * Unsubscribe from the broadcast and close the handler.
-   */
-  void closeHandler();
-
  private:
   R routingData_;
   BroadcastPool<T, R>* broadcastPool_{nullptr};
