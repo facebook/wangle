@@ -105,7 +105,7 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::onError(uint64_t connId,
                                                 folly::exception_wrapper ex) {
-  VLOG(2) << "Exception while parsing routing data: " << ex.what();
+  VLOG(4) << "Exception while parsing routing data: " << ex.what();
 
   // Notify all handlers of the exception
   auto ctx = getContext();
