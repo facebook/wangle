@@ -72,6 +72,16 @@ X509* getX509(SSL_CTX* ctx) {
   return x509;
 }
 
+int getPkeyType(X509 *x509) {
+  int ret = 0;
+  EVP_PKEY* evpPkey = X509_get_pubkey(x509);
+  if (evpPkey != nullptr) {
+    ret = evpPkey->type;
+    EVP_PKEY_free(evpPkey);
+  }
+  return ret;
+}
+
 void set_key_from_curve(SSL_CTX* ctx, const std::string& curveName) {
 #if OPENSSL_VERSION_NUMBER >= 0x0090800fL
 #ifndef OPENSSL_NO_ECDH
@@ -225,10 +235,18 @@ void SSLContextManager::addSSLContextConfig(
     }
     lastCertPath = cert.certPath;
 
-    // TODO (avr) t8134901
-    // This is going away after ECDSA offload lands
-    if (ctxConfig.isLocalPrivateKey ||
-        (cert.certPath.find("-EC") != std::string::npos)) {
+    int pkeyType = getPkeyType(x509);
+    if (ctxConfig.isLocalPrivateKey
+#ifdef SSL_ERROR_WANT_ECDSA_ASYNC_PENDING
+        // In case we're building with EC async changes, but still want to
+        // disable EC offload via config
+        || (ctxConfig.keyOffloadParams.offloadType.count("ec") == 0)
+#else
+        // We are not building with the ECDSA async changes, so for all
+        // non-RSA keytypes, we set the privkey in the CTX
+        || (pkeyType != EVP_PKEY_RSA)
+#endif
+        ) {
       // The private key lives in the same process
 
       // This needs to be called before loadPrivateKey().
