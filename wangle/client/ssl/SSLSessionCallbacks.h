@@ -14,8 +14,12 @@
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/client/ssl/SSLSession.h>
 
+#ifdef OPENSSL_NO_TLSEXT
+#define OPENSSL_TICKETS 0
+#else
 #define OPENSSL_TICKETS \
-  OPENSSL_VERSION_NUMBER >= 0x1000105fL && !defined(OPENSSL_NO_TLSEXT)
+    OPENSSL_VERSION_NUMBER >= 0x1000105fL
+#endif
 
 namespace wangle {
 
