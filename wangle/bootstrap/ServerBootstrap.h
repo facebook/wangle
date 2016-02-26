@@ -166,14 +166,11 @@ class ServerBootstrap {
     std::shared_ptr<folly::AsyncServerSocket> socket(
       s.release(), folly::DelayedDestruction::Destructor());
 
-    folly::Baton<> barrier;
-    acceptor_group_->add([&](){
+    folly::via(acceptor_group_.get(), [&] {
       socket->attachEventBase(folly::EventBaseManager::get()->getEventBase());
       socket->listen(socketConfig.acceptBacklog);
       socket->startAccepting();
-      barrier.post();
-    });
-    barrier.wait();
+    }).get();
 
     // Startup all the threads
     workerFactory_->forEachWorker([this, socket](Acceptor* worker){
