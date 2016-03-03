@@ -1,3 +1,12 @@
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <wangle/client/ssl/SSLSession.h>
@@ -20,10 +29,10 @@ class ThreadSafeSSLSessionCache : public SSLSessionCallbacks {
 
    // From SSLSessionCallbacks
    void setSSLSession(
-     const std::string& hostname, SSLSessionPtr session) noexcept override;
+     const std::string& identity, SSLSessionPtr session) noexcept override;
    SSLSessionPtr getSSLSession(
-       const std::string& hostname) const noexcept override;
-   bool removeSSLSession(const std::string& hostname) noexcept override;
+       const std::string& identity) const noexcept override;
+   bool removeSSLSession(const std::string& identity) noexcept override;
    bool supportsPersistence() const noexcept override;
    size_t size() const override;
 

@@ -82,6 +82,47 @@ class SSLUtil {
     }
   }
 
+  // ex data string dup func
+  static int exDataStdStringDup(
+      CRYPTO_EX_DATA* /* to */,
+      CRYPTO_EX_DATA* /* from */,
+      void* ptr,
+      int /* idx */,
+      long /* argl */,
+      void* /* argp */) {
+    // TODO: This is awful - ptr is actually a void** and needs to be set to the
+    // duped data.  Fix this when openssl fixes their API - see
+    // int_dup_ex_data in ex_data.c
+    void** dataPtr = reinterpret_cast<void**>(ptr);
+    std::string* strData = reinterpret_cast<std::string*>(*dataPtr);
+    if (strData) {
+      *dataPtr = new std::string(*strData);
+    }
+    return 1;
+  }
+
+  // ex data string free func
+  static void exDataStdStringFree(
+      void* /* parent */,
+      void* ptr,
+      CRYPTO_EX_DATA* /* ad */,
+      int /* idx */,
+      long /* argl */,
+      void* /* argp */) {
+    if (ptr) {
+      auto strPtr = reinterpret_cast<std::string*>(ptr);
+      delete strPtr;
+    }
+  }
+  // get an index that will store a std::string*
+  static void getSSLSessionExStrIndex(int* pindex) {
+    std::lock_guard<std::mutex> g(sIndexLock_);
+    if (*pindex < 0) {
+      *pindex = SSL_SESSION_get_ex_new_index(
+        0, nullptr, nullptr, exDataStdStringDup, exDataStdStringFree);
+    }
+  }
+
   static inline std::string hexlify(const std::string& binary) {
     std::string hex;
     folly::hexlify<std::string, std::string>(binary, hex);

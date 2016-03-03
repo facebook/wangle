@@ -23,13 +23,13 @@ using namespace wangle;
 class FakeSessionCallbacks : public SSLSessionCallbacks {
  public:
    void setSSLSession(
-       const std::string& hostname,
+       const std::string& identity,
        SSLSessionPtr session) noexcept {
-     cache_.emplace(hostname, std::move(session));
+     cache_.emplace(identity, std::move(session));
    }
 
-   SSLSessionPtr getSSLSession(const std::string& hostname) const noexcept {
-     auto it = cache_.find(hostname);
+   SSLSessionPtr getSSLSession(const std::string& identity) const noexcept {
+     auto it = cache_.find(identity);
      if (it == cache_.end()) {
        return SSLSessionPtr(nullptr);
      }
@@ -38,7 +38,7 @@ class FakeSessionCallbacks : public SSLSessionCallbacks {
      return sess;
    }
 
-   bool removeSSLSession(const std::string& hostname) noexcept {
+   bool removeSSLSession(const std::string& identity) noexcept {
      return true;
    }
 

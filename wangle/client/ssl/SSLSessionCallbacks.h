@@ -13,6 +13,7 @@
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/client/ssl/SSLSession.h>
+#include <wangle/client/ssl/SSLSessionCacheUtils.h>
 
 #ifdef OPENSSL_NO_TLSEXT
 #define OPENSSL_TICKETS 0
@@ -32,22 +33,22 @@ namespace wangle {
  */
 class SSLSessionCallbacks {
  public:
-  // Store the session data of the specified hostname in cache. Note that the
+  // Store the session data of the specified identity in cache. Note that the
   // implementation must make it's own memory copy of the session data to put
   // into the cache.
   virtual void setSSLSession(
-    const std::string& hostname, SSLSessionPtr session) noexcept = 0;
+    const std::string& identity, SSLSessionPtr session) noexcept = 0;
 
   // Return a SSL session if the cache contained session information for the
-  // specified hostname. It is the caller's responsibility to decrement the
+  // specified identity. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
   virtual SSLSessionPtr getSSLSession(
-    const std::string& hostname) const noexcept = 0;
+    const std::string& identity) const noexcept = 0;
 
-  // Remove session data of the specified hostname from cache. Return true if
-  // there was session data associated with the hostname before removal, or
+  // Remove session data of the specified identity from cache. Return true if
+  // there was session data associated with the identity before removal, or
   // false otherwise.
-  virtual bool removeSSLSession(const std::string& hostname) noexcept = 0;
+  virtual bool removeSSLSession(const std::string& identity) noexcept = 0;
 
   // Return true if the underlying cache supports persistence
   virtual bool supportsPersistence() const noexcept {
@@ -102,16 +103,22 @@ class SSLSessionCallbacks {
 
  private:
 
+  static std::string getServiceIdentityFromSSL(SSL* ssl) {
+    auto sock = folly::AsyncSSLSocket::getFromSSL(ssl);
+    return sock ? sock->getServiceIdentity() : "";
+  }
+
   static int newSessionCallback(SSL* ssl, SSL_SESSION* session) {
     SSLSessionPtr sessionPtr(session);
     SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
     auto sslSessionCache = getCacheFromContext(ctx);
-    const char* serverName =
-      folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
-    if (serverName) {
-      sslSessionCache->setSSLSession(
-        std::string(serverName),
-        std::move(sessionPtr));
+    auto identity = getServiceIdentityFromSSL(ssl);
+    if (identity.empty()) {
+      identity = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
+    }
+    if (!identity.empty()) {
+      setSessionServiceIdentity(session, identity);
+      sslSessionCache->setSSLSession(identity, std::move(sessionPtr));
       return 1;
     }
     return -1;
@@ -119,10 +126,16 @@ class SSLSessionCallbacks {
 
   static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session) {
     auto sslSessionCache = getCacheFromContext(ctx);
+    auto identity = getSessionServiceIdentity(session);
+    if (identity && !identity->empty()) {
+      sslSessionCache->removeSSLSession(*identity);
+    }
 #if OPENSSL_TICKETS
-    if (session->tlsext_hostname) {
-      auto hostname = std::string(session->tlsext_hostname);
-      sslSessionCache->removeSSLSession(hostname);
+    else {
+      if (session->tlsext_hostname) {
+        auto hostname = std::string(session->tlsext_hostname);
+        sslSessionCache->removeSSLSession(hostname);
+      }
     }
 #endif
   }

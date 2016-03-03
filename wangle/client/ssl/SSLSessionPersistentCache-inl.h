@@ -10,9 +10,10 @@
 #pragma once
 
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
-#include <wangle/client/persistence/FilePersistentCache.h>
+
 #include <folly/io/IOBuf.h>
 #include <folly/Memory.h>
+#include <wangle/client/persistence/FilePersistentCache.h>
 
 namespace wangle {
 
@@ -37,28 +38,25 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
 
 template<typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(
-    const std::string& hostname, SSLSessionPtr session) noexcept {
+    const std::string& identity, SSLSessionPtr session) noexcept {
   if (!session) {
     return;
   }
 
   // We do not cache the session itself, but cache the session data from it in
   // order to recreate a new session later.
-  auto sessionData = sessionToFbString(session.get());
-  if (sessionData) {
-    SSLSessionCacheData data;
-    data.sessionData = std::move(*sessionData);
-    auto key = getKey(hostname);
-    persistentCache_->put(key, data);
-
-    data.addedTime = timeUtil_->now();
+  auto sessionCacheData = getCacheDataForSession(session.get());
+  if (sessionCacheData) {
+    auto key = getKey(identity);
+    sessionCacheData->addedTime = timeUtil_->now();
+    persistentCache_->put(key, *sessionCacheData);
   }
 }
 
 template<typename K>
 SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
-    const std::string& hostname) const noexcept {
-  auto key = getKey(hostname);
+    const std::string& identity) const noexcept {
+  auto key = getKey(identity);
   auto hit = persistentCache_->get(key);
   if (!hit) {
     return nullptr;
@@ -66,7 +64,7 @@ SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
 
   // Create a SSL_SESSION and return. In failure it returns nullptr.
   auto& value = hit.value();
-  auto sess = SSLSessionPtr(fbStringToSession(value.sessionData));
+  auto sess = SSLSessionPtr(getSessionFromCacheData(value));
 
 #if OPENSSL_TICKETS
   if (enableTicketLifetimeExpiration_ &&
@@ -87,8 +85,8 @@ SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
 
 template<typename K>
 bool SSLSessionPersistentCacheBase<K>::removeSSLSession(
-  const std::string& hostname) noexcept {
-  auto key = getKey(hostname);
+  const std::string& identity) noexcept {
+  auto key = getKey(identity);
   return persistentCache_->remove(key);
 }
 

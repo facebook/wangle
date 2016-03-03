@@ -48,22 +48,22 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
     const std::chrono::seconds& syncInterval,
     bool doTicketLifetimeExpiration = false);
 
-  // Store the session data of the specified hostname in cache. Note that the
+  // Store the session data of the specified identity in cache. Note that the
   // implementation must make it's own memory copy of the session data to put
   // into the cache.
   void setSSLSession(
-    const std::string& hostname, SSLSessionPtr session) noexcept override;
+    const std::string& identity, SSLSessionPtr session) noexcept override;
 
   // Return a SSL session if the cache contained session information for the
-  // specified hostname. It is the caller's responsibility to decrement the
+  // specified identity. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
   SSLSessionPtr getSSLSession(
-    const std::string& hostname) const noexcept override;
+    const std::string& identity) const noexcept override;
 
-  // Remove session data of the specified hostname from cache. Return true if
-  // there was session data associated with the hostname before removal, or
+  // Remove session data of the specified identity from cache. Return true if
+  // there was session data associated with the identity before removal, or
   // false otherwise.
-  bool removeSSLSession(const std::string& hostname) noexcept override;
+  bool removeSSLSession(const std::string& identity) noexcept override;
 
   // Return true if the underlying cache supports persistence
   bool supportsPersistence() const noexcept override {
@@ -82,8 +82,8 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
   size_t size() const override;
 
  protected:
-  // Get the persistence key from the session's hostname
-  virtual K getKey(const std::string& hostname) const = 0;
+  // Get the persistence key from the session's identity
+  virtual K getKey(const std::string& identity) const = 0;
 
   std::shared_ptr<PersistentCache<K, SSLSessionCacheData>>
     persistentCache_;
@@ -103,8 +103,8 @@ class SSLSessionPersistentCache :
         filename, cacheCapacity, syncInterval, doTicketLifetimeExpiration) {}
 
  protected:
-  std::string getKey(const std::string& hostname) const override {
-    return hostname;
+  std::string getKey(const std::string& identity) const override {
+    return identity;
   }
 
 };
