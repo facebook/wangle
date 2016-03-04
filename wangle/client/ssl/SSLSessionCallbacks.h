@@ -112,9 +112,10 @@ class SSLSessionCallbacks {
     SSLSessionPtr sessionPtr(session);
     SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
     auto sslSessionCache = getCacheFromContext(ctx);
-    auto identity = getServiceIdentityFromSSL(ssl);
+    std::string identity = getServiceIdentityFromSSL(ssl);
     if (identity.empty()) {
-      identity = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
+      const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
+      identity = name ? name : "";
     }
     if (!identity.empty()) {
       setSessionServiceIdentity(session, identity);
