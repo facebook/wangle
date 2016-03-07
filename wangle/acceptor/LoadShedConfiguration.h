@@ -131,6 +131,17 @@ class LoadShedConfiguration {
   double getMinCpuIdle() const { return minCpuIdle_; }
 
   /**
+   * Set/get the CPU usage exceed window size
+   */
+  void setCpuUsageExceedWindowSize(const uint64_t size) {
+    cpuUsageExceedWindowSize_ = size;
+  }
+
+  uint64_t getCpuUsageExceedWindowSize() const {
+    return cpuUsageExceedWindowSize_;
+  }
+
+  /**
    * Set/get the minium actual free memory on the system.
    */
   void setMinFreeMem(uint64_t min) {
@@ -159,6 +170,7 @@ class LoadShedConfiguration {
   double maxMemUsage_;
   double maxCpuUsage_;
   double minCpuIdle_{0.0};
+  uint64_t cpuUsageExceedWindowSize_{0};
   std::chrono::milliseconds period_;
 };
 
