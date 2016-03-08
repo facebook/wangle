@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <cerrno>
@@ -203,7 +211,7 @@ bool FilePersistentCache<K, V>::syncNow() {
 template<typename K, typename V>
 folly::Optional<std::string> FilePersistentCache<K, V>::serializeCache() {
   try {
-    folly::dynamic dynObj({});
+    folly::dynamic dynObj = folly::dynamic::array;
     for (const auto& kv : cache_) {
       dynObj.push_back(folly::toDynamic(std::make_pair(kv.first, kv.second)));
     }
