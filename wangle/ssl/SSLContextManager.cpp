@@ -397,7 +397,8 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
   if (clientInfo) {
     certCryptoReq = CertCrypto::SHA1_SIGNATURE;
     for (const auto& sigAlgPair : clientInfo->clientHelloSigAlgs_) {
-      if (sigAlgPair.first == folly::AsyncSSLSocket::HashAlgorithm::SHA256) {
+      if (sigAlgPair.first ==
+          folly::ssl::HashAlgorithm::SHA256) {
         certCryptoReq = CertCrypto::BEST_AVAILABLE;
         break;
       }
