@@ -16,7 +16,8 @@ using namespace testing;
 
 class BroadcastHandlerTest : public Test {
  public:
-  class MockBroadcastHandler : public BroadcastHandler<std::string> {
+  class MockBroadcastHandler
+      : public BroadcastHandler<std::string, std::string> {
    public:
     MOCK_METHOD1(mockClose,
                  folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
@@ -60,8 +61,8 @@ class BroadcastHandlerTest : public Test {
   StrictMock<MockByteToMessageDecoder<std::string>>* decoder{nullptr};
   StrictMock<MockBroadcastHandler>* handler{nullptr};
 
-  StrictMock<MockSubscriber<std::string>> subscriber0;
-  StrictMock<MockSubscriber<std::string>> subscriber1;
+  StrictMock<MockSubscriber<std::string, std::string>> subscriber0;
+  StrictMock<MockSubscriber<std::string, std::string>> subscriber1;
 };
 
 TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
@@ -69,7 +70,9 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   EXPECT_CALL(*decoder, decode(_, _, _, _))
       .WillRepeatedly(
           Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
-                     IOBufQueue& q, std::string& data, size_t&) {
+                     IOBufQueue& q,
+                     std::string& data,
+                     size_t&) {
             auto buf = q.move();
             if (buf) {
               buf->coalesce();
@@ -134,7 +137,9 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   EXPECT_CALL(*decoder, decode(_, _, _, _))
       .WillRepeatedly(
           Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
-                     IOBufQueue& q, std::string& data, size_t&) {
+                     IOBufQueue& q,
+                     std::string& data,
+                     size_t&) {
             bufQueue.append(q);
             if (bufQueue.chainLength() < 5) {
               return false;
@@ -205,7 +210,9 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
   EXPECT_CALL(*decoder, decode(_, _, _, _))
       .WillRepeatedly(
           Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
-                     IOBufQueue& q, std::string& data, size_t&) {
+                     IOBufQueue& q,
+                     std::string& data,
+                     size_t&) {
             auto buf = q.move();
             if (buf) {
               buf->coalesce();
@@ -259,7 +266,9 @@ TEST_F(BroadcastHandlerTest, OnError) {
   EXPECT_CALL(*decoder, decode(_, _, _, _))
       .WillRepeatedly(
           Invoke([&](MockByteToMessageDecoder<std::string>::Context*,
-                     IOBufQueue& q, std::string& data, size_t&) {
+                     IOBufQueue& q,
+                     std::string& data,
+                     size_t&) {
             auto buf = q.move();
             if (buf) {
               buf->coalesce();

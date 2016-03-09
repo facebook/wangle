@@ -150,14 +150,14 @@ class SimpleBroadcastPipelineFactory
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(ByteToStringDecoder());
-    pipeline->addBack(BroadcastHandler<std::string>());
+    pipeline->addBack(BroadcastHandler<std::string, std::string>());
     pipeline->finalize();
     return pipeline;
   }
 
-  BroadcastHandler<std::string>* getBroadcastHandler(
+  BroadcastHandler<std::string, std::string>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept override {
-    return pipeline->getHandler<BroadcastHandler<std::string>>();
+    return pipeline->getHandler<BroadcastHandler<std::string, std::string>>();
   }
 
   void setRoutingData(DefaultPipeline* pipeline,

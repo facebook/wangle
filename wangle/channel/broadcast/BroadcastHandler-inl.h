@@ -11,46 +11,46 @@
 
 namespace wangle {
 
-template <typename T>
-void BroadcastHandler<T>::read(Context* ctx, T data) {
+template <typename T, typename R>
+void BroadcastHandler<T, R>::read(Context* ctx, T data) {
   onData(data);
-  forEachSubscriber([&](Subscriber<T>* s) {
+  forEachSubscriber([&](Subscriber<T, R>* s) {
     s->onNext(data);
   });
 }
 
-template <typename T>
-void BroadcastHandler<T>::readEOF(Context* ctx) {
-  forEachSubscriber([&](Subscriber<T>* s) {
+template <typename T, typename R>
+void BroadcastHandler<T, R>::readEOF(Context* ctx) {
+  forEachSubscriber([&](Subscriber<T, R>* s) {
     s->onCompleted();
   });
   subscribers_.clear();
   closeIfIdle();
 }
 
-template <typename T>
-void BroadcastHandler<T>::readException(Context* ctx,
+template <typename T, typename R>
+void BroadcastHandler<T, R>::readException(Context* ctx,
                                         folly::exception_wrapper ex) {
   LOG(ERROR) << "Error while reading from upstream for broadcast: "
              << exceptionStr(ex);
 
-  forEachSubscriber([&](Subscriber<T>* s) {
+  forEachSubscriber([&](Subscriber<T, R>* s) {
     s->onError(ex);
   });
   subscribers_.clear();
   closeIfIdle();
 }
 
-template <typename T>
-uint64_t BroadcastHandler<T>::subscribe(Subscriber<T>* subscriber) {
+template <typename T, typename R>
+uint64_t BroadcastHandler<T, R>::subscribe(Subscriber<T, R>* subscriber) {
   auto subscriptionId = nextSubscriptionId_++;
   subscribers_[subscriptionId] = subscriber;
   onSubscribe(subscriber);
   return subscriptionId;
 }
 
-template <typename T>
-void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
+template <typename T, typename R>
+void BroadcastHandler<T, R>::unsubscribe(uint64_t subscriptionId) {
   auto iter = subscribers_.find(subscriptionId);
   if (iter == subscribers_.end()) {
     return;
@@ -61,8 +61,8 @@ void BroadcastHandler<T>::unsubscribe(uint64_t subscriptionId) {
   closeIfIdle();
 }
 
-template <typename T>
-void BroadcastHandler<T>::closeIfIdle() {
+template <typename T, typename R>
+void BroadcastHandler<T, R>::closeIfIdle() {
   if (subscribers_.empty()) {
     // No more subscribers. Clean up.
     // This will delete the broadcast from the pool.

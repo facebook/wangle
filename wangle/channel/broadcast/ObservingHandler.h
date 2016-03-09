@@ -23,7 +23,7 @@ namespace wangle {
  */
 template <typename T, typename R>
 class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
-                         public Subscriber<T> {
+                         public Subscriber<T, R> {
  public:
   typedef typename HandlerAdapter<folly::IOBufQueue&, T>::Context Context;
 
@@ -47,12 +47,13 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
   void onNext(const T& buf) override;
   void onError(folly::exception_wrapper ex) override;
   void onCompleted() override;
+  R& routingData() override;
 
  private:
   R routingData_;
   BroadcastPool<T, R>* broadcastPool_{nullptr};
 
-  BroadcastHandler<T>* broadcastHandler_{nullptr};
+  BroadcastHandler<T, R>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
   bool paused_{false};
 

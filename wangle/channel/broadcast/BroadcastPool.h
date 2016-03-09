@@ -53,7 +53,7 @@ class BroadcastPool {
       }
     }
 
-    folly::Future<BroadcastHandler<T>*> getHandler();
+    folly::Future<BroadcastHandler<T, R>*> getHandler();
 
     // PipelineManager implementation
     void deletePipeline(PipelineBase* pipeline) override;
@@ -66,7 +66,7 @@ class BroadcastPool {
     ClientBootstrap<DefaultPipeline> client_;
 
     bool connectStarted_{false};
-    folly::SharedPromise<BroadcastHandler<T>*> sharedPromise_;
+    folly::SharedPromise<BroadcastHandler<T, R>*> sharedPromise_;
   };
 
   BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
@@ -95,7 +95,8 @@ class BroadcastPool {
    * Caller should immediately subscribe to the returned BroadcastHandler
    * to prevent it from being garbage collected.
    */
-  virtual folly::Future<BroadcastHandler<T>*> getHandler(const R& routingData);
+  virtual folly::Future<BroadcastHandler<T, R>*> getHandler(
+      const R& routingData);
 
   /**
    * Checks if a broadcast is available locally for the given routingData.
@@ -105,9 +106,7 @@ class BroadcastPool {
   }
 
  private:
-  void deleteBroadcast(const R& routingData) {
-    broadcasts_.erase(routingData);
-  }
+  void deleteBroadcast(const R& routingData) { broadcasts_.erase(routingData); }
 
   std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;

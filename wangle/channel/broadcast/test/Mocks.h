@@ -20,12 +20,16 @@
 
 namespace wangle {
 
-template <typename T>
-class MockSubscriber : public Subscriber<T> {
+template <typename T, typename R>
+class MockSubscriber : public Subscriber<T, R> {
  public:
   MOCK_METHOD1_T(onNext, void(const T&));
   MOCK_METHOD1(onError, void(const folly::exception_wrapper ex));
   MOCK_METHOD0(onCompleted, void());
+
+  MOCK_METHOD0_T(routingData, R&());
+
+  folly::Future<BroadcastHandler<int, std::string>*> getHandler();
 };
 
 template <typename T>
@@ -61,9 +65,7 @@ class MockServerPool : public ServerPool<std::string> {
                         : client->connect(*addr_);
   }
 
-  void failConnect() {
-    failConnect_ = true;
-  }
+  void failConnect() { failConnect_ = true; }
 
  private:
   std::shared_ptr<folly::SocketAddress> addr_;
@@ -74,11 +76,12 @@ class MockBroadcastPool : public BroadcastPool<int, std::string> {
  public:
   MockBroadcastPool() : BroadcastPool<int, std::string>(nullptr, nullptr) {}
 
-  MOCK_METHOD1_T(mockGetHandler,
-                 folly::MoveWrapper<folly::Future<BroadcastHandler<int>*>>(
-                     const std::string&));
+  MOCK_METHOD1_T(
+      mockGetHandler,
+      folly::MoveWrapper<folly::Future<BroadcastHandler<int, std::string>*>>(
+          const std::string&));
 
-  folly::Future<BroadcastHandler<int>*> getHandler(
+  folly::Future<BroadcastHandler<int, std::string>*> getHandler(
       const std::string& routingData) override {
     return mockGetHandler(routingData).move();
   }
@@ -103,9 +106,9 @@ class MockObservingHandler : public ObservingHandler<int, std::string> {
   }
 };
 
-class MockBroadcastHandler : public BroadcastHandler<int> {
+class MockBroadcastHandler : public BroadcastHandler<int, std::string> {
  public:
-  MOCK_METHOD1(subscribe, uint64_t(Subscriber<int>*));
+  MOCK_METHOD1(subscribe, uint64_t(Subscriber<int, std::string>*));
   MOCK_METHOD1(unsubscribe, void(uint64_t));
 };
 
@@ -117,15 +120,15 @@ class MockBroadcastPipelineFactory
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(std::make_shared<MockByteToMessageDecoder<int>>());
-    pipeline->addBack(BroadcastHandler<int>());
+    pipeline->addBack(BroadcastHandler<int, std::string>());
     pipeline->finalize();
 
     return pipeline;
   }
 
-  virtual BroadcastHandler<int>* getBroadcastHandler(
+  virtual BroadcastHandler<int, std::string>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept override {
-    return pipeline->getHandler<BroadcastHandler<int>>(2);
+    return pipeline->getHandler<BroadcastHandler<int, std::string>>(2);
   }
 
   MOCK_METHOD2(setRoutingData, void(DefaultPipeline*, const std::string&));

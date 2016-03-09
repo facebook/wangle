@@ -44,18 +44,19 @@ void ObservingHandler<T, R>::transportActive(Context* ctx) {
 
   auto deleted = deleted_;
   broadcastPool_->getHandler(routingData_)
-      .then([this, pipeline, deleted](BroadcastHandler<T>* broadcastHandler) {
-        if (*deleted) {
-          return;
-        }
+      .then(
+           [this, pipeline, deleted](BroadcastHandler<T, R>* broadcastHandler) {
+             if (*deleted) {
+               return;
+             }
 
-        broadcastHandler_ = broadcastHandler;
-        subscriptionId_ = broadcastHandler_->subscribe(this);
-        VLOG(10) << "Subscribed to a broadcast";
+             broadcastHandler_ = broadcastHandler;
+             subscriptionId_ = broadcastHandler_->subscribe(this);
+             VLOG(10) << "Subscribed to a broadcast";
 
-        // Resume ingress
-        pipeline->transportActive();
-      })
+             // Resume ingress
+             pipeline->transportActive();
+           })
       .onError([this, ctx, deleted](const std::exception& ex) {
         if (*deleted) {
           return;
@@ -73,7 +74,7 @@ void ObservingHandler<T, R>::readEOF(Context* ctx) {
 
 template <typename T, typename R>
 void ObservingHandler<T, R>::readException(Context* ctx,
-                                        folly::exception_wrapper ex) {
+                                           folly::exception_wrapper ex) {
   LOG(ERROR) << "Error on read: " << exceptionStr(ex);
   this->close(ctx);
 }
@@ -107,6 +108,11 @@ void ObservingHandler<T, R>::onCompleted() {
   // broadcastHandler_ will clear its subscribers and delete itself
   broadcastHandler_ = nullptr;
   this->close(this->getContext());
+}
+
+template <typename T, typename R>
+R& ObservingHandler<T, R>::routingData() {
+  return routingData_;
 }
 
 } // namespace wangle

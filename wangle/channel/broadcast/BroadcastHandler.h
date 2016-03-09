@@ -20,7 +20,7 @@ namespace wangle {
  * An Observable type handler for broadcasting/streaming data to a list
  * of subscribers.
  */
-template <typename T>
+template <typename T, typename R>
 class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>> {
  public:
   typedef typename HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>::Context Context;
@@ -38,7 +38,7 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
    * Subscribes to the broadcast. Returns a unique subscription ID
    * for this subscriber.
    */
-  virtual uint64_t subscribe(Subscriber<T>* subscriber);
+  virtual uint64_t subscribe(Subscriber<T, R>* subscriber);
 
   /**
    * Unsubscribe from the broadcast. Closes the pipeline if the
@@ -56,13 +56,13 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
    * Invoked when a new subscriber is added. Subclasses can override
    * to add custom behavior.
    */
-  virtual void onSubscribe(Subscriber<T>* subscriber) {}
+  virtual void onSubscribe(Subscriber<T, R>* subscriber) {}
 
   /**
    * Invoked when a subscriber is removed. Subclasses can override
    * to add custom behavior.
    */
-  virtual void onUnsubscribe(Subscriber<T>* subscriber) {}
+  virtual void onUnsubscribe(Subscriber<T, R>* subscriber) {}
 
   /**
    * Invoked for each data that is about to be broadcasted to the
@@ -71,7 +71,7 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
   virtual void onData(T& data) {}
 
  protected:
-  template <typename FUNC> // FUNC: Subscriber<T>* -> void
+  template <typename FUNC> // FUNC: Subscriber<T, R>* -> void
   void forEachSubscriber(FUNC f) {
     auto subscribers = subscribers_;
     for (const auto& it : subscribers) {
@@ -80,7 +80,7 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
   }
 
  private:
-  std::map<uint64_t, Subscriber<T>*> subscribers_;
+  std::map<uint64_t, Subscriber<T, R>*> subscribers_;
   uint64_t nextSubscriptionId_{0};
 };
 
@@ -91,7 +91,7 @@ class BroadcastPipelineFactory
   virtual DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransportWrapper> socket) override = 0;
 
-  virtual BroadcastHandler<T>* getBroadcastHandler(
+  virtual BroadcastHandler<T, R>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept = 0;
 
   virtual void setRoutingData(DefaultPipeline* pipeline,

@@ -68,7 +68,7 @@ class BroadcastPoolTest : public Test {
   std::unique_ptr<BroadcastPool<int, std::string>> pool;
   std::shared_ptr<StrictMock<MockServerPool>> serverPool;
   std::shared_ptr<StrictMock<MockBroadcastPipelineFactory>> pipelineFactory;
-  NiceMock<MockSubscriber<int>> subscriber;
+  NiceMock<MockSubscriber<int, std::string>> subscriber;
   std::unique_ptr<ServerBootstrap<DefaultPipeline>> server;
   std::shared_ptr<SocketAddress> addr;
 };
@@ -77,8 +77,8 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // Test simple calls to getHandler()
   std::string routingData1 = "url1";
   std::string routingData2 = "url2";
-  BroadcastHandler<int>* handler1 = nullptr;
-  BroadcastHandler<int>* handler2 = nullptr;
+  BroadcastHandler<int, std::string>* handler1 = nullptr;
+  BroadcastHandler<int, std::string>* handler2 = nullptr;
   auto base = EventBaseManager::get()->getEventBase();
 
   InSequence dummy;
@@ -87,7 +87,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // is established and handler created.
   EXPECT_FALSE(pool->isBroadcasting(routingData1));
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -100,7 +100,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // Broadcast available for routingData1. Test that the same handler
   // is returned.
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         EXPECT_TRUE(h == handler1);
       })
       .wait();
@@ -114,7 +114,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // new connection is established again and handler created.
   handler1 = nullptr;
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -131,7 +131,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // a new handler created
   EXPECT_FALSE(pool->isBroadcasting(routingData2));
   pool->getHandler(routingData2)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
         handler2->subscribe(&subscriber);
       });
@@ -150,8 +150,8 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // Test with multiple getHandler() calls for the same routing data
   // when a connect request is in flight
   std::string routingData = "url1";
-  BroadcastHandler<int>* handler1 = nullptr;
-  BroadcastHandler<int>* handler2 = nullptr;
+  BroadcastHandler<int, std::string>* handler1 = nullptr;
+  BroadcastHandler<int, std::string>* handler2 = nullptr;
   auto base = EventBaseManager::get()->getEventBase();
 
   InSequence dummy;
@@ -159,7 +159,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -169,7 +169,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // Invoke getHandler() for the same routing data when a connect request
   // is outstanding
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
         handler2->subscribe(&subscriber);
       });
@@ -190,7 +190,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // Invoke getHandler() again to test if the same handler is returned
   // from the existing connection
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         EXPECT_TRUE(h == handler1);
       })
       .wait();
@@ -203,8 +203,8 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
 TEST_F(BroadcastPoolTest, ConnectError) {
   // Test when an exception occurs during connect request
   std::string routingData = "url1";
-  BroadcastHandler<int>* handler1 = nullptr;
-  BroadcastHandler<int>* handler2 = nullptr;
+  BroadcastHandler<int, std::string>* handler1 = nullptr;
+  BroadcastHandler<int, std::string>* handler2 = nullptr;
   bool handler1Error = false;
   bool handler2Error = false;
   auto base = EventBaseManager::get()->getEventBase();
@@ -216,7 +216,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
 
   // No broadcast available for routingData. Kick off a connect request.
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
       })
       .onError([&] (const std::exception& ex) {
@@ -229,7 +229,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
 
   // Invoke getHandler() again while the connect request is in flight
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
       })
       .onError([&] (const std::exception& ex) {
@@ -254,7 +254,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   // Start the server now. Connect requests should succeed.
   startServer();
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -272,8 +272,8 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
   // Test when an error occurs in ServerPool when trying to kick off
   // a connect request
   std::string routingData = "url1";
-  BroadcastHandler<int>* handler1 = nullptr;
-  BroadcastHandler<int>* handler2 = nullptr;
+  BroadcastHandler<int, std::string>* handler1 = nullptr;
+  BroadcastHandler<int, std::string>* handler2 = nullptr;
   bool handler1Error = false;
   bool handler2Error = false;
   auto base = EventBaseManager::get()->getEventBase();
@@ -283,7 +283,7 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
   // Inject a ServerPool error
   serverPool->failConnect();
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
       })
       .onError([&] (const std::exception& ex) {
@@ -299,7 +299,7 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
   // Test when an exception occurs while setting routing data on
   // the pipeline after the socket connect succeeds.
   std::string routingData = "url";
-  BroadcastHandler<int>* handler = nullptr;
+  BroadcastHandler<int, std::string>* handler = nullptr;
   bool handlerError = false;
   auto base = EventBaseManager::get()->getEventBase();
 
@@ -307,7 +307,7 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
 
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler = h;
       })
       .onError([&] (const std::exception& ex) {
@@ -327,7 +327,7 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   // Test against use-after-free on BroadcastManager when the pool
   // is deleted before the handler
   std::string routingData = "url1";
-  BroadcastHandler<int>* handler = nullptr;
+  BroadcastHandler<int, std::string>* handler = nullptr;
   DefaultPipeline* pipeline = nullptr;
   auto base = EventBaseManager::get()->getEventBase();
 
@@ -335,7 +335,7 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
 
   // Dispatch a connect request and create a handler
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler = h;
         handler->subscribe(&subscriber);
         pipeline = dynamic_cast<DefaultPipeline*>(
@@ -358,7 +358,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // Test when the caller goes away before connect request returns
   // resulting in a new BroadcastHandler without any subscribers
   std::string routingData = "url1";
-  BroadcastHandler<int>* handler = nullptr;
+  BroadcastHandler<int, std::string>* handler = nullptr;
   bool handler1Connected = false;
   bool handler2Connected = false;
   auto base = EventBaseManager::get()->getEventBase();
@@ -368,7 +368,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.
@@ -379,7 +379,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // Invoke getHandler() for the same routing data when a connect request
   // is outstanding
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler2Connected = true;
         // Do not subscribe to the handler.
       });
@@ -401,7 +401,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   handler1Connected = false;
   handler2Connected = false;
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.
@@ -410,7 +410,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   EXPECT_TRUE(pool->isBroadcasting(routingData));
 
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int>* h) {
+      .then([&](BroadcastHandler<int, std::string>* h) {
         handler2Connected = true;
         // Subscriber to the handler. The handler should stick around now.
         handler = h;
@@ -437,7 +437,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
   // Test that thread-local broadcast pool works correctly
   MockObservingPipelineFactory factory1(serverPool, pipelineFactory);
   MockObservingPipelineFactory factory2(serverPool, pipelineFactory);
-  BroadcastHandler<int>* broadcastHandler = nullptr;
+  BroadcastHandler<int, std::string>* broadcastHandler = nullptr;
   const std::string kUrl = "url";
 
   InSequence dummy;

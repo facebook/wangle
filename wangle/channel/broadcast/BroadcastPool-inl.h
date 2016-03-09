@@ -12,7 +12,7 @@
 namespace wangle {
 
 template <typename T, typename R>
-folly::Future<BroadcastHandler<T>*>
+folly::Future<BroadcastHandler<T, R>*>
 BroadcastPool<T, R>::BroadcastManager::getHandler() {
   // getFuture() returns a completed future if we are already connected
   auto future = sharedPromise_.getFuture();
@@ -74,7 +74,7 @@ void BroadcastPool<T, R>::BroadcastManager::handleConnectError(
 }
 
 template <typename T, typename R>
-folly::Future<BroadcastHandler<T>*> BroadcastPool<T, R>::getHandler(
+folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R>::getHandler(
     const R& routingData) {
   const auto& iter = broadcasts_.find(routingData);
   if (iter != broadcasts_.end()) {
