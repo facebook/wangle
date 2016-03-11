@@ -96,10 +96,17 @@ if(BUILD_TESTS)
 
   include(ExternalProject)
 
+file(GLOB_RECURSE GMOCK_URL "gmock-1.7.0.zip")
+if (GMOCK_URL)
+  list(GET GMOCK_URL 0 GMOCK_URL)
+else()
+  set(GMOCK_URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip)
+endif()
+
 # Download and install GoogleMock
   ExternalProject_Add(
       gmock
-      URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip
+      URL ${GMOCK_URL}
       PREFIX ${CMAKE_SOURCE_DIR}/gmock
       # Disable install step
       INSTALL_COMMAND ""
