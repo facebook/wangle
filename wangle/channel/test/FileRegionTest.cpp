@@ -12,6 +12,7 @@
 #include <folly/io/async/test/AsyncSocketTest.h>
 #include <gtest/gtest.h>
 
+#ifdef SPLICE_F_NONBLOCK
 using namespace folly;
 using namespace wangle;
 using namespace testing;
@@ -103,3 +104,4 @@ TEST_F(FileRegionTest, Repeated) {
   }
   ASSERT_EQ(receivedBytes, sendCount*count);
 }
+#endif

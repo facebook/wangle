@@ -17,6 +17,7 @@
 #include <folly/futures/Promise.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 
+#ifdef SPLICE_F_NONBLOCK
 namespace wangle {
 
 class FileRegion {
@@ -109,3 +110,4 @@ class FileRegion {
 };
 
 } // wangle
+#endif

@@ -10,6 +10,7 @@
 
 #include <wangle/channel/FileRegion.h>
 
+#ifdef SPLICE_F_NONBLOCK
 using namespace folly;
 using namespace wangle;
 
@@ -210,3 +211,4 @@ void FileRegion::FileWriteRequest::FileReadHandler::handlerReady(
 }
 
 } // wangle
+#endif
