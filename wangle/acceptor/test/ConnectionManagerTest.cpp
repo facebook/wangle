@@ -19,14 +19,29 @@ using namespace wangle;
 
 namespace {
 
+class ConnectionManagerTest;
+
 class MockConnection : public ManagedConnection {
  public:
+  using UniquePtr = std::unique_ptr<StrictMock<MockConnection>,
+                                    folly::DelayedDestruction::Destructor>;
 
-  MockConnection() {
+  static UniquePtr makeUnique(ConnectionManagerTest* test) {
+    UniquePtr p(new StrictMock<MockConnection>(test));
+    return p;
+  }
+
+  explicit MockConnection(ConnectionManagerTest *test)
+      : test_(test) {
     EXPECT_CALL(*this, isBusy())
       .WillRepeatedly(Return(false));
     EXPECT_CALL(*this, dumpConnectionState(testing::_))
       .WillRepeatedly(Return());
+    ON_CALL(*this, closeWhenIdle())
+      .WillByDefault(Invoke([this] {
+            closeWhenIdle_ = true;
+            closeWhenIdleImpl();
+          }));
   }
 
   GMOCK_METHOD0_(, noexcept,, timeoutExpired, void());
@@ -41,6 +56,17 @@ class MockConnection : public ManagedConnection {
   MOCK_METHOD0(closeWhenIdle, void());
   MOCK_METHOD0(dropConnection, void());
   MOCK_METHOD1(dumpConnectionState, void(uint8_t));
+
+  void setIdle(bool idle) {
+    idle_ = idle;
+    closeWhenIdleImpl();
+  }
+
+  void closeWhenIdleImpl();
+
+  ConnectionManagerTest* test_{nullptr};
+  bool idle_{false};
+  bool closeWhenIdle_{false};
 };
 
 class ConnectionManagerTest: public testing::Test {
@@ -58,17 +84,34 @@ class ConnectionManagerTest: public testing::Test {
 
   void addConns(uint64_t n) {
     for (auto i = 0; i < n; i++) {
-      conns_.insert(conns_.begin(),
-                    folly::make_unique<StrictMock<MockConnection>>());
+
+      conns_.insert(conns_.begin(), MockConnection::makeUnique(this));
       cm_->addConnection(conns_.front().get());
     }
   }
 
+  void removeConn(MockConnection* connection) {
+    for (auto& conn: conns_) {
+      if (conn.get() == connection) {
+        cm_->removeConnection(connection);
+        conn.reset();
+      }
+    }
+  }
+
  protected:
+  void testAddDuringCloseWhenIdle(bool deactivate);
+
   folly::EventBase eventBase_;
   ConnectionManager::UniquePtr cm_;
-  std::vector<std::unique_ptr<MockConnection>> conns_;
+  std::vector<MockConnection::UniquePtr> conns_;
 };
+
+void MockConnection::closeWhenIdleImpl() {
+  if (idle_ && closeWhenIdle_) {
+    test_->removeConn(this);
+  }
+}
 
 TEST_F(ConnectionManagerTest, testShutdownSequence) {
   InSequence enforceOrder;
@@ -177,7 +220,7 @@ TEST_F(ConnectionManagerTest, testDropIdle) {
 }
 
 TEST_F(ConnectionManagerTest, testAddDuringShutdown) {
-  auto extraConn = folly::make_unique<StrictMock<MockConnection>>();
+  auto extraConn = MockConnection::makeUnique(this);
   InSequence enforceOrder;
 
   // activate one connection, it should not be exempt from notifyPendingShutdown
@@ -195,6 +238,53 @@ TEST_F(ConnectionManagerTest, testAddDuringShutdown) {
   }
 
   eventBase_.loop();
+}
+
+
+void ConnectionManagerTest::testAddDuringCloseWhenIdle(bool deactivate) {
+  auto extraConn = MockConnection::makeUnique(this);
+  InSequence enforceOrder;
+
+  // All conns will get closeWhenIdle
+  for (const auto& conn: conns_) {
+    conn->setIdle(true);
+    EXPECT_CALL(*conn, closeWhenIdle());
+  }
+  cm_->initiateGracefulShutdown(std::chrono::milliseconds(0));
+
+  // Add the extra conn in this state
+  extraConn->setIdle(true);
+  conns_.insert(conns_.begin(), std::move(extraConn));
+  cm_->addConnection(conns_.front().get());
+  // Shouldn't be deleted yet, call is delayed
+  ASSERT_TRUE(conns_.front().get() != nullptr);
+
+  // Mark the connection as active
+  conns_.front()->setIdle(false);
+  if (deactivate) {
+    // mark it idle and move to the end of the list.  The regular
+    // drainAllConnections code will find it and call closeWhenIdle.  The
+    // second loop callback won't find the conn and be a no-op
+    cm_->onDeactivated(*conns_.front());
+    conns_.front()->setIdle(true);
+  }
+  EXPECT_CALL(*conns_.front(), closeWhenIdle());
+  eventBase_.loop();
+  if (!deactivate) {
+    // drainAllConnections didn't find it, closeWhenIdle was invoked by the
+    // second loop callback.
+    cm_->onDeactivated(*conns_.front());
+    conns_.front()->setIdle(true);
+  }
+  ASSERT_TRUE(conns_.front().get() == nullptr);
+}
+
+TEST_F(ConnectionManagerTest, testAddDuringCloseWhenIdleActive) {
+  testAddDuringCloseWhenIdle(false);
+}
+
+TEST_F(ConnectionManagerTest, testAddDuringCloseWhenIdleInactive) {
+  testAddDuringCloseWhenIdle(true);
 }
 }
 

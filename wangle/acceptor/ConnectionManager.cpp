@@ -56,11 +56,26 @@ ConnectionManager::addConnection(ManagedConnection* connection,
   if (timeout) {
     scheduleTimeout(connection, timeout_);
   }
-  if (shutdownState_ >= ShutdownState::CLOSE_WHEN_IDLE) {
-    // shouldn't really hapen
-    connection->closeWhenIdle();
-  } else if (shutdownState_ >= ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
+  if (shutdownState_ >= ShutdownState::NOTIFY_PENDING_SHUTDOWN &&
+      notifyPendingShutdown_) {
     connection->notifyPendingShutdown();
+  }
+  if (shutdownState_ >= ShutdownState::CLOSE_WHEN_IDLE) {
+    // closeWhenIdle can delete the connection (it was just created, so it's
+    // probably idle).  Delay the closeWhenIdle call until the end of the loop
+    // where it will be safer to terminate the conn.
+    // Hold a DestructorGuard to the end of the loop for this
+    auto cmDg = new DestructorGuard(this);
+    auto connDg = new DestructorGuard(connection);
+    eventBase_->runInLoop([connection, this, cmDg, connDg] {
+        if (connection->listHook_.is_linked()) {
+          auto it = conns_.iterator_to(*connection);
+          DCHECK(it != conns_.end());
+          connection->closeWhenIdle();
+        }
+        delete connDg;
+        delete cmDg;
+      });
   }
 }
 
@@ -117,6 +132,7 @@ ConnectionManager::initiateGracefulShutdown(
     idleLoopCallback_.scheduleTimeout(idleGrace);
     VLOG(3) << "Scheduling idle grace period of " << idleGrace.count() << "ms";
   } else {
+    notifyPendingShutdown_ = false;
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
     VLOG(3) << "proceeding directly to closing idle connections";
   }

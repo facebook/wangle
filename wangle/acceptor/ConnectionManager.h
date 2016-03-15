@@ -220,6 +220,7 @@ class ConnectionManager: public folly::DelayedDestruction,
     ManagedConnection,&ManagedConnection::listHook_>::iterator idleIterator_;
   CloseIdleConnsCallback idleLoopCallback_;
   ShutdownState shutdownState_{ShutdownState::NONE};
+  bool notifyPendingShutdown_{true};
 
   /**
    * the default idle timeout for downstream sessions when no system resource
