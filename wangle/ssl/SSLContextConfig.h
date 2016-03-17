@@ -10,6 +10,7 @@
 #pragma once
 
 #include <string>
+#include <folly/Optional.h>
 #include <folly/io/async/SSLContext.h>
 #include <vector>
 #include <set>
@@ -107,6 +108,11 @@ struct SSLContextConfig {
     folly::SSLContext::SSLVerifyPeerEnum::VERIFY_REQ_CLIENT_CERT};
   // Key offload configuration
   KeyOffloadParams keyOffloadParams;
+  // A namespace to use for sessions generated from this context so that
+  // they will not be shared between other sessions generated from the
+  // same context. If not specified the common name for the certificates set
+  // in the context will be used by default.
+  folly::Optional<std::string> sessionContext;
 };
 
 } // namespace wangle

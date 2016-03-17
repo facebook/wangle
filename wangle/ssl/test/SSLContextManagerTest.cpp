@@ -11,6 +11,7 @@
 #include <folly/io/async/SSLContext.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
 
@@ -106,6 +107,63 @@ TEST(SSLContextManagerTest, Test1)
 
 
   eventBase.loop(); // Clean up events before SSLContextManager is destructed
+}
+
+TEST(SSLContextManagerTest, TestSessionContextIfSupplied)
+{
+  EventBase eventBase;
+  SSLContextManager sslCtxMgr(&eventBase, "vip_ssl_context_manager_test_",
+                              true, nullptr);
+  SSLContextConfig ctxConfig;
+  ctxConfig.sessionContext = "test";
+  ctxConfig.addCertificate(
+      "wangle/ssl/test/certs/test.cert.pem",
+      "wangle/ssl/test/certs/test.key.pem",
+      "");
+
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+
+  SSLContextKey key("test.com", CertCrypto::BEST_AVAILABLE);
+  auto ctx = sslCtxMgr.getSSLCtx(key);
+  ASSERT_TRUE(ctx);
+  auto sessCtxFromCtx = std::string(
+      reinterpret_cast<char*>(ctx->getSSLCtx()->sid_ctx),
+      ctx->getSSLCtx()->sid_ctx_length);
+  EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
+  eventBase.loop();
+}
+
+TEST(SSLContextManagerTest, TestSessionContextIfSessionCacheAbsent)
+{
+  EventBase eventBase;
+  SSLContextManager sslCtxMgr(&eventBase, "vip_ssl_context_manager_test_",
+                              true, nullptr);
+  SSLContextConfig ctxConfig;
+  ctxConfig.sessionContext = "test";
+  ctxConfig.sessionCacheEnabled = false;
+  ctxConfig.addCertificate(
+      "wangle/ssl/test/certs/test.cert.pem",
+      "wangle/ssl/test/certs/test.key.pem",
+      "");
+
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+
+  SSLContextKey key("test.com", CertCrypto::BEST_AVAILABLE);
+  auto ctx = sslCtxMgr.getSSLCtx(key);
+  ASSERT_TRUE(ctx);
+  auto sessCtxFromCtx = std::string(
+      reinterpret_cast<char*>(ctx->getSSLCtx()->sid_ctx),
+      ctx->getSSLCtx()->sid_ctx_length);
+  EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
+  eventBase.loop();
 }
 
 } // namespace wangle

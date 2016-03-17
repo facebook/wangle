@@ -330,6 +330,12 @@ void SSLContextManager::addSSLContextConfig(
   SSL_CTX_set_session_cache_mode(sslCtx->getSSLCtx(), SSL_SESS_CACHE_OFF);
   SSL_CTX_set_timeout(sslCtx->getSSLCtx(),
                       cacheOptions.sslCacheTimeout.count());
+  std::string sessionContext;
+  if (ctxConfig.sessionContext) {
+    sessionContext = *ctxConfig.sessionContext;
+  } else {
+    sessionContext = commonName;
+  }
   std::unique_ptr<SSLSessionCacheManager> sessionCacheManager;
   if (ctxConfig.sessionCacheEnabled &&
       cacheOptions.maxSSLCacheSize > 0 &&
@@ -340,11 +346,14 @@ void SSLContextManager::addSSLContextConfig(
         cacheOptions.sslCacheFlushSize,
         sslCtx.get(),
         vipAddress,
-        commonName,
+        sessionContext,
         eventBase_,
         stats_,
         externalCache);
   }
+  // even though SSLSessionCacheManager might set the context if enabled,
+  // we also want to setup the context in case a cache is not enabled.
+  sslCtx->setSessionCacheContext(sessionContext);
   // - end - SSL session cache config
 
   std::unique_ptr<TLSTicketKeyManager> ticketManager =

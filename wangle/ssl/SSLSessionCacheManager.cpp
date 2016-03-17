@@ -93,9 +93,7 @@ SSLSessionCacheManager::SSLSessionCacheManager(
                              SSLSessionCacheManager::removeSessionCallback);
   if (!FLAGS_dcache_unit_test && !context.empty()) {
     // Use the passed in context
-    SSL_CTX_set_session_id_context(sslCtx, (const uint8_t *)context.data(),
-                                   std::min((int)context.length(),
-                                            SSL_MAX_SSL_SESSION_ID_LENGTH));
+    ctx->setSessionCacheContext(context);
   }
 
   SSL_CTX_set_session_cache_mode(sslCtx, SSL_SESS_CACHE_NO_INTERNAL
