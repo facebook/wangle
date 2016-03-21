@@ -117,6 +117,11 @@ struct TransportInfo {
   std::shared_ptr<std::string> sslClientCiphers{nullptr};
 
   /*
+   * client ciphers as a series of 4-byte hex strings (e.g., 'cc14')
+   */
+  std::shared_ptr<std::string> sslClientCiphersHex{nullptr};
+
+  /*
    * list of compression methods sent by the client
    */
   std::shared_ptr<std::string> sslClientComprMethods{nullptr};

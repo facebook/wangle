@@ -66,6 +66,9 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   tinfo_.sslResume = SSLUtil::getResumeState(sock);
   tinfo_.sslClientCiphers = std::make_shared<std::string>();
   sock->getSSLClientCiphers(*tinfo_.sslClientCiphers);
+  tinfo_.sslClientCiphersHex = std::make_shared<std::string>();
+  sock->getSSLClientCiphers(
+      *tinfo_.sslClientCiphersHex, /* convertToString = */ false);
   tinfo_.sslServerCiphers = std::make_shared<std::string>();
   sock->getSSLServerCiphers(*tinfo_.sslServerCiphers);
   tinfo_.sslClientComprMethods =
