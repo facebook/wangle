@@ -492,15 +492,20 @@ SSLContextManager::ctxSetupByOpensslFeature(
 #endif
 
   // Specify cipher(s) to be used for TLS1.1 client
-  if (!ctxConfig.tls11Ciphers.empty()) {
+  if (!ctxConfig.tls11Ciphers.empty() ||
+      !ctxConfig.tls11AltCipherlist.empty()) {
 #ifdef PROXYGEN_HAVE_SERVERNAMECALLBACK
     // Specified TLS1.1 ciphers are valid
+    // XXX: this callback will be called for every new (TLS 1.1 or greater)
+    // handshake, so it relies on ctxConfig.tls11Ciphers and
+    // ctxConfig.tls11AltCipherlist not changing.
     sslCtx->addClientHelloCallback(
       std::bind(
         &SSLContext::switchCiphersIfTLS11,
         sslCtx.get(),
         std::placeholders::_1,
-        ctxConfig.tls11Ciphers
+        ctxConfig.tls11Ciphers,
+        ctxConfig.tls11AltCipherlist
       )
     );
 #else

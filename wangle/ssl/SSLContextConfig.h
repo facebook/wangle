@@ -92,6 +92,8 @@ struct SSLContextConfig {
   std::string eccCurveName{"prime256v1"};
   // Ciphers to negotiate if TLS version >= 1.1
   std::string tls11Ciphers{""};
+  // Knobs to tune ciphersuite picking probability for TLS >= 1.1
+  std::vector<std::pair<std::string, int>> tls11AltCipherlist;
   // Weighted lists of NPN strings to advertise
   std::list<folly::SSLContext::NextProtocolsItem>
       nextProtocols;
