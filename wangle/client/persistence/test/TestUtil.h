@@ -1,23 +1,33 @@
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <cstdlib>
-#include <gtest/gtest.h>
-#include <folly/Memory.h>
 #include <list>
 #include <unistd.h>
 #include <vector>
+
+#include <folly/Memory.h>
+#include <gtest/gtest.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 
 namespace wangle {
 
 std::string getPersistentCacheFilename();
 
-template<typename K, typename V>
+template<typename K, typename V, typename MutexT = std::mutex>
 void testSimplePutGet(
     const std::vector<K>& keys,
     const std::vector<V>& values) {
   std::string filename = getPersistentCacheFilename();
-  typedef FilePersistentCache<K, V> CacheType;
+  typedef FilePersistentCache<K, V, MutexT> CacheType;
   size_t cacheCapacity = 10;
   {
     CacheType cache(filename, cacheCapacity, std::chrono::seconds(150));

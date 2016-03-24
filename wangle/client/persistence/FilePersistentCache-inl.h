@@ -19,8 +19,8 @@
 
 namespace wangle {
 
-template<typename K, typename V>
-FilePersistentCache<K, V>::FilePersistentCache(const std::string& file,
+template<typename K, typename V, typename MutexT>
+FilePersistentCache<K, V, MutexT>::FilePersistentCache(const std::string& file,
     const std::size_t cacheCapacity,
     const std::chrono::seconds& syncInterval,
     const int nSyncRetries):
@@ -31,15 +31,15 @@ FilePersistentCache<K, V>::FilePersistentCache(const std::string& file,
   syncInterval_(syncInterval),
   nSyncRetries_(nSyncRetries),
   nSyncFailures_(0),
-  syncer_(&FilePersistentCache<K, V>::syncThreadMain, this) {
+  syncer_(&FilePersistentCache<K, V, MutexT>::syncThreadMain, this) {
 
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
   load();
 }
 
-template<typename K, typename V>
-FilePersistentCache<K, V>::~FilePersistentCache() {
+template<typename K, typename V, typename MutexT>
+FilePersistentCache<K, V, MutexT>::~FilePersistentCache() {
   {
     // tell syncer to wake up and quit
     std::lock_guard<std::mutex> lock(stopSyncerMutex_);
@@ -51,9 +51,9 @@ FilePersistentCache<K, V>::~FilePersistentCache() {
   syncer_.join();
 }
 
-template<typename K, typename V>
-folly::Optional<V> FilePersistentCache<K, V>::get(const K& key) {
-  std::lock_guard<std::mutex> lock(cacheLock_);
+template<typename K, typename V, typename MutexT>
+folly::Optional<V> FilePersistentCache<K, V, MutexT>::get(const K& key) {
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   auto itr = cache_.find(key);
   if (itr != cache_.end()) {
@@ -62,17 +62,17 @@ folly::Optional<V> FilePersistentCache<K, V>::get(const K& key) {
   return folly::Optional<V>();
 }
 
-template<typename K, typename V>
-void FilePersistentCache<K, V>::put(const K& key, const V& val) {
-  std::lock_guard<std::mutex> lock(cacheLock_);
+template<typename K, typename V, typename MutexT>
+void FilePersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   cache_.set(key, val);
   ++pendingUpdates_;
 }
 
-template<typename K, typename V>
-bool FilePersistentCache<K, V>::remove(const K& key) {
-  std::lock_guard<std::mutex> lock(cacheLock_);
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::remove(const K& key) {
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   size_t nErased = cache_.erase(key);
   if (nErased > 0) {
@@ -82,22 +82,22 @@ bool FilePersistentCache<K, V>::remove(const K& key) {
   return false;
 }
 
-template<typename K, typename V>
-void* FilePersistentCache<K, V>::syncThreadMain(void* arg) {
-  auto self = static_cast<FilePersistentCache<K, V>*>(arg);
+template<typename K, typename V, typename MutexT>
+void* FilePersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
+  auto self = static_cast<FilePersistentCache<K, V, MutexT>*>(arg);
   self->sync();
   return nullptr;
 }
 
-template<typename K, typename V>
-void FilePersistentCache<K, V>::sync() {
+template<typename K, typename V, typename MutexT>
+void FilePersistentCache<K, V, MutexT>::sync() {
   // keep running as long the destructor signals to stop or
   // there are pending updates that are not synced yet
   std::unique_lock<std::mutex> stopSyncerLock(stopSyncerMutex_);
 
   while (true) {
     if (stopSyncer_) {
-      std::lock_guard<std::mutex> lock(cacheLock_);
+      typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
       if (pendingUpdates_ == 0) {
         break;
       }
@@ -109,7 +109,7 @@ void FilePersistentCache<K, V>::sync() {
       ++nSyncFailures_;
       if (nSyncFailures_ == nSyncRetries_) {
         LOG(ERROR) << "Giving up after " << nSyncFailures_ << " failures";
-        std::lock_guard<std::mutex> lock(cacheLock_);
+        typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
         pendingUpdates_ = 0;
         nSyncFailures_ = 0;
       }
@@ -123,13 +123,13 @@ void FilePersistentCache<K, V>::sync() {
   }
 }
 
-template<typename K, typename V>
-bool FilePersistentCache<K, V>::syncNow() {
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::syncNow() {
   folly::Optional<std::string> serializedCache;
   unsigned long queuedUpdates = 0;
   // serialize the current contents of cache under lock
   {
-    std::lock_guard<std::mutex> lock(cacheLock_);
+    typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
 
     if (pendingUpdates_ == 0) {
       return true;
@@ -147,7 +147,7 @@ bool FilePersistentCache<K, V>::syncNow() {
 
   // if we succeeded in peristing, update pending update count
   if (persisted) {
-    std::lock_guard<std::mutex> lock(cacheLock_);
+    typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
     pendingUpdates_ -= queuedUpdates;
     DCHECK(pendingUpdates_ >= 0);
@@ -159,8 +159,9 @@ bool FilePersistentCache<K, V>::syncNow() {
 }
 
 // serializes the cache_, must be called under lock
-template<typename K, typename V>
-folly::Optional<std::string> FilePersistentCache<K, V>::serializeCache() {
+template<typename K, typename V, typename MutexT>
+folly::Optional<std::string>
+FilePersistentCache<K, V, MutexT>::serializeCache() {
   try {
     folly::dynamic dynObj = folly::dynamic::array;
     for (const auto& kv : cache_) {
@@ -178,8 +179,8 @@ folly::Optional<std::string> FilePersistentCache<K, V>::serializeCache() {
   return folly::Optional<std::string>();
 }
 
-template<typename K, typename V>
-bool FilePersistentCache<K, V>::deserializeCache(
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::deserializeCache(
     const std::string& serializedCache) {
   folly::Optional<folly::dynamic> cacheFromString;
   try {
@@ -191,7 +192,7 @@ bool FilePersistentCache<K, V>::deserializeCache(
                 << err.what();
 
     // If parsing fails we haven't taken the lock yet so do so here.
-    std::lock_guard<std::mutex> lock(cacheLock_);
+    typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
     cache_.clear();
     return false;
@@ -199,7 +200,7 @@ bool FilePersistentCache<K, V>::deserializeCache(
 
   bool error = true;
   DCHECK(cacheFromString);
-  std::lock_guard<std::mutex> lock(cacheLock_);
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   try {
     for (const auto& kv : *cacheFromString) {
@@ -231,8 +232,8 @@ bool FilePersistentCache<K, V>::deserializeCache(
   return true;
 }
 
-template<typename K, typename V>
-bool FilePersistentCache<K, V>::persist(std::string&& serializedCache) {
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::persist(std::string&& serializedCache) {
   bool persisted = false;
   const auto fd = folly::openNoInt(
                     file_.c_str(),
@@ -263,8 +264,8 @@ bool FilePersistentCache<K, V>::persist(std::string&& serializedCache) {
   return persisted;
 }
 
-template<typename K, typename V>
-bool FilePersistentCache<K, V>::load() noexcept {
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::load() noexcept {
   std::string serializedCache;
   // not being able to read the backing storage means we just
   // start with an empty cache. Failing to deserialize, or write,
@@ -281,17 +282,17 @@ bool FilePersistentCache<K, V>::load() noexcept {
   return false;
 }
 
-template<typename K, typename V>
-void FilePersistentCache<K, V>::clear() {
-  std::lock_guard<std::mutex> lock(cacheLock_);
+template<typename K, typename V, typename MutexT>
+void FilePersistentCache<K, V, MutexT>::clear() {
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   cache_.clear();
   ++pendingUpdates_;
 }
 
-template<typename K, typename V>
-size_t FilePersistentCache<K, V>::size() {
-  std::lock_guard<std::mutex> lock(cacheLock_);
+template<typename K, typename V, typename MutexT>
+size_t FilePersistentCache<K, V, MutexT>::size() {
+  typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
 
   return cache_.size();
 }

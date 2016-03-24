@@ -24,6 +24,19 @@
 namespace wangle {
 
 /**
+ * A guard that provides write and read access to a mutex type.
+ */
+template<typename MutexT>
+struct CacheLockGuard;
+
+// Specialize on std::mutex by providing exclusive access
+template<>
+struct CacheLockGuard<std::mutex> {
+  using Read = std::lock_guard<std::mutex>;
+  using Write = std::lock_guard<std::mutex>;
+};
+
+/**
  * A PersistentCache implementation that used a regular file for
  * storage. In memory structure fronts the file and the cache
  * operations happen on it. Loading from and syncing to file are
@@ -36,7 +49,7 @@ namespace wangle {
  * serialization and deserialization. So It may not suit your need until
  * true support arbitrary types is written.
  */
-template<typename K, typename V>
+template<typename K, typename V, typename MutexT = std::mutex>
 class FilePersistentCache : public PersistentCache<K, V>,
                             private boost::noncopyable {
   static_assert(std::is_convertible<K, folly::dynamic>::value &&
@@ -154,7 +167,7 @@ class FilePersistentCache : public PersistentCache<K, V>,
     // tracks pendingUpdates_
     unsigned long pendingUpdates_;
     // for locking cache_ and pendingUpdates_
-    std::mutex cacheLock_;
+    MutexT cacheLock_;
 
     // used to signal syncer thread
     bool stopSyncer_;
