@@ -17,16 +17,6 @@
 #include <functional>
 #include <sys/time.h>
 
-// Can't use do {} while (0) trick here since that will create a scope and
-// break SCOPE_EXIT.
-#define LOCK_FPC_MUTEX_WITH_SCOPEGUARD(mutex)               \
-  ec = pthread_mutex_lock(&mutex);                          \
-  CHECK_EQ(0, ec) << "Failed to lock " << #mutex;           \
-  SCOPE_EXIT {                                              \
-    ec = pthread_mutex_unlock(&mutex);                      \
-    CHECK_EQ(0, ec) << "Failed to unlock " << #mutex;       \
-  }
-
 namespace wangle {
 
 template<typename K, typename V>
@@ -40,20 +30,8 @@ FilePersistentCache<K, V>::FilePersistentCache(const std::string& file,
   stopSyncer_(false),
   syncInterval_(syncInterval),
   nSyncRetries_(nSyncRetries),
-  nSyncFailures_(0) {
-  int ec;
-  ec = pthread_mutex_init(&cacheLock_, nullptr);
-  CHECK_EQ(0, ec) << "Failed to initialize cacheLock_";
-
-  ec = pthread_mutex_init(&stopSyncerMutex_, nullptr);
-  CHECK_EQ(0, ec) << "Failed to initialize stopSyncerMutex_";
-
-  ec = pthread_cond_init(&stopSyncerCV_, nullptr);
-  CHECK_EQ(0, ec) << "Failed to initialize stopSyncerCV_";
-
-  ec = pthread_create(&syncer_, nullptr,
-          &FilePersistentCache<K, V>::syncThreadMain, this);
-  CHECK_EQ(0, ec) << "Failed to create syncer thread for " << file_;
+  nSyncFailures_(0),
+  syncer_(&FilePersistentCache<K, V>::syncThreadMain, this) {
 
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
@@ -62,35 +40,20 @@ FilePersistentCache<K, V>::FilePersistentCache(const std::string& file,
 
 template<typename K, typename V>
 FilePersistentCache<K, V>::~FilePersistentCache() {
-  int ec;
-
   {
     // tell syncer to wake up and quit
-    LOCK_FPC_MUTEX_WITH_SCOPEGUARD(stopSyncerMutex_);
+    std::lock_guard<std::mutex> lock(stopSyncerMutex_);
 
     stopSyncer_ = true;
-    ec = pthread_cond_broadcast(&stopSyncerCV_);
-    CHECK_EQ(0, ec) << "Failed to notify stopSyncerCV_";
+    stopSyncerCV_.notify_all();
   }
 
-  // Most pthread_join(3) failures are not fatal (e.g. thread has already
-  // terminated). EDEADLK would be unexpected, though so crash hard on that.
-  ec = pthread_join(syncer_, nullptr);
-  LOG_IF(WARNING, ec != 0) << "Failed to join syncer thread: " << ec;
-  CHECK_NE(EDEADLK, ec);
-
-  ec = pthread_cond_destroy(&stopSyncerCV_);
-  LOG_IF(WARNING, ec != 0) << "Failed to destroy stopSyncerCV_: " << ec;
-  ec = pthread_mutex_destroy(&stopSyncerMutex_);
-  LOG_IF(WARNING, ec != 0) << "Failed to destroy stopSyncerMutex_: " << ec;
-  ec = pthread_mutex_destroy(&cacheLock_);
-  LOG_IF(WARNING, ec != 0) << "Failed to destroy cacheLock_: " << ec;
+  syncer_.join();
 }
 
 template<typename K, typename V>
 folly::Optional<V> FilePersistentCache<K, V>::get(const K& key) {
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   auto itr = cache_.find(key);
   if (itr != cache_.end()) {
@@ -101,8 +64,7 @@ folly::Optional<V> FilePersistentCache<K, V>::get(const K& key) {
 
 template<typename K, typename V>
 void FilePersistentCache<K, V>::put(const K& key, const V& val) {
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   cache_.set(key, val);
   ++pendingUpdates_;
@@ -110,8 +72,7 @@ void FilePersistentCache<K, V>::put(const K& key, const V& val) {
 
 template<typename K, typename V>
 bool FilePersistentCache<K, V>::remove(const K& key) {
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   size_t nErased = cache_.erase(key);
   if (nErased > 0) {
@@ -132,12 +93,11 @@ template<typename K, typename V>
 void FilePersistentCache<K, V>::sync() {
   // keep running as long the destructor signals to stop or
   // there are pending updates that are not synced yet
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(stopSyncerMutex_);
+  std::unique_lock<std::mutex> stopSyncerLock(stopSyncerMutex_);
 
   while (true) {
     if (stopSyncer_) {
-      LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+      std::lock_guard<std::mutex> lock(cacheLock_);
       if (pendingUpdates_ == 0) {
         break;
       }
@@ -149,7 +109,7 @@ void FilePersistentCache<K, V>::sync() {
       ++nSyncFailures_;
       if (nSyncFailures_ == nSyncRetries_) {
         LOG(ERROR) << "Giving up after " << nSyncFailures_ << " failures";
-        LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+        std::lock_guard<std::mutex> lock(cacheLock_);
         pendingUpdates_ = 0;
         nSyncFailures_ = 0;
       }
@@ -158,15 +118,7 @@ void FilePersistentCache<K, V>::sync() {
     }
 
     if (!stopSyncer_) {
-      timeval tv;
-      ec = gettimeofday(&tv, nullptr);
-      CHECK_EQ(0, ec);
-
-      timespec ts;
-      ts.tv_sec = tv.tv_sec + folly::to<time_t>(syncInterval_.count());
-      ts.tv_nsec = 0;
-      ec = pthread_cond_timedwait(&stopSyncerCV_, &stopSyncerMutex_, &ts);
-      CHECK_NE(EINVAL, ec);
+      stopSyncerCV_.wait_for(stopSyncerLock, syncInterval_);
     }
   }
 }
@@ -175,10 +127,9 @@ template<typename K, typename V>
 bool FilePersistentCache<K, V>::syncNow() {
   folly::Optional<std::string> serializedCache;
   unsigned long queuedUpdates = 0;
-  int ec;
   // serialize the current contents of cache under lock
   {
-    LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+    std::lock_guard<std::mutex> lock(cacheLock_);
 
     if (pendingUpdates_ == 0) {
       return true;
@@ -196,7 +147,7 @@ bool FilePersistentCache<K, V>::syncNow() {
 
   // if we succeeded in peristing, update pending update count
   if (persisted) {
-    LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+    std::lock_guard<std::mutex> lock(cacheLock_);
 
     pendingUpdates_ -= queuedUpdates;
     DCHECK(pendingUpdates_ >= 0);
@@ -231,7 +182,6 @@ template<typename K, typename V>
 bool FilePersistentCache<K, V>::deserializeCache(
     const std::string& serializedCache) {
   folly::Optional<folly::dynamic> cacheFromString;
-  int ec;
   try {
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
@@ -241,7 +191,7 @@ bool FilePersistentCache<K, V>::deserializeCache(
                 << err.what();
 
     // If parsing fails we haven't taken the lock yet so do so here.
-    LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+    std::lock_guard<std::mutex> lock(cacheLock_);
 
     cache_.clear();
     return false;
@@ -249,7 +199,7 @@ bool FilePersistentCache<K, V>::deserializeCache(
 
   bool error = true;
   DCHECK(cacheFromString);
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   try {
     for (const auto& kv : *cacheFromString) {
@@ -314,7 +264,7 @@ bool FilePersistentCache<K, V>::persist(std::string&& serializedCache) {
 }
 
 template<typename K, typename V>
-bool FilePersistentCache<K, V>::load() {
+bool FilePersistentCache<K, V>::load() noexcept {
   std::string serializedCache;
   // not being able to read the backing storage means we just
   // start with an empty cache. Failing to deserialize, or write,
@@ -333,8 +283,7 @@ bool FilePersistentCache<K, V>::load() {
 
 template<typename K, typename V>
 void FilePersistentCache<K, V>::clear() {
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   cache_.clear();
   ++pendingUpdates_;
@@ -342,8 +291,7 @@ void FilePersistentCache<K, V>::clear() {
 
 template<typename K, typename V>
 size_t FilePersistentCache<K, V>::size() {
-  int ec;
-  LOCK_FPC_MUTEX_WITH_SCOPEGUARD(cacheLock_);
+  std::lock_guard<std::mutex> lock(cacheLock_);
 
   return cache_.size();
 }

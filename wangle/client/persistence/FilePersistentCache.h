@@ -1,14 +1,24 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
-#include <boost/noncopyable.hpp>
 #include <chrono>
-#include <folly/EvictingCacheMap.h>
-#include <folly/dynamic.h>
+#include <condition_variable>
 #include <future>
 #include <map>
-#include <pthread.h>
+#include <mutex>
+#include <thread>
 
+#include <boost/noncopyable.hpp>
+#include <folly/EvictingCacheMap.h>
+#include <folly/dynamic.h>
 #include <wangle/client/persistence/PersistentCache.h>
 
 namespace wangle {
@@ -24,7 +34,7 @@ namespace wangle {
  * NOTE NOTE NOTE: Although this class aims to be a cache for arbitrary,
  * it relies heavily on folly::toJson, folly::dynamic and convertTo for
  * serialization and deserialization. So It may not suit your need until
- * true support arbitrary types is written. TODO_ranjeeth: t3623725
+ * true support arbitrary types is written.
  */
 template<typename K, typename V>
 class FilePersistentCache : public PersistentCache<K, V>,
@@ -83,7 +93,7 @@ class FilePersistentCache : public PersistentCache<K, V>,
      *
      * @returns boolean, true on successful load, false otherwise
      */
-    bool load();
+    bool load() noexcept;
 
     /**
      * The syncer thread's function. Syncs to the file, if necessary,
@@ -144,17 +154,14 @@ class FilePersistentCache : public PersistentCache<K, V>,
     // tracks pendingUpdates_
     unsigned long pendingUpdates_;
     // for locking cache_ and pendingUpdates_
-    pthread_mutex_t cacheLock_;
-
-    // thread for periodic sync
-    pthread_t syncer_;
+    std::mutex cacheLock_;
 
     // used to signal syncer thread
     bool stopSyncer_;
     // mutex used to synchronize syncer_ on destruction, tied to stopSyncerCV_
-    pthread_mutex_t stopSyncerMutex_;
+    std::mutex stopSyncerMutex_;
     // condvar used to wakeup syncer on exit
-    pthread_cond_t stopSyncerCV_;
+    std::condition_variable stopSyncerCV_;
 
     // sync interval in seconds
     const std::chrono::seconds syncInterval_;
@@ -163,6 +170,8 @@ class FilePersistentCache : public PersistentCache<K, V>,
     // tracks no. of consecutive sync failures
     int nSyncFailures_;
 
+    // thread for periodic sync
+    std::thread syncer_;
 };
 
 }
