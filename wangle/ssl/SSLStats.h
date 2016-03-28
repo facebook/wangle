@@ -29,13 +29,6 @@ class SSLStats {
   // upstream
   virtual void recordSSLUpstreamConnection(bool handshake) noexcept = 0;
   virtual void recordSSLUpstreamConnectionError(bool verifyError) noexcept = 0;
-  virtual void recordCryptoSSLExternalAttempt() noexcept = 0;
-  virtual void recordCryptoSSLExternalConnAlreadyClosed() noexcept = 0;
-  virtual void recordCryptoSSLExternalApplicationException() noexcept = 0;
-  virtual void recordCryptoSSLExternalSuccess() noexcept = 0;
-  virtual void recordCryptoSSLExternalDuration(uint64_t duration) noexcept = 0;
-  virtual void recordCryptoSSLLocalAttempt() noexcept = 0;
-  virtual void recordCryptoSSLLocalSuccess() noexcept = 0;
 
 };
 
