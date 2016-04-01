@@ -164,7 +164,7 @@ class ServerBootstrap {
     CHECK(acceptor_group_->numThreads() == 1);
 
     std::shared_ptr<folly::AsyncServerSocket> socket(
-      s.release(), folly::DelayedDestruction::Destructor());
+      s.release(), AsyncServerSocketFactory::ThreadSafeDestructor());
 
     folly::via(acceptor_group_.get(), [&] {
       socket->attachEventBase(folly::EventBaseManager::get()->getEventBase());
@@ -184,7 +184,7 @@ class ServerBootstrap {
   }
 
   void bind(folly::SocketAddress& address) {
-    bindImpl(-1, address);
+    bindImpl(address);
   }
 
   /*
@@ -196,10 +196,11 @@ class ServerBootstrap {
   void bind(int port) {
     CHECK(port >= 0);
     folly::SocketAddress address;
-    bindImpl(port, address);
+    address.setFromLocalPort(port);
+    bindImpl(address);
   }
 
-  void bindImpl(int port, folly::SocketAddress& address) {
+  void bindImpl(folly::SocketAddress& address) {
     if (!workerFactory_) {
       group(nullptr);
     }
@@ -216,15 +217,11 @@ class ServerBootstrap {
 
       try {
         auto socket = socketFactory_->newSocket(
-            port, address, socketConfig.acceptBacklog, reusePort, socketConfig);
+            address, socketConfig.acceptBacklog, reusePort, socketConfig);
         sock_lock.lock();
         new_sockets.push_back(socket);
         sock_lock.unlock();
-
-        if (port <= 0) {
-          socket->getAddress(&address);
-          port = address.getPort();
-        }
+        socket->getAddress(&address);
 
         barrier->post();
       } catch (...) {
@@ -269,12 +266,6 @@ class ServerBootstrap {
   void stop() {
     // sockets_ may be null if ServerBootstrap has been std::move'd
     if (sockets_) {
-      for (auto socket : *sockets_) {
-        socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-          [&]() mutable {
-            socketFactory_->stopSocket(socket);
-          });
-      }
       sockets_->clear();
     }
     if (!stopped_) {

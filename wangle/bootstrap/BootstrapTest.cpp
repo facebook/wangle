@@ -15,6 +15,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <boost/thread.hpp>
+#include <folly/String.h>
+#include <folly/experimental/TestUtil.h>
 
 using namespace wangle;
 using namespace folly;
@@ -361,4 +363,52 @@ TEST(Bootstrap, UDPClientServerTest) {
   server.join();
 
   EXPECT_EQ(connections, 1);
+}
+
+TEST(Bootstrap, UnixServer) {
+  TestServer server;
+  auto factory = std::make_shared<TestPipelineFactory>();
+
+  folly::test::TemporaryDirectory tmpdir("wangle-bootstrap-test");
+  auto socketPath = (tmpdir.path() / "sock").string();
+
+  server.childPipeline(factory);
+  SocketAddress address;
+  address.setFromPath(socketPath);
+  server.bind(address);
+  auto base = EventBaseManager::get()->getEventBase();
+
+  TestClient client;
+  client.pipelineFactory(std::make_shared<TestClientPipelineFactory>());
+  client.connect(address);
+  base->loop();
+  server.stop();
+  server.join();
+
+  EXPECT_EQ(factory->pipelines, 1);
+}
+
+TEST(Bootstrap, ServerBindFailure) {
+  // Bind to a TCP socket
+  EventBase base;
+  auto serverSocket = AsyncServerSocket::newSocket(&base);
+  serverSocket->bind(0);
+  serverSocket->listen(0);
+
+  SocketAddress address;
+  serverSocket->getAddress(&address);
+
+  // Now try starting a server using the address we are already listening on
+  // This should fail.
+
+  TestServer server;
+  auto factory = std::make_shared<TestPipelineFactory>();
+  server.childPipeline(factory);
+  try {
+    server.bind(address);
+    FAIL() << "shouldn't be allowed to bind to an in-use address";
+  } catch (const std::system_error& ex) {
+    EXPECT_EQ(EADDRINUSE, ex.code().value()) << "unexpected error code " <<
+      ex.code().value() << ": " << ex.code().message();
+  }
 }
