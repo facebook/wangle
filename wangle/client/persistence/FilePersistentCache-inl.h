@@ -125,7 +125,7 @@ void FilePersistentCache<K, V, MutexT>::sync() {
 
 template<typename K, typename V, typename MutexT>
 bool FilePersistentCache<K, V, MutexT>::syncNow() {
-  folly::Optional<std::string> serializedCache;
+  folly::Optional<folly::dynamic> kvPairs;
   unsigned long queuedUpdates = 0;
   // serialize the current contents of cache under lock
   {
@@ -134,16 +134,16 @@ bool FilePersistentCache<K, V, MutexT>::syncNow() {
     if (pendingUpdates_ == 0) {
       return true;
     }
-    serializedCache = serializeCache();
-    if (!serializedCache.hasValue()) {
-      LOG(ERROR) << "Failed to serialize cache";
+    kvPairs = convertCacheToKvPairs();
+    if (!kvPairs.hasValue()) {
+      LOG(ERROR) << "Failed to convert cache to folly::dynamic";
       return false;
     }
     queuedUpdates = pendingUpdates_;
   }
 
   // do the actual file write
-  bool persisted = persist(std::move(serializedCache.value()));
+  bool persisted = persist(kvPairs.value());
 
   // if we succeeded in peristing, update pending update count
   if (persisted) {
@@ -158,52 +158,52 @@ bool FilePersistentCache<K, V, MutexT>::syncNow() {
   return persisted;
 }
 
-// serializes the cache_, must be called under lock
+// serializes the cache_, must be called under read lock
 template<typename K, typename V, typename MutexT>
-folly::Optional<std::string>
-FilePersistentCache<K, V, MutexT>::serializeCache() {
+folly::Optional<folly::dynamic>
+FilePersistentCache<K, V, MutexT>::convertCacheToKvPairs() {
   try {
     folly::dynamic dynObj = folly::dynamic::array;
     for (const auto& kv : cache_) {
       dynObj.push_back(folly::toDynamic(std::make_pair(kv.first, kv.second)));
     }
-    folly::json::serialization_opts opts;
-    opts.allow_non_string_keys = true;
-    auto serializedCache = folly::json::serialize(dynObj, opts).toStdString();
-
-    return folly::Optional<std::string>(std::move(serializedCache));
+    return dynObj;
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Serialization of cache failed with parse error: "
-                << err.what();
+    LOG(ERROR) << "Converting cache to folly::dynamic failed with error: "
+               << err.what();
   }
-  return folly::Optional<std::string>();
+  return folly::Optional<folly::dynamic>();
 }
 
 template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::deserializeCache(
-    const std::string& serializedCache) {
-  folly::Optional<folly::dynamic> cacheFromString;
+folly::Optional<folly::dynamic>
+FilePersistentCache<K, V, MutexT>::readKvPairs() {
+  std::string serializedCache;
+  // not being able to read the backing storage means we just
+  // start with an empty cache. Failing to deserialize, or write,
+  // is a real error so we report errors there.
+  if (!folly::readFile(file_.c_str(), serializedCache)){
+    return folly::Optional<folly::dynamic>();
+  }
+
   try {
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
-    cacheFromString = folly::parseJson(serializedCache, opts);
+    return folly::parseJson(serializedCache, opts);
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Deserialization of cache failed with parse error: "
+    LOG(ERROR) << "Deserialization of cache failed with JSON parse error: "
                 << err.what();
-
-    // If parsing fails we haven't taken the lock yet so do so here.
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-    cache_.clear();
-    return false;
   }
+  return folly::Optional<folly::dynamic>();
+}
 
+template<typename K, typename V, typename MutexT>
+bool FilePersistentCache<K, V, MutexT>::loadCache(folly::dynamic& kvPairs) {
   bool error = true;
-  DCHECK(cacheFromString);
   typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
 
   try {
-    for (const auto& kv : *cacheFromString) {
+    for (const auto& kv : kvPairs) {
       cache_.set(
         folly::convertTo<K>(kv[0]),
         folly::convertTo<V>(kv[1])
@@ -211,15 +211,15 @@ bool FilePersistentCache<K, V, MutexT>::deserializeCache(
     }
     error = false;
   } catch (const folly::TypeError& err) {
-    LOG(ERROR) << "Deserialization of cache failed with type error: "
+    LOG(ERROR) << "Load cache failed with type error: "
                 << err.what();
 
   } catch (const std::out_of_range& err) {
-    LOG(ERROR) << "Deserialization of cache failed with key error: "
+    LOG(ERROR) << "Load cache failed with key error: "
                 << err.what();
 
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Deserialization of cache failed with error: "
+    LOG(ERROR) << "Load cache failed with error: "
                 << err.what();
 
   }
@@ -233,7 +233,18 @@ bool FilePersistentCache<K, V, MutexT>::deserializeCache(
 }
 
 template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::persist(std::string&& serializedCache) {
+bool
+FilePersistentCache<K, V, MutexT>::persist(folly::dynamic& kvPairs) {
+  std::string serializedCache;
+  try {
+    folly::json::serialization_opts opts;
+    opts.allow_non_string_keys = true;
+    serializedCache = folly::json::serialize(kvPairs, opts).toStdString();
+  } catch (const std::exception& err) {
+    LOG(ERROR) << "Serialization of cache to JSON failed with error: "
+                << err.what();
+    return false;
+  }
   bool persisted = false;
   const auto fd = folly::openNoInt(
                     file_.c_str(),
@@ -266,20 +277,11 @@ bool FilePersistentCache<K, V, MutexT>::persist(std::string&& serializedCache) {
 
 template<typename K, typename V, typename MutexT>
 bool FilePersistentCache<K, V, MutexT>::load() noexcept {
-  std::string serializedCache;
-  // not being able to read the backing storage means we just
-  // start with an empty cache. Failing to deserialize, or write,
-  // is a real error so we report errors there.
-  if (!folly::readFile(file_.c_str(), serializedCache)){
+  auto kvPairs = readKvPairs();
+  if (!kvPairs) {
     return false;
   }
-
-  if (deserializeCache(serializedCache)) {
-    return true;
-  } else {
-    LOG(ERROR) << "Deserialization of cache failed ";
-  }
-  return false;
+  return loadCache(kvPairs.value());
 }
 
 template<typename K, typename V, typename MutexT>

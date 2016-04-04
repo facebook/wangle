@@ -125,35 +125,42 @@ class FilePersistentCache : public PersistentCache<K, V>,
     bool syncNow();
 
     /**
-     * Helper to syncNow routine above that serializes data
+     * Helper to syncNow routine above that converts cache_ to a
+     * folly::dynamic list of K,V pairs.
      *
-     * Attempts to serialize cache_. Uses toDynamic and toJson from folly.
-     *
-     * @returns Optional<std::string>, the string if serialization succeeded, no
-     *                            value on failure
+     * @returns Optional<folly::dynamic>, the list of K,V pairs if succeeded,
+     *                                     no value on failure
      */
-    folly::Optional<std::string> serializeCache();
+    folly::Optional<folly::dynamic> convertCacheToKvPairs();
 
     /**
-     * Helper to load routine above that deserializes data
+     * Helper to load routine above that reads the file into a folly::dynamic
+     * list of K, V pairs.
      *
-     * @param serializedCache string, the serialized cache
+     * @returns Optional<folly::dynamic>, the list of K,V pairs if succeeded,
+     *                                     no value on failure
+     */
+    folly::Optional<folly::dynamic> readKvPairs();
+
+    /**
+     * Helper to load routine above that loads the cache from a folly::dynamic
+     * list of K, V pairs
      *
-     * Attempts to deserialize data. Uses parseJson from folly.
+     * @param kvPairs, the list of K,V pairs
      *
      * @returns boolean, true if deserialize succeeded,
      *                    false on failure
      */
-    bool deserializeCache(const std::string& serializedCache);
+    bool loadCache(folly::dynamic& kvPairs);
 
     /**
      * Helper to syncNow routine above that actualy writes to the underlying
      * file.
-     * @param serializedCache string, the serialized cache
+     * @param kvPairs folly::dynamic, the list of K, V pairs.
      *
      * @returns boolean, true on successful write to file, false otherwise
      */
-    bool persist(std::string&& serializedCache);
+    bool persist(folly::dynamic& kvPairs);
 
   private:
     // path to the file on disk
