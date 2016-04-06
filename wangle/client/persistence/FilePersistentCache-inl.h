@@ -9,257 +9,52 @@
  */
 #pragma once
 
-#include <cerrno>
-#include <folly/DynamicConverter.h>
 #include <folly/FileUtil.h>
 #include <folly/json.h>
-#include <folly/ScopeGuard.h>
-#include <functional>
-#include <sys/time.h>
 
 namespace wangle {
 
-template<typename K, typename V, typename MutexT>
-FilePersistentCache<K, V, MutexT>::FilePersistentCache(const std::string& file,
-    const std::size_t cacheCapacity,
-    const std::chrono::seconds& syncInterval,
-    const int nSyncRetries):
-  file_(file),
-  cache_(cacheCapacity),
-  pendingUpdates_(0),
-  stopSyncer_(false),
-  syncInterval_(syncInterval),
-  nSyncRetries_(nSyncRetries),
-  nSyncFailures_(0),
-  syncer_(&FilePersistentCache<K, V, MutexT>::syncThreadMain, this) {
+template<typename K, typename V>
+class FilePersistenceLayer : public CachePersistence<K, V> {
+ public:
+  explicit FilePersistenceLayer(const std::string& file) : file_(file) {}
+  ~FilePersistenceLayer() {}
 
-  // load the cache. be silent if load fails, we just drop the cache
-  // and start from scratch.
-  load();
-}
+  bool persist(const folly::dynamic& arrayOfKvPairs) noexcept override;
 
-template<typename K, typename V, typename MutexT>
-FilePersistentCache<K, V, MutexT>::~FilePersistentCache() {
-  {
-    // tell syncer to wake up and quit
-    std::lock_guard<std::mutex> lock(stopSyncerMutex_);
+  folly::Optional<folly::dynamic> load() noexcept override;
 
-    stopSyncer_ = true;
-    stopSyncerCV_.notify_all();
-  }
+ private:
+  std::string file_;
+};
 
-  syncer_.join();
-}
-
-template<typename K, typename V, typename MutexT>
-folly::Optional<V> FilePersistentCache<K, V, MutexT>::get(const K& key) {
-  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-  auto itr = cache_.find(key);
-  if (itr != cache_.end()) {
-    return folly::Optional<V>(itr->second);
-  }
-  return folly::Optional<V>();
-}
-
-template<typename K, typename V, typename MutexT>
-void FilePersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
-  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-  cache_.set(key, val);
-  ++pendingUpdates_;
-}
-
-template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::remove(const K& key) {
-  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-  size_t nErased = cache_.erase(key);
-  if (nErased > 0) {
-    ++pendingUpdates_;
-    return true;
-  }
-  return false;
-}
-
-template<typename K, typename V, typename MutexT>
-void* FilePersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
-  auto self = static_cast<FilePersistentCache<K, V, MutexT>*>(arg);
-  self->sync();
-  return nullptr;
-}
-
-template<typename K, typename V, typename MutexT>
-void FilePersistentCache<K, V, MutexT>::sync() {
-  // keep running as long the destructor signals to stop or
-  // there are pending updates that are not synced yet
-  std::unique_lock<std::mutex> stopSyncerLock(stopSyncerMutex_);
-
-  while (true) {
-    if (stopSyncer_) {
-      typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
-      if (pendingUpdates_ == 0) {
-        break;
-      }
-    }
-
-    if (!syncNow()) {
-      LOG(ERROR) << "Persisting to cache failed " << nSyncFailures_ << " times";
-      // track failures and give up if we tried too many times
-      ++nSyncFailures_;
-      if (nSyncFailures_ == nSyncRetries_) {
-        LOG(ERROR) << "Giving up after " << nSyncFailures_ << " failures";
-        typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-        pendingUpdates_ = 0;
-        nSyncFailures_ = 0;
-      }
-    } else {
-      nSyncFailures_ = 0;
-    }
-
-    if (!stopSyncer_) {
-      stopSyncerCV_.wait_for(stopSyncerLock, syncInterval_);
-    }
-  }
-}
-
-template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::syncNow() {
-  folly::Optional<folly::dynamic> kvPairs;
-  unsigned long queuedUpdates = 0;
-  // serialize the current contents of cache under lock
-  {
-    typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
-
-    if (pendingUpdates_ == 0) {
-      return true;
-    }
-    kvPairs = convertCacheToKvPairs();
-    if (!kvPairs.hasValue()) {
-      LOG(ERROR) << "Failed to convert cache to folly::dynamic";
-      return false;
-    }
-    queuedUpdates = pendingUpdates_;
-  }
-
-  // do the actual file write
-  bool persisted = persist(kvPairs.value());
-
-  // if we succeeded in peristing, update pending update count
-  if (persisted) {
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-    pendingUpdates_ -= queuedUpdates;
-    DCHECK(pendingUpdates_ >= 0);
-  } else {
-    LOG(ERROR) << "Failed to persist " << queuedUpdates << " updates";
-  }
-
-  return persisted;
-}
-
-// serializes the cache_, must be called under read lock
-template<typename K, typename V, typename MutexT>
-folly::Optional<folly::dynamic>
-FilePersistentCache<K, V, MutexT>::convertCacheToKvPairs() {
-  try {
-    folly::dynamic dynObj = folly::dynamic::array;
-    for (const auto& kv : cache_) {
-      dynObj.push_back(folly::toDynamic(std::make_pair(kv.first, kv.second)));
-    }
-    return dynObj;
-  } catch (const std::exception& err) {
-    LOG(ERROR) << "Converting cache to folly::dynamic failed with error: "
-               << err.what();
-  }
-  return folly::Optional<folly::dynamic>();
-}
-
-template<typename K, typename V, typename MutexT>
-folly::Optional<folly::dynamic>
-FilePersistentCache<K, V, MutexT>::readKvPairs() {
-  std::string serializedCache;
-  // not being able to read the backing storage means we just
-  // start with an empty cache. Failing to deserialize, or write,
-  // is a real error so we report errors there.
-  if (!folly::readFile(file_.c_str(), serializedCache)){
-    return folly::Optional<folly::dynamic>();
-  }
-
-  try {
-    folly::json::serialization_opts opts;
-    opts.allow_non_string_keys = true;
-    return folly::parseJson(serializedCache, opts);
-  } catch (const std::exception& err) {
-    LOG(ERROR) << "Deserialization of cache failed with JSON parse error: "
-                << err.what();
-  }
-  return folly::Optional<folly::dynamic>();
-}
-
-template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::loadCache(folly::dynamic& kvPairs) {
-  bool error = true;
-  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
-
-  try {
-    for (const auto& kv : kvPairs) {
-      cache_.set(
-        folly::convertTo<K>(kv[0]),
-        folly::convertTo<V>(kv[1])
-      );
-    }
-    error = false;
-  } catch (const folly::TypeError& err) {
-    LOG(ERROR) << "Load cache failed with type error: "
-                << err.what();
-
-  } catch (const std::out_of_range& err) {
-    LOG(ERROR) << "Load cache failed with key error: "
-                << err.what();
-
-  } catch (const std::exception& err) {
-    LOG(ERROR) << "Load cache failed with error: "
-                << err.what();
-
-  }
-
-  if (error) {
-    cache_.clear();
-    return false;
-  }
-
-  return true;
-}
-
-template<typename K, typename V, typename MutexT>
-bool
-FilePersistentCache<K, V, MutexT>::persist(folly::dynamic& kvPairs) {
+template<typename K, typename V>
+bool FilePersistenceLayer<K, V>::persist(
+  const folly::dynamic& dynObj) noexcept {
   std::string serializedCache;
   try {
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
-    serializedCache = folly::json::serialize(kvPairs, opts).toStdString();
+    serializedCache = folly::json::serialize(dynObj, opts).toStdString();
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Serialization of cache to JSON failed with error: "
-                << err.what();
+    LOG(ERROR) << "Serializing to JSON failed with error: " << err.what();
     return false;
   }
   bool persisted = false;
   const auto fd = folly::openNoInt(
-                    file_.c_str(),
-                    O_WRONLY | O_CREAT | O_TRUNC,
-                    S_IRUSR | S_IWUSR
-                  );
+    file_.c_str(),
+    O_WRONLY | O_CREAT | O_TRUNC,
+    S_IRUSR | S_IWUSR
+  );
   if (fd == -1) {
     LOG(ERROR) << "Failed to open " << file_ << ": errno " << errno;
     return false;
   }
   const auto nWritten = folly::writeFull(
-                          fd,
-                          serializedCache.data(),
-                          serializedCache.size()
-                        );
+    fd,
+    serializedCache.data(),
+    serializedCache.size()
+  );
   persisted = nWritten >= 0 &&
     (static_cast<size_t>(nWritten) == serializedCache.size());
   if (!persisted) {
@@ -268,6 +63,10 @@ FilePersistentCache<K, V, MutexT>::persist(folly::dynamic& kvPairs) {
       LOG(ERROR) << "write failed with errno " << errno;
     }
   }
+  if (folly::fdatasyncNoInt(fd) != 0) {
+    LOG(ERROR) << "Failed to sync " << file_ << ": errno " << errno;
+    persisted = false;
+  }
   if (folly::closeNoInt(fd) != 0) {
     LOG(ERROR) << "Failed to close " << file_ << ": errno " << errno;
     persisted = false;
@@ -275,28 +74,37 @@ FilePersistentCache<K, V, MutexT>::persist(folly::dynamic& kvPairs) {
   return persisted;
 }
 
-template<typename K, typename V, typename MutexT>
-bool FilePersistentCache<K, V, MutexT>::load() noexcept {
-  auto kvPairs = readKvPairs();
-  if (!kvPairs) {
-    return false;
+template<typename K, typename V>
+folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
+  std::string serializedCache;
+  // not being able to read the backing storage means we just
+  // start with an empty cache. Failing to deserialize, or write,
+  // is a real error so we report errors there.
+  if (!folly::readFile(file_.c_str(), serializedCache)) {
+    LOG(INFO) << "Unable to read cache file: " << file_;
+    return folly::none;
   }
-  return loadCache(kvPairs.value());
+
+  try {
+    folly::json::serialization_opts opts;
+    opts.allow_non_string_keys = true;
+    return folly::parseJson(serializedCache, opts);
+  } catch (const std::exception& err) {
+    LOG(ERROR) << "Deserialization of cache file " << file_
+               << "failed with parse error: " << err.what();
+  }
+  return folly::none;
 }
 
-template<typename K, typename V, typename MutexT>
-void FilePersistentCache<K, V, MutexT>::clear() {
-  typename wangle::CacheLockGuard<MutexT>::Write writeLock(cacheLock_);
+template<typename K, typename V, typename M>
+FilePersistentCache<K, V, M>::FilePersistentCache(
+  const std::string& file,
+  const std::size_t cacheCapacity,
+  const std::chrono::seconds& syncInterval,
+  const int nSyncRetries)
+    : cache_(cacheCapacity,
+        std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
+        nSyncRetries,
+        folly::make_unique<FilePersistenceLayer<K, V>>(file)) {}
 
-  cache_.clear();
-  ++pendingUpdates_;
-}
-
-template<typename K, typename V, typename MutexT>
-size_t FilePersistentCache<K, V, MutexT>::size() {
-  typename wangle::CacheLockGuard<MutexT>::Read readLock(cacheLock_);
-
-  return cache_.size();
-}
-
-}
+} // namespace wangle

@@ -9,32 +9,13 @@
  */
 #pragma once
 
-#include <chrono>
-#include <condition_variable>
-#include <future>
-#include <map>
-#include <mutex>
-#include <thread>
-
-#include <boost/noncopyable.hpp>
-#include <folly/EvictingCacheMap.h>
-#include <folly/dynamic.h>
-#include <wangle/client/persistence/PersistentCache.h>
+#include <folly/FileUtil.h>
+#include <folly/Memory.h>
+#include <folly/ScopeGuard.h>
+#include <folly/json.h>
+#include <wangle/client/persistence/LRUPersistentCache.h>
 
 namespace wangle {
-
-/**
- * A guard that provides write and read access to a mutex type.
- */
-template<typename MutexT>
-struct CacheLockGuard;
-
-// Specialize on std::mutex by providing exclusive access
-template<>
-struct CacheLockGuard<std::mutex> {
-  using Read = std::lock_guard<std::mutex>;
-  using Write = std::lock_guard<std::mutex>;
-};
 
 /**
  * A PersistentCache implementation that used a regular file for
@@ -49,151 +30,45 @@ struct CacheLockGuard<std::mutex> {
  * serialization and deserialization. So It may not suit your need until
  * true support arbitrary types is written.
  */
-template<typename K, typename V, typename MutexT = std::mutex>
+template<typename K, typename V, typename M = std::mutex>
 class FilePersistentCache : public PersistentCache<K, V>,
                             private boost::noncopyable {
-  static_assert(std::is_convertible<K, folly::dynamic>::value &&
-                std::is_convertible<V, folly::dynamic>::value,
-      "Key and Value types must be convertible to dynamic");
+ public:
+  explicit FilePersistentCache(
+    const std::string& file,
+    const std::size_t cacheCapacity,
+    const std::chrono::seconds& syncInterval = std::chrono::seconds(5),
+    const int nSyncRetries = 3);
 
-  public:
-    /**
-     * FilePersistentCache constructor
-     * @param file path to the file to use as storage.
-     * @param cacheCapacity max number of elements to hold in the cache.
-     * @param syncInterval how often to sync to the file (in seconds).
-     * @param nSyncRetries how many times to retry to sync on failure.
-     *
-     * Loads the cache and starts of the syncer thread that periodically
-     * syncs the cache to file.
-     *
-     * Its not necessary that file exists. Its contents are ignored if
-     * deserialization fails. Cache starts out empty in that case. On each
-     * sync operation the file gets overwritten. Write failures are ignored
-     * in which case the in memory copy and file will get out of sync.
-     * On nSyncRetries failures, ignores all current updates to in-memory
-     * copy because we dont want to keep trying forever.
-     *
-     * On reaching capacity limit, LRU items are evicted.
-     */
-    explicit FilePersistentCache(const std::string& file,
-        const std::size_t cacheCapacity,
-        const std::chrono::seconds& syncInterval = std::chrono::seconds(5),
-        const int nSyncRetries = 3);
+  ~FilePersistentCache() {}
 
-    /**
-     * FilePersistentCache Destructor
-     *
-     * Signals the syncer thread to stop, waits for any pending syncs to
-     * be done.
-     */
-    ~FilePersistentCache() override;
+  /**
+   * PersistentCache operations
+   */
+  folly::Optional<V> get(const K& key) override {
+    return cache_.get(key);
+  }
 
-    /**
-     * PersistentCache operations
-     */
-    folly::Optional<V> get(const K& key) override;
-    void put(const K& key, const V& val) override;
-    bool remove(const K& key) override;
-    void clear() override;
-    size_t size() override;
+  void put(const K& key, const V& val) override {
+    cache_.put(key, val);
+  }
 
-  private:
-    /**
-     * Load the contents of the file passed to constructor in to the
-     * in-memory cache. Failure to read will result in an empty cache.
-     * Failure to read inclues IO errors and deserialization errors.
-     *
-     * @returns boolean, true on successful load, false otherwise
-     */
-    bool load() noexcept;
+  bool remove(const K& key) override {
+    return cache_.remove(key);
+  }
 
-    /**
-     * The syncer thread's function. Syncs to the file, if necessary,
-     * after every syncInterval_ seconds.
-     */
-    void sync();
-    static void* syncThreadMain(void* arg);
+  void clear() override {
+    cache_.clear();
+  }
 
-    /**
-     * Helper to sync routine above that actualy does the serialization
-     * and writes to file.
-     *
-     * @returns boolean, true on successful serialization and write to file,
-     *                    false otherwise
-     */
-    bool syncNow();
+  size_t size() override {
+    return cache_.size();
+  }
 
-    /**
-     * Helper to syncNow routine above that converts cache_ to a
-     * folly::dynamic list of K,V pairs.
-     *
-     * @returns Optional<folly::dynamic>, the list of K,V pairs if succeeded,
-     *                                     no value on failure
-     */
-    folly::Optional<folly::dynamic> convertCacheToKvPairs();
-
-    /**
-     * Helper to load routine above that reads the file into a folly::dynamic
-     * list of K, V pairs.
-     *
-     * @returns Optional<folly::dynamic>, the list of K,V pairs if succeeded,
-     *                                     no value on failure
-     */
-    folly::Optional<folly::dynamic> readKvPairs();
-
-    /**
-     * Helper to load routine above that loads the cache from a folly::dynamic
-     * list of K, V pairs
-     *
-     * @param kvPairs, the list of K,V pairs
-     *
-     * @returns boolean, true if deserialize succeeded,
-     *                    false on failure
-     */
-    bool loadCache(folly::dynamic& kvPairs);
-
-    /**
-     * Helper to syncNow routine above that actualy writes to the underlying
-     * file.
-     * @param kvPairs folly::dynamic, the list of K, V pairs.
-     *
-     * @returns boolean, true on successful write to file, false otherwise
-     */
-    bool persist(folly::dynamic& kvPairs);
-
-  private:
-    // path to the file on disk
-    const std::string file_;
-
-    // pendingUpdates_ below is really tied to cache_, so modify them together
-    // always under the same lock
-
-    // in-memory LRU evicting cache table
-    folly::EvictingCacheMap<K, V> cache_;
-    // tracks pendingUpdates_
-    unsigned long pendingUpdates_;
-    // for locking cache_ and pendingUpdates_
-    MutexT cacheLock_;
-
-    // used to signal syncer thread
-    bool stopSyncer_;
-    // mutex used to synchronize syncer_ on destruction, tied to stopSyncerCV_
-    std::mutex stopSyncerMutex_;
-    // condvar used to wakeup syncer on exit
-    std::condition_variable stopSyncerCV_;
-
-    // sync interval in seconds
-    const std::chrono::seconds syncInterval_;
-    // limit on no. of sync attempts
-    const int nSyncRetries_;
-    // tracks no. of consecutive sync failures
-    int nSyncFailures_;
-
-    // thread for periodic sync
-    std::thread syncer_;
+ private:
+  LRUPersistentCache<K, V, M> cache_;
 };
 
-}
+} // namespace wangle
 
 #include <wangle/client/persistence/FilePersistentCache-inl.h>

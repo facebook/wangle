@@ -10,7 +10,7 @@
 #pragma once
 
 #include <folly/SharedMutex.h>
-#include <wangle/client/persistence/FilePersistentCache.h>
+#include <wangle/client/persistence/LRUPersistentCache.h>
 
 namespace wangle {
 
