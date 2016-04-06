@@ -116,3 +116,16 @@ TYPED_TEST(LRUPersistentCacheTest, SetPersistenceMidPersist) {
   cache->setPersistence(std::move(persist1));
   makeFuture().delayed(chrono::milliseconds(100)).get();
 }
+
+TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {
+  auto persistence = make_unique<MockPersistenceLayer>();
+  folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
+  EXPECT_CALL(*persistence, load_())
+    .Times(1)
+    .WillOnce(Return(data));
+  EXPECT_CALL(*persistence, persist_(_))
+    .Times(0)
+    .WillOnce(Return(false));
+  auto cache = createCache<TypeParam>(10, 10, std::move(persistence));
+  EXPECT_EQ(cache->size(), 1);
+}

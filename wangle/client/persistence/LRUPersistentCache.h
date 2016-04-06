@@ -13,28 +13,15 @@
 #include <condition_variable>
 #include <future>
 #include <map>
-#include <mutex>
 #include <thread>
 
 #include <boost/noncopyable.hpp>
-#include <folly/EvictingCacheMap.h>
 #include <folly/dynamic.h>
+#include <wangle/client/persistence/LRUInMemoryCache.h>
 #include <wangle/client/persistence/PersistentCache.h>
+#include <wangle/client/persistence/PersistentCacheCommon.h>
 
 namespace wangle {
-
-/**
- * A guard that provides write and read access to a mutex type.
- */
-template<typename MutexT>
-struct CacheLockGuard;
-
-// Specialize on std::mutex by providing exclusive access
-template<>
-struct CacheLockGuard<std::mutex> {
-  using Read = std::lock_guard<std::mutex>;
-  using Write = std::lock_guard<std::mutex>;
-};
 
 /**
  * The underlying persistence layer interface.  Implementations may
@@ -43,7 +30,37 @@ struct CacheLockGuard<std::mutex> {
 template<typename K, typename V>
 class CachePersistence {
  public:
-  virtual ~CachePersistence() {}
+  CachePersistence() : persistedVersion_(0) {}
+
+  virtual ~CachePersistence() = default;
+
+  /**
+   * Persist a folly::dynamic array of key value pairs at the
+   * specified version.  Returns true if persistence succeeded.
+   */
+  bool persistVersionedData(
+      const folly::dynamic& kvPairs, const CacheDataVersion& version) {
+    auto result = persist(kvPairs);
+    if (result) {
+      persistedVersion_ = version;
+    }
+    return result;
+  }
+
+  /**
+   * Get the last version of the data that was successfully persisted.
+   */
+  CacheDataVersion getLastPersistedVersion() const {
+    return persistedVersion_;
+  }
+
+  /**
+   * Force set a persisted version.  This is primarily for when a persistence
+   * layer acts as the initial source of data for some version tracking cache.
+   */
+  void setPersistedVersion(CacheDataVersion version) noexcept {
+    persistedVersion_ = version;
+  }
 
   /**
    * Persist a folly::dynamic array of key value pairs.
@@ -56,6 +73,9 @@ class CachePersistence {
    * persistence store.
    */
   virtual folly::Optional<folly::dynamic> load() noexcept = 0;
+
+ private:
+  CacheDataVersion persistedVersion_;
 };
 
 /**
@@ -124,11 +144,25 @@ class LRUPersistentCache : public PersistentCache<K, V>,
   /**
    * PersistentCache operations
    */
-  folly::Optional<V> get(const K& key) override;
-  void put(const K& key, const V& val) override;
-  bool remove(const K& key) override;
-  void clear() override;
-  size_t size() override;
+  folly::Optional<V> get(const K& key) override {
+    return cache_.get(key);
+  }
+
+  void put(const K& key, const V& val) override {
+    cache_.put(key, val);
+  }
+
+  bool remove(const K& key) override {
+    return cache_.remove(key);
+  }
+
+  void clear() override {
+    cache_.clear();
+  }
+
+  size_t size() override {
+    return cache_.size();
+  }
 
   /**
    * Set a new persistence layer on this cache.  This call blocks while the
@@ -140,6 +174,14 @@ class LRUPersistentCache : public PersistentCache<K, V>,
 
  private:
   /**
+   * Helper to set persistence that will load the persistence data
+   * into memory and optionally sync versions
+   */
+  void setPersistenceHelper(
+    std::unique_ptr<CachePersistence<K, V>> persistence,
+    bool syncVersion) noexcept;
+
+  /**
    * Load the contents of the persistence passed to constructor in to the
    * in-memory cache. Failure to read will result in no changes to the
    * in-memory data.  That is, if in-memory entries exist, and loading
@@ -148,9 +190,9 @@ class LRUPersistentCache : public PersistentCache<K, V>,
    *
    * Failure to read inclues IO errors and deserialization errors.
    *
-   * @returns boolean, true on successful load, false otherwise
+   * @returns the in memory cache's new version
    */
-  bool load(CachePersistence<K, V>& persistence) noexcept;
+  CacheDataVersion load(CachePersistence<K, V>& persistence) noexcept;
 
   /**
    * The syncer thread's function. Syncs to the persistence, if necessary,
@@ -163,30 +205,10 @@ class LRUPersistentCache : public PersistentCache<K, V>,
    * Helper to sync routine above that actualy does the serialization
    * and writes to persistence.
    *
-   * @returns boolean, true on successful serialization and write to persistence
+   * @returns boolean, true on successful serialization and write to
    *                    persistence, false otherwise
    */
-  bool syncNow();
-
-  /**
-   * Helper to syncNow routine above that converts cache_ to a
-   * folly::dynamic list of K,V pairs.
-   *
-   * @returns Optional<folly::dynamic>, the list of K,V pairs if succeeded,
-   *                                     no value on failure
-   */
-  folly::Optional<folly::dynamic> convertCacheToKvPairs();
-
-  /**
-   * Helper to load routine above that loads the cache from a folly::dynamic
-   * list of K, V pairs
-   *
-   * @param kvPairs, the list of K,V pairs
-   *
-   * @returns boolean, true if deserialize succeeded,
-   *                    false on failure
-   */
-  bool loadCache(const folly::dynamic& kvPairs);
+  bool syncNow(CachePersistence<K, V>& persistence);
 
   /**
    * Helper to get the persistence layer under lock since it will be called
@@ -196,15 +218,8 @@ class LRUPersistentCache : public PersistentCache<K, V>,
 
  private:
 
-  // pendingUpdates_ below is really tied to cache_, so modify them together
-  // always under the same lock
-
-  // in-memory LRU evicting cache table
-  folly::EvictingCacheMap<K, V> cache_;
-  // tracks pendingUpdates_
-  unsigned long pendingUpdates_;
-  // for locking cache_ and pendingUpdates_
-  MutexT cacheLock_;
+  // Our threadsafe in memory cache
+  LRUInMemoryCache<K, V, MutexT> cache_;
 
   // used to signal syncer thread
   bool stopSyncer_;
@@ -217,8 +232,6 @@ class LRUPersistentCache : public PersistentCache<K, V>,
   const std::chrono::milliseconds syncInterval_;
   // limit on no. of sync attempts
   const int nSyncRetries_;
-  // tracks no. of consecutive sync failures
-  int nSyncFailures_;
 
   // persistence layer
   // we use a shared pointer since the syncer thread might be operating on
