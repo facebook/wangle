@@ -87,9 +87,9 @@ void LRUPersistentCache<K, V, MutexT>::sync() {
     if (persistence && !syncNow(*persistence)) {
       // track failures and give up if we tried too many times
       ++nSyncFailures;
-      LOG(ERROR) << "Persisting to cache failed " << nSyncFailures << " times";
+      LOG(INFO) << "Persisting to cache failed " << nSyncFailures << " times";
       if (nSyncFailures == nSyncRetries_) {
-        LOG(ERROR) << "Giving up after " << nSyncFailures << " failures";
+        LOG(INFO) << "Giving up after " << nSyncFailures << " failures";
         persistence->setPersistedVersion(cache_.getVersion());
         nSyncFailures = 0;
       }
@@ -128,7 +128,7 @@ bool LRUPersistentCache<K, V, MutexT>::syncNow(
     persistence.persistVersionedData(std::move(kvPairs), version);
 
   if (!persisted) {
-    LOG(ERROR) << "Failed to persist cache";
+    LOG(INFO) << "Failed to persist cache";
   }
 
   return persisted;

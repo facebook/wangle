@@ -47,7 +47,7 @@ bool FilePersistenceLayer<K, V>::persist(
     S_IRUSR | S_IWUSR
   );
   if (fd == -1) {
-    LOG(ERROR) << "Failed to open " << file_ << ": errno " << errno;
+    LOG(INFO) << "Failed to open " << file_ << ": errno " << errno;
     return false;
   }
   const auto nWritten = folly::writeFull(
