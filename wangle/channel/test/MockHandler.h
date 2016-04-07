@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <folly/MoveWrapper.h>
 #include <gmock/gmock.h>
 #include <wangle/channel/Handler.h>
 

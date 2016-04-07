@@ -9,6 +9,7 @@
  */
 
 #pragma once
+#include <folly/MoveWrapper.h>
 #include <folly/futures/Future.h>
 
 namespace wangle {

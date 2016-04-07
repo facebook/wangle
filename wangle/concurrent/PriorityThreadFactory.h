@@ -15,6 +15,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include <folly/MoveWrapper.h>
+
 namespace wangle {
 
 /**

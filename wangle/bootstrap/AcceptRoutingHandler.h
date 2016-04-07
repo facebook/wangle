@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <folly/MoveWrapper.h>
 #include <wangle/bootstrap/RoutingDataHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/Pipeline.h>
