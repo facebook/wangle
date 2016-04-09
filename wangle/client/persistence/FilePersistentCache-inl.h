@@ -47,7 +47,6 @@ bool FilePersistenceLayer<K, V>::persist(
     S_IRUSR | S_IWUSR
   );
   if (fd == -1) {
-    LOG(INFO) << "Failed to open " << file_ << ": errno " << errno;
     return false;
   }
   const auto nWritten = folly::writeFull(
@@ -81,7 +80,6 @@ folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
   // start with an empty cache. Failing to deserialize, or write,
   // is a real error so we report errors there.
   if (!folly::readFile(file_.c_str(), serializedCache)) {
-    LOG(INFO) << "Unable to read cache file: " << file_;
     return folly::none;
   }
 
