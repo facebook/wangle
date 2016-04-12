@@ -21,14 +21,12 @@
 #include <folly/Random.h>
 #include <folly/SocketAddress.h>
 #include <folly/String.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/SSLContext.h>
 #include <list>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <folly/io/async/AsyncSocket.h>
-#include <folly/io/async/SSLContext.h>
-#include <folly/SocketAddress.h>
 
 namespace wangle {
 
