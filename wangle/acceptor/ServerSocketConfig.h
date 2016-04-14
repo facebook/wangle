@@ -96,7 +96,7 @@ struct ServerSocketConfig {
   /**
    * Options for controlling the SSL cache.
    */
-  SSLCacheOptions sslCacheOptions{std::chrono::seconds(600), 20480, 200};
+  SSLCacheOptions sslCacheOptions{std::chrono::seconds(0), 20480, 200};
 
   /**
    * The initial TLS ticket seeds.
