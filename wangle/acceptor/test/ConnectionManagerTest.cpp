@@ -56,6 +56,7 @@ class MockConnection : public ManagedConnection {
   MOCK_METHOD0(closeWhenIdle, void());
   MOCK_METHOD0(dropConnection, void());
   MOCK_METHOD1(dumpConnectionState, void(uint8_t));
+  MOCK_METHOD2(drainConnections, void(double, std::chrono::milliseconds));
 
   void setIdle(bool idle) {
     idle_ = idle;
@@ -91,7 +92,7 @@ class ConnectionManagerTest: public testing::Test {
   }
 
   void removeConn(MockConnection* connection) {
-    for (auto& conn: conns_) {
+    for (auto& conn : conns_) {
       if (conn.get() == connection) {
         cm_->removeConnection(connection);
         conn.reset();
@@ -120,12 +121,12 @@ TEST_F(ConnectionManagerTest, testShutdownSequence) {
   cm_->onActivated(*conns_.front());
   // make sure the idleIterator points to !end
   cm_->onDeactivated(*conns_.back());
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, notifyPendingShutdown());
   }
   cm_->initiateGracefulShutdown(std::chrono::milliseconds(50));
   eventBase_.loopOnce();
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, closeWhenIdle());
   }
 
@@ -169,13 +170,13 @@ TEST_F(ConnectionManagerTest, testIdleGraceTimeout) {
   // timeout fires before the end of the loop.
   // I would prefer a non-sleep solution to this, but I can't think how to do it
   // without changing the class to expose internal details
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, notifyPendingShutdown())
       .WillOnce(Invoke([] { /* sleep override */ usleep(1000); }));
   }
   cm_->initiateGracefulShutdown(std::chrono::milliseconds(1));
   eventBase_.loopOnce();
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, closeWhenIdle());
   }
 
@@ -185,15 +186,78 @@ TEST_F(ConnectionManagerTest, testIdleGraceTimeout) {
 TEST_F(ConnectionManagerTest, testDropAll) {
   InSequence enforceOrder;
 
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, dropConnection())
       .WillOnce(Invoke([&] { cm_->removeConnection(conn.get()); }));
   }
   cm_->dropAllConnections();
 }
 
+
+TEST_F(ConnectionManagerTest, testDrainPercent) {
+  InSequence enforceOrder;
+  double drain_percentage = .123;
+
+  for (auto i = 58 /* tail .123 of all conns */; i < conns_.size(); ++i) {
+    EXPECT_CALL(*conns_[i], notifyPendingShutdown());
+  }
+
+  cm_->drainConnections(drain_percentage, std::chrono::milliseconds(50));
+
+  for (auto i = 58; i < conns_.size(); ++i) {
+    EXPECT_CALL(*conns_[i], closeWhenIdle());
+  }
+
+  eventBase_.loop();
+}
+
+TEST_F(ConnectionManagerTest, testDrainPctAfterAll) {
+  InSequence enforceOrder;
+  double drain_percentage = 0.1;
+
+  for (const auto& conn : conns_) {
+    EXPECT_CALL(*conn, notifyPendingShutdown());
+  }
+
+  cm_->initiateGracefulShutdown(std::chrono::milliseconds(50));
+  cm_->drainConnections(drain_percentage, std::chrono::milliseconds(50));
+  eventBase_.loopOnce();
+
+  for (const auto& conn : conns_) {
+    EXPECT_CALL(*conn, closeWhenIdle());
+  }
+
+  eventBase_.loop();
+}
+
+TEST_F(ConnectionManagerTest, testDrainAllAfterPct) {
+  InSequence enforceOrder;
+  double drain_pct = 0.8;
+
+  for (auto i = conns_.size() - static_cast<int>(conns_.size() * drain_pct);
+       i < conns_.size(); ++i) {
+    EXPECT_CALL(*conns_[i], notifyPendingShutdown());
+  }
+
+  cm_->drainConnections(drain_pct, std::chrono::milliseconds(50));
+
+  for (auto i = 0;
+      i < conns_.size() - static_cast<int>(conns_.size() * drain_pct); ++i) {
+    EXPECT_CALL(*conns_[i], notifyPendingShutdown());
+  }
+
+  cm_->initiateGracefulShutdown(std::chrono::milliseconds(50));
+  eventBase_.loopOnce();
+
+  for (const auto& conn : conns_) {
+    EXPECT_CALL(*conn, closeWhenIdle());
+  }
+
+  eventBase_.loop();
+}
+
 TEST_F(ConnectionManagerTest, testDropIdle) {
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     // Set everyone to be idle for 100ms
     EXPECT_CALL(*conn, getIdleTime())
       .WillRepeatedly(Return(std::chrono::milliseconds(100)));
@@ -225,7 +289,7 @@ TEST_F(ConnectionManagerTest, testAddDuringShutdown) {
 
   // activate one connection, it should not be exempt from notifyPendingShutdown
   cm_->onActivated(*conns_.front());
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, notifyPendingShutdown());
   }
   cm_->initiateGracefulShutdown(std::chrono::milliseconds(50));
@@ -233,25 +297,40 @@ TEST_F(ConnectionManagerTest, testAddDuringShutdown) {
   conns_.insert(conns_.begin(), std::move(extraConn));
   EXPECT_CALL(*conns_.front(), notifyPendingShutdown());
   cm_->addConnection(conns_.front().get());
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     EXPECT_CALL(*conn, closeWhenIdle());
   }
 
   eventBase_.loop();
 }
 
+TEST_F(ConnectionManagerTest, testAddDuringShutdownWithoutIdleGrace) {
+  auto extraConn = MockConnection::makeUnique(this);
+  InSequence enforceOrder;
+
+  cm_->onActivated(*conns_.front());
+  for (const auto& conn : conns_) {
+    EXPECT_CALL(*conn, closeWhenIdle());
+  }
+  cm_->initiateGracefulShutdown(std::chrono::milliseconds(0));
+  eventBase_.loopOnce();
+
+  conns_.insert(conns_.begin(), std::move(extraConn));
+  EXPECT_CALL(*conns_.front().get(), closeWhenIdle());
+  cm_->addConnection(conns_.front().get());
+  eventBase_.loop();
+}
 
 void ConnectionManagerTest::testAddDuringCloseWhenIdle(bool deactivate) {
   auto extraConn = MockConnection::makeUnique(this);
   InSequence enforceOrder;
 
   // All conns will get closeWhenIdle
-  for (const auto& conn: conns_) {
+  for (const auto& conn : conns_) {
     conn->setIdle(true);
     EXPECT_CALL(*conn, closeWhenIdle());
   }
   cm_->initiateGracefulShutdown(std::chrono::milliseconds(0));
-
   // Add the extra conn in this state
   extraConn->setIdle(true);
   conns_.insert(conns_.begin(), std::move(extraConn));

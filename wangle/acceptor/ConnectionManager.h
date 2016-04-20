@@ -12,6 +12,8 @@
 #include <wangle/acceptor/ManagedConnection.h>
 
 #include <chrono>
+#include <iterator>
+#include <utility>
 #include <folly/Memory.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/HHWheelTimer.h>
@@ -54,6 +56,8 @@ class ConnectionManager: public folly::DelayedDestruction,
 
   typedef std::unique_ptr<ConnectionManager, Destructor> UniquePtr;
 
+  typedef folly::CountedIntrusiveList<
+    ManagedConnection, &ManagedConnection::listHook_>::iterator ConnectionIterator;
   /**
    * Returns a new instance of ConnectionManager wrapped in a unique_ptr
    */
@@ -107,6 +111,11 @@ class ConnectionManager: public folly::DelayedDestruction,
    */
   void initiateGracefulShutdown(std::chrono::milliseconds idleGrace);
 
+  /* gracefully shutdown certain percentage of persistent client connections
+     and leave the rest intact.
+   */
+  void drainConnections(double pct, std::chrono::milliseconds idleGrace);
+
   /**
    * Destroy all connections Managed by this ConnectionManager, even
    * the ones that are busy.
@@ -148,39 +157,77 @@ class ConnectionManager: public folly::DelayedDestruction,
   void onDeactivated(ManagedConnection& conn);
 
  private:
-  class CloseIdleConnsCallback :
+
+   enum class ShutdownState : uint8_t {
+     NONE = 0,
+     // All ManagedConnections receive notifyPendingShutdown
+     NOTIFY_PENDING_SHUTDOWN = 1,
+     // All ManagedConnections have received notifyPendingShutdown
+     NOTIFY_PENDING_SHUTDOWN_COMPLETE = 2,
+     // All ManagedConnections receive closeWhenIdle
+     CLOSE_WHEN_IDLE = 3,
+     // All ManagedConnections have received closeWhenIdle
+     CLOSE_WHEN_IDLE_COMPLETE = 4,
+   };
+
+  class DrainHelper :
       public folly::EventBase::LoopCallback,
       public folly::AsyncTimeout {
    public:
-    explicit CloseIdleConnsCallback(ConnectionManager* manager)
-        : folly::AsyncTimeout(manager->eventBase_),
+    explicit DrainHelper(ConnectionManager& manager)
+        : folly::AsyncTimeout(manager.eventBase_),
           manager_(manager) {}
+
+    ShutdownState getShutdownState() {
+      // only cares about full shutdown state
+      if (!all_) {
+        return ShutdownState::NONE;
+      }
+      return shutdownState_;
+    }
+
+    void setShutdownState(ShutdownState state) {
+      shutdownState_ = state;
+    }
+
+    void startDrainPartial(double pct, std::chrono::milliseconds idleGrace);
+    void startDrainAll(std::chrono::milliseconds idleGrace);
 
     void runLoopCallback() noexcept override {
       VLOG(3) << "Draining more conns from loop callback";
-      manager_->drainAllConnections();
+      drainConnections();
     }
 
     void timeoutExpired() noexcept override {
       VLOG(3) << "Idle grace expired";
-      manager_->idleGracefulTimeoutExpired();
+      idleGracefulTimeoutExpired();
+    }
+
+    void drainConnections();
+
+    void idleGracefulTimeoutExpired();
+
+    void startDrain(std::chrono::milliseconds idleGrace);
+
+    ConnectionIterator drainStartIterator() const {
+      if (all_) {
+        return manager_.conns_.begin();
+      }
+      auto it = manager_.conns_.begin();
+      const auto conns_size = manager_.conns_.size();
+      const auto numToDrain =
+        std::max<size_t>(0, std::min<size_t>(conns_size, conns_size * pct_));
+      std::advance(it, conns_size - numToDrain);
+      return it;
     }
 
    private:
-    ConnectionManager* manager_;
+    bool all_{true};
+    double pct_{1.0};
+    ConnectionManager& manager_;
+    ShutdownState shutdownState_{ShutdownState::NONE};;
   };
 
-  enum class ShutdownState : uint8_t {
-    NONE = 0,
-    // All ManagedConnections receive notifyPendingShutdown
-    NOTIFY_PENDING_SHUTDOWN = 1,
-    // All ManagedConnections have received notifyPendingShutdown
-    NOTIFY_PENDING_SHUTDOWN_COMPLETE = 2,
-    // All ManagedConnections receive closeWhenIdle
-    CLOSE_WHEN_IDLE = 3,
-    // All ManagedConnections have received closeWhenIdle
-    CLOSE_WHEN_IDLE_COMPLETE = 4,
-  };
 
   ~ConnectionManager() = default;
 
@@ -214,12 +261,9 @@ class ConnectionManager: public folly::DelayedDestruction,
   folly::EventBase* eventBase_;
 
   /** Iterator to the next connection to shed; used by drainAllConnections() */
-  folly::CountedIntrusiveList<
-    ManagedConnection,&ManagedConnection::listHook_>::iterator drainIterator_;
-  folly::CountedIntrusiveList<
-    ManagedConnection,&ManagedConnection::listHook_>::iterator idleIterator_;
-  CloseIdleConnsCallback idleLoopCallback_;
-  ShutdownState shutdownState_{ShutdownState::NONE};
+  ConnectionIterator drainIterator_;
+  ConnectionIterator idleIterator_;
+  DrainHelper drainHelper_;
   bool notifyPendingShutdown_{true};
 
   /**

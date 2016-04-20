@@ -25,7 +25,7 @@ ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
     eventBase_(eventBase),
     drainIterator_(conns_.end()),
     idleIterator_(conns_.end()),
-    idleLoopCallback_(this),
+    drainHelper_(*this),
     timeout_(timeout),
     idleConnEarlyDropThreshold_(timeout_ / 2) {
 
@@ -56,11 +56,14 @@ ConnectionManager::addConnection(ManagedConnection* connection,
   if (timeout) {
     scheduleTimeout(connection, timeout_);
   }
-  if (shutdownState_ >= ShutdownState::NOTIFY_PENDING_SHUTDOWN &&
+
+  if (drainHelper_.getShutdownState() >=
+      ShutdownState::NOTIFY_PENDING_SHUTDOWN &&
       notifyPendingShutdown_) {
-    connection->notifyPendingShutdown();
+    connection->fireNotifyPendingShutdown();
   }
-  if (shutdownState_ >= ShutdownState::CLOSE_WHEN_IDLE) {
+
+  if (drainHelper_.getShutdownState() >= ShutdownState::CLOSE_WHEN_IDLE) {
     // closeWhenIdle can delete the connection (it was just created, so it's
     // probably idle).  Delay the closeWhenIdle call until the end of the loop
     // where it will be safer to terminate the conn.
@@ -71,7 +74,7 @@ ConnectionManager::addConnection(ManagedConnection* connection,
         if (connection->listHook_.is_linked()) {
           auto it = conns_.iterator_to(*connection);
           DCHECK(it != conns_.end());
-          connection->closeWhenIdle();
+          connection->fireCloseWhenIdle(!notifyPendingShutdown_);
         }
         delete connDg;
         delete cmDg;
@@ -123,37 +126,69 @@ void
 ConnectionManager::initiateGracefulShutdown(
   std::chrono::milliseconds idleGrace) {
   VLOG(3) << this << " initiateGracefulShutdown with nconns=" << conns_.size();
-  if (shutdownState_ != ShutdownState::NONE) {
+  if (drainHelper_.getShutdownState() != ShutdownState::NONE) {
     VLOG(3) << "Ignoring redundant call to initiateGracefulShutdown";
     return;
   }
+  drainHelper_.startDrainAll(idleGrace);
+}
+
+void ConnectionManager::drainConnections(double pct,
+                                         std::chrono::milliseconds idleGrace) {
+  if (drainHelper_.getShutdownState() != ShutdownState::NONE) {
+    VLOG(3) << "Ignoring partial drain with full drain in progress";
+    return;
+  }
+  drainHelper_.startDrainPartial(pct, idleGrace);
+}
+
+void ConnectionManager::DrainHelper::startDrainPartial(
+  double pct, std::chrono::milliseconds idleGrace) {
+  all_ = false;
+  pct_ = pct;
+  startDrain(idleGrace);
+}
+
+void ConnectionManager::DrainHelper::startDrainAll(
+  std::chrono::milliseconds idleGrace) {
+  all_ = true;
+  pct_ = 1.0;
+  if (isScheduled()) {
+    // if we are in the middle of a partial, abort and convert to all
+    cancelTimeout();
+  }
+  startDrain(idleGrace);
+}
+
+void ConnectionManager::DrainHelper::startDrain(
+  std::chrono::milliseconds idleGrace) {
   if (idleGrace.count() > 0) {
     shutdownState_ = ShutdownState::NOTIFY_PENDING_SHUTDOWN;
-    idleLoopCallback_.scheduleTimeout(idleGrace);
+    scheduleTimeout(idleGrace);
     VLOG(3) << "Scheduling idle grace period of " << idleGrace.count() << "ms";
   } else {
-    notifyPendingShutdown_ = false;
+    manager_.notifyPendingShutdown_ = false;
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
     VLOG(3) << "proceeding directly to closing idle connections";
   }
-  drainIterator_ = conns_.begin();
-  drainAllConnections();
+  manager_.drainIterator_ = drainStartIterator();
+  drainConnections();
 }
 
 void
-ConnectionManager::drainAllConnections() {
-  DestructorGuard g(this);
+ConnectionManager::DrainHelper::drainConnections() {
+  DestructorGuard g(&manager_);
   size_t numCleared = 0;
   size_t numKept = 0;
 
-  auto it = drainIterator_;
+  auto it = manager_.drainIterator_;
 
   CHECK(shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN ||
         shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE);
-  while (it != conns_.end() && (numKept + numCleared) < 64) {
+  while (it != manager_.conns_.end() && (numKept + numCleared) < 64) {
     ManagedConnection& conn = *it++;
     if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
-      conn.notifyPendingShutdown();
+      conn.fireNotifyPendingShutdown();
       numKept++;
     } else { // CLOSE_WHEN_IDLE
       // Second time around: close idle sessions. If they aren't idle yet,
@@ -163,7 +198,7 @@ ConnectionManager::drainAllConnections() {
       } else {
         numCleared++;
       }
-      conn.closeWhenIdle();
+      conn.fireCloseWhenIdle(!manager_.notifyPendingShutdown_);
     }
   }
 
@@ -173,18 +208,18 @@ ConnectionManager::drainAllConnections() {
   } else {
     VLOG(3) << this << " notified n=" << numKept;
   }
-  drainIterator_ = it;
-  if (it != conns_.end()) {
-    eventBase_->runInLoop(&idleLoopCallback_);
+  manager_.drainIterator_ = it;
+  if (it != manager_.conns_.end()) {
+    manager_.eventBase_->runInLoop(this);
   } else {
     if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
       VLOG(3) << this << " finished notify_pending_shutdown";
       shutdownState_ = ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE;
-      if (!idleLoopCallback_.isScheduled()) {
+      if (!isScheduled()) {
         // The idle grace timer already fired, start over immediately
         shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
-        drainIterator_ = conns_.begin();
-        eventBase_->runInLoop(&idleLoopCallback_);
+        manager_.drainIterator_ = drainStartIterator();
+        manager_.eventBase_->runInLoop(this);
       }
     } else {
       shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE_COMPLETE;
@@ -193,12 +228,13 @@ ConnectionManager::drainAllConnections() {
 }
 
 void
-ConnectionManager::idleGracefulTimeoutExpired() {
+ConnectionManager::DrainHelper::idleGracefulTimeoutExpired() {
   VLOG(2) << this << " idleGracefulTimeoutExpired";
-  if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE) {
+  if (shutdownState_ ==
+      ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE) {
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
-    drainIterator_ = conns_.begin();
-    drainAllConnections();
+    manager_.drainIterator_ = drainStartIterator();
+    drainConnections();
   } else {
     VLOG(4) << this << " idleGracefulTimeoutExpired during "
       "NOTIFY_PENDING_SHUTDOWN, ignoring";
@@ -209,10 +245,10 @@ void
 ConnectionManager::dropAllConnections() {
   DestructorGuard g(this);
 
-  shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE_COMPLETE;
+  drainHelper_.setShutdownState(ShutdownState::CLOSE_WHEN_IDLE_COMPLETE);
   // Iterate through our connection list, and drop each connection.
   VLOG(3) << "connections to drop: " << conns_.size();
-  idleLoopCallback_.cancelTimeout();
+  drainHelper_.cancelTimeout();
   unsigned i = 0;
   while (!conns_.empty()) {
     ManagedConnection& conn = conns_.front();
@@ -229,7 +265,7 @@ ConnectionManager::dropAllConnections() {
   }
   drainIterator_ = conns_.end();
   idleIterator_ = conns_.end();
-  idleLoopCallback_.cancelLoopCallback();
+  drainHelper_.cancelLoopCallback();
 
   if (callback_) {
     callback_->onEmpty(*this);
@@ -293,6 +329,5 @@ ConnectionManager::dropIdleConnections(size_t num) {
 
   return count;
 }
-
 
 } // wangle

@@ -213,6 +213,11 @@ class Acceptor :
   void dropAllConnections();
 
   /**
+   * Drop defined percentage of connections.
+   */
+  void drainConnections(double pctToDrain);
+
+  /**
    * Wrapper for connectionReady() that decrements the count of
    * pending SSL connections. This should normally not be overridden.
    */

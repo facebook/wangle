@@ -343,6 +343,18 @@ Acceptor::checkDrained() {
   onConnectionsDrained();
 }
 
+void
+Acceptor::drainConnections(double pctToDrain) {
+  if (downstreamConnectionManager_) {
+    VLOG(3) << "Dropping " << pctToDrain
+            << "% of connections from Acceptor=" << this
+            << " in thread " << base_;
+    assert(base_->isInEventBaseThread());
+    downstreamConnectionManager_->
+      drainConnections(pctToDrain, gracefulShutdownTimeout_);
+  }
+}
+
 milliseconds
 Acceptor::getConnTimeout() const {
   return accConfig_.connectionIdleTimeout;

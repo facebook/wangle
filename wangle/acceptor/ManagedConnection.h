@@ -69,11 +69,25 @@ class ManagedConnection:
    */
   virtual void notifyPendingShutdown() = 0;
 
+  void fireNotifyPendingShutdown() {
+    if (state_ == DrainState::NONE) {
+      state_ = DrainState::SENT_NOTIFY_PENDING_SHUTDOWN;
+      notifyPendingShutdown();
+    }
+  }
+
   /**
    * Instruct the connection that it should shutdown as soon as it is
    * safe. This is called after notifyPendingShutdown().
    */
   virtual void closeWhenIdle() = 0;
+
+  void fireCloseWhenIdle(bool force_to_close = false) {
+    if (force_to_close || state_ == DrainState::SENT_NOTIFY_PENDING_SHUTDOWN) {
+      state_ = DrainState::SENT_CLOSE_WHEN_IDLE;
+      closeWhenIdle();
+    }
+  }
 
   /**
    * Forcibly drop a connection.
@@ -118,6 +132,14 @@ class ManagedConnection:
   virtual ~ManagedConnection();
 
  private:
+  enum class DrainState {
+    NONE,
+    SENT_NOTIFY_PENDING_SHUTDOWN,
+    SENT_CLOSE_WHEN_IDLE,
+  };
+
+  DrainState state_{DrainState::NONE};
+
   friend class ConnectionManager;
 
   void setConnectionManager(ConnectionManager* mgr) {
@@ -127,6 +149,7 @@ class ManagedConnection:
   ConnectionManager* connectionManager_;
 
   folly::SafeIntrusiveListHook listHook_;
+
 };
 
 std::ostream& operator<<(std::ostream& os, const ManagedConnection& conn);
