@@ -35,7 +35,7 @@ bool FilePersistenceLayer<K, V>::persist(
   try {
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
-    serializedCache = folly::json::serialize(dynObj, opts).toStdString();
+    serializedCache = folly::json::serialize(dynObj, opts);
   } catch (const std::exception& err) {
     LOG(ERROR) << "Serializing to JSON failed with error: " << err.what();
     return false;

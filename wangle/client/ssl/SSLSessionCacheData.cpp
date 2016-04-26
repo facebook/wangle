@@ -17,10 +17,10 @@ namespace folly {
 template<>
 folly::dynamic toDynamic(const wangle::SSLSessionCacheData& data) {
   folly::dynamic ret = folly::dynamic::object;
-  ret["session_data"] = folly::dynamic(data.sessionData);
+  ret["session_data"] = folly::dynamic(data.sessionData.toStdString());
   system_clock::duration::rep rep = data.addedTime.time_since_epoch().count();
   ret["added_time"] = folly::dynamic(static_cast<uint64_t>(rep));
-  ret["service_identity"] = folly::dynamic(data.serviceIdentity);
+  ret["service_identity"] = folly::dynamic(data.serviceIdentity.toStdString());
   return ret;
 }
 
