@@ -13,11 +13,10 @@
 #include <atomic>
 #include <chrono>
 
-#ifndef NO_LIB_GFLAGS
-  #include <gflags/gflags.h>
-  DECLARE_int32(codel_interval);
-  DECLARE_int32(codel_target_delay);
-#endif
+#include <folly/portability/GFlags.h>
+
+DECLARE_int32(codel_interval);
+DECLARE_int32(codel_target_delay);
 
 namespace wangle {
 

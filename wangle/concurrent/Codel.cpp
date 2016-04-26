@@ -9,26 +9,20 @@
  */
 
 #include <wangle/concurrent/Codel.h>
+
 #include <algorithm>
+#include <folly/portability/GFlags.h>
 #include <math.h>
 
-#ifndef NO_LIB_GFLAGS
-  #include <gflags/gflags.h>
-  DEFINE_int32(codel_interval, 100,
-               "Codel default interval time in ms");
-  DEFINE_int32(codel_target_delay, 5,
-               "Target codel queueing delay in ms");
-#endif
+DEFINE_int32(codel_interval, 100,
+             "Codel default interval time in ms");
+DEFINE_int32(codel_target_delay, 5,
+             "Target codel queueing delay in ms");
 
 using std::chrono::nanoseconds;
 using std::chrono::milliseconds;
 
 namespace wangle {
-
-#ifdef NO_LIB_GFLAGS
-  int32_t FLAGS_codel_interval = 100;
-  int32_t FLAGS_codel_target_delay = 5;
-#endif
 
 Codel::Codel()
     : codelMinDelay_(0),

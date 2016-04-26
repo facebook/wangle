@@ -14,10 +14,7 @@
 #include <wangle/ssl/SSLUtil.h>
 
 #include <folly/io/async/EventBase.h>
-
-#ifndef NO_LIB_GFLAGS
-#include <gflags/gflags.h>
-#endif
+#include <folly/portability/GFlags.h>
 
 using folly::SSLContext;
 using folly::EventBase;
@@ -36,11 +33,7 @@ const int MIN_SESSION_ID_LENGTH = 16;
 
 }
 
-#ifndef NO_LIB_GFLAGS
 DEFINE_bool(dcache_unit_test, false, "All VIPs share one session cache");
-#else
-const bool FLAGS_dcache_unit_test = false;
-#endif
 
 namespace wangle {
 
