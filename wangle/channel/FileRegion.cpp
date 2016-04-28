@@ -41,10 +41,10 @@ void FileRegion::FileWriteRequest::destroy() {
   });
 }
 
-bool FileRegion::FileWriteRequest::performWrite() {
+AsyncSocket::WriteResult FileRegion::FileWriteRequest::performWrite() {
   if (!started_) {
     start();
-    return true;
+    return AsyncSocket::WriteResult(0);
   }
 
   int flags = SPLICE_F_NONBLOCK | SPLICE_F_MORE;
@@ -53,14 +53,14 @@ bool FileRegion::FileWriteRequest::performWrite() {
                              bytesInPipe_, flags);
   if (spliced == -1) {
     if (errno == EAGAIN) {
-      return true;
+      return AsyncSocket::WriteResult(0);
     }
-    return false;
+    return AsyncSocket::WriteResult(-1);
   }
 
   bytesInPipe_ -= spliced;
   bytesWritten(spliced);
-  return true;
+  return AsyncSocket::WriteResult(spliced);
 }
 
 void FileRegion::FileWriteRequest::consume() {

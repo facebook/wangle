@@ -67,7 +67,7 @@ class FileRegion {
 
     void destroy() override;
 
-    bool performWrite() override;
+    folly::AsyncSocket::WriteResult performWrite() override;
 
     void consume() override;
 
