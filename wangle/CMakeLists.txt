@@ -18,6 +18,8 @@ find_package(Folly REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_library(GLOG_LIBRARY_PATH glog)
+find_library(GFLAGS_LIBRARY_PATH gflags)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
@@ -80,8 +82,8 @@ target_link_libraries(wangle
   ${FOLLY_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
-  -lglog
-  -lgflags
+  ${GLOG_LIBRARY_PATH}
+  ${GFLAGS_LIBRARY_PATH}
   -latomic)
 
 install(TARGETS wangle DESTINATION lib)
