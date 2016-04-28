@@ -278,7 +278,7 @@ struct TransportInfo {
   /**
    * SSL error detail
    */
-  uint32_t sslError{0};
+  std::string sslError;
 
   /**
    * body bytes read
