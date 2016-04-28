@@ -12,7 +12,7 @@ Wangle is a client/server application framework to build asynchronous, event-dri
 
 The pipeline is the most important and powerful abstraction of Wangle. It offers immense flexibility to customize how requests and responses are handled by your service.
 
-A pipeline is a chain of request/response handlers that handle upstream (handling request) and downstream (handling response). Once you chain hnadlers together, it provides an agile way to convert a raw data stream into the desired message type (class) and the inverse -- desired message type to raw data stream.
+A pipeline is a chain of request/response handlers that handle upstream (handling request) and downstream (handling response). Once you chain handlers together, it provides an agile way to convert a raw data stream into the desired message type (class) and the inverse -- desired message type to raw data stream.
 
 A handler should do one and only one function - just like the UNIX philisophy. If you have a handler that is doing more than one function than you should split it into individual handlers. This is really important for maintainability and flexibility as its common to change your protcol for one reason or the other.
 
