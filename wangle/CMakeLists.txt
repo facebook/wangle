@@ -22,6 +22,7 @@ find_package(Threads REQUIRED)
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
   ${FOLLY_INCLUDE_DIR}
+  ${OPENSSL_INCLUDE_DIR}
   ${INCLUDE_DIR}
 )
 
