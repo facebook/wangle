@@ -19,22 +19,18 @@ namespace wangle {
 
 template<typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
-    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache,
-    bool doTicketLifetimeExpiration) :
+    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache) :
   persistentCache_(cache),
-  enableTicketLifetimeExpiration_(doTicketLifetimeExpiration),
   timeUtil_(new TimeUtil()) {}
 
 template<typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
   const std::string& filename,
   const std::size_t cacheCapacity,
-  const std::chrono::seconds& syncInterval,
-  bool doTicketLifetimeExpiration) :
+  const std::chrono::seconds& syncInterval) :
     SSLSessionPersistentCacheBase(
       std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
-        filename, cacheCapacity, syncInterval),
-      doTicketLifetimeExpiration) {}
+        filename, cacheCapacity, syncInterval)) {}
 
 template<typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(
@@ -67,8 +63,7 @@ SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
   auto sess = SSLSessionPtr(getSessionFromCacheData(value));
 
 #if OPENSSL_TICKETS
-  if (enableTicketLifetimeExpiration_ &&
-      sess &&
+  if (sess &&
       sess->tlsext_ticklen > 0 &&
       sess->tlsext_tick_lifetime_hint > 0) {
     auto now = timeUtil_->now();

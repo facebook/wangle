@@ -164,7 +164,6 @@ TEST_F(SSLSessionPersistentCacheTest, SessionTicketTimeout) {
   cache_->setSSLSession(
       myhost,
       createPersistentTestSession(sessionWithTicket_));
-  cache_->enableTicketLifetimeExpiration(true);
 
   // First verify element is successfully added to the cache
   auto s = cache_->getSSLSession(myhost);

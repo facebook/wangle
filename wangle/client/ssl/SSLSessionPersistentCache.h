@@ -39,14 +39,12 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
   };
 
   explicit SSLSessionPersistentCacheBase(
-    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache,
-    bool doTicketLifetimeExpiration = false);
+    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache);
 
   explicit SSLSessionPersistentCacheBase(
     const std::string& filename,
     const std::size_t cacheCapacity,
-    const std::chrono::seconds& syncInterval,
-    bool doTicketLifetimeExpiration = false);
+    const std::chrono::seconds& syncInterval);
 
   // Store the session data of the specified identity in cache. Note that the
   // implementation must make it's own memory copy of the session data to put
@@ -70,10 +68,6 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
     return true;
   }
 
-  void enableTicketLifetimeExpiration(bool val) noexcept {
-    enableTicketLifetimeExpiration_ = val;
-  }
-
   void setTimeUtil(std::unique_ptr<TimeUtil> timeUtil) noexcept {
     timeUtil_ = std::move(timeUtil);
   }
@@ -87,7 +81,6 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
 
   std::shared_ptr<PersistentCache<K, SSLSessionCacheData>>
     persistentCache_;
-  std::atomic<bool> enableTicketLifetimeExpiration_;
   std::unique_ptr<TimeUtil> timeUtil_;
 };
 
@@ -97,10 +90,9 @@ class SSLSessionPersistentCache :
   SSLSessionPersistentCache(
     const std::string& filename,
     const std::size_t cacheCapacity,
-    const std::chrono::seconds& syncInterval,
-    bool doTicketLifetimeExpiration = false) :
+    const std::chrono::seconds& syncInterval) :
       SSLSessionPersistentCacheBase(
-        filename, cacheCapacity, syncInterval, doTicketLifetimeExpiration) {}
+        filename, cacheCapacity, syncInterval) {}
 
  protected:
   std::string getKey(const std::string& identity) const override {
