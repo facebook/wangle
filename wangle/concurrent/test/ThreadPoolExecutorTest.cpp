@@ -422,3 +422,27 @@ TEST(PriorityThreadFactoryTest, ThreadPriority) {
     }).join();
   EXPECT_EQ(1, actualPriority);
 }
+
+class TestData : public folly::RequestData {
+ public:
+  explicit TestData(int data) : data_(data) {}
+  ~TestData() override {}
+  int data_;
+};
+
+TEST(ThreadPoolExecutorTest, RequestContext) {
+  CPUThreadPoolExecutor executor(1);
+
+  RequestContextScopeGuard rctx; // create new request context for this scope
+  EXPECT_EQ(nullptr, RequestContext::get()->getContextData("test"));
+  RequestContext::get()->setContextData(
+      "test", std::unique_ptr<TestData>(new TestData(42)));
+  auto data = RequestContext::get()->getContextData("test");
+  EXPECT_EQ(42, dynamic_cast<TestData*>(data)->data_);
+
+  executor.add([] {
+    auto data = RequestContext::get()->getContextData("test");
+    ASSERT_TRUE(data != nullptr);
+    EXPECT_EQ(42, dynamic_cast<TestData*>(data)->data_);
+  });
+}

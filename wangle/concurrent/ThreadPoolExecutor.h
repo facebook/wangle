@@ -9,13 +9,14 @@
  */
 
 #pragma once
+#include <folly/Baton.h>
 #include <folly/Executor.h>
+#include <folly/Memory.h>
+#include <folly/RWSpinLock.h>
+#include <folly/io/async/Request.h>
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/NamedThreadFactory.h>
 #include <wangle/deprecated/rx/Observable.h>
-#include <folly/Baton.h>
-#include <folly/Memory.h>
-#include <folly/RWSpinLock.h>
 
 #include <algorithm>
 #include <mutex>
@@ -145,6 +146,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
     std::chrono::steady_clock::time_point enqueueTime_;
     std::chrono::milliseconds expiration_;
     folly::Func expireCallback_;
+    std::shared_ptr<folly::RequestContext> context_;
   };
 
   static void runTask(const ThreadPtr& thread, Task&& task);

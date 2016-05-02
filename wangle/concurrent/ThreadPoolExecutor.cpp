@@ -31,7 +31,8 @@ ThreadPoolExecutor::Task::Task(
     Func&& expireCallback)
     : func_(std::move(func)),
       expiration_(expiration),
-      expireCallback_(std::move(expireCallback)) {
+      expireCallback_(std::move(expireCallback)),
+      context_(folly::RequestContext::saveContext()) {
   // Assume that the task in enqueued on creation
   enqueueTime_ = std::chrono::steady_clock::now();
 }
@@ -49,6 +50,7 @@ void ThreadPoolExecutor::runTask(
       task.expireCallback_();
     }
   } else {
+    folly::RequestContextScopeGuard rctx(task.context_);
     try {
       task.func_();
     } catch (const std::exception& e) {
