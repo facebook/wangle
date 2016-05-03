@@ -329,6 +329,12 @@ struct TransportInfo {
   std::shared_ptr<ProtocolInfo> protocolInfo{nullptr};
 
   /*
+   * Hash of some of TCP/IP headers fields values, sometimes concatenated with
+   * raw signature (that gives the hash).
+   */
+  std::shared_ptr<std::string> tcpSignature{nullptr};
+
+  /*
    * get the RTT value in milliseconds
    */
   std::chrono::milliseconds getRttMs() const {
