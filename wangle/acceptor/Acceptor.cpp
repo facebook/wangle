@@ -346,8 +346,8 @@ Acceptor::checkDrained() {
 void
 Acceptor::drainConnections(double pctToDrain) {
   if (downstreamConnectionManager_) {
-    VLOG(3) << "Dropping " << pctToDrain
-            << "% of connections from Acceptor=" << this
+    VLOG(3) << "Dropping " << pctToDrain * 100 << "% of "
+            << getNumConnections() << " connections from Acceptor=" << this
             << " in thread " << base_;
     assert(base_->isInEventBaseThread());
     downstreamConnectionManager_->
