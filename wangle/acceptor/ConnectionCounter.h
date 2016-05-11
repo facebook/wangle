@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include <cstdint>
+
 namespace wangle {
 
 class IConnectionCounter {
