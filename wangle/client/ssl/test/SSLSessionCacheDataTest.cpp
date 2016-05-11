@@ -75,7 +75,7 @@ TEST_F(SSLSessionCacheDataTest, ServiceIdentity) {
   EXPECT_TRUE(ident);
   EXPECT_EQ(ident.value(), id);
 
-  auto cloned = SSLSessionPtr(session);
+  auto cloned = SSLSessionPtr(cloneSSLSession(session));
   EXPECT_TRUE(cloned);
   ident = getSessionServiceIdentity(cloned.get());
   EXPECT_TRUE(ident);
