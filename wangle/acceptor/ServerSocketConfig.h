@@ -119,6 +119,19 @@ struct ServerSocketConfig {
    */
   uint32_t maxConcurrentSSLHandshakes{30720};
 
+  /**
+   * Whether to enable TCP fast open. Before turning this
+   * option on, for it to work, it must also be enabled on the
+   * machine via /proc/sys/net/ipv4/tcp_fastopen, and the keys for
+   * TFO should also be set at /proc/sys/net/ipv4/tcp_fastopen_key
+   */
+  bool enableTCPFastOpen{false};
+
+  /**
+   * Limit on size of queue of TFO requests by clients.
+   */
+  uint32_t fastOpenQueueSize{100};
+
  private:
   folly::AsyncSocket::OptionMap socketOptions_;
 };

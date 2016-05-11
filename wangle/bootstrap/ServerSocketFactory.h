@@ -47,6 +47,9 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
         new folly::AsyncServerSocket(evb),
         ThreadSafeDestructor());
     socket->setReusePortEnabled(reuse);
+    if (config.enableTCPFastOpen) {
+      socket->setTFOEnabled(true, config.fastOpenQueueSize);
+    }
     socket->bind(address);
 
     socket->listen(config.acceptBacklog);
