@@ -91,6 +91,9 @@ TEST_F(AcceptorTest, TestCanAcceptWithCurrentConnsGreaterThanMax) {
   // Should not accept if currentConnections is larger than maxConnections
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
+  acceptor_.setConnectionCountForLoadShedding(300);
+  loadShedConfig_.setMaxConnections(200);
+  acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   EXPECT_FALSE(acceptor_.canAccept(address_));
 }
 
@@ -114,6 +117,18 @@ TEST_F(AcceptorTest, TestCanAcceptWithNoLoadShed) {
   loadShedConfig_.setMaxActiveConnections(100);
   loadShedConfig_.setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
+  EXPECT_TRUE(acceptor_.canAccept(address_));
+}
+
+TEST_F(AcceptorTest, TestCanAcceptWithMaxActiveConnectionsNotSet) {
+  // Should accept if max active connections threshold is not set and
+  // total connections is within the overall max connections limit
+  connectionCounter_.setNumConnections(300);
+  connectionCounter_.setMaxConnections(200);
+  loadShedConfig_.setMaxConnections(400);
+  acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
+  acceptor_.setActiveConnectionCountForLoadShedding(300);
+  acceptor_.setConnectionCountForLoadShedding(300);
   EXPECT_TRUE(acceptor_.canAccept(address_));
 }
 
