@@ -323,6 +323,38 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
   EXPECT_FALSE(pool->isBroadcasting(routingData));
 }
 
+TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
+  // Test when the broadcast pipeline gets deleted inline while setting
+  // routing data after the socket connection succeeds.
+  std::string routingData = "url";
+  BroadcastHandler<int, std::string>* handler = nullptr;
+  bool handlerError = false;
+  auto base = EventBaseManager::get()->getEventBase();
+
+  InSequence dummy;
+
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+  pool->getHandler(routingData)
+      .then([&](BroadcastHandler<int, std::string>* h) {
+        handler = h;
+      })
+      .onError([&] (const std::exception& ex) {
+        handlerError = true;
+        EXPECT_FALSE(pool->isBroadcasting(routingData));
+      });
+  EXPECT_TRUE(handler == nullptr);
+  EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url"))
+      .WillOnce(Invoke(
+          [&](DefaultPipeline* pipeline, const std::string& routingData) {
+            pipeline->readException(std::runtime_error("upstream error"));
+          }));
+  base->loopOnce(); // Do async connect
+  EXPECT_TRUE(handler == nullptr);
+  EXPECT_TRUE(handlerError);
+  EXPECT_FALSE(pool->isBroadcasting(routingData));
+}
+
+
 TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   // Test against use-after-free on BroadcastManager when the pool
   // is deleted before the handler

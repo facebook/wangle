@@ -11,6 +11,7 @@
 
 #include <folly/ThreadLocal.h>
 #include <folly/futures/SharedPromise.h>
+#include <folly/io/async/DelayedDestruction.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
 
@@ -40,8 +41,12 @@ class ServerPool {
 template <typename T, typename R>
 class BroadcastPool {
  public:
-  class BroadcastManager : PipelineManager {
+  class BroadcastManager : public PipelineManager,
+                           public folly::DelayedDestruction {
    public:
+    using UniquePtr = std::unique_ptr<
+      BroadcastManager, folly::DelayedDestruction::Destructor>;
+
     BroadcastManager(BroadcastPool<T, R>* broadcastPool, const R& routingData)
         : broadcastPool_(broadcastPool), routingData_(routingData) {
       client_.pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
@@ -66,6 +71,7 @@ class BroadcastPool {
     ClientBootstrap<DefaultPipeline> client_;
 
     bool connectStarted_{false};
+    bool deletingBroadcast_{false};
     folly::SharedPromise<BroadcastHandler<T, R>*> sharedPromise_;
   };
 
@@ -110,7 +116,7 @@ class BroadcastPool {
 
   std::shared_ptr<ServerPool<R>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
-  std::map<R, std::unique_ptr<BroadcastManager>> broadcasts_;
+  std::map<R, typename BroadcastManager::UniquePtr> broadcasts_;
 };
 
 } // namespace wangle

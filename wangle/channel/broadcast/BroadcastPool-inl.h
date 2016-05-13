@@ -29,6 +29,7 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
 
   broadcastPool_->serverPool_->connect(&client_, routingData_)
       .then([this](DefaultPipeline* pipeline) {
+        DestructorGuard dg(this);
         pipeline->setPipelineManager(this);
 
         auto pipelineFactory = broadcastPool_->broadcastPipelineFactory_;
@@ -36,6 +37,14 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
           pipelineFactory->setRoutingData(pipeline, routingData_);
         } catch (const std::exception& ex) {
           handleConnectError(ex);
+          return;
+        }
+
+        if (deletingBroadcast_) {
+          // setRoutingData() could result in an error that would cause the
+          // BroadcastPipeline to get deleted.
+          handleConnectError(std::runtime_error(
+              "Broadcast deleted due to upstream connection error"));
           return;
         }
 
@@ -49,9 +58,7 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
         // connections are not leaked.
         handler->closeIfIdle();
       })
-      .onError([this](const std::exception& ex) {
-        handleConnectError(ex);
-      });
+      .onError([this](const std::exception& ex) { handleConnectError(ex); });
 
   return future;
 }
@@ -60,6 +67,7 @@ template <typename T, typename R>
 void BroadcastPool<T, R>::BroadcastManager::deletePipeline(
     PipelineBase* pipeline) {
   CHECK(client_.getPipeline() == pipeline);
+  deletingBroadcast_ = true;
   broadcastPool_->deleteBroadcast(routingData_);
 }
 
@@ -81,7 +89,8 @@ folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R>::getHandler(
     return iter->second->getHandler();
   }
 
-  auto broadcast = folly::make_unique<BroadcastManager>(this, routingData);
+  typename BroadcastManager::UniquePtr broadcast(
+      new BroadcastManager(this, routingData));
   auto broadcastPtr = broadcast.get();
   broadcasts_.insert(std::make_pair(routingData, std::move(broadcast)));
 
