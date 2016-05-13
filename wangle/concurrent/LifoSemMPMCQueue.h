@@ -9,6 +9,7 @@
  */
 
 #pragma once
+
 #include <wangle/concurrent/BlockingQueue.h>
 #include <folly/LifoSem.h>
 #include <folly/MPMCQueue.h>
@@ -24,7 +25,7 @@ class LifoSemMPMCQueue : public BlockingQueue<T> {
     switch (kBehavior) { // static
     case QueueBehaviorIfFull::THROW:
       if (!queue_.write(std::move(item))) {
-        throw std::runtime_error("LifoSemMPMCQueue full, can't add item");
+        throw QueueFullException("LifoSemMPMCQueue full, can't add item");
       }
       break;
     case QueueBehaviorIfFull::BLOCK:

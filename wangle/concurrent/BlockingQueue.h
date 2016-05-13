@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <exception>
+
 #include <glog/logging.h>
 
 namespace wangle {
@@ -18,6 +20,10 @@ namespace wangle {
 // PriorityLifoSemMPMCQueue) support both blocking (BLOCK) and
 // non-blocking (THROW) behaviors.
 enum class QueueBehaviorIfFull { THROW, BLOCK };
+
+class QueueFullException : public std::runtime_error {
+  using std::runtime_error::runtime_error; // Inherit constructors.
+};
 
 template <class T>
 class BlockingQueue {
