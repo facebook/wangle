@@ -20,7 +20,7 @@ namespace wangle {
 
 ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
     milliseconds timeout, Callback* callback)
-  : connTimeouts_(new HHWheelTimer(eventBase)),
+  : connTimeouts_(HHWheelTimer::newTimer(eventBase)),
     callback_(callback),
     eventBase_(eventBase),
     drainIterator_(conns_.end()),
