@@ -58,6 +58,7 @@ set(WANGLE_SOURCES
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
+  concurrent/ThreadedExecutor.cpp
   concurrent/CPUThreadPoolExecutor.cpp
   concurrent/Codel.cpp
   concurrent/GlobalExecutor.cpp
@@ -156,6 +157,7 @@ endif()
   add_gtest(channel/test/PipelineTest.cpp PipelineTest)
   add_gtest(codec/CodecTest.cpp CodecTest)
   add_gtest(concurrent/test/AsyncTest.cpp AsyncTest)
+  add_gtest(concurrent/test/ThreadedExecutorTest.cpp ThreadedExecutorTest)
   add_gtest(concurrent/test/CodelTest.cpp CodelTest)
   add_gtest(concurrent/test/GlobalExecutorTest.cpp GlobalExecutorTest)
   add_gtest(concurrent/test/ThreadPoolExecutorTest ThreadPoolExecutorTest)
