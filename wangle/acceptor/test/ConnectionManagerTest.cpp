@@ -276,7 +276,7 @@ TEST_F(ConnectionManagerTest, testDropIdle) {
 
   // Expect the remaining idle conns to drop
   for (auto i = 2; i < conns_.size() / 2; i++) {
-    EXPECT_CALL(*conns_[i], timeoutExpired())
+    EXPECT_CALL(*conns_[i], dropConnection())
       .WillOnce(Invoke([&] { cm_->removeConnection(conns_[i].get()); }));
   }
 

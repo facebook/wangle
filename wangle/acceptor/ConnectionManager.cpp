@@ -323,7 +323,7 @@ ConnectionManager::dropIdleConnections(size_t num) {
     }
     ManagedConnection& conn = *it;
     idleIterator_++;
-    conn.timeoutExpired();
+    conn.dropConnection();
     count++;
   }
 
