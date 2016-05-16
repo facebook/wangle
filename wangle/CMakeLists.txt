@@ -7,7 +7,7 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x -fPIC")
+set(CMAKE_CXX_FLAGS "-std=c++1y -fPIC")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -18,6 +18,8 @@ find_package(Folly REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_library(GLOG_LIBRARY_PATH glog)
+find_library(GFLAGS_LIBRARY_PATH gflags)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
@@ -81,9 +83,9 @@ target_link_libraries(wangle
   ${FOLLY_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
-  -lglog
-  -lgflags
-  -latomic)
+  ${GLOG_LIBRARY_PATH}
+  ${GFLAGS_LIBRARY_PATH}
+  $<$<NOT:$<CXX_COMPILER_ID:Clang>>:-latomic>)
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
