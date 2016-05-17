@@ -14,7 +14,7 @@ The pipeline is the most important and powerful abstraction of Wangle. It offers
 
 A pipeline is a chain of request/response handlers that handle upstream (handling request) and downstream (handling response). Once you chain handlers together, it provides an agile way to convert a raw data stream into the desired message type (class) and the inverse -- desired message type to raw data stream.
 
-A handler should do one and only one function - just like the UNIX philisophy. If you have a handler that is doing more than one function than you should split it into individual handlers. This is really important for maintainability and flexibility as its common to change your protcol for one reason or the other.
+A handler should do one and only one function - just like the UNIX philisophy. If you have a handler that is doing more than one function than you should split it into individual handlers. This is really important for maintainability and flexibility as its common to change your protocol for one reason or the other.
 
 All shared state within handlers are not thread-safe. Only use shared state that is guarded by a mutex, atomic lock, etc. If you want to use a thread-safe container then it is recommended to use Folly's lock-free data structures, which can be easily imported because they are a dependency of Wangle and are blazing fast.
 
@@ -36,7 +36,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 };
 ```
 
-This needs to be final handler in the pipeline. Now the definition of the pipeline is needed to handle the requests and responses.
+This needs to be the final handler in the pipeline. Now the definition of the pipeline is needed to handle the requests and responses.
 
 ```cpp
 // where we define the chain of handlers for each messeage received
@@ -54,11 +54,11 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  };
 ```
 
-It is **very** important to be strict in the order of insertion as they are ordered by insertion. The pipeline has 4 handers:
+It is **very** important to be strict in the order of insertion as they are ordered by insertion. The pipeline has 4 handlers:
 
   - **AsyncSocketHandler**
     - Upstream: Reads a raw data stream from the socket and converts it into a zero-copy byte buffer.
-    - Downstream: Writes the contents of a zero-copy byte buffer to the underling socket.
+    - Downstream: Writes the contents of a zero-copy byte buffer to the underlying socket.
   - **LineBasedFrameDecoder**
     - Upstream: receives a zero-copy byte buffer and splits on line-endings
     - Downstream: just passes the byte buffer to AsyncSocketHandler
@@ -96,7 +96,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
   }
 };
 
-// where we define the chain of handlers for each messeage received
+// where we define the chain of handlers for each message received
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
   EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
@@ -146,7 +146,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 };
 ```
 
-Notice that we override other methods — readException and readEOF. There are few other methods that are can be overided. If you need to handle a particular event, just override the corresponding virtual method.
+Notice that we override other methods — readException and readEOF. There are few other methods that can be overriden. If you need to handle a particular event, just override the corresponding virtual method.
 
 Now onto the client’s pipeline factory. It is identical the server’s pipeline factory apart from _EventBaseHandler_ — which handles writing data from an event loop thread.
 
