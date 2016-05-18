@@ -14,7 +14,7 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Memory.h>
 #include <folly/futures/Future.h>
-#include <folly/futures/Unit.h>
+#include <folly/Unit.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
