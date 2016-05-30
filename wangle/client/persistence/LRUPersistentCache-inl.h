@@ -14,8 +14,8 @@
 #include <folly/FileUtil.h>
 #include <folly/json.h>
 #include <folly/ScopeGuard.h>
+#include <folly/portability/SysTime.h>
 #include <functional>
-#include <sys/time.h>
 
 namespace wangle {
 
