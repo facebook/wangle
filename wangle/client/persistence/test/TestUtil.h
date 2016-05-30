@@ -11,10 +11,10 @@
 
 #include <cstdlib>
 #include <list>
-#include <unistd.h>
 #include <vector>
 
 #include <folly/Memory.h>
+#include <folly/portability/Unistd.h>
 #include <gtest/gtest.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 

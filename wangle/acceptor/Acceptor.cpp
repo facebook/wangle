@@ -22,8 +22,8 @@
 #include <sys/types.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/portability/Unistd.h>
 #include <gflags/gflags.h>
-#include <unistd.h>
 
 using folly::AsyncSocket;
 using folly::AsyncSSLSocket;
