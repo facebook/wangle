@@ -9,9 +9,9 @@
  */
 #include <wangle/acceptor/TransportInfo.h>
 
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/portability/Sockets.h>
 
 using std::chrono::microseconds;
 using std::map;

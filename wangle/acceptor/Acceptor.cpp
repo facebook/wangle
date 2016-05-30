@@ -18,10 +18,10 @@
 #include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
 #include <fstream>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
 #include <gflags/gflags.h>
 

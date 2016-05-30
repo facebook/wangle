@@ -9,8 +9,7 @@
  */
 #include <wangle/acceptor/SocketOptions.h>
 
-#include <netinet/tcp.h>
-#include <sys/socket.h>
+#include <folly/portability/Sockets.h>
 
 using folly::AsyncSocket;
 
