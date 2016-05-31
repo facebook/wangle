@@ -13,6 +13,7 @@
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
+#include <wangle/acceptor/TLSPlaintextHandshakeManager.h>
 
 #include <fcntl.h>
 #include <folly/ScopeGuard.h>
@@ -227,20 +228,21 @@ Acceptor::processEstablishedConnection(
   }
 }
 
-void
-Acceptor::startHandshakeManager(
+void Acceptor::startHandshakeManager(
     AsyncSSLSocket::UniquePtr sslSock,
     Acceptor* acceptor,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) noexcept {
-  auto manager = new SSLAcceptorHandshakeManager(
-    acceptor,
-    clientAddr,
-    acceptTime,
-    tinfo
-  );
-  manager->start(std::move(sslSock));
+  if (accConfig_.allowInsecureConnectionsOnSecureServer) {
+    auto manager =
+        new TLSPlaintextHandshakeManager(this, clientAddr, acceptTime, tinfo);
+    manager->start(std::move(sslSock));
+  } else {
+    auto manager = new SSLAcceptorHandshakeManager(
+        acceptor, clientAddr, acceptTime, tinfo);
+    manager->start(std::move(sslSock));
+  }
 }
 
 void

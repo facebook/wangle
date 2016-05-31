@@ -99,6 +99,13 @@ struct ServerSocketConfig {
   SSLCacheOptions sslCacheOptions{std::chrono::seconds(0), 20480, 200};
 
   /**
+   * Determines whether or not to allow insecure connections over a secure
+   * port. Can be used to multiplex TLS and plaintext on the same port for
+   * some services.
+   */
+  bool allowInsecureConnectionsOnSecureServer{false};
+
+  /**
    * The initial TLS ticket seeds.
    */
   TLSTicketKeySeeds initialTicketSeeds;
