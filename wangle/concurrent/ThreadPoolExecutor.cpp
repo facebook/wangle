@@ -17,8 +17,10 @@ namespace wangle {
 
 ThreadPoolExecutor::ThreadPoolExecutor(
     size_t numThreads,
-    std::shared_ptr<ThreadFactory> threadFactory)
+    std::shared_ptr<ThreadFactory> threadFactory,
+    bool isWaitForAll)
     : threadFactory_(std::move(threadFactory)),
+      isWaitForAll_(isWaitForAll),
       taskStatsSubject_(std::make_shared<Subject<TaskStats>>()) {}
 
 ThreadPoolExecutor::~ThreadPoolExecutor() {

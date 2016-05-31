@@ -62,8 +62,9 @@ class MemoryIdlerTimeout
 IOThreadPoolExecutor::IOThreadPoolExecutor(
     size_t numThreads,
     std::shared_ptr<ThreadFactory> threadFactory,
-    EventBaseManager* ebm)
-  : ThreadPoolExecutor(numThreads, std::move(threadFactory)),
+    EventBaseManager* ebm,
+    bool waitForAll)
+  : ThreadPoolExecutor(numThreads, std::move(threadFactory), waitForAll),
     nextThread_(0),
     eventBaseManager_(ebm) {
   addThreads(numThreads);
@@ -152,6 +153,11 @@ void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
     while (ioThread->pendingTasks > 0) {
       ioThread->eventBase->loopOnce();
     }
+  }
+  if (isWaitForAll_) {
+    // some tasks, like thrift asynchronous calls, create additional
+    // event base hookups, let's wait till all of them complete.
+    ioThread->eventBase->loop();
   }
   stoppedThreads_.add(ioThread);
 

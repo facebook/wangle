@@ -30,7 +30,8 @@ class ThreadPoolExecutor : public virtual folly::Executor {
  public:
   explicit ThreadPoolExecutor(
       size_t numThreads,
-      std::shared_ptr<ThreadFactory> threadFactory);
+      std::shared_ptr<ThreadFactory> threadFactory,
+      bool isWaitForAll = false);
 
   ~ThreadPoolExecutor();
 
@@ -218,6 +219,8 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   };
 
   std::shared_ptr<ThreadFactory> threadFactory_;
+  const bool isWaitForAll_; // whether to wait till event base loop exits
+
   ThreadList threadList_;
   folly::RWSpinLock threadListLock_;
   StoppedThreadQueue stoppedThreads_;

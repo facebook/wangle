@@ -47,7 +47,8 @@ class IOThreadPoolExecutor : public ThreadPoolExecutor, public IOExecutor {
       size_t numThreads,
       std::shared_ptr<ThreadFactory> threadFactory =
           std::make_shared<NamedThreadFactory>("IOThreadPool"),
-      folly::EventBaseManager* ebm = folly::EventBaseManager::get());
+      folly::EventBaseManager* ebm = folly::EventBaseManager::get(),
+      bool waitForAll = false);
 
   ~IOThreadPoolExecutor();
 
