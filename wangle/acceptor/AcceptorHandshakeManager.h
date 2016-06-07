@@ -62,6 +62,7 @@ class AcceptorHandshakeManager : public ManagedConnection,
       folly::AsyncSSLSocket::UniquePtr sock) noexcept {
     acceptor_->getConnectionManager()->addConnection(this, true);
     startHelper(std::move(sock));
+    startHandshakeTimeout();
   }
 
   virtual void timeoutExpired() noexcept override {
@@ -115,6 +116,12 @@ class AcceptorHandshakeManager : public ManagedConnection,
   }
 
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) = 0;
+
+  void startHandshakeTimeout() {
+      auto handshake_timeout = acceptor_->getSSLHandshakeTimeout();
+      acceptor_->getConnectionManager()->scheduleTimeout(
+          this, handshake_timeout);
+  }
 
   Acceptor* acceptor_;
   folly::SocketAddress clientAddr_;

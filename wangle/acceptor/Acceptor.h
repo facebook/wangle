@@ -139,6 +139,13 @@ class Acceptor :
   }
 
   /**
+   * Returns the ssl handshake connection timeout of this VIP
+   */
+  std::chrono::milliseconds getSSLHandshakeTimeout() const {
+    return accConfig_.sslHandshakeTimeout;
+  }
+
+  /**
    * Time after drainAllConnections() or acceptStopped() during which
    * new requests on connections owned by the downstream
    * ConnectionManager will be processed normally.

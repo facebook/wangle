@@ -89,6 +89,11 @@ struct ServerSocketConfig {
   std::chrono::milliseconds connectionIdleTimeout{600000};
 
   /**
+   * The number of milliseconds a ssl handshake can timeout (60s)
+   */
+  std::chrono::milliseconds sslHandshakeTimeout{60000};
+
+  /**
    * The address to bind to.
    */
   folly::SocketAddress bindAddress;
