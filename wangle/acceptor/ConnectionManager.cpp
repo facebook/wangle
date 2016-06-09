@@ -247,7 +247,7 @@ ConnectionManager::dropAllConnections() {
 
   drainHelper_.setShutdownState(ShutdownState::CLOSE_WHEN_IDLE_COMPLETE);
   // Iterate through our connection list, and drop each connection.
-  VLOG(3) << "connections to drop: " << conns_.size();
+  VLOG(2) << "connections to drop: " << conns_.size();
   drainHelper_.cancelTimeout();
   unsigned i = 0;
   while (!conns_.empty()) {
