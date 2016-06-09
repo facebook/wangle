@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <glog/logging.h>
+
 #include <wangle/deprecated/rx/types.h> // must come first
 #include <wangle/deprecated/rx/Observable.h>
 
