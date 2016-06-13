@@ -198,7 +198,7 @@ Acceptor::processEstablishedConnection(
         sslCtxManager_->getDefaultSSLCtx(), base_, fd));
     ++numPendingSSLConns_;
     ++totalNumPendingSSLConns_;
-    if (totalNumPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
+    if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name <<
         " too many handshakes in progress";
       auto error = SSLErrorEnum::DROPPED;
@@ -273,14 +273,14 @@ Acceptor::sslConnectionReady(AsyncTransportWrapper::UniquePtr sock,
                              SecureTransportType secureTransportType,
                              TransportInfo& tinfo) {
   CHECK(numPendingSSLConns_ > 0);
+  --numPendingSSLConns_;
+  --totalNumPendingSSLConns_;
   connectionReady(
       std::move(sock),
       clientAddr,
       nextProtocol,
       secureTransportType,
       tinfo);
-  --numPendingSSLConns_;
-  --totalNumPendingSSLConns_;
   if (state_ == State::kDraining) {
     checkDrained();
   }
