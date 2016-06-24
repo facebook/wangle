@@ -50,7 +50,7 @@ class CachePersistence {
   /**
    * Get the last version of the data that was successfully persisted.
    */
-  CacheDataVersion getLastPersistedVersion() const {
+  virtual CacheDataVersion getLastPersistedVersion() const {
     return persistedVersion_;
   }
 

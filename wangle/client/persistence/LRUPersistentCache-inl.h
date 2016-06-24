@@ -29,14 +29,16 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
   stopSyncer_(false),
   syncInterval_(syncInterval),
   nSyncRetries_(nSyncRetries),
-  persistence_(nullptr),
-  syncer_(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this) {
+  persistence_(nullptr) {
 
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
   if (persistence) {
     setPersistenceHelper(std::move(persistence), true);
   }
+  // start the syncer thread. done at the end of construction so that the cache
+  // is fully initialized before being passed to the syncer thread.
+  syncer_ = std::thread(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this);
 }
 
 template<typename K, typename V, typename MutexT>
