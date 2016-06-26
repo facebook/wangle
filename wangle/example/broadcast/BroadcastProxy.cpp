@@ -125,7 +125,7 @@ class ClientIPRoutingDataHandlerFactory
 class SimpleServerPool : public ServerPool<std::string> {
  public:
   Future<DefaultPipeline*> connect(
-      ClientBootstrap<DefaultPipeline>* client,
+      BaseClientBootstrap<DefaultPipeline>* client,
       const std::string& routingData) noexcept override {
     SocketAddress address;
     address.setFromLocalPort(FLAGS_upstream_port);

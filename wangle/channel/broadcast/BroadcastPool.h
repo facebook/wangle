@@ -12,22 +12,24 @@
 #include <folly/ThreadLocal.h>
 #include <folly/futures/SharedPromise.h>
 #include <folly/io/async/DelayedDestruction.h>
+#include <wangle/bootstrap/BaseClientBootstrap.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
+#include <wangle/channel/Pipeline.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
 
 namespace wangle {
 
-template <typename R>
+template <typename R, typename P = DefaultPipeline>
 class ServerPool {
  public:
   virtual ~ServerPool() {}
 
   /**
-   * Kick off an upstream connect request given the ClientBootstrap
+   * Kick off an upstream connect request given the BaseClientBootstrap
    * when a broadcast is not available locally.
    */
-  virtual folly::Future<DefaultPipeline*> connect(
-      ClientBootstrap<DefaultPipeline>* client,
+  virtual folly::Future<P*> connect(
+      BaseClientBootstrap<P>* client,
       const R& routingData) noexcept = 0;
 };
 
@@ -38,7 +40,7 @@ class ServerPool {
  *
  * Meant to be used as a thread-local instance.
  */
-template <typename T, typename R>
+template <typename T, typename R, typename P = DefaultPipeline>
 class BroadcastPool {
  public:
   class BroadcastManager : public PipelineManager,
@@ -47,14 +49,19 @@ class BroadcastPool {
     using UniquePtr = std::unique_ptr<
       BroadcastManager, folly::DelayedDestruction::Destructor>;
 
-    BroadcastManager(BroadcastPool<T, R>* broadcastPool, const R& routingData)
-        : broadcastPool_(broadcastPool), routingData_(routingData) {
-      client_.pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
+    BroadcastManager(
+        BroadcastPool<T, R, P>* broadcastPool,
+        const R& routingData,
+        std::unique_ptr<BaseClientBootstrap<P>> client)
+        : broadcastPool_(broadcastPool),
+          routingData_(routingData),
+          client_(std::move(client)) {
+      client_->pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
     }
 
     virtual ~BroadcastManager() {
-      if (client_.getPipeline()) {
-        client_.getPipeline()->setPipelineManager(nullptr);
+      if (client_->getPipeline()) {
+        client_->getPipeline()->setPipelineManager(nullptr);
       }
     }
 
@@ -66,17 +73,19 @@ class BroadcastPool {
    private:
     void handleConnectError(const std::exception& ex) noexcept;
 
-    BroadcastPool<T, R>* broadcastPool_{nullptr};
+    BroadcastPool<T, R, P>* broadcastPool_{nullptr};
     R routingData_;
-    ClientBootstrap<DefaultPipeline> client_;
+
+    std::unique_ptr<BaseClientBootstrap<P>> client_;
 
     bool connectStarted_{false};
     bool deletingBroadcast_{false};
     folly::SharedPromise<BroadcastHandler<T, R>*> sharedPromise_;
   };
 
-  BroadcastPool(std::shared_ptr<ServerPool<R>> serverPool,
-                std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
+  BroadcastPool(
+      std::shared_ptr<ServerPool<R, P>> serverPool,
+      std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
       : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
 
   virtual ~BroadcastPool() {}
@@ -114,7 +123,7 @@ class BroadcastPool {
  private:
   void deleteBroadcast(const R& routingData) { broadcasts_.erase(routingData); }
 
-  std::shared_ptr<ServerPool<R>> serverPool_;
+  std::shared_ptr<ServerPool<R, P>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::map<R, typename BroadcastManager::UniquePtr> broadcasts_;
 };

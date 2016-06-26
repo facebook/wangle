@@ -59,7 +59,7 @@ class MockServerPool : public ServerPool<std::string> {
       : ServerPool(), addr_(addr) {}
 
   folly::Future<DefaultPipeline*> connect(
-      ClientBootstrap<DefaultPipeline>* client,
+      BaseClientBootstrap<DefaultPipeline>* client,
       const std::string& routingData) noexcept override {
     return failConnect_ ? folly::makeFuture<DefaultPipeline*>(std::exception())
                         : client->connect(*addr_);

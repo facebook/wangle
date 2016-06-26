@@ -13,6 +13,7 @@
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBaseManager.h>
+#include <wangle/bootstrap/BaseClientBootstrap.h>
 #include <wangle/channel/Pipeline.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 
@@ -23,8 +24,7 @@ namespace wangle {
  * ServerBootstrap.  On connect() a new pipeline is created.
  */
 template <typename Pipeline>
-class ClientBootstrap {
-
+class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
   class ConnectCallback : public folly::AsyncSocket::ConnectCallback {
    public:
     ConnectCallback(folly::Promise<Pipeline*> promise, ClientBootstrap* bootstrap)
@@ -59,16 +59,6 @@ class ClientBootstrap {
     return this;
   }
 
-  ClientBootstrap* sslContext(folly::SSLContextPtr sslContext) {
-    sslContext_ = sslContext;
-    return this;
-  }
-
-  ClientBootstrap* sslSession(SSL_SESSION* sslSession) {
-    sslSession_ = sslSession;
-    return this;
-  }
-
   ClientBootstrap* bind(int port) {
     port_ = port;
     return this;
@@ -76,8 +66,8 @@ class ClientBootstrap {
 
   folly::Future<Pipeline*> connect(
       const folly::SocketAddress& address,
-      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) {
-    DCHECK(pipelineFactory_);
+      std::chrono::milliseconds timeout =
+          std::chrono::milliseconds(0)) override {
     auto base = folly::EventBaseManager::get()->getEventBase();
     if (group_) {
       base = group_->getEventBase();
@@ -85,10 +75,11 @@ class ClientBootstrap {
     folly::Future<Pipeline*> retval((Pipeline*)nullptr);
     base->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
       std::shared_ptr<folly::AsyncSocket> socket;
-      if (sslContext_) {
-        auto sslSocket = folly::AsyncSSLSocket::newSocket(sslContext_, base);
-        if (sslSession_) {
-          sslSocket->setSSLSession(sslSession_, true);
+      if (this->sslContext_) {
+        auto sslSocket = folly::AsyncSSLSocket::newSocket(
+          this->sslContext_, base);
+        if (this->sslSession_) {
+          sslSocket->setSSLSession(this->sslSession_, true);
         }
         socket = sslSocket;
       } else {
@@ -100,31 +91,16 @@ class ClientBootstrap {
           new ConnectCallback(std::move(promise), this),
           address,
           timeout.count());
-      pipeline_ = pipelineFactory_->newPipeline(socket);
+      BaseClientBootstrap<Pipeline>::makePipeline(
+        socket);
     });
     return retval;
-  }
-
-  ClientBootstrap* pipelineFactory(
-      std::shared_ptr<PipelineFactory<Pipeline>> factory) {
-    pipelineFactory_ = factory;
-    return this;
-  }
-
-  Pipeline* getPipeline() {
-    return pipeline_.get();
   }
 
   virtual ~ClientBootstrap() = default;
 
  protected:
-  typename Pipeline::Ptr pipeline_;
-
   int port_;
-
-  std::shared_ptr<PipelineFactory<Pipeline>> pipelineFactory_;
   std::shared_ptr<wangle::IOThreadPoolExecutor> group_;
-  folly::SSLContextPtr sslContext_;
-  SSL_SESSION* sslSession_{nullptr};
 };
 } // namespace wangle

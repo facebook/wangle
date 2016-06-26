@@ -11,9 +11,9 @@
 
 namespace wangle {
 
-template <typename T, typename R>
+template <typename T, typename R, typename P>
 folly::Future<BroadcastHandler<T, R>*>
-BroadcastPool<T, R>::BroadcastManager::getHandler() {
+BroadcastPool<T, R, P>::BroadcastManager::getHandler() {
   // getFuture() returns a completed future if we are already connected
   auto future = sharedPromise_.getFuture();
 
@@ -27,7 +27,7 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
   // Kickoff connect request and fulfill all pending promises on completion
   connectStarted_ = true;
 
-  broadcastPool_->serverPool_->connect(&client_, routingData_)
+  broadcastPool_->serverPool_->connect(client_.get(), routingData_)
       .then([this](DefaultPipeline* pipeline) {
         DestructorGuard dg(this);
         pipeline->setPipelineManager(this);
@@ -63,16 +63,16 @@ BroadcastPool<T, R>::BroadcastManager::getHandler() {
   return future;
 }
 
-template <typename T, typename R>
-void BroadcastPool<T, R>::BroadcastManager::deletePipeline(
+template <typename T, typename R, typename P>
+void BroadcastPool<T, R, P>::BroadcastManager::deletePipeline(
     PipelineBase* pipeline) {
-  CHECK(client_.getPipeline() == pipeline);
+  CHECK(client_->getPipeline() == pipeline);
   deletingBroadcast_ = true;
   broadcastPool_->deleteBroadcast(routingData_);
 }
 
-template <typename T, typename R>
-void BroadcastPool<T, R>::BroadcastManager::handleConnectError(
+template <typename T, typename R, typename P>
+void BroadcastPool<T, R, P>::BroadcastManager::handleConnectError(
     const std::exception& ex) noexcept {
   LOG(ERROR) << "Error connecting to upstream: " << ex.what();
 
@@ -81,16 +81,16 @@ void BroadcastPool<T, R>::BroadcastManager::handleConnectError(
   sharedPromise.setException(folly::make_exception_wrapper<std::exception>(ex));
 }
 
-template <typename T, typename R>
-folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R>::getHandler(
+template <typename T, typename R, typename P>
+folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R, P>::getHandler(
     const R& routingData) {
   const auto& iter = broadcasts_.find(routingData);
   if (iter != broadcasts_.end()) {
     return iter->second->getHandler();
   }
 
-  typename BroadcastManager::UniquePtr broadcast(
-      new BroadcastManager(this, routingData));
+  typename BroadcastManager::UniquePtr broadcast(new BroadcastManager(
+      this, routingData, folly::make_unique<ClientBootstrap<P>>()));
   auto broadcastPtr = broadcast.get();
   broadcasts_.insert(std::make_pair(routingData, std::move(broadcast)));
 
