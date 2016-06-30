@@ -73,6 +73,7 @@ class IOThreadPoolExecutor : public ThreadPoolExecutor, public IOExecutor {
     std::atomic<bool> shouldRun;
     std::atomic<size_t> pendingTasks;
     folly::EventBase* eventBase;
+    std::mutex eventBaseShutdownMutex_;
   };
 
   ThreadPtr makeThread() override;
