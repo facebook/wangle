@@ -8,6 +8,8 @@
  *
  */
 
+#include <thread>
+
 #include <wangle/concurrent/CPUThreadPoolExecutor.h>
 #include <wangle/concurrent/FutureExecutor.h>
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
@@ -445,4 +447,53 @@ TEST(ThreadPoolExecutorTest, RequestContext) {
     ASSERT_TRUE(data != nullptr);
     EXPECT_EQ(42, dynamic_cast<TestData*>(data)->data_);
   });
+}
+
+struct SlowMover {
+  explicit SlowMover(bool slow = false) : slow(slow) {}
+  SlowMover(SlowMover&& other) noexcept {
+    *this = std::move(other);
+  }
+  SlowMover& operator=(SlowMover&& other) noexcept {
+    slow = other.slow;
+    if (slow) {
+      /* sleep override */ std::this_thread::sleep_for(milliseconds(50));
+    }
+    return *this;
+  }
+
+  bool slow;
+};
+
+TEST(ThreadPoolExecutorTest, BugD3527722) {
+  // Test that the queue does not get stuck if writes are completed in
+  // order opposite to how they are initiated.
+  LifoSemMPMCQueue<SlowMover> q(1024);
+  std::atomic<int> turn{};
+
+  std::thread consumer1([&] {
+      ++turn;
+      q.take();
+    });
+  std::thread consumer2([&] {
+      ++turn;
+      q.take();
+    });
+
+  std::thread producer1([&] {
+      ++turn;
+      while (turn < 4);
+      ++turn;
+      q.add(SlowMover(true));
+    });
+  std::thread producer2([&] {
+      ++turn;
+      while (turn < 5);
+      q.add(SlowMover(false));
+    });
+
+  producer1.join();
+  producer2.join();
+  consumer1.join();
+  consumer2.join();
 }

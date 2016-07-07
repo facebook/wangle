@@ -58,7 +58,7 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
     T item;
     while (true) {
       for (auto it = queues_.rbegin(); it != queues_.rend(); it++) {
-        if (it->read(item)) {
+        if (it->readIfNotEmpty(item)) {
           return item;
         }
       }

@@ -37,7 +37,7 @@ class LifoSemMPMCQueue : public BlockingQueue<T> {
 
   T take() override {
     T item;
-    while (!queue_.read(item)) {
+    while (!queue_.readIfNotEmpty(item)) {
       sem_.wait();
     }
     return item;
