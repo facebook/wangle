@@ -273,6 +273,8 @@ void SSLContextManager::addSSLContextConfig(
     enableAsyncCrypto(sslCtx, ctxConfig);
   }
 
+  overrideConfiguration(sslCtx, ctxConfig);
+
   // Let the server pick the highest performing cipher from among the client's
   // choices.
   //

@@ -117,6 +117,11 @@ class SSLContextManager {
     const SSLContextConfig& ctxConfig) {
     LOG(FATAL) << "Unsupported in base SSLContextManager";
   }
+
+  virtual void overrideConfiguration(
+    const std::shared_ptr<folly::SSLContext>&,
+    const SSLContextConfig&) {}
+
   SSLStats* stats_{nullptr};
 
  private:
