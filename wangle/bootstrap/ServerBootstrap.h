@@ -307,6 +307,9 @@ class ServerBootstrap {
 
   template <typename F>
   void forEachWorker(F&& f) const {
+    if (!workerFactory_) {
+      return;
+    }
     workerFactory_->forEachWorker(f);
   }
 
