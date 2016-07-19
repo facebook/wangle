@@ -64,19 +64,23 @@ Acceptor::init(AsyncServerSocket* serverSocket,
         "vip_" + getName(),
         accConfig_.strictSSL, stats);
     }
-    for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
-      sslCtxManager_->addSSLContextConfig(
-        sslCtxConfig,
-        accConfig_.sslCacheOptions,
-        &accConfig_.initialTicketSeeds,
-        accConfig_.bindAddress,
-        cacheProvider_);
-      parseClientHello_ |= sslCtxConfig.clientHelloParsingEnabled;
+    try {
+      for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
+        sslCtxManager_->addSSLContextConfig(
+          sslCtxConfig,
+          accConfig_.sslCacheOptions,
+          &accConfig_.initialTicketSeeds,
+          accConfig_.bindAddress,
+          cacheProvider_);
+        parseClientHello_ |= sslCtxConfig.clientHelloParsingEnabled;
+      }
+
+      CHECK(sslCtxManager_->getDefaultSSLCtx());
+    } catch (const std::runtime_error& ex) {
+      sslCtxManager_->clear();
+      LOG(ERROR) << "Failed to configure TLS: " << ex.what();
     }
-
-    CHECK(sslCtxManager_->getDefaultSSLCtx());
   }
-
   base_ = eventBase;
   state_ = State::kRunning;
   downstreamConnectionManager_ = ConnectionManager::makeUnique(
@@ -94,6 +98,21 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       }
     }
   }
+}
+
+void Acceptor::resetSSLContextConfigs() {
+  try {
+    sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
+                                           accConfig_.sslCacheOptions,
+                                           &accConfig_.initialTicketSeeds,
+                                           accConfig_.bindAddress,
+                                           cacheProvider_);
+  } catch (const std::runtime_error& ex) {
+    LOG(ERROR) << "Failed to re-configure TLS: "
+               << ex.what()
+               << "will keep old config";
+  }
+
 }
 
 Acceptor::~Acceptor(void) {
@@ -191,8 +210,12 @@ Acceptor::processEstablishedConnection(
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) noexcept {
+  bool shouldDoSSL = false;
   if (accConfig_.isSSL()) {
     CHECK(sslCtxManager_);
+    shouldDoSSL = sslCtxManager_->getDefaultSSLCtx() != nullptr;
+  }
+  if (shouldDoSSL) {
     AsyncSSLSocket::UniquePtr sslSock(
       makeNewAsyncSSLSocket(
         sslCtxManager_->getDefaultSSLCtx(), base_, fd));

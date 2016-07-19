@@ -20,11 +20,19 @@ using namespace folly;
 
 namespace wangle {
 
+class SSLContextManagerForTest : public SSLContextManager {
+ public:
+  using SSLContextManager::SSLContextManager;
+  using SSLContextManager::insertSSLCtxByDomainName;
+};
+
 TEST(SSLContextManagerTest, Test1)
 {
   EventBase eventBase;
-  SSLContextManager sslCtxMgr(&eventBase, "vip_ssl_context_manager_test_",
-                              true, nullptr);
+  SSLContextManagerForTest sslCtxMgr(&eventBase,
+                                     "vip_ssl_context_manager_test_",
+                                     true,
+                                     nullptr);
   auto www_facebook_com_ctx = std::make_shared<SSLContext>();
   auto start_facebook_com_ctx = std::make_shared<SSLContext>();
   auto start_abc_facebook_com_ctx = std::make_shared<SSLContext>();
@@ -114,8 +122,10 @@ TEST(SSLContextManagerTest, Test1)
 TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
 {
   EventBase eventBase;
-  SSLContextManager sslCtxMgr(&eventBase, "vip_ssl_context_manager_test_",
-                              true, nullptr);
+  SSLContextManagerForTest sslCtxMgr(&eventBase,
+                                     "vip_ssl_context_manager_test_",
+                                     true,
+                                     nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.addCertificate(
@@ -143,8 +153,10 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
 TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
 {
   EventBase eventBase;
-  SSLContextManager sslCtxMgr(&eventBase, "vip_ssl_context_manager_test_",
-                              true, nullptr);
+  SSLContextManagerForTest sslCtxMgr(&eventBase,
+                                     "vip_ssl_context_manager_test_",
+                                     true,
+                                     nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.sessionCacheEnabled = false;

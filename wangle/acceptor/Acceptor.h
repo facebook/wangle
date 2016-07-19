@@ -80,6 +80,11 @@ class Acceptor :
                     SSLStats* stats = nullptr);
 
   /**
+   * Recreates ssl configs, re-reads certs
+   */
+  void resetSSLContextConfigs();
+
+  /**
    * Dynamically add a new SSLContextConfig
    */
   void addSSLContextConfig(const SSLContextConfig& sslCtxConfig);

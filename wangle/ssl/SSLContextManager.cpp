@@ -167,12 +167,66 @@ SSLContextManager::SSLContextManager(
     strict_(strict) {
 }
 
+void SSLContextManager::SslContexts::swap(SslContexts& other) noexcept {
+  ctxs.swap(other.ctxs);
+  sessionCacheManagers.swap(other.sessionCacheManagers);
+  ticketManagers.swap(other.ticketManagers);
+  defaultCtx.swap(other.defaultCtx);
+  defaultCtxDomainName.swap(other.defaultCtxDomainName);
+  dnMap.swap(other.dnMap);
+}
+
+void SSLContextManager::SslContexts::clear() {
+  ctxs.clear();
+  sessionCacheManagers.clear();
+  ticketManagers.clear();
+  defaultCtx = nullptr;
+  defaultCtxDomainName.clear();
+  dnMap.clear();
+}
+
+void SSLContextManager::resetSSLContextConfigs(
+  const std::vector<SSLContextConfig>& ctxConfigs,
+  const SSLCacheOptions& cacheOptions,
+  const TLSTicketKeySeeds* ticketSeeds,
+  const folly::SocketAddress& vipAddress,
+  const std::shared_ptr<SSLCacheProvider>& externalCache) {
+
+  SslContexts contexts;
+  for (const auto& ctxConfig : ctxConfigs) {
+    addSSLContextConfigUnsafe(ctxConfig,
+                              cacheOptions,
+                              ticketSeeds,
+                              vipAddress,
+                              externalCache,
+                              contexts);
+  }
+  folly::SharedMutex::WriteHolder wh(contextsMutex_);
+  contexts_.swap(contexts);
+}
+
 void SSLContextManager::addSSLContextConfig(
   const SSLContextConfig& ctxConfig,
   const SSLCacheOptions& cacheOptions,
   const TLSTicketKeySeeds* ticketSeeds,
   const folly::SocketAddress& vipAddress,
   const std::shared_ptr<SSLCacheProvider>& externalCache) {
+    folly::SharedMutex::WriteHolder wh(contextsMutex_);
+    addSSLContextConfigUnsafe(ctxConfig,
+                              cacheOptions,
+                              ticketSeeds,
+                              vipAddress,
+                              externalCache,
+                              contexts_);
+}
+
+void SSLContextManager::addSSLContextConfigUnsafe(
+  const SSLContextConfig& ctxConfig,
+  const SSLCacheOptions& cacheOptions,
+  const TLSTicketKeySeeds* ticketSeeds,
+  const folly::SocketAddress& vipAddress,
+  const std::shared_ptr<SSLCacheProvider>& externalCache,
+  SslContexts& contexts) {
 
   unsigned numCerts = 0;
   std::string commonName;
@@ -362,13 +416,14 @@ void SSLContextManager::addSSLContextConfig(
     createTicketManagerHelper(sslCtx, ticketSeeds, ctxConfig, stats_);
 
   // finalize sslCtx setup by the individual features supported by openssl
-  ctxSetupByOpensslFeature(sslCtx, ctxConfig);
+  ctxSetupByOpensslFeature(sslCtx, ctxConfig, contexts);
 
   try {
     insert(sslCtx,
            std::move(sessionCacheManager),
            std::move(ticketManager),
-           ctxConfig.isDefault);
+           ctxConfig.isDefault,
+           contexts);
   } catch (const std::exception& ex) {
     string msg = folly::to<string>("Error adding certificate : ",
                                    folly::exceptionStr(ex));
@@ -391,7 +446,9 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
       clientHelloTLSExtStats_->recordAbsentHostname();
     }
     reqHasServerName = false;
-    sn = defaultCtxDomainName_.c_str();
+
+    folly::SharedMutex::ReadHolder rh(contextsMutex_);
+    sn = contexts_.defaultCtxDomainName.c_str();
   }
   size_t snLen = strlen(sn);
   VLOG(6) << "Server Name (SNI TLS extension): '" << sn << "' ";
@@ -469,7 +526,8 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
 void
 SSLContextManager::ctxSetupByOpensslFeature(
   shared_ptr<folly::SSLContext> sslCtx,
-  const SSLContextConfig& ctxConfig) {
+  const SSLContextConfig& ctxConfig,
+  SslContexts& contexts) {
   // Disable compression - profiling shows this to be very expensive in
   // terms of CPU and memory consumption.
   //
@@ -528,17 +586,17 @@ SSLContextManager::ctxSetupByOpensslFeature(
 #ifdef PROXYGEN_HAVE_SERVERNAMECALLBACK
   noMatchFn_ = ctxConfig.sniNoMatchFn;
   if (ctxConfig.isDefault) {
-    if (defaultCtx_) {
+    if (contexts.defaultCtx) {
       throw std::runtime_error(">1 X509 is set as default");
     }
 
-    defaultCtx_ = sslCtx;
-    defaultCtx_->setServerNameCallback(
+    contexts.defaultCtx = sslCtx;
+    contexts.defaultCtx->setServerNameCallback(
       std::bind(&SSLContextManager::serverNameCallback, this,
                 std::placeholders::_1));
   }
 #else
-  if (ctxs_.size() > 1) {
+  if (configs.ctxs.size() > 1) {
     OPENSSL_MISSING_FEATURE(SNI);
   }
 #endif
@@ -548,7 +606,8 @@ void
 SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
                           std::unique_ptr<SSLSessionCacheManager> smanager,
                           std::unique_ptr<TLSTicketKeyManager> tmanager,
-                          bool defaultFallback) {
+                          bool defaultFallback,
+                          SslContexts& contexts) {
   X509* x509 = getX509(sslCtx->getSSLCtx());
   auto guard = folly::makeGuard([x509] { X509_free(x509); });
   auto cn = SSLUtil::getCommonName(x509);
@@ -580,9 +639,9 @@ SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
     if (!defaultFallback) {
       throw std::runtime_error("STAR X509 is not the default");
     }
-    ctxs_.emplace_back(sslCtx);
-    sessionCacheManagers_.emplace_back(std::move(smanager));
-    ticketManagers_.emplace_back(std::move(tmanager));
+    contexts.ctxs.emplace_back(sslCtx);
+    contexts.sessionCacheManagers.emplace_back(std::move(smanager));
+    contexts.ticketManagers.emplace_back(std::move(tmanager));
     return;
   }
 
@@ -598,31 +657,41 @@ SSLContextManager::insert(shared_ptr<SSLContext> sslCtx,
   }
 
   // Insert by CN
-  insertSSLCtxByDomainName(cn->c_str(), cn->length(), sslCtx, certCrypto);
+  insertSSLCtxByDomainName(cn->c_str(),
+                           cn->length(),
+                           sslCtx,
+                           contexts,
+                           certCrypto);
 
   // Insert by subject alternative name(s)
   auto altNames = SSLUtil::getSubjectAltName(x509);
   if (altNames) {
     for (auto& name : *altNames) {
-      insertSSLCtxByDomainName(name.c_str(), name.length(), sslCtx, certCrypto);
+      insertSSLCtxByDomainName(name.c_str(),
+                               name.length(),
+                               sslCtx,
+                               contexts,
+                               certCrypto);
     }
   }
 
   if (defaultFallback) {
-    defaultCtxDomainName_ = *cn;
+    contexts.defaultCtxDomainName = *cn;
   }
 
-  ctxs_.emplace_back(sslCtx);
-  sessionCacheManagers_.emplace_back(std::move(smanager));
-  ticketManagers_.emplace_back(std::move(tmanager));
+  contexts.ctxs.emplace_back(sslCtx);
+  contexts.sessionCacheManagers.emplace_back(std::move(smanager));
+  contexts.ticketManagers.emplace_back(std::move(tmanager));
 }
 
 void
-SSLContextManager::insertSSLCtxByDomainName(const char* dn, size_t len,
+SSLContextManager::insertSSLCtxByDomainName(const char* dn,
+                                            size_t len,
                                             shared_ptr<SSLContext> sslCtx,
+                                            SslContexts& contexts,
                                             CertCrypto certCrypto) {
   try {
-    insertSSLCtxByDomainNameImpl(dn, len, sslCtx, certCrypto);
+    insertSSLCtxByDomainNameImpl(dn, len, sslCtx, contexts, certCrypto);
   } catch (const std::runtime_error& ex) {
     if (strict_) {
       throw ex;
@@ -632,8 +701,10 @@ SSLContextManager::insertSSLCtxByDomainName(const char* dn, size_t len,
   }
 }
 void
-SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn, size_t len,
+SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn,
+                                                size_t len,
                                                 shared_ptr<SSLContext> sslCtx,
+                                                SslContexts& contexts,
                                                 CertCrypto certCrypto)
 {
   VLOG(4) <<
@@ -666,24 +737,28 @@ SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn, size_t len,
   }
 
   DNString dnstr(dn, len);
-  insertIntoDnMap(SSLContextKey(dnstr, certCrypto), sslCtx, true);
+  insertIntoDnMap(SSLContextKey(dnstr, certCrypto), sslCtx, true, contexts);
   if (certCrypto != CertCrypto::BEST_AVAILABLE) {
     // Note: there's no partial ordering here (you either get what you request,
     // or you get best available).
     VLOG(6) << "Attempting insert of weak crypto SSLContext as best available.";
     insertIntoDnMap(
-        SSLContextKey(dnstr, CertCrypto::BEST_AVAILABLE), sslCtx, false);
+        SSLContextKey(dnstr, CertCrypto::BEST_AVAILABLE),
+        sslCtx,
+        false,
+        contexts);
   }
 }
 
 void SSLContextManager::insertIntoDnMap(SSLContextKey key,
                                         shared_ptr<SSLContext> sslCtx,
-                                        bool overwrite)
+                                        bool overwrite,
+                                        SslContexts& contexts)
 {
-  const auto v = dnMap_.find(key);
-  if (v == dnMap_.end()) {
+  const auto v = contexts.dnMap.find(key);
+  if (v == contexts.dnMap.end()) {
     VLOG(6) << "Inserting SSLContext into map.";
-    dnMap_.emplace(key, sslCtx);
+    contexts.dnMap.emplace(key, sslCtx);
   } else if (v->second == sslCtx) {
     VLOG(6)<< "Duplicate CN or subject alternative name found in the same X509."
       "  Ignore the later name.";
@@ -695,9 +770,15 @@ void SSLContextManager::insertIntoDnMap(SSLContextKey key,
   }
 }
 
+void SSLContextManager::clear() {
+  folly::SharedMutex::WriteHolder wh(contextsMutex_);
+  contexts_.clear();
+}
+
 shared_ptr<SSLContext>
 SSLContextManager::getSSLCtx(const SSLContextKey& key) const
 {
+  folly::SharedMutex::ReadHolder rh(contextsMutex_);
   auto ctx = getSSLCtxByExactDomain(key);
   if (ctx) {
     return ctx;
@@ -711,10 +792,11 @@ SSLContextManager::getSSLCtxBySuffix(const SSLContextKey& key) const
   size_t dot;
 
   if ((dot = key.dnString.find_first_of(".")) != DNString::npos) {
+    folly::SharedMutex::ReadHolder rh(contextsMutex_);
     SSLContextKey suffixKey(DNString(key.dnString, dot),
         key.certCrypto);
-    const auto v = dnMap_.find(suffixKey);
-    if (v != dnMap_.end()) {
+    const auto v = contexts_.dnMap.find(suffixKey);
+    if (v != contexts_.dnMap.end()) {
       VLOG(6) << folly::stringPrintf("\"%s\" is a willcard match to \"%s\"",
                                      key.dnString.c_str(),
                                      suffixKey.dnString.c_str());
@@ -730,8 +812,9 @@ SSLContextManager::getSSLCtxBySuffix(const SSLContextKey& key) const
 shared_ptr<SSLContext>
 SSLContextManager::getSSLCtxByExactDomain(const SSLContextKey& key) const
 {
-  const auto v = dnMap_.find(key);
-  if (v == dnMap_.end()) {
+  folly::SharedMutex::ReadHolder rh(contextsMutex_);
+  const auto v = contexts_.dnMap.find(key);
+  if (v == contexts_.dnMap.end()) {
     VLOG(6) << folly::stringPrintf("\"%s\" is not an exact match",
                                    key.dnString.c_str());
     return shared_ptr<SSLContext>();
@@ -743,8 +826,9 @@ SSLContextManager::getSSLCtxByExactDomain(const SSLContextKey& key) const
 }
 
 shared_ptr<SSLContext>
-SSLContextManager::getDefaultSSLCtx() const {
-  return defaultCtx_;
+SSLContextManager::getDefaultSSLCtx() const{
+  folly::SharedMutex::ReadHolder rh(contextsMutex_);
+  return contexts_.defaultCtx;
 }
 
 void
@@ -753,7 +837,8 @@ SSLContextManager::reloadTLSTicketKeys(
   const std::vector<std::string>& currentSeeds,
   const std::vector<std::string>& newSeeds) {
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-  for (auto& tmgr: ticketManagers_) {
+  folly::SharedMutex::ReadHolder rh(contextsMutex_);
+  for (auto& tmgr: contexts_.ticketManagers) {
     tmgr->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
   }
 #endif
