@@ -74,6 +74,11 @@ class CachePersistence {
    */
   virtual folly::Optional<folly::dynamic> load() noexcept = 0;
 
+  /**
+   * Clears Persistent cache
+   */
+  virtual void clear() = 0;
+
  private:
   CacheDataVersion persistedVersion_;
 };
@@ -96,7 +101,7 @@ class CachePersistence {
  */
 template<typename K, typename V, typename MutexT = std::mutex>
 class LRUPersistentCache : public PersistentCache<K, V>,
-                            private boost::noncopyable {
+                           private boost::noncopyable {
   static_assert(std::is_convertible<K, folly::dynamic>::value &&
                 std::is_convertible<V, folly::dynamic>::value,
                 "Key and Value types must be convertible to dynamic");
@@ -156,8 +161,14 @@ class LRUPersistentCache : public PersistentCache<K, V>,
     return cache_.remove(key);
   }
 
-  void clear() override {
+  void clear(bool clearPersistence = false) override {
     cache_.clear();
+    if (clearPersistence) {
+      auto persistence = getPersistence();
+      if (persistence) {
+        persistence->clear();
+      }
+    }
   }
 
   size_t size() override {

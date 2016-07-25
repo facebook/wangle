@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook.  All rights reserved.
+/*
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 #pragma once
 
 #include <folly/Optional.h>
@@ -46,7 +54,7 @@ class PersistentCache {
     /**
      * Empty the contents of the cache
      */
-    virtual void clear() = 0;
+    virtual void clear(bool clearPersistence = false) = 0;
 
     /**
      * return the size of the cache

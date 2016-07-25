@@ -9,7 +9,9 @@
  */
 #pragma once
 
+
 #include <folly/FileUtil.h>
+#include <folly/portability/Unistd.h>
 #include <folly/json.h>
 
 namespace wangle {
@@ -23,6 +25,8 @@ class FilePersistenceLayer : public CachePersistence<K, V> {
   bool persist(const folly::dynamic& arrayOfKvPairs) noexcept override;
 
   folly::Optional<folly::dynamic> load() noexcept override;
+
+  void clear() override;
 
  private:
   std::string file_;
@@ -94,6 +98,12 @@ folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
   return folly::none;
 }
 
+template<typename K, typename V>
+void FilePersistenceLayer<K, V>::clear() {
+  // This may fail but it's ok
+  ::unlink(file_.c_str());
+}
+
 template<typename K, typename V, typename M>
 FilePersistentCache<K, V, M>::FilePersistentCache(
   const std::string& file,
@@ -104,5 +114,4 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
         std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
         nSyncRetries,
         folly::make_unique<FilePersistenceLayer<K, V>>(file)) {}
-
 } // namespace wangle

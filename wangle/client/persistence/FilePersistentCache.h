@@ -57,8 +57,8 @@ class FilePersistentCache : public PersistentCache<K, V>,
     return cache_.remove(key);
   }
 
-  void clear() override {
-    cache_.clear();
+  void clear(bool clearPersistence = false) override {
+    cache_.clear(clearPersistence);
   }
 
   size_t size() override {

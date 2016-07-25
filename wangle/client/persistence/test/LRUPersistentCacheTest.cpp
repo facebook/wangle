@@ -53,6 +53,7 @@ class MockPersistenceLayer : public TestPersistenceLayer {
     CacheDataVersion getLastPersistedVersionConcrete() const {
       return TestPersistenceLayer::getLastPersistedVersion();
     }
+    MOCK_METHOD0(clear, void());
     MOCK_METHOD1(persist_, bool(const dynamic&));
     MOCK_METHOD0(load_, Optional<dynamic>());
     MOCK_CONST_METHOD0(getLastPersistedVersion, CacheDataVersion());
@@ -164,4 +165,16 @@ TYPED_TEST(LRUPersistentCacheTest, PersistentSetBeforeSyncer) {
           this->persistence.get(),
           &MockPersistenceLayer::getLastPersistedVersionConcrete));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+}
+
+TYPED_TEST(LRUPersistentCacheTest, ClearKeepPersist) {
+  EXPECT_CALL(*this->persistence, clear()).Times(0);
+  auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->clear();
+}
+
+TYPED_TEST(LRUPersistentCacheTest, ClearDontKeepPersist) {
+  EXPECT_CALL(*this->persistence, clear()).Times(1);
+  auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->clear(true);
 }
