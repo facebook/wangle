@@ -596,7 +596,7 @@ SSLContextManager::ctxSetupByOpensslFeature(
                 std::placeholders::_1));
   }
 #else
-  if (configs.ctxs.size() > 1) {
+  if (contexts.ctxs.size() > 1) {
     OPENSSL_MISSING_FEATURE(SNI);
   }
 #endif
