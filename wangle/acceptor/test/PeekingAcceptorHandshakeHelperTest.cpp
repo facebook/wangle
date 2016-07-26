@@ -123,107 +123,62 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
 };
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekSuccess) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start(std::move(sockPtr_), &callback_);
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
-  EXPECT_EQ(2, len);
   // first 2 bytes of SSL3+.
+  std::array<uint8_t, 2> buf;
   buf[0] = 0x16;
   buf[1] = 0x03;
-  helper_->readDataAvailable(1);
   EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(helperPtr_.release()));
   EXPECT_CALL(*innerHelper_, startInternal(_, _));
-  EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  EXPECT_CALL(*sslSock_, setPeek(false));
-  helper_->readDataAvailable(2);
+  helper_->peekSuccess(buf);
 }
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekNonSuccess) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start(std::move(sockPtr_), &callback_);
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
-  EXPECT_EQ(2, len);
   // first 2 bytes of SSL3+.
+  std::array<uint8_t, 2> buf;
   buf[0] = 0x16;
   buf[1] = 0x03;
-  helper_->readDataAvailable(1);
   EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(nullptr));
-  EXPECT_CALL(*sslSock_, setReadCB(nullptr))
-    .Times(AtLeast(1));
-  EXPECT_CALL(*sslSock_, setPeek(false));
   EXPECT_CALL(callback_, connectionError(_));
-  helper_->readDataAvailable(2);
+  helper_->peekSuccess(buf);
 }
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
-  helper_->start(std::move(sockPtr_), &callback_);
-  EXPECT_CALL(callback_, connectionError(_));
+  AsyncTransportWrapper::ReadCallback* rcb;
+  EXPECT_CALL(*sslSock_, setReadCB(_))
+    .WillOnce(SaveArg<0>(&rcb));
   EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  helper_->readEOF();
+  EXPECT_CALL(callback_, connectionError(_));
+  helper_->start(std::move(sockPtr_), &callback_);
+  ASSERT_TRUE(rcb);
+  rcb->readEOF();
 }
 
-TEST_F(PeekingAcceptorHandshakeHelperTest, TestErrAfterData) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
+TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekErr) {
   helper_->start(std::move(sockPtr_), &callback_);
-
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
-  EXPECT_EQ(2, len);
-  // first 2 bytes of SSL3+.
-  buf[0] = 0x16;
-  helper_->readDataAvailable(1);
-
   EXPECT_CALL(callback_, connectionError(_));
-  EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  helper_->readErr(AsyncSocketException(
+  helper_->peekError(AsyncSocketException(
         AsyncSocketException::AsyncSocketExceptionType::END_OF_FILE,
           "Unit test"));
 }
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropDuringPeek) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start(std::move(sockPtr_), &callback_);
 
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
-  EXPECT_EQ(2, len);
-  // first 2 bytes of SSL3+.
-  buf[0] = 0x16;
-  helper_->readDataAvailable(1);
-
-  InSequence s;
-
-  EXPECT_CALL(*sslSock_, closeNow());
-  helper_->dropConnection();
-  EXPECT_CALL(callback_, connectionError(_));
-  EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  helper_->readErr(AsyncSocketException(
+  EXPECT_CALL(*sslSock_, closeNow()).Times(AtLeast(1)).WillOnce(Invoke([&] {
+    helper_->peekError(AsyncSocketException(
         AsyncSocketException::AsyncSocketExceptionType::UNKNOWN, "unit test"));
-  EXPECT_CALL(*sslSock_, closeNow());
+  }));
+  EXPECT_CALL(callback_, connectionError(_));
+  helper_->dropConnection();
 }
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropAfterPeek) {
-  EXPECT_CALL(*sslSock_, setReadCB(_));
-  EXPECT_CALL(*sslSock_, setPeek(true));
   helper_->start(std::move(sockPtr_), &callback_);
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  helper_->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
-  EXPECT_EQ(2, len);
+  std::array<uint8_t, 2> buf;
   // first 2 bytes of SSL3+.
   buf[0] = 0x16;
   buf[1] = 0x03;
@@ -231,9 +186,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropAfterPeek) {
   EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(helperPtr_.release()));
   EXPECT_CALL(*innerHelper_, startInternal(_, _));
-  EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  EXPECT_CALL(*sslSock_, setPeek(false));
-  helper_->readDataAvailable(2);
+  helper_->peekSuccess(buf);
 
   EXPECT_CALL(*innerHelper_, dropConnection(_));
   helper_->dropConnection();
