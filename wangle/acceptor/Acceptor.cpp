@@ -242,7 +242,7 @@ Acceptor::processEstablishedConnection(
     tinfo.ssl = false;
     tinfo.acceptTime = acceptTime;
     AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd));
-    connectionReady(
+    plaintextConnectionReady(
         std::move(sock),
         clientAddr,
         empty_string,
@@ -284,6 +284,20 @@ Acceptor::connectionReady(
   onNewConnection(
       std::move(sock),
       &clientAddr,
+      nextProtocolName,
+      secureTransportType,
+      tinfo);
+}
+
+void Acceptor::plaintextConnectionReady(
+    AsyncTransportWrapper::UniquePtr sock,
+    const SocketAddress& clientAddr,
+    const string& nextProtocolName,
+    SecureTransportType secureTransportType,
+    TransportInfo& tinfo) {
+  connectionReady(
+      std::move(sock),
+      clientAddr,
       nextProtocolName,
       secureTransportType,
       tinfo);

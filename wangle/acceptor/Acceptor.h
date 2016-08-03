@@ -230,6 +230,30 @@ class Acceptor :
   void drainConnections(double pctToDrain);
 
   /**
+   * Wrapper for connectionReady() that can be overridden by
+   * subclasses to deal with plaintext connections.
+   */
+   virtual void plaintextConnectionReady(
+      folly::AsyncTransportWrapper::UniquePtr sock,
+      const folly::SocketAddress& clientAddr,
+      const std::string& nextProtocolName,
+      SecureTransportType secureTransportType,
+      TransportInfo& tinfo);
+
+  /**
+   * Process a connection that is to ready to receive L7 traffic.
+   * This method is called immediately upon accept for plaintext
+   * connections and upon completion of SSL handshaking or resumption
+   * for SSL connections.
+   */
+   void connectionReady(
+      folly::AsyncTransportWrapper::UniquePtr sock,
+      const folly::SocketAddress& clientAddr,
+      const std::string& nextProtocolName,
+      SecureTransportType secureTransportType,
+      TransportInfo& tinfo);
+
+  /**
    * Wrapper for connectionReady() that decrements the count of
    * pending SSL connections. This should normally not be overridden.
    */
@@ -348,19 +372,6 @@ class Acceptor :
   void onEmpty(const wangle::ConnectionManager& cm);
   void onConnectionAdded(const wangle::ConnectionManager& /*cm*/) {}
   void onConnectionRemoved(const wangle::ConnectionManager& /*cm*/) {}
-
-  /**
-   * Process a connection that is to ready to receive L7 traffic.
-   * This method is called immediately upon accept for plaintext
-   * connections and upon completion of SSL handshaking or resumption
-   * for SSL connections.
-   */
-   void connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr sock,
-      const folly::SocketAddress& clientAddr,
-      const std::string& nextProtocolName,
-      SecureTransportType secureTransportType,
-      TransportInfo& tinfo);
 
   const LoadShedConfiguration& getLoadShedConfiguration() const {
     return loadShedConfig_;
