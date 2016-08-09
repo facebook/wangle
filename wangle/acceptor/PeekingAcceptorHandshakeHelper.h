@@ -19,24 +19,33 @@ namespace wangle {
  * SSL and other protocols, so that we can run both
  * SSL and other protocols over the same port at the
  * same time.
- * The mechanism used by this is to peek the first N
+ * The mechanism used by this is to peek the first numBytes
  * bytes of the socket and send it to the peek helper
  * to decide which protocol it is.
  */
-template <size_t N>
 class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
-                                       public SocketPeeker<N>::Callback {
+                                       public SocketPeeker::Callback {
  public:
   class PeekCallback {
    public:
-    virtual ~PeekCallback() {}
+    explicit PeekCallback(size_t bytesRequired):
+      bytesRequired_(bytesRequired) {}
+
+    virtual ~PeekCallback() = default;
+
+    size_t getBytesRequired() const {
+      return bytesRequired_;
+    }
 
     virtual AcceptorHandshakeHelper::UniquePtr getHelper(
-        std::array<uint8_t, N> peekedBytes,
+        const std::vector<uint8_t>& peekedBytes,
         Acceptor* acceptor,
         const folly::SocketAddress& clientAddr,
         std::chrono::steady_clock::time_point acceptTime,
         TransportInfo& tinfo) = 0;
+
+   private:
+    const size_t bytesRequired_;
   };
 
   PeekingAcceptorHandshakeHelper(
@@ -44,12 +53,14 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo,
-      PeekCallback* peekCallback)
+      PeekCallback* peekCallback,
+      size_t numBytes)
       : acceptor_(acceptor),
         clientAddr_(clientAddr),
         acceptTime_(acceptTime),
         tinfo_(tinfo),
-        peekCallback_(peekCallback) {}
+        peekCallback_(peekCallback),
+        numBytes_(numBytes) {}
 
   // From AcceptorHandshakeHelper
   virtual void start(
@@ -60,7 +71,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     CHECK_EQ(
         socket_->getSSLState(),
         folly::AsyncSSLSocket::SSLStateEnum::STATE_UNENCRYPTED);
-    peeker_.reset(new SocketPeeker<N>(*socket_, this));
+    peeker_.reset(new SocketPeeker(*socket_, this, numBytes_));
     peeker_->start();
   }
 
@@ -74,7 +85,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     }
   }
 
-  void peekSuccess(std::array<uint8_t, N> peekBytes) noexcept override {
+  void peekSuccess(std::vector<uint8_t> peekBytes) noexcept override {
     folly::DelayedDestruction::DestructorGuard dg(this);
     peeker_ = nullptr;
 
@@ -107,7 +118,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
 
   folly::AsyncSSLSocket::UniquePtr socket_;
   AcceptorHandshakeHelper::UniquePtr helper_;
-  typename SocketPeeker<N>::UniquePtr peeker_;
+  SocketPeeker::UniquePtr peeker_;
 
   Acceptor* acceptor_;
   AcceptorHandshakeHelper::Callback* callback_;
@@ -115,9 +126,9 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   std::chrono::steady_clock::time_point acceptTime_;
   TransportInfo& tinfo_;
   PeekCallback* peekCallback_;
+  size_t numBytes_;
 };
 
-template<size_t N>
 class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
  public:
   PeekingAcceptorHandshakeManager(
@@ -125,26 +136,30 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
         const folly::SocketAddress& clientAddr,
         std::chrono::steady_clock::time_point acceptTime,
         TransportInfo tinfo,
-        typename PeekingAcceptorHandshakeHelper<N>::PeekCallback* peekCallback):
+        PeekingAcceptorHandshakeHelper::PeekCallback* peekCallback,
+        size_t numBytes):
       AcceptorHandshakeManager(
           acceptor,
           clientAddr,
           acceptTime,
           std::move(tinfo)),
-      peekCallback_(peekCallback) {}
+      peekCallback_(peekCallback),
+      numBytes_(numBytes) {}
 
  protected:
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
-    helper_.reset(new PeekingAcceptorHandshakeHelper<N>(
+    helper_.reset(new PeekingAcceptorHandshakeHelper(
         acceptor_,
         clientAddr_,
         acceptTime_,
         tinfo_,
-        peekCallback_));
+        peekCallback_,
+        numBytes_));
     helper_->start(std::move(sock), this);
   }
 
-  typename PeekingAcceptorHandshakeHelper<N>::PeekCallback* peekCallback_;
+  PeekingAcceptorHandshakeHelper::PeekCallback* peekCallback_;
+  size_t numBytes_;
 };
 
 }

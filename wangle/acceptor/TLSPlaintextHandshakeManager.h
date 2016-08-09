@@ -25,12 +25,15 @@ class TLSPlaintextHandshakeManager : public AcceptorHandshakeManager {
 
 private:
   enum { kPeekCount = 9 };
-  using PeekingHelper = PeekingAcceptorHandshakeHelper<kPeekCount>;
+  using PeekingHelper = PeekingAcceptorHandshakeHelper;
 
   class PeekingCallback : public PeekingHelper::PeekCallback {
     public:
+      PeekingCallback():
+        PeekingHelper::PeekCallback(kPeekCount) {}
+
       virtual AcceptorHandshakeHelper::UniquePtr getHelper(
-          std::array<uint8_t, kPeekCount> bytes,
+          const std::vector<uint8_t>& bytes,
           Acceptor* acceptor,
           const folly::SocketAddress& clientAddr,
           std::chrono::steady_clock::time_point acceptTime,
@@ -39,13 +42,18 @@ private:
 
  protected:
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
-    helper_.reset(new PeekingAcceptorHandshakeHelper<kPeekCount>(
-        acceptor_, clientAddr_, acceptTime_, tinfo_, &peekCallback_));
+    helper_.reset(new PeekingAcceptorHandshakeHelper(
+        acceptor_,
+        clientAddr_,
+        acceptTime_,
+        tinfo_,
+        &peekCallback_,
+        peekCallback_.getBytesRequired()));
     helper_->start(std::move(sock), this);
   }
 
  private:
-  static bool looksLikeTLS(const std::array<uint8_t, kPeekCount>& peekBytes);
+  static bool looksLikeTLS(const std::vector<uint8_t>& peekBytes);
 
   PeekingCallback peekCallback_;
 };

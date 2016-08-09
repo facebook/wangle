@@ -15,7 +15,6 @@
 
 namespace wangle {
 
-template <size_t N>
 class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
                      public folly::DelayedDestruction {
  public:
@@ -25,21 +24,28 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
   class Callback {
    public:
     virtual ~Callback() = default;
-    virtual void peekSuccess(std::array<uint8_t, N> data) noexcept = 0;
+    virtual void peekSuccess(std::vector<uint8_t> data) noexcept = 0;
     virtual void peekError(const folly::AsyncSocketException& ex) noexcept = 0;
   };
 
-  SocketPeeker(folly::AsyncSocket& socket, Callback* callback)
-      : socket_(socket), callback_(callback) {}
+  SocketPeeker(folly::AsyncSocket& socket, Callback* callback, size_t numBytes)
+      : socket_(socket), callback_(callback), peekBytes_(numBytes) {}
 
   void start() {
-    socket_.setPeek(true);
-    socket_.setReadCB(this);
+    if (peekBytes_.size() == 0) {
+      // No peeking necessary.
+      auto callback = callback_;
+      callback_ = nullptr;
+      callback->peekSuccess(std::move(peekBytes_));
+    } else {
+      socket_.setPeek(true);
+      socket_.setReadCB(this);
+    }
   }
 
   void getReadBuffer(void** bufReturn, size_t* lenReturn) override {
     *bufReturn = reinterpret_cast<void*>(peekBytes_.data());
-    *lenReturn = N;
+    *lenReturn = peekBytes_.size();
   }
 
   void readEOF() noexcept override {
@@ -67,7 +73,7 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
     // Peek does not advance the socket buffer, so we will
     // always re-read the existing bytes, so we should only
     // consider it a successful peek if we read all N bytes.
-    if (len != N) {
+    if (len != peekBytes_.size()) {
       return;
     }
     unsetPeek();
@@ -97,6 +103,6 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
  private:
   folly::AsyncSocket& socket_;
   Callback* callback_;
-  std::array<uint8_t, N> peekBytes_;
+  std::vector<uint8_t> peekBytes_;
 };
 }

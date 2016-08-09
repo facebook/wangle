@@ -20,7 +20,7 @@ using namespace folly::test;
 using namespace wangle;
 using namespace testing;
 
-class MockSocketPeekerCallback : public SocketPeeker<2>::Callback {
+class MockSocketPeekerCallback : public SocketPeeker::Callback {
  public:
   ~MockSocketPeekerCallback() = default;
 
@@ -29,7 +29,7 @@ class MockSocketPeekerCallback : public SocketPeeker<2>::Callback {
       noexcept,
       ,
       peekSuccess,
-      void(typename std::array<uint8_t, 2>));
+      void(typename std::vector<uint8_t>));
   GMOCK_METHOD1_(
       ,
       noexcept,
@@ -63,7 +63,7 @@ MATCHER_P2(BufMatches, buf, len, "") {
 TEST_F(SocketPeekerTest, TestPeekSuccess) {
   EXPECT_CALL(*sock, setReadCB(_));
   EXPECT_CALL(*sock, setPeek(true));
-  SocketPeeker<2>::UniquePtr peeker(new SocketPeeker<2>(*sock, &callback));
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
   uint8_t* buf = nullptr;
@@ -84,7 +84,7 @@ TEST_F(SocketPeekerTest, TestPeekSuccess) {
 TEST_F(SocketPeekerTest, TestEOFDuringPeek) {
   EXPECT_CALL(*sock, setReadCB(_));
   EXPECT_CALL(*sock, setPeek(true));
-  SocketPeeker<2>::UniquePtr peeker(new SocketPeeker<2>(*sock, &callback));
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
   EXPECT_CALL(callback, peekError(_));
@@ -96,7 +96,7 @@ TEST_F(SocketPeekerTest, TestEOFDuringPeek) {
 TEST_F(SocketPeekerTest, TestErrAfterData) {
   EXPECT_CALL(*sock, setReadCB(_));
   EXPECT_CALL(*sock, setPeek(true));
-  SocketPeeker<2>::UniquePtr peeker(new SocketPeeker<2>(*sock, &callback));
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
   uint8_t* buf = nullptr;
@@ -118,7 +118,15 @@ TEST_F(SocketPeekerTest, TestErrAfterData) {
 TEST_F(SocketPeekerTest, TestDestoryWhilePeeking) {
   EXPECT_CALL(*sock, setReadCB(_));
   EXPECT_CALL(*sock, setPeek(true));
-  SocketPeeker<2>::UniquePtr peeker(new SocketPeeker<2>(*sock, &callback));
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
   peeker = nullptr;
+}
+
+TEST_F(SocketPeekerTest, TestNoPeekSuccess) {
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 0));
+
+  char buf = '\0';
+  EXPECT_CALL(callback, peekSuccess(BufMatches(&buf, 0)));
+  peeker->start();
 }

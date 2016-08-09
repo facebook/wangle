@@ -20,20 +20,21 @@ using namespace folly::test;
 using namespace wangle;
 using namespace testing;
 
-template<size_t N>
 class MockPeekingCallback :
-  public PeekingAcceptorHandshakeHelper<N>::PeekCallback {
+  public PeekingAcceptorHandshakeHelper::PeekCallback {
   public:
+    using PeekingAcceptorHandshakeHelper::PeekCallback::PeekCallback;
+
     MOCK_METHOD5_T(getHelperInternal,
         AcceptorHandshakeHelper*(
-            std::array<uint8_t, N>,
+            const std::vector<uint8_t>&,
             Acceptor*,
             const folly::SocketAddress&,
             std::chrono::steady_clock::time_point,
             TransportInfo&));
 
     virtual AcceptorHandshakeHelper::UniquePtr getHelper(
-        std::array<uint8_t, N> peekedBytes,
+        const std::vector<uint8_t>& peekedBytes,
         Acceptor* acceptor,
         const folly::SocketAddress& clientAddr,
         std::chrono::steady_clock::time_point acceptTime,
@@ -94,12 +95,13 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
           true /* defer security negotiation */);
       sockPtr_ = AsyncSSLSocket::UniquePtr(sslSock_);
 
-      helper_ = new PeekingAcceptorHandshakeHelper<2>(
+      helper_ = new PeekingAcceptorHandshakeHelper(
             nullptr,
             sa_,
             std::chrono::steady_clock::now(),
             tinfo_,
-            &peekCallback_);
+            &peekCallback_,
+            2);
 
       innerHelper_ = new MockHandshakeHelper();
       helperPtr_ = AcceptorHandshakeHelper::UniquePtr(innerHelper_);
@@ -110,11 +112,11 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
       helper_->destroy();
     }
 
-    PeekingAcceptorHandshakeHelper<2>* helper_;
+    PeekingAcceptorHandshakeHelper* helper_;
     MockAsyncSSLSocket* sslSock_;
     AsyncSSLSocket::UniquePtr sockPtr_;
     EventBase base_;
-    MockPeekingCallback<2> peekCallback_;
+    MockPeekingCallback peekCallback_{2};
     MockHandshakeHelper* innerHelper_;
     AcceptorHandshakeHelper::UniquePtr helperPtr_;
     StrictMock<MockHandshakeHelperCallback> callback_;
@@ -125,7 +127,7 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekSuccess) {
   helper_->start(std::move(sockPtr_), &callback_);
   // first 2 bytes of SSL3+.
-  std::array<uint8_t, 2> buf;
+  std::vector<uint8_t> buf(2);
   buf[0] = 0x16;
   buf[1] = 0x03;
   EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
@@ -137,7 +139,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekSuccess) {
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekNonSuccess) {
   helper_->start(std::move(sockPtr_), &callback_);
   // first 2 bytes of SSL3+.
-  std::array<uint8_t, 2> buf;
+  std::vector<uint8_t> buf(2);
   buf[0] = 0x16;
   buf[1] = 0x03;
   EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
@@ -178,7 +180,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropDuringPeek) {
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropAfterPeek) {
   helper_->start(std::move(sockPtr_), &callback_);
-  std::array<uint8_t, 2> buf;
+  std::vector<uint8_t> buf(2);
   // first 2 bytes of SSL3+.
   buf[0] = 0x16;
   buf[1] = 0x03;

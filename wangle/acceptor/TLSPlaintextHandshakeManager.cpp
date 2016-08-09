@@ -12,7 +12,8 @@
 namespace wangle {
 
 bool TLSPlaintextHandshakeManager::looksLikeTLS(
-    const std::array<uint8_t, kPeekCount>& bytes) {
+    const std::vector<uint8_t>& bytes) {
+  CHECK_GE(bytes.size(), kPeekCount);
   // TLS starts with
   // 0: 0x16 - handshake magic
   // 1: 0x03 - SSL major version
@@ -27,7 +28,7 @@ bool TLSPlaintextHandshakeManager::looksLikeTLS(
 
 AcceptorHandshakeHelper::UniquePtr
 TLSPlaintextHandshakeManager::PeekingCallback::getHelper(
-    std::array<uint8_t, kPeekCount> bytes,
+    const std::vector<uint8_t>& bytes,
     Acceptor* acceptor,
     const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
