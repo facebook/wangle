@@ -10,13 +10,16 @@
 #pragma once
 
 #include <chrono>
+#include <folly/ExceptionWrapper.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
-#include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>
 
 namespace wangle {
+
+class Acceptor;
 
 class AcceptorHandshakeHelper : public folly::DelayedDestruction {
  public:
@@ -58,12 +61,7 @@ class AcceptorHandshakeManager : public ManagedConnection,
 
   virtual ~AcceptorHandshakeManager() = default;
 
-  virtual void start(
-      folly::AsyncSSLSocket::UniquePtr sock) noexcept {
-    acceptor_->getConnectionManager()->addConnection(this, true);
-    startHelper(std::move(sock));
-    startHandshakeTimeout();
-  }
+  virtual void start(folly::AsyncSSLSocket::UniquePtr sock) noexcept;
 
   virtual void timeoutExpired() noexcept override {
     VLOG(4) << "SSL handshake timeout expired";
@@ -95,33 +93,14 @@ class AcceptorHandshakeManager : public ManagedConnection,
   virtual void connectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,
       std::string nextProtocol,
-      SecureTransportType secureTransportType) noexcept override {
-    acceptor_->getConnectionManager()->removeConnection(this);
-    // We pass TransportInfo by reference even though we're about to destroy it,
-    // so lets hope that anything saving it makes a copy!
-    acceptor_->sslConnectionReady(
-        std::move(transport),
-        std::move(clientAddr_),
-        std::move(nextProtocol),
-        secureTransportType,
-        tinfo_);
-    destroy();
-  }
+      SecureTransportType secureTransportType) noexcept override;
 
   virtual void connectionError(
-      folly::exception_wrapper ex) noexcept override {
-    acceptor_->getConnectionManager()->removeConnection(this);
-    acceptor_->sslConnectionError(std::move(ex));
-    destroy();
-  }
+      folly::exception_wrapper ex) noexcept override;
 
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) = 0;
 
-  void startHandshakeTimeout() {
-      auto handshake_timeout = acceptor_->getSSLHandshakeTimeout();
-      acceptor_->getConnectionManager()->scheduleTimeout(
-          this, handshake_timeout);
-  }
+  void startHandshakeTimeout();
 
   Acceptor* acceptor_;
   folly::SocketAddress clientAddr_;
