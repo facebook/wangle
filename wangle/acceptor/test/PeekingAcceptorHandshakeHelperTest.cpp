@@ -95,12 +95,15 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
           true /* defer security negotiation */);
       sockPtr_ = AsyncSSLSocket::UniquePtr(sslSock_);
 
+      peekCallbacks_.push_back(&mockPeekCallback1_);
+      peekCallbacks_.push_back(&mockPeekCallback2_);
+
       helper_ = new PeekingAcceptorHandshakeHelper(
             nullptr,
             sa_,
             std::chrono::steady_clock::now(),
             tinfo_,
-            &peekCallback_,
+            peekCallbacks_,
             2);
 
       innerHelper_ = new MockHandshakeHelper();
@@ -116,7 +119,9 @@ class PeekingAcceptorHandshakeHelperTest : public Test {
     MockAsyncSSLSocket* sslSock_;
     AsyncSSLSocket::UniquePtr sockPtr_;
     EventBase base_;
-    MockPeekingCallback peekCallback_{2};
+    MockPeekingCallback mockPeekCallback1_{2};
+    MockPeekingCallback mockPeekCallback2_{1};
+    std::vector<PeekingCallbackPtr> peekCallbacks_;
     MockHandshakeHelper* innerHelper_;
     AcceptorHandshakeHelper::UniquePtr helperPtr_;
     StrictMock<MockHandshakeHelperCallback> callback_;
@@ -130,7 +135,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekSuccess) {
   std::vector<uint8_t> buf(2);
   buf[0] = 0x16;
   buf[1] = 0x03;
-  EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
+  EXPECT_CALL(mockPeekCallback1_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(helperPtr_.release()));
   EXPECT_CALL(*innerHelper_, startInternal(_, _));
   helper_->peekSuccess(buf);
@@ -142,11 +147,28 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekNonSuccess) {
   std::vector<uint8_t> buf(2);
   buf[0] = 0x16;
   buf[1] = 0x03;
-  EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
+  EXPECT_CALL(mockPeekCallback1_, getHelperInternal(_, _, _, _, _))
+    .WillOnce(Return(nullptr));
+  EXPECT_CALL(mockPeekCallback2_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(nullptr));
   EXPECT_CALL(callback_, connectionError(_));
   helper_->peekSuccess(buf);
 }
+
+TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeek2ndSuccess) {
+  helper_->start(std::move(sockPtr_), &callback_);
+  // first 2 bytes of SSL3+.
+  std::vector<uint8_t> buf(2);
+  buf[0] = 0x16;
+  buf[1] = 0x03;
+  EXPECT_CALL(mockPeekCallback1_, getHelperInternal(_, _, _, _, _))
+    .WillOnce(Return(nullptr));
+  EXPECT_CALL(mockPeekCallback2_, getHelperInternal(_, _, _, _, _))
+    .WillOnce(Return(helperPtr_.release()));
+  EXPECT_CALL(*innerHelper_, startInternal(_, _));
+  helper_->peekSuccess(buf);
+}
+
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
   AsyncTransportWrapper::ReadCallback* rcb;
@@ -185,7 +207,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropAfterPeek) {
   buf[0] = 0x16;
   buf[1] = 0x03;
 
-  EXPECT_CALL(peekCallback_, getHelperInternal(_, _, _, _, _))
+  EXPECT_CALL(mockPeekCallback1_, getHelperInternal(_, _, _, _, _))
     .WillOnce(Return(helperPtr_.release()));
   EXPECT_CALL(*innerHelper_, startInternal(_, _));
   helper_->peekSuccess(buf);

@@ -7,11 +7,11 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <wangle/acceptor/TLSPlaintextHandshakeManager.h>
+#include <wangle/acceptor/TLSPlaintextPeekingCallback.h>
 
 namespace wangle {
 
-bool TLSPlaintextHandshakeManager::looksLikeTLS(
+bool TLSPlaintextPeekingCallback::looksLikeTLS(
     const std::vector<uint8_t>& bytes) {
   CHECK_GE(bytes.size(), kPeekCount);
   // TLS starts with
@@ -27,17 +27,18 @@ bool TLSPlaintextHandshakeManager::looksLikeTLS(
 }
 
 AcceptorHandshakeHelper::UniquePtr
-TLSPlaintextHandshakeManager::PeekingCallback::getHelper(
+TLSPlaintextPeekingCallback::getHelper(
     const std::vector<uint8_t>& bytes,
     Acceptor* acceptor,
     const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) {
-  if (TLSPlaintextHandshakeManager::looksLikeTLS(bytes)) {
-    return AcceptorHandshakeHelper::UniquePtr(new SSLAcceptorHandshakeHelper(
-        acceptor, clientAddr, acceptTime, tinfo));
+  if (!TLSPlaintextPeekingCallback::looksLikeTLS(bytes)) {
+    return AcceptorHandshakeHelper::UniquePtr(
+        new UnencryptedAcceptorHandshakeHelper());
   }
-  return AcceptorHandshakeHelper::UniquePtr(
-      new UnencryptedAcceptorHandshakeHelper());
+
+  return nullptr;
 }
+
 }

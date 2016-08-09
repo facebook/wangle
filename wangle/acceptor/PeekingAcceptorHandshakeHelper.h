@@ -53,13 +53,13 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo,
-      PeekCallback* peekCallback,
+      const std::vector<PeekCallback*>& peekCallbacks,
       size_t numBytes)
       : acceptor_(acceptor),
         clientAddr_(clientAddr),
         acceptTime_(acceptTime),
         tinfo_(tinfo),
-        peekCallback_(peekCallback),
+        peekCallbacks_(peekCallbacks),
         numBytes_(numBytes) {}
 
   // From AcceptorHandshakeHelper
@@ -89,8 +89,13 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     folly::DelayedDestruction::DestructorGuard dg(this);
     peeker_ = nullptr;
 
-    helper_ = peekCallback_->getHelper(
-        std::move(peekBytes), acceptor_, clientAddr_, acceptTime_, tinfo_);
+    for (auto& peekCallback : peekCallbacks_) {
+      helper_ = peekCallback->getHelper(
+          peekBytes, acceptor_, clientAddr_, acceptTime_, tinfo_);
+      if (helper_) {
+        break;
+      }
+    }
 
     if (!helper_) {
       // could not get a helper, report error.
@@ -125,9 +130,11 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   const folly::SocketAddress& clientAddr_;
   std::chrono::steady_clock::time_point acceptTime_;
   TransportInfo& tinfo_;
-  PeekCallback* peekCallback_;
+  const std::vector<PeekCallback*>& peekCallbacks_;
   size_t numBytes_;
 };
+
+using PeekingCallbackPtr = PeekingAcceptorHandshakeHelper::PeekCallback*;
 
 class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
  public:
@@ -136,14 +143,14 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
         const folly::SocketAddress& clientAddr,
         std::chrono::steady_clock::time_point acceptTime,
         TransportInfo tinfo,
-        PeekingAcceptorHandshakeHelper::PeekCallback* peekCallback,
+        const std::vector<PeekingCallbackPtr>& peekCallbacks,
         size_t numBytes):
       AcceptorHandshakeManager(
           acceptor,
           clientAddr,
           acceptTime,
           std::move(tinfo)),
-      peekCallback_(peekCallback),
+      peekCallbacks_(peekCallbacks),
       numBytes_(numBytes) {}
 
  protected:
@@ -153,12 +160,12 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
         clientAddr_,
         acceptTime_,
         tinfo_,
-        peekCallback_,
+        peekCallbacks_,
         numBytes_));
     helper_->start(std::move(sock), this);
   }
 
-  PeekingAcceptorHandshakeHelper::PeekCallback* peekCallback_;
+  const std::vector<PeekingCallbackPtr>& peekCallbacks_;
   size_t numBytes_;
 };
 

@@ -14,6 +14,10 @@
 #include <wangle/acceptor/ConnectionManager.h>
 #include <wangle/acceptor/LoadShedConfiguration.h>
 #include <wangle/acceptor/SecureTransportType.h>
+#include <wangle/acceptor/SecurityProtocolContextManager.h>
+#include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
+#include <wangle/acceptor/TLSPlaintextPeekingCallback.h>
+
 #include <wangle/ssl/SSLCacheProvider.h>
 #include <wangle/acceptor/TransportInfo.h>
 #include <wangle/ssl/SSLStats.h>
@@ -29,6 +33,7 @@ namespace wangle {
 
 class AsyncTransport;
 class ManagedConnection;
+class SecurityProtocolContextManager;
 class SSLContextManager;
 
 /**
@@ -388,6 +393,14 @@ class Acceptor :
   folly::AsyncSocket::OptionMap socketOptions_;
 
   std::unique_ptr<SSLContextManager> sslCtxManager_;
+
+  /**
+   * Stores peekers for different security protocols.
+   */
+  SecurityProtocolContextManager securityProtocolCtxManager_;
+
+  TLSPlaintextPeekingCallback tlsPlaintextPeekingCallback_;
+  DefaultToSSLPeekingCallback defaultPeekingCallback_;
 
   /**
    * Whether we want to enable client hello parsing in the handshake helper

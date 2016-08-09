@@ -12,9 +12,7 @@
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
-#include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
-#include <wangle/acceptor/TLSPlaintextHandshakeManager.h>
-
+#include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <fcntl.h>
 #include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
@@ -58,6 +56,11 @@ Acceptor::init(AsyncServerSocket* serverSocket,
   CHECK(nullptr == this->base_ || eventBase == this->base_);
 
   if (accConfig_.isSSL()) {
+    if (accConfig_.allowInsecureConnectionsOnSecureServer) {
+      securityProtocolCtxManager_.addPeeker(&tlsPlaintextPeekingCallback_);
+    }
+    securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
+
     if (!sslCtxManager_) {
       sslCtxManager_ = folly::make_unique<SSLContextManager>(
         eventBase,
@@ -257,15 +260,9 @@ void Acceptor::startHandshakeManager(
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) noexcept {
-  if (accConfig_.allowInsecureConnectionsOnSecureServer) {
-    auto manager =
-        new TLSPlaintextHandshakeManager(this, clientAddr, acceptTime, tinfo);
-    manager->start(std::move(sslSock));
-  } else {
-    auto manager = new SSLAcceptorHandshakeManager(
-        acceptor, clientAddr, acceptTime, tinfo);
-    manager->start(std::move(sslSock));
-  }
+  auto manager = securityProtocolCtxManager_.getHandshakeManager(
+      this, clientAddr, acceptTime, tinfo);
+  manager->start(std::move(sslSock));
 }
 
 void

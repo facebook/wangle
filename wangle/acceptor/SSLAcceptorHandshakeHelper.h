@@ -12,9 +12,9 @@
 #include <chrono>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
-#include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/PeekingAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/TransportInfo.h>
 
 namespace wangle {
@@ -57,17 +57,20 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   SSLErrorEnum sslError_{SSLErrorEnum::NO_ERROR};
 };
 
-class SSLAcceptorHandshakeManager : public AcceptorHandshakeManager {
+class DefaultToSSLPeekingCallback :
+  public PeekingAcceptorHandshakeHelper::PeekCallback {
  public:
-  using AcceptorHandshakeManager::AcceptorHandshakeManager;
+  DefaultToSSLPeekingCallback():
+    PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
 
-  virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
-    helper_.reset(new SSLAcceptorHandshakeHelper(
-        acceptor_,
-        clientAddr_,
-        acceptTime_,
-        tinfo_));
-    helper_->start(std::move(sock), this);
+  AcceptorHandshakeHelper::UniquePtr getHelper(
+      const std::vector<uint8_t>& /* bytes */,
+      Acceptor* acceptor,
+      const folly::SocketAddress& clientAddr,
+      std::chrono::steady_clock::time_point acceptTime,
+      TransportInfo& tinfo) override {
+    return AcceptorHandshakeHelper::UniquePtr(new SSLAcceptorHandshakeHelper(
+        acceptor, clientAddr, acceptTime, tinfo));
   }
 };
 

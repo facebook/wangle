@@ -10,6 +10,7 @@
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 
 #include <string>
+#include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/SecureTransportType.h>
 
 namespace wangle {
