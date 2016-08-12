@@ -39,7 +39,7 @@ class PriorityThreadFactory : public ThreadFactory {
   std::thread newThread(folly::Func&& func) override {
     folly::MoveWrapper<folly::Func> movedFunc(std::move(func));
     int priority = priority_;
-    return factory_->newThread([priority,movedFunc] () {
+    return factory_->newThread([priority, movedFunc]() mutable {
       if (setpriority(PRIO_PROCESS, 0, priority) != 0) {
         LOG(ERROR) << "setpriority failed (are you root?) with error " <<
           errno, strerror(errno);
