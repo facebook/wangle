@@ -48,8 +48,7 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
 
   // fill in SSL-related fields from TransportInfo
   // the other fields like RTT are filled in the Acceptor
-  tinfo_.secure = true;
-  tinfo_.securityType = SecureTransportType::TLS;
+  tinfo_.ssl = true;
   tinfo_.acceptTime = acceptTime_;
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::steady_clock::now() - acceptTime_
