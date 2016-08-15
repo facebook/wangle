@@ -52,6 +52,7 @@ set(WANGLE_SOURCES
   acceptor/ConnectionManager.cpp
   acceptor/LoadShedConfiguration.cpp
   acceptor/ManagedConnection.cpp
+  acceptor/SecureTransportType.cpp
   acceptor/SocketOptions.cpp
   acceptor/SSLAcceptorHandshakeHelper.cpp
   acceptor/TLSPlaintextPeekingCallback.cpp
