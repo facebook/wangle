@@ -131,7 +131,6 @@ TEST(Wangle, ClientServerTest) {
   });
   EventBaseManager::get()->getEventBase()->loopForever();
   server.stop();
-  client.reset();
 }
 
 class AppendFilter : public ServiceFilter<std::string, std::string> {
