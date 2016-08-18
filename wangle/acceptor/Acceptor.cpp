@@ -242,7 +242,7 @@ Acceptor::processEstablishedConnection(
         acceptTime,
         tinfo);
   } else {
-    tinfo.ssl = false;
+    tinfo.secure = false;
     tinfo.acceptTime = acceptTime;
     AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd));
     plaintextConnectionReady(

@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/ssl/SSLUtil.h>
 
 #include <chrono>
@@ -93,6 +94,11 @@ struct TransportInfo {
    * is established.
    */
   std::chrono::milliseconds setupTime{0};
+
+  /*
+   * NOTE: Avoid using any fields starting with "ssl" for anything other than
+   * logging, as those field may not be populated for all security protocols.
+   */
 
   /*
    * time for setting up the SSL connection or SSL handshake
@@ -321,7 +327,12 @@ struct TransportInfo {
   /*
    * true if the connection is SSL, false otherwise
    */
-  bool ssl{false};
+  bool secure{false};
+
+  /**
+   * What is providing the security.
+   */
+  SecureTransportType securityType{SecureTransportType::NONE};
 
   /*
    * Additional protocol info.
