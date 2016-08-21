@@ -9,8 +9,6 @@
  */
 #pragma once
 
-#include <string>
-
 namespace wangle {
 
 /**
@@ -22,7 +20,5 @@ enum class SecureTransportType {
   TLS,  // Transport is based on TLS
   ZERO, // Transport is based on zero protocol
 };
-
-std::string getSecureTransportName(const SecureTransportType& type);
 
 }
