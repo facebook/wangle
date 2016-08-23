@@ -30,7 +30,7 @@ Singleton<IOThreadPoolExecutor, FileRegionReadPool> readPool(
 namespace wangle {
 
 FileRegion::FileWriteRequest::FileWriteRequest(AsyncSocket* socket,
-    WriteCallback* callback, int fd, off_t offset, size_t count)
+    WriteCallback* callback, int fd, loff_t offset, size_t count)
   : WriteRequest(socket, callback),
     readFd_(fd), offset_(offset), count_(count) {
 }

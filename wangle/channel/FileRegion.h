@@ -22,7 +22,7 @@ namespace wangle {
 
 class FileRegion {
  public:
-  FileRegion(int fd, off_t offset, size_t count)
+  FileRegion(int fd, loff_t offset, size_t count)
     : fd_(fd), offset_(offset), count_(count) {}
 
   folly::Future<folly::Unit> transferTo(
@@ -56,14 +56,14 @@ class FileRegion {
   };
 
   const int fd_;
-  const off_t offset_;
+  const loff_t offset_;
   const size_t count_;
 
   class FileWriteRequest : public folly::AsyncSocket::WriteRequest,
                            public folly::NotificationQueue<size_t>::Consumer {
    public:
     FileWriteRequest(folly::AsyncSocket* socket, WriteCallback* callback,
-                     int fd, off_t offset, size_t count);
+                     int fd, loff_t offset, size_t count);
 
     void destroy() override;
 
@@ -97,7 +97,7 @@ class FileRegion {
     void fail(const char* fn, const folly::AsyncSocketException& ex);
 
     const int readFd_;
-    off_t offset_;
+    loff_t offset_;
     const size_t count_;
     bool started_{false};
     int pipe_out_{-1};
