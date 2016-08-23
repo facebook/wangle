@@ -24,6 +24,7 @@ find_library(GFLAGS_LIBRARY_PATH gflags)
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
   ${FOLLY_INCLUDE_DIR}
+  ${BOOST_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
   ${INCLUDE_DIR}
 )
