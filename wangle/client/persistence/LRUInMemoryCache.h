@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <tuple>
+#include <utility>
 
 #include <folly/dynamic.h>
 #include <folly/EvictingCacheMap.h>
@@ -48,7 +48,7 @@ class LRUInMemoryCache {
   /**
    * Get the cache data as a list of kv pairs along with the version
    */
-  folly::Optional<std::tuple<folly::dynamic, CacheDataVersion>>
+  folly::Optional<std::pair<folly::dynamic, CacheDataVersion>>
   convertToKeyValuePairs() noexcept;
 
   /**

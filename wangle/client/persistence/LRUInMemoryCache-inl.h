@@ -95,7 +95,7 @@ LRUInMemoryCache<K, V, M>::loadData(const folly::dynamic& data) noexcept {
 }
 
 template<typename K, typename V, typename M>
-folly::Optional<std::tuple<folly::dynamic, CacheDataVersion>>
+folly::Optional<std::pair<folly::dynamic, CacheDataVersion>>
 LRUInMemoryCache<K, V, M>::convertToKeyValuePairs() noexcept {
   typename wangle::CacheLockGuard<M>::Read readLock(cacheLock_);
   try {
@@ -103,7 +103,7 @@ LRUInMemoryCache<K, V, M>::convertToKeyValuePairs() noexcept {
     for (const auto& kv : cache_) {
       dynObj.push_back(folly::toDynamic(std::make_pair(kv.first, kv.second)));
     }
-    return std::make_tuple(std::move(dynObj), version_);
+    return std::make_pair(std::move(dynObj), version_);
   } catch (const std::exception& err) {
     LOG(ERROR) << "Converting cache to folly::dynamic failed with error: "
                << err.what();
