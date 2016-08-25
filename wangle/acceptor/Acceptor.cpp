@@ -81,7 +81,9 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       CHECK(sslCtxManager_->getDefaultSSLCtx());
     } catch (const std::runtime_error& ex) {
       sslCtxManager_->clear();
-      LOG(ERROR) << "Failed to configure TLS: " << ex.what();
+      // This is not a Not a fatal error, but useful to know.
+      LOG(INFO) << "Failed to configure TLS. This is not a fatal error. "
+                << ex.what();
     }
   }
   base_ = eventBase;
