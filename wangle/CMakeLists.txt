@@ -77,10 +77,15 @@ set(WANGLE_SOURCES
   ssl/TLSTicketKeyManager.cpp
 )
 
-add_library(wangle STATIC
+add_library(wangle
   ${WANGLE_HEADERS}
   ${WANGLE_SOURCES}
 )
+
+if (BUILD_SHARED_LIBS)
+  set_target_properties(wangle
+    PROPERTIES VERSION 1.0.0 SOVERSION 1)
+endif()
 
 target_link_libraries(wangle
   ${FOLLY_LIBRARIES}
