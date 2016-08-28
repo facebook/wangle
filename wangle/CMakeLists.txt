@@ -87,8 +87,7 @@ target_link_libraries(wangle
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${GLOG_LIBRARY_PATH}
-  ${GFLAGS_LIBRARY_PATH}
-  $<$<NOT:$<CXX_COMPILER_ID:Clang>>:-latomic>)
+  ${GFLAGS_LIBRARY_PATH})
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
