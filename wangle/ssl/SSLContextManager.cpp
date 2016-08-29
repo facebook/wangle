@@ -471,6 +471,13 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
         break;
       }
     }
+
+    // Assume the client supports SHA2 if it sent SNI.
+    const auto& extensions = clientInfo->clientHelloExtensions_;
+    if (std::find(extensions.begin(), extensions.end(),
+          folly::ssl::TLSExtension::SERVER_NAME) != extensions.end()) {
+      certCryptoReq = CertCrypto::BEST_AVAILABLE;
+    }
   }
 
   DNString dnstr(sn, snLen);
