@@ -74,6 +74,14 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
     return size;
   }
 
+  size_t sizeGuess() const {
+    size_t size = 0;
+    for (auto& q : queues_) {
+      size += q.sizeGuess();
+    }
+    return size;
+  }
+
  private:
   folly::LifoSem sem_;
   std::vector<folly::MPMCQueue<T>> queues_;
