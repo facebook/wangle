@@ -265,7 +265,6 @@ class SSLContextManager {
   ClientHelloExtStats* clientHelloTLSExtStats_{nullptr};
   SSLContextConfig::SNINoMatchFn noMatchFn_;
   bool strict_{true};
-  mutable folly::SharedMutex contextsMutex_;
 };
 
 } // namespace wangle

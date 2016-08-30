@@ -201,7 +201,6 @@ void SSLContextManager::resetSSLContextConfigs(
                               externalCache,
                               contexts);
   }
-  folly::SharedMutex::WriteHolder wh(contextsMutex_);
   contexts_.swap(contexts);
 }
 
@@ -211,7 +210,6 @@ void SSLContextManager::addSSLContextConfig(
   const TLSTicketKeySeeds* ticketSeeds,
   const folly::SocketAddress& vipAddress,
   const std::shared_ptr<SSLCacheProvider>& externalCache) {
-    folly::SharedMutex::WriteHolder wh(contextsMutex_);
     addSSLContextConfigUnsafe(ctxConfig,
                               cacheOptions,
                               ticketSeeds,
@@ -447,7 +445,6 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
     }
     reqHasServerName = false;
 
-    folly::SharedMutex::ReadHolder rh(contextsMutex_);
     sn = contexts_.defaultCtxDomainName.c_str();
   }
   size_t snLen = strlen(sn);
@@ -778,14 +775,12 @@ void SSLContextManager::insertIntoDnMap(SSLContextKey key,
 }
 
 void SSLContextManager::clear() {
-  folly::SharedMutex::WriteHolder wh(contextsMutex_);
   contexts_.clear();
 }
 
 shared_ptr<SSLContext>
 SSLContextManager::getSSLCtx(const SSLContextKey& key) const
 {
-  folly::SharedMutex::ReadHolder rh(contextsMutex_);
   auto ctx = getSSLCtxByExactDomain(key);
   if (ctx) {
     return ctx;
@@ -799,7 +794,6 @@ SSLContextManager::getSSLCtxBySuffix(const SSLContextKey& key) const
   size_t dot;
 
   if ((dot = key.dnString.find_first_of(".")) != DNString::npos) {
-    folly::SharedMutex::ReadHolder rh(contextsMutex_);
     SSLContextKey suffixKey(DNString(key.dnString, dot),
         key.certCrypto);
     const auto v = contexts_.dnMap.find(suffixKey);
@@ -819,7 +813,6 @@ SSLContextManager::getSSLCtxBySuffix(const SSLContextKey& key) const
 shared_ptr<SSLContext>
 SSLContextManager::getSSLCtxByExactDomain(const SSLContextKey& key) const
 {
-  folly::SharedMutex::ReadHolder rh(contextsMutex_);
   const auto v = contexts_.dnMap.find(key);
   if (v == contexts_.dnMap.end()) {
     VLOG(6) << folly::stringPrintf("\"%s\" is not an exact match",
@@ -834,7 +827,6 @@ SSLContextManager::getSSLCtxByExactDomain(const SSLContextKey& key) const
 
 shared_ptr<SSLContext>
 SSLContextManager::getDefaultSSLCtx() const{
-  folly::SharedMutex::ReadHolder rh(contextsMutex_);
   return contexts_.defaultCtx;
 }
 
@@ -844,7 +836,6 @@ SSLContextManager::reloadTLSTicketKeys(
   const std::vector<std::string>& currentSeeds,
   const std::vector<std::string>& newSeeds) {
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-  folly::SharedMutex::ReadHolder rh(contextsMutex_);
   for (auto& tmgr: contexts_.ticketManagers) {
     tmgr->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
   }
