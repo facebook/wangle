@@ -17,6 +17,12 @@ struct TLSTicketKeySeeds {
   std::vector<std::string> oldSeeds;
   std::vector<std::string> currentSeeds;
   std::vector<std::string> newSeeds;
+
+  bool operator==(const TLSTicketKeySeeds& rhs) const {
+    return (oldSeeds == rhs.oldSeeds &&
+        currentSeeds == rhs.currentSeeds &&
+        newSeeds == rhs.newSeeds);
+  }
 };
 
 } // namespace wangle
