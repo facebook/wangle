@@ -109,44 +109,41 @@ if(BUILD_TESTS)
 
   include(ExternalProject)
 
-file(GLOB_RECURSE GMOCK_URL "gmock-1.7.0.zip")
-if (GMOCK_URL)
-  list(GET GMOCK_URL 0 GMOCK_URL)
-else()
-  set(GMOCK_URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip)
-endif()
-
 # Download and install GoogleMock
   ExternalProject_Add(
-      gmock
-      URL ${GMOCK_URL}
-      PREFIX ${CMAKE_SOURCE_DIR}/gmock
+      gtest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG release-1.8.0
+      PREFIX gtest
       # Disable install step
       INSTALL_COMMAND ""
       LOG_DOWNLOAD ON
+      LOG_UPDATE 1
       LOG_CONFIGURE ON
       LOG_BUILD ON
+      LOG_TEST 1
+      LOG_INSTALL 1
   )
 
   # Create a libgmock target to be used as a dependency by test programs
   add_library(libgmock IMPORTED STATIC GLOBAL)
-  add_dependencies(libgmock gmock)
+  add_dependencies(libgmock gtest)
   add_library(libgmock_main IMPORTED STATIC GLOBAL)
-  add_dependencies(libgmock_main gmock)
+  add_dependencies(libgmock_main gtest)
 
   # Set gmock properties
-  ExternalProject_Get_Property(gmock source_dir binary_dir)
+  ExternalProject_Get_Property(gtest source_dir binary_dir)
   set_target_properties(libgmock PROPERTIES
-      "IMPORTED_LOCATION" "${binary_dir}/libgmock.a"
+      "IMPORTED_LOCATION" "${binary_dir}/googlemock/libgmock.a"
       "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
   )
   set_target_properties(libgmock_main PROPERTIES
-      "IMPORTED_LOCATION" "${binary_dir}/libgmock_main.a"
+      "IMPORTED_LOCATION" "${binary_dir}/googlemock/libgmock_main.a"
       "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
   )
 
-  include_directories("${source_dir}/include")
-  include_directories("${source_dir}/gtest/include")
+  include_directories("${source_dir}/googlemock/include")
+  include_directories("${source_dir}/googletest/include")
 
   macro(add_gtest test_source test_name)
   add_executable(${test_name} ${test_source})
