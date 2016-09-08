@@ -34,33 +34,26 @@ void ServerWorkerPool::threadStarted(
 
 void ServerWorkerPool::threadStopped(
   wangle::ThreadPoolExecutor::ThreadHandle* h) {
-  Mutex::ReadHolder holder(workersMutex_.get());
-  auto worker = workers_->find(h);
-  CHECK(worker != workers_->end());
+  auto worker = [&] {
+    Mutex::WriteHolder holder(workersMutex_.get());
+    auto workerIt = workers_->find(h);
+    CHECK(workerIt != workers_->end());
+    auto worker = std::move(workerIt->second);
+    workers_->erase(workerIt);
+    return worker;
+  }();
 
   for (auto socket : *sockets_) {
     socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
       [&]() {
         socketFactory_->removeAcceptCB(
-          socket, worker->second.get(), nullptr);
+          socket, worker.get(), nullptr);
     });
   }
 
-  if (!worker->second->getEventBase()->isInEventBaseThread()) {
-    worker->second->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-      [=]() {
-        worker->second->dropAllConnections();
-      });
-  } else {
-    worker->second->dropAllConnections();
-  }
-
-  auto workers = workers_;
-  auto workersMutex = workersMutex_;
-  worker->second->getEventBase()->runAfterDrain(
-    [workers, worker, workersMutex]() {
-      Mutex::WriteHolder writeHolder(workersMutex.get());
-      workers->erase(worker);
+  worker->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
+    [&]() {
+      worker->dropAllConnections();
     });
 }
 
