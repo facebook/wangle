@@ -18,7 +18,7 @@ class PasswordInFile: public folly::PasswordCollector {
   explicit PasswordInFile(const std::string& file);
   ~PasswordInFile();
 
-  void getPassword(std::string& password, int size) override {
+  void getPassword(std::string& password, int size) const override {
     password = password_;
   }
 
