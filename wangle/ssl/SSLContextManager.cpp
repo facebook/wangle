@@ -165,6 +165,7 @@ SSLContextManager::SSLContextManager(
     stats_(stats),
     eventBase_(eventBase),
     strict_(strict) {
+
 }
 
 void SSLContextManager::SslContexts::swap(SslContexts& other) noexcept {
@@ -366,9 +367,17 @@ void SSLContextManager::addSSLContextConfigUnsafe(
 
   if (!ctxConfig.clientCAFile.empty()) {
     try {
-      sslCtx->setVerificationOption(ctxConfig.clientVerification);
       sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
       sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
+
+      // Only allow over-riding of verification callback if one
+      // isn't explicitly set on the context
+      if (clientCertVerifyCallback_ == nullptr) {
+        sslCtx->setVerificationOption(ctxConfig.clientVerification);
+      } else {
+        clientCertVerifyCallback_->attachSSLContext(sslCtx);
+      }
+
     } catch (const std::exception& ex) {
       string msg = folly::to<string>("error loading client CA",
                                      ctxConfig.clientCAFile, ": ",
