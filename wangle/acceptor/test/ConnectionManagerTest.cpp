@@ -193,6 +193,47 @@ TEST_F(ConnectionManagerTest, testDropAll) {
   cm_->dropAllConnections();
 }
 
+TEST_F(ConnectionManagerTest, testDropPercent) {
+  InSequence enforceOrder;
+
+  // Make sure we have exactly 100 connections.
+  const int numToAdd = 100 - conns_.size();
+  addConns(numToAdd);
+  const int numToRemove = conns_.size() - 100;
+  for (int i = 0; i < numToRemove; i++) {
+    removeConn(conns_.begin()->get());
+  }
+  EXPECT_EQ(100, cm_->getNumConnections());
+
+  // Drop 20% of connections.
+  double pct = 0.2;
+  int numToDrop = 100 * pct;
+  auto connIter = conns_.begin();
+  while (connIter != conns_.end() && numToDrop > 0) {
+    EXPECT_CALL(*(*connIter), dropConnection());
+    --numToDrop;
+    ++connIter;
+  }
+  cm_->dropConnections(pct);
+
+  // Make sure they are gone.
+  EXPECT_EQ(0, numToDrop);
+  EXPECT_EQ(80, cm_->getNumConnections());
+
+  // Then drop 50% of the remaining 80 connections.
+  pct  = 0.5;
+  numToDrop = 80 * pct;
+  while (connIter != conns_.end() && numToDrop > 0) {
+    EXPECT_CALL(*(*connIter), dropConnection());
+    --numToDrop;
+    ++connIter;
+  }
+  cm_->dropConnections(pct);
+
+  // Make sure those are gone as well.
+  EXPECT_EQ(0, numToDrop);
+  EXPECT_EQ(40, cm_->getNumConnections());
+}
 
 TEST_F(ConnectionManagerTest, testDrainPercent) {
   InSequence enforceOrder;

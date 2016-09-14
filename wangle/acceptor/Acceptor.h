@@ -222,6 +222,11 @@ class Acceptor :
   void drainAllConnections();
 
   /**
+   * Drain defined percentage of connections.
+   */
+  void drainConnections(double pctToDrain);
+
+  /**
    * Drop all connections.
    *
    * forceStop() schedules dropAllConnections() to be called in the acceptor's
@@ -230,9 +235,13 @@ class Acceptor :
   void dropAllConnections();
 
   /**
-   * Drop defined percentage of connections.
+   * Force-drop "pct" (0.0 to 1.0) of remaining client connections,
+   * regardless of whether they are busy or idle.
+   *
+   * Note: unlike dropAllConnections(), this function can be called
+   * from any thread.
    */
-  void drainConnections(double pctToDrain);
+  void dropConnections(double pctToDrop);
 
   /**
    * Wrapper for connectionReady() that can be overridden by

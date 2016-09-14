@@ -241,14 +241,20 @@ ConnectionManager::DrainHelper::idleGracefulTimeoutExpired() {
   }
 }
 
+void ConnectionManager::stopDrainingForShutdown() {
+  drainHelper_.setShutdownState(ShutdownState::CLOSE_WHEN_IDLE_COMPLETE);
+  drainHelper_.cancelTimeout();
+}
+
 void
 ConnectionManager::dropAllConnections() {
   DestructorGuard g(this);
 
-  drainHelper_.setShutdownState(ShutdownState::CLOSE_WHEN_IDLE_COMPLETE);
+  // Signal the drain helper in case that has not happened before.
+  stopDrainingForShutdown();
+
   // Iterate through our connection list, and drop each connection.
   VLOG(2) << "connections to drop: " << conns_.size();
-  drainHelper_.cancelTimeout();
   unsigned i = 0;
   while (!conns_.empty()) {
     ManagedConnection& conn = conns_.front();
@@ -269,6 +275,22 @@ ConnectionManager::dropAllConnections() {
 
   if (callback_) {
     callback_->onEmpty(*this);
+  }
+}
+
+void
+ConnectionManager::dropConnections(double pct) {
+  DestructorGuard g(this);
+
+  // Signal the drain helper in case that has not happened before.
+  stopDrainingForShutdown();
+
+  const size_t N = conns_.size();
+  const size_t numToDrop = std::max<size_t>(0, std::min<size_t>(N, N * pct));
+  for (auto i = 0; i < numToDrop && !conns_.empty(); i++) {
+    ManagedConnection& conn = conns_.front();
+    removeConnection(&conn);
+    conn.dropConnection();
   }
 }
 

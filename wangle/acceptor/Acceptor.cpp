@@ -387,7 +387,7 @@ Acceptor::checkDrained() {
 void
 Acceptor::drainConnections(double pctToDrain) {
   if (downstreamConnectionManager_) {
-    VLOG(3) << "Dropping " << pctToDrain * 100 << "% of "
+    VLOG(3) << "Draining " << pctToDrain * 100 << "% of "
             << getNumConnections() << " connections from Acceptor=" << this
             << " in thread " << base_;
     assert(base_->isInEventBaseThread());
@@ -427,6 +427,20 @@ Acceptor::dropAllConnections() {
 
   state_ = State::kDone;
   onConnectionsDrained();
+}
+
+void
+Acceptor::dropConnections(double pctToDrop) {
+  base_->runInEventBaseThread([&, pctToDrop] {
+    if (downstreamConnectionManager_) {
+      VLOG(3) << "Dropping " << pctToDrop * 100 << "% of "
+              << getNumConnections() << " connections from Acceptor=" << this
+              << " in thread " << base_;
+      assert(base_->isInEventBaseThread());
+      forceShutdownInProgress_ = true;
+      downstreamConnectionManager_->dropConnections(pctToDrop);
+    }
+  });
 }
 
 } // namespace wangle
