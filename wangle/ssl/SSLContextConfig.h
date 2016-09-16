@@ -49,6 +49,8 @@ struct SSLContextConfig {
     std::set<std::string> offloadType;
     // Whether this set of keys need local fallback
     bool localFallback{false};
+    // An identifier for the service to which we are offloading.
+    std::string serviceId{"default"};
   };
 
   /**
