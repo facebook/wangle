@@ -74,7 +74,11 @@ class MockServerPool : public ServerPool<std::string> {
 
 class MockBroadcastPool : public BroadcastPool<int, std::string> {
  public:
-  MockBroadcastPool() : BroadcastPool<int, std::string>(nullptr, nullptr) {}
+  MockBroadcastPool()
+      : BroadcastPool<int, std::string>(
+            nullptr,
+            nullptr,
+            std::make_shared<ClientBootstrapFactory>()) {}
 
   MOCK_METHOD1_T(
       mockGetHandler,

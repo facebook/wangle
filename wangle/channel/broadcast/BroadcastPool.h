@@ -51,11 +51,10 @@ class BroadcastPool {
 
     BroadcastManager(
         BroadcastPool<T, R, P>* broadcastPool,
-        const R& routingData,
-        std::unique_ptr<BaseClientBootstrap<P>> client)
+        const R& routingData)
         : broadcastPool_(broadcastPool),
           routingData_(routingData),
-          client_(std::move(client)) {
+          client_(broadcastPool_->clientBootstrapFactory_->newClient()) {
       client_->pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
     }
 
@@ -85,8 +84,12 @@ class BroadcastPool {
 
   BroadcastPool(
       std::shared_ptr<ServerPool<R, P>> serverPool,
-      std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory)
-      : serverPool_(serverPool), broadcastPipelineFactory_(pipelineFactory) {}
+      std::shared_ptr<BroadcastPipelineFactory<T, R>> pipelineFactory,
+      std::shared_ptr<BaseClientBootstrapFactory<>> clientFactory =
+          std::make_shared<ClientBootstrapFactory>())
+      : serverPool_(serverPool),
+        broadcastPipelineFactory_(pipelineFactory),
+        clientBootstrapFactory_(clientFactory) {}
 
   virtual ~BroadcastPool() {}
 
@@ -125,6 +128,7 @@ class BroadcastPool {
 
   std::shared_ptr<ServerPool<R, P>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
+  std::shared_ptr<BaseClientBootstrapFactory<>> clientBootstrapFactory_;
   std::map<R, typename BroadcastManager::UniquePtr> broadcasts_;
 };
 

@@ -89,8 +89,9 @@ folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R, P>::getHandler(
     return iter->second->getHandler();
   }
 
-  typename BroadcastManager::UniquePtr broadcast(new BroadcastManager(
-      this, routingData, folly::make_unique<ClientBootstrap<P>>()));
+  typename BroadcastManager::UniquePtr broadcast(
+      new BroadcastManager(this, routingData));
+
   auto broadcastPtr = broadcast.get();
   broadcasts_.insert(std::make_pair(routingData, std::move(broadcast)));
 

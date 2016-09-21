@@ -7,14 +7,15 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include "wangle/channel/Handler.h"
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/test/Mocks.h>
 
-using namespace wangle;
+#include "wangle/channel/Handler.h"
+
 using namespace folly;
 using namespace testing;
+using namespace wangle;
 
 class BroadcastPoolTest : public Test {
  public:
@@ -24,8 +25,11 @@ class BroadcastPoolTest : public Test {
 
     pipelineFactory =
         std::make_shared<StrictMock<MockBroadcastPipelineFactory>>();
-    pool = folly::make_unique<BroadcastPool<int, std::string>>(serverPool,
-                                                               pipelineFactory);
+
+    pool = folly::make_unique<BroadcastPool<int, std::string>>(
+        serverPool,
+        pipelineFactory,
+        std::make_shared<ClientBootstrapFactory>());
 
     startServer();
   }
@@ -353,7 +357,6 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
   EXPECT_TRUE(handlerError);
   EXPECT_FALSE(pool->isBroadcasting(routingData));
 }
-
 
 TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
   // Test against use-after-free on BroadcastManager when the pool

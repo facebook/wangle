@@ -21,13 +21,13 @@ namespace wangle {
  * Maintains a thread-local BroadcastPool from which a BroadcastHandler is
  * obtained and subscribed to based on the given routing data.
  */
-template <typename T, typename R>
+template <typename T, typename R, typename P = DefaultPipeline>
 class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
                          public Subscriber<T, R> {
  public:
   typedef typename HandlerAdapter<folly::IOBufQueue&, T>::Context Context;
 
-  ObservingHandler(const R& routingData, BroadcastPool<T, R>* broadcastPool);
+  ObservingHandler(const R& routingData, BroadcastPool<T, R, P>* broadcastPool);
   ~ObservingHandler() override;
 
   // Non-copyable
@@ -51,7 +51,7 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
 
  private:
   R routingData_;
-  BroadcastPool<T, R>* broadcastPool_{nullptr};
+  BroadcastPool<T, R, P>* broadcastPool_{nullptr};
 
   BroadcastHandler<T, R>* broadcastHandler_{nullptr};
   uint64_t subscriptionId_{0};
@@ -64,12 +64,12 @@ class ObservingHandler : public HandlerAdapter<folly::IOBufQueue&, T>,
 template <typename T>
 using ObservingPipeline = Pipeline<folly::IOBufQueue&, T>;
 
-template <typename T, typename R>
+template <typename T, typename R, typename P = DefaultPipeline>
 class ObservingPipelineFactory
     : public RoutingDataPipelineFactory<ObservingPipeline<T>, R> {
  public:
   ObservingPipelineFactory(
-      std::shared_ptr<ServerPool<R>> serverPool,
+      std::shared_ptr<ServerPool<R, P>> serverPool,
       std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory)
       : serverPool_(serverPool),
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
@@ -81,8 +81,8 @@ class ObservingPipelineFactory
       std::shared_ptr<TransportInfo> transportInfo) override {
     auto pipeline = ObservingPipeline<T>::create();
     pipeline->addBack(AsyncSocketHandler(socket));
-    auto handler =
-        std::make_shared<ObservingHandler<T, R>>(routingData, broadcastPool());
+    auto handler = std::make_shared<ObservingHandler<T, R, P>>(
+        routingData, broadcastPool());
     pipeline->addBack(handler);
     pipeline->finalize();
 
@@ -91,18 +91,24 @@ class ObservingPipelineFactory
     return pipeline;
   }
 
-  virtual BroadcastPool<T, R>* broadcastPool() {
+  virtual BroadcastPool<T, R, P>* broadcastPool(
+      std::shared_ptr<BaseClientBootstrapFactory<>> clientFactory = nullptr) {
     if (!broadcastPool_) {
-      broadcastPool_.reset(
-          new BroadcastPool<T, R>(serverPool_, broadcastPipelineFactory_));
+      if (clientFactory) {
+        broadcastPool_.reset(new BroadcastPool<T, R, P>(
+            serverPool_, broadcastPipelineFactory_, clientFactory));
+      } else {
+        broadcastPool_.reset(
+            new BroadcastPool<T, R, P>(serverPool_, broadcastPipelineFactory_));
+      }
     }
     return broadcastPool_.get();
   }
 
  protected:
-  std::shared_ptr<ServerPool<R>> serverPool_;
+  std::shared_ptr<ServerPool<R, P>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
-  folly::ThreadLocalPtr<BroadcastPool<T, R>> broadcastPool_;
+  folly::ThreadLocalPtr<BroadcastPool<T, R, P>> broadcastPool_;
 };
 
 } // namespace wangle

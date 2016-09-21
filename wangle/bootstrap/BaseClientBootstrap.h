@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 #pragma once
 
 #include <folly/SocketAddress.h>
@@ -26,6 +25,7 @@ namespace wangle {
 template <typename P = DefaultPipeline>
 class BaseClientBootstrap {
  public:
+  using Ptr = std::unique_ptr<BaseClientBootstrap>;
   BaseClientBootstrap() {}
 
   virtual ~BaseClientBootstrap() = default;
@@ -40,7 +40,6 @@ class BaseClientBootstrap {
     return pipeline_.get();
   }
 
-  // wangle client bootstrap connect
   virtual folly::Future<P*> connect(
       const folly::SocketAddress& address,
       std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) = 0;
@@ -65,4 +64,12 @@ class BaseClientBootstrap {
   folly::SSLContextPtr sslContext_;
   SSL_SESSION* sslSession_{nullptr};
 };
+
+template <typename ClientBootstrap = BaseClientBootstrap<>>
+class BaseClientBootstrapFactory {
+ public:
+  virtual typename ClientBootstrap::Ptr newClient() = 0;
+  virtual ~BaseClientBootstrapFactory() = default;
+};
+
 } // namespace wangle
