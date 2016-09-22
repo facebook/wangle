@@ -346,6 +346,13 @@ struct TransportInfo {
   std::shared_ptr<std::string> tcpSignature{nullptr};
 
   /*
+   * Whether or not TCP fast open succeded on this connection. Failure can occur
+   * due to several reasons, including cookies not matching or TFO not being
+   * advertised by the client.
+   */
+  bool tfoSucceded{false};
+
+  /*
    * get the RTT value in milliseconds
    */
   std::chrono::milliseconds getRttMs() const {

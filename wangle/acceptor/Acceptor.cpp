@@ -237,6 +237,8 @@ Acceptor::processEstablishedConnection(
       sslConnectionError(ex);
       return;
     }
+
+    tinfo.tfoSucceded = sslSock->getTFOSucceded();
     startHandshakeManager(
         std::move(sslSock),
         this,
@@ -247,6 +249,7 @@ Acceptor::processEstablishedConnection(
     tinfo.secure = false;
     tinfo.acceptTime = acceptTime;
     AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd));
+    tinfo.tfoSucceded = sock->getTFOSucceded();
     plaintextConnectionReady(
         std::move(sock),
         clientAddr,
