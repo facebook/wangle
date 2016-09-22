@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <folly/MoveWrapper.h>
 #include <folly/futures/SharedPromise.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
@@ -51,12 +50,14 @@ class OutputBufferingHandler : public OutboundBytesToBytesHandler,
   }
 
   void runLoopCallback() noexcept override {
-    folly::MoveWrapper<folly::SharedPromise<folly::Unit>> sharedPromise;
-    std::swap(*sharedPromise, sharedPromise_);
-    getContext()->fireWrite(std::move(sends_))
-      .then([sharedPromise](folly::Try<folly::Unit> t) mutable {
-        sharedPromise->setTry(std::move(t));
-      });
+    folly::SharedPromise<folly::Unit> sharedPromise;
+    std::swap(sharedPromise, sharedPromise_);
+    getContext()
+        ->fireWrite(std::move(sends_))
+        .then([sharedPromise = std::move(sharedPromise)](
+            folly::Try<folly::Unit> t) mutable {
+          sharedPromise.setTry(std::move(t));
+        });
   }
 
   folly::Future<folly::Unit> close(Context* ctx) override {

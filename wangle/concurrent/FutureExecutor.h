@@ -9,7 +9,6 @@
  */
 
 #pragma once
-#include <folly/MoveWrapper.h>
 #include <folly/futures/Future.h>
 
 namespace wangle {
@@ -37,13 +36,11 @@ class FutureExecutor : public ExecutorImpl {
     typedef typename std::result_of<F()>::type::value_type T;
     folly::Promise<T> promise;
     auto future = promise.getFuture();
-    auto movePromise = folly::makeMoveWrapper(std::move(promise));
-    auto moveFunc = folly::makeMoveWrapper(std::move(func));
-    ExecutorImpl::add([movePromise, moveFunc] () mutable {
-      (*moveFunc)().then([movePromise] (folly::Try<T>&& t) mutable {
-        movePromise->setTry(std::move(t));
-      });
-    });
+    ExecutorImpl::add(
+        [ promise = std::move(promise), func = std::move(func) ]() mutable {
+          func().then([promise = std::move(promise)](
+              folly::Try<T> && t) mutable { promise.setTry(std::move(t)); });
+        });
     return future;
   }
 
@@ -62,11 +59,10 @@ class FutureExecutor : public ExecutorImpl {
     using T = typename folly::Unit::Lift<typename std::result_of<F()>::type>::type;
     folly::Promise<T> promise;
     auto future = promise.getFuture();
-    auto movePromise = folly::makeMoveWrapper(std::move(promise));
-    auto moveFunc = folly::makeMoveWrapper(std::move(func));
-    ExecutorImpl::add([movePromise, moveFunc] () mutable {
-      movePromise->setWith(std::move(*moveFunc));
-    });
+    ExecutorImpl::add(
+        [ promise = std::move(promise), func = std::move(func) ]() mutable {
+          promise.setWith(std::move(func));
+        });
     return future;
   }
 };

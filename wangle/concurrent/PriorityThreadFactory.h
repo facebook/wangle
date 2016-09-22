@@ -12,7 +12,6 @@
 
 #include <wangle/concurrent/ThreadFactory.h>
 
-#include <folly/MoveWrapper.h>
 #include <folly/portability/SysResource.h>
 #include <folly/portability/SysTime.h>
 
@@ -37,14 +36,13 @@ class PriorityThreadFactory : public ThreadFactory {
     , priority_(priority) {}
 
   std::thread newThread(folly::Func&& func) override {
-    folly::MoveWrapper<folly::Func> movedFunc(std::move(func));
     int priority = priority_;
-    return factory_->newThread([priority, movedFunc]() mutable {
+    return factory_->newThread([ priority, func = std::move(func) ]() mutable {
       if (setpriority(PRIO_PROCESS, 0, priority) != 0) {
         LOG(ERROR) << "setpriority failed (are you root?) with error " <<
           errno, strerror(errno);
       }
-      (*movedFunc)();
+      func();
     });
   }
 

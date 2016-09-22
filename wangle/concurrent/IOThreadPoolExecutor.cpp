@@ -10,7 +10,6 @@
 
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 
-#include <folly/MoveWrapper.h>
 #include <glog/logging.h>
 
 #include <folly/detail/MemoryIdler.h>
@@ -89,10 +88,9 @@ void IOThreadPoolExecutor::add(
   }
   auto ioThread = pickThread();
 
-  auto moveTask = folly::makeMoveWrapper(
-      Task(std::move(func), expiration, std::move(expireCallback)));
-  auto wrappedFunc = [ioThread, moveTask] () mutable {
-    runTask(ioThread, std::move(*moveTask));
+  auto task = Task(std::move(func), expiration, std::move(expireCallback));
+  auto wrappedFunc = [ ioThread, task = std::move(task) ]() mutable {
+    runTask(ioThread, std::move(task));
     ioThread->pendingTasks--;
   };
 
