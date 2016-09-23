@@ -29,10 +29,10 @@ class FutureExecutor : public ExecutorImpl {
    *                return doAsyncWorkAndReturnAFuture();
    *              });
    */
-  template <typename F>
+  template <typename F, typename... Args>
   typename std::enable_if<folly::isFuture<typename std::result_of<F()>::type>::value,
                           typename std::result_of<F()>::type>::type
-  addFuture(F func) {
+  addFuture(F func, Args&&... args) {
     typedef typename std::result_of<F()>::type::value_type T;
     folly::Promise<T> promise;
     auto future = promise.getFuture();
@@ -40,7 +40,7 @@ class FutureExecutor : public ExecutorImpl {
         [ promise = std::move(promise), func = std::move(func) ]() mutable {
           func().then([promise = std::move(promise)](
               folly::Try<T> && t) mutable { promise.setTry(std::move(t)); });
-        });
+        }, std::forward<Args>(args)...);
     return future;
   }
 
@@ -52,17 +52,17 @@ class FutureExecutor : public ExecutorImpl {
    *                return 42;
    *              });
    */
-  template <typename F>
+  template <typename F, typename... Args>
   typename std::enable_if<!folly::isFuture<typename std::result_of<F()>::type>::value,
                           folly::Future<typename folly::Unit::Lift<typename std::result_of<F()>::type>::type>>::type
-  addFuture(F func) {
+  addFuture(F func, Args&&... args) {
     using T = typename folly::Unit::Lift<typename std::result_of<F()>::type>::type;
     folly::Promise<T> promise;
     auto future = promise.getFuture();
     ExecutorImpl::add(
         [ promise = std::move(promise), func = std::move(func) ]() mutable {
           promise.setWith(std::move(func));
-        });
+        }, std::forward<Args>(args)...);
     return future;
   }
 };

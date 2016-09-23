@@ -287,12 +287,84 @@ static void futureExecutor() {
   EXPECT_EQ(6, c);
 }
 
+template <typename TPE>
+static void futureExecutorForCPUWithParameters() {
+  size_t numThreads = 2;
+  int8_t numPriorities = 2;
+  FutureExecutor<TPE> fe(numThreads, numPriorities);
+  std::atomic<int> c{0};
+  int8_t priority = 1;
+  std::chrono::milliseconds expirationTime;
+  fe.addFuture([] () { return makeFuture<int>(42); }, priority, expirationTime).then(
+    [&] (Try<int>&& t) {
+      c++;
+      EXPECT_EQ(42, t.value());
+    });
+  // Test doing actual async work
+  folly::Baton<> baton;
+  fe.addFuture([&] () {
+    auto p = std::make_shared<Promise<int>>();
+    std::thread t([p](){
+      burnMs(10)();
+      p->setValue(42);
+    });
+    t.detach();
+    return p->getFuture();
+  }).then([&] (Try<int>&& t) {
+    EXPECT_EQ(42, t.value());
+    c++;
+    baton.post();
+  });
+  baton.wait();
+  fe.join();
+  EXPECT_EQ(2, c);
+}
+
+template <typename TPE>
+static void futureExecutorForIOWithParameters() {
+  size_t numThreads = 2;
+  FutureExecutor<TPE> fe(numThreads);
+  std::atomic<int> c{0};
+  std::chrono::milliseconds expirationTime;
+  fe.addFuture([] () { return makeFuture<int>(42); }, expirationTime).then(
+    [&] (Try<int>&& t) {
+      c++;
+      EXPECT_EQ(42, t.value());
+    });
+  // Test doing actual async work
+  folly::Baton<> baton;
+  fe.addFuture([&] () {
+    auto p = std::make_shared<Promise<int>>();
+    std::thread t([p](){
+      burnMs(10)();
+      p->setValue(42);
+    });
+    t.detach();
+    return p->getFuture();
+  }).then([&] (Try<int>&& t) {
+    EXPECT_EQ(42, t.value());
+    c++;
+    baton.post();
+  });
+  baton.wait();
+  fe.join();
+  EXPECT_EQ(2, c);
+}
+
 TEST(ThreadPoolExecutorTest, CPUFuturePool) {
   futureExecutor<CPUThreadPoolExecutor>();
 }
 
+TEST(ThreadPoolExecutorTest, CPUFuturePoolWithParameters) {
+  futureExecutorForCPUWithParameters<CPUThreadPoolExecutor>();
+}
+
 TEST(ThreadPoolExecutorTest, IOFuturePool) {
   futureExecutor<IOThreadPoolExecutor>();
+}
+
+TEST(ThreadPoolExecutorTest, IOFuturePoolWithParameters) {
+  futureExecutorForIOWithParameters<IOThreadPoolExecutor>();
 }
 
 TEST(ThreadPoolExecutorTest, PriorityPreemptionTest) {
