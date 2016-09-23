@@ -15,6 +15,7 @@
 #include <wangle/concurrent/IOThreadPoolExecutor.h>
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/PriorityThreadFactory.h>
+#include <wangle/concurrent/BoundThreadFactory.h>
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
@@ -424,6 +425,28 @@ TEST(PriorityThreadFactoryTest, ThreadPriority) {
     }).join();
   EXPECT_EQ(1, actualPriority);
 }
+
+TEST(BoundThreadFactoryTest, ThreadPriority) {
+  int expectedCoreId = 1;
+  BoundThreadFactory factory(
+    std::make_shared<NamedThreadFactory>("stuff"), expectedCoreId);
+  factory.newThread([&]() {
+    cpu_set_t cpuSet;
+    CPU_ZERO(&cpuSet);
+    int error = pthread_getaffinity_np(pthread_self(), sizeof(cpuSet), &cpuSet);
+    ASSERT_EQ(error, 0);
+
+    for (int c = 0; c < CPU_SETSIZE; c++) {
+      if (c == expectedCoreId) {
+        ASSERT_TRUE(CPU_ISSET(c, &cpuSet));
+      } else {
+        ASSERT_FALSE(CPU_ISSET(c, &cpuSet));
+      }
+    }
+
+  }).join();
+}
+
 
 class TestData : public folly::RequestData {
  public:
