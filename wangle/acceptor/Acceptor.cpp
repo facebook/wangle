@@ -283,12 +283,14 @@ Acceptor::connectionReady(
   auto asyncSocket = sock->getUnderlyingTransport<AsyncSocket>();
   asyncSocket->setMaxReadsPerEvent(16);
   tinfo.initWithSocket(asyncSocket);
-  onNewConnection(
+  if (state_ < State::kDraining) {
+    onNewConnection(
       std::move(sock),
       &clientAddr,
       nextProtocolName,
       secureTransportType,
       tinfo);
+  }
 }
 
 void Acceptor::plaintextConnectionReady(
