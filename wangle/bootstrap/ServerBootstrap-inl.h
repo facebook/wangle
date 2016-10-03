@@ -30,20 +30,29 @@ class AcceptorException : public std::runtime_error {
     TIMED_OUT = 1,
     DROPPED = 2,
     ACCEPT_STOPPED = 3,
-    FORCE_STOP = 4,
-    INTERNAL_ERROR = 5,
+    DRAIN_CONN_PCT = 4,
+    DROP_CONN_PCT = 5,
+    FORCE_STOP = 6,
+    INTERNAL_ERROR = 7,
   };
 
   explicit AcceptorException(ExceptionType type) :
-      std::runtime_error(""), type_(type) {}
+      std::runtime_error(""), type_(type), pct_(0.0) {}
 
-  AcceptorException(ExceptionType type, const std::string& message) :
-      std::runtime_error(message), type_(type) {}
+  explicit AcceptorException(ExceptionType type, const std::string& message) :
+      std::runtime_error(message), type_(type), pct_(0.0) {}
+
+  explicit AcceptorException(ExceptionType type, const std::string& message,
+                             double pct) :
+      std::runtime_error(message), type_(type), pct_(pct) {}
 
   ExceptionType getType() const noexcept { return type_; }
+  double getPct() const noexcept { return pct_; }
 
  protected:
   const ExceptionType type_;
+  // the percentage of connections to be drained or dropped during the shutdown
+  const double pct_;
 };
 
 template <typename Pipeline>
@@ -177,6 +186,24 @@ class ServerAcceptor
 
     acceptPipeline_->readException(ew);
     Acceptor::acceptStopped();
+  }
+
+  void drainConnections(double pct) noexcept override {
+    auto ew = folly::make_exception_wrapper<AcceptorException>(
+      AcceptorException::ExceptionType::DRAIN_CONN_PCT,
+      "draining some connections", pct);
+
+    acceptPipeline_->readException(ew);
+    Acceptor::drainConnections(pct);
+  }
+
+  void dropConnections(double pct) noexcept override {
+    auto ew = folly::make_exception_wrapper<AcceptorException>(
+      AcceptorException::ExceptionType::DROP_CONN_PCT,
+      "dropping some connections", pct);
+
+    acceptPipeline_->readException(ew);
+    Acceptor::dropConnections(pct);
   }
 
   void forceStop() noexcept override {

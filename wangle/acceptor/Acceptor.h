@@ -224,7 +224,7 @@ class Acceptor :
   /**
    * Drain defined percentage of connections.
    */
-  void drainConnections(double pctToDrain);
+  virtual void drainConnections(double pctToDrain);
 
   /**
    * Drop all connections.
@@ -241,7 +241,7 @@ class Acceptor :
    * Note: unlike dropAllConnections(), this function can be called
    * from any thread.
    */
-  void dropConnections(double pctToDrop);
+  virtual void dropConnections(double pctToDrop);
 
   /**
    * Wrapper for connectionReady() that can be overridden by
