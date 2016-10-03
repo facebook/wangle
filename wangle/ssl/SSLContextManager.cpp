@@ -195,12 +195,12 @@ void SSLContextManager::resetSSLContextConfigs(
 
   SslContexts contexts;
   for (const auto& ctxConfig : ctxConfigs) {
-    addSSLContextConfigUnsafe(ctxConfig,
-                              cacheOptions,
-                              ticketSeeds,
-                              vipAddress,
-                              externalCache,
-                              contexts);
+    addSSLContextConfig(ctxConfig,
+                        cacheOptions,
+                        ticketSeeds,
+                        vipAddress,
+                        externalCache,
+                        &contexts);
   }
   contexts_.swap(contexts);
 }
@@ -210,22 +210,12 @@ void SSLContextManager::addSSLContextConfig(
   const SSLCacheOptions& cacheOptions,
   const TLSTicketKeySeeds* ticketSeeds,
   const folly::SocketAddress& vipAddress,
-  const std::shared_ptr<SSLCacheProvider>& externalCache) {
-    addSSLContextConfigUnsafe(ctxConfig,
-                              cacheOptions,
-                              ticketSeeds,
-                              vipAddress,
-                              externalCache,
-                              contexts_);
-}
-
-void SSLContextManager::addSSLContextConfigUnsafe(
-  const SSLContextConfig& ctxConfig,
-  const SSLCacheOptions& cacheOptions,
-  const TLSTicketKeySeeds* ticketSeeds,
-  const folly::SocketAddress& vipAddress,
   const std::shared_ptr<SSLCacheProvider>& externalCache,
-  SslContexts& contexts) {
+  SslContexts* contexts) {
+
+  if (!contexts) {
+    contexts = &contexts_;
+  }
 
   unsigned numCerts = 0;
   std::string commonName;
@@ -423,14 +413,14 @@ void SSLContextManager::addSSLContextConfigUnsafe(
     createTicketManagerHelper(sslCtx, ticketSeeds, ctxConfig, stats_);
 
   // finalize sslCtx setup by the individual features supported by openssl
-  ctxSetupByOpensslFeature(sslCtx, ctxConfig, contexts);
+  ctxSetupByOpensslFeature(sslCtx, ctxConfig, *contexts);
 
   try {
     insert(sslCtx,
            std::move(sessionCacheManager),
            std::move(ticketManager),
            ctxConfig.isDefault,
-           contexts);
+           *contexts);
   } catch (const std::exception& ex) {
     string msg = folly::to<string>("Error adding certificate : ",
                                    folly::exceptionStr(ex));
