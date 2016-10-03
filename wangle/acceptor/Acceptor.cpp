@@ -392,9 +392,9 @@ Acceptor::checkDrained() {
 void
 Acceptor::drainConnections(double pctToDrain) {
   if (downstreamConnectionManager_) {
-    VLOG(3) << "Draining " << pctToDrain * 100 << "% of "
-            << getNumConnections() << " connections from Acceptor=" << this
-            << " in thread " << base_;
+    LOG(INFO) << "Draining " << pctToDrain * 100 << "% of "
+              << getNumConnections() << " connections from Acceptor=" << this
+              << " in thread " << base_;
     assert(base_->isInEventBaseThread());
     downstreamConnectionManager_->
       drainConnections(pctToDrain, gracefulShutdownTimeout_);
@@ -420,8 +420,8 @@ Acceptor::forceStop() {
 void
 Acceptor::dropAllConnections() {
   if (downstreamConnectionManager_) {
-    VLOG(3) << "Dropping all connections from Acceptor=" << this <<
-      " in thread " << base_;
+    LOG(INFO) << "Dropping all connections from Acceptor=" << this
+              << " in thread " << base_;
     assert(base_->isInEventBaseThread());
     forceShutdownInProgress_ = true;
     downstreamConnectionManager_->dropAllConnections();
@@ -438,9 +438,9 @@ void
 Acceptor::dropConnections(double pctToDrop) {
   base_->runInEventBaseThread([&, pctToDrop] {
     if (downstreamConnectionManager_) {
-      VLOG(3) << "Dropping " << pctToDrop * 100 << "% of "
-              << getNumConnections() << " connections from Acceptor=" << this
-              << " in thread " << base_;
+      LOG(INFO) << "Dropping " << pctToDrop * 100 << "% of "
+                << getNumConnections() << " connections from Acceptor=" << this
+                << " in thread " << base_;
       assert(base_->isInEventBaseThread());
       forceShutdownInProgress_ = true;
       downstreamConnectionManager_->dropConnections(pctToDrop);
