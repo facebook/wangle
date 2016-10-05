@@ -86,6 +86,10 @@ class TLSTicketKeyManager : private boost::noncopyable {
                             const std::vector<std::string>& currentSeeds,
                             const std::vector<std::string>& newSeeds);
 
+  bool getTLSTicketKeySeeds(std::vector<std::string>& oldSeeds,
+                            std::vector<std::string>& currentSeeds,
+                            std::vector<std::string>& newSeeds) const;
+
   struct Unsafe {
     TLSTicketKeyManager* obj;
     int processTicket(SSL* ssl,

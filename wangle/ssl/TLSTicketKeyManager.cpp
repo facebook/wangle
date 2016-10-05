@@ -184,6 +184,32 @@ TLSTicketKeyManager::setTLSTicketKeySeeds(
   return true;
 }
 
+bool
+TLSTicketKeyManager::getTLSTicketKeySeeds(
+    std::vector<std::string>& oldSeeds,
+    std::vector<std::string>& currentSeeds,
+    std::vector<std::string>& newSeeds) const {
+  oldSeeds.clear();
+  currentSeeds.clear();
+  newSeeds.clear();
+  bool allGot = true;
+  for (const auto& seed : ticketSeeds_) {
+    std::string hexSeed;
+    if (!folly::hexlify(seed->seed_, hexSeed)) {
+      allGot = false;
+      continue;
+    }
+    if (seed->type_ == TLSTicketSeedType::SEED_OLD) {
+      oldSeeds.push_back(hexSeed);
+    } else if(seed->type_ == TLSTicketSeedType::SEED_CURRENT) {
+      currentSeeds.push_back(hexSeed);
+    } else {
+      newSeeds.push_back(hexSeed);
+    }
+  }
+  return allGot;
+}
+
 string
 TLSTicketKeyManager::makeKeyName(TLSTicketSeed* seed, uint32_t n,
                                  unsigned char* nameBuf) {

@@ -109,7 +109,7 @@ void Acceptor::resetSSLContextConfigs() {
   try {
     sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
                                            accConfig_.sslCacheOptions,
-                                           &accConfig_.initialTicketSeeds,
+                                           nullptr,
                                            accConfig_.bindAddress,
                                            cacheProvider_);
   } catch (const std::runtime_error& ex) {
