@@ -62,9 +62,9 @@ struct TransportInfo {
   std::chrono::microseconds rtt{0};
 
   /*
-   *  the estimated ratio of packet retransmisions in current socket
+   * the total number of packets retransmitted during the connection lifetime.
    */
-  double rtx{-1};
+  int64_t rtx{-1};
 
   /*
    * The congestion window size in MSS
