@@ -349,7 +349,7 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
   EXPECT_TRUE(handler == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url"))
       .WillOnce(Invoke(
-          [&](DefaultPipeline* pipeline, const std::string& routingData) {
+          [&](DefaultPipeline* pipeline, const std::string&) {
             pipeline->readException(std::runtime_error("upstream error"));
           }));
   base->loopOnce(); // Do async connect

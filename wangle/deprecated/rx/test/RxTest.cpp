@@ -140,7 +140,7 @@ TEST(RxTest, SubscribeUnsubscribeDuringCallback) {
   int outerCount = 0, innerCount = 0;
   auto s2 = subject.subscribe(Observer<int>::create([&] (int x) {
     outerCount++;
-    auto s2 = subject.subscribe(incrementer(innerCount));
+    auto s3 = subject.subscribe(incrementer(innerCount));
   }));
   subject.onNext(1);
   subject.onNext(2);

@@ -38,9 +38,9 @@ void ServerWorkerPool::threadStopped(
     Mutex::WriteHolder holder(workersMutex_.get());
     auto workerIt = workers_->find(h);
     CHECK(workerIt != workers_->end());
-    auto worker = std::move(workerIt->second);
+    auto w = std::move(workerIt->second);
     workers_->erase(workerIt);
-    return worker;
+    return w;
   }();
 
   for (auto socket : *sockets_) {
