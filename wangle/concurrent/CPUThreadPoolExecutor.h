@@ -95,22 +95,6 @@ CPUThreadPoolExecutor(
     CPUTask()
       : Task(nullptr, std::chrono::milliseconds(0), nullptr),
         poison(true) {}
-    CPUTask(const CPUTask&) = default;
-    CPUTask& operator=(const CPUTask&) = default;
-
-    // Data members (Task::func_ and Task::expireCallback_) are not
-    // noexcept-movable. We need to explicitly define move constructor and
-    // move assignment operator to declare them as noexcept (pretend that they
-    // are). Once folly::Func's definition is changed to use folly::Function
-    // (which is noexcept-movable) instead of std::function, we can get rid
-    // of all explicit definitions of move/copy constructors/assignement
-    // operators here.
-    CPUTask(CPUTask&& o) noexcept : Task(std::move(o)), poison(o.poison) {}
-    CPUTask& operator=(CPUTask&& o) noexcept {
-      this->~CPUTask();
-      new (this) CPUTask(static_cast<CPUTask&&>(o));
-      return *this;
-    }
 
     bool poison;
   };
