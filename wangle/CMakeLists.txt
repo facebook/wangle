@@ -70,6 +70,7 @@ set(WANGLE_SOURCES
   concurrent/Codel.cpp
   concurrent/GlobalExecutor.cpp
   concurrent/IOThreadPoolExecutor.cpp
+  concurrent/SerialExecutor.cpp
   concurrent/ThreadPoolExecutor.cpp
   deprecated/rx/Dummy.cpp
   ssl/PasswordInFile.cpp
@@ -169,9 +170,10 @@ if(BUILD_TESTS)
   add_gtest(channel/test/PipelineTest.cpp PipelineTest)
   add_gtest(codec/CodecTest.cpp CodecTest)
   add_gtest(concurrent/test/AsyncTest.cpp AsyncTest)
-  add_gtest(concurrent/test/ThreadedExecutorTest.cpp ThreadedExecutorTest)
   add_gtest(concurrent/test/CodelTest.cpp CodelTest)
   add_gtest(concurrent/test/GlobalExecutorTest.cpp GlobalExecutorTest)
+  add_gtest(concurrent/test/SerialExecutorTest.cpp SerialExecutorTest)
+  add_gtest(concurrent/test/ThreadedExecutorTest.cpp ThreadedExecutorTest)
   add_gtest(concurrent/test/ThreadPoolExecutorTest ThreadPoolExecutorTest)
   add_gtest(deprecated/rx/test/RxTest.cpp RxTest)
   # this test fails with an exception
