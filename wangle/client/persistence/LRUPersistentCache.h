@@ -102,10 +102,6 @@ class CachePersistence {
 template<typename K, typename V, typename MutexT = std::mutex>
 class LRUPersistentCache : public PersistentCache<K, V>,
                            private boost::noncopyable {
-  static_assert(std::is_convertible<K, folly::dynamic>::value &&
-                std::is_convertible<V, folly::dynamic>::value,
-                "Key and Value types must be convertible to dynamic");
-
  public:
   /**
    * LRUPersistentCache constructor
