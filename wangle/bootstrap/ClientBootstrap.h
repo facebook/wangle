@@ -67,10 +67,9 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
       const folly::SocketAddress& address,
       std::chrono::milliseconds timeout =
           std::chrono::milliseconds(0)) override {
-    auto base = folly::EventBaseManager::get()->getEventBase();
-    if (group_) {
-      base = group_->getEventBase();
-    }
+    auto base = (group_)
+      ? group_->getEventBase()
+      : folly::EventBaseManager::get()->getEventBase();
     folly::Future<Pipeline*> retval((Pipeline*)nullptr);
     base->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
       std::shared_ptr<folly::AsyncSocket> socket;
