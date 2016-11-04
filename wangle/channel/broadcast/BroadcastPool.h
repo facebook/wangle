@@ -123,9 +123,11 @@ class BroadcastPool {
     return (broadcasts_.find(routingData) != broadcasts_.end());
   }
 
- private:
-  void deleteBroadcast(const R& routingData) { broadcasts_.erase(routingData); }
+  virtual void deleteBroadcast(const R& routingData) {
+    broadcasts_.erase(routingData);
+  }
 
+ private:
   std::shared_ptr<ServerPool<R, P>> serverPool_;
   std::shared_ptr<BroadcastPipelineFactory<T, R>> broadcastPipelineFactory_;
   std::shared_ptr<BaseClientBootstrapFactory<>> clientBootstrapFactory_;
