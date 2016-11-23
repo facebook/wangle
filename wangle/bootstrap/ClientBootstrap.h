@@ -89,7 +89,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
           new ConnectCallback(std::move(promise), this),
           address,
           timeout.count());
-      BaseClientBootstrap<Pipeline>::makePipeline(socket);
+      this->makePipeline(socket);
     });
     return retval;
   }
