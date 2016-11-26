@@ -35,7 +35,7 @@ class FixedLengthFrameDecoder : public ByteToByteDecoder {
  public:
   explicit FixedLengthFrameDecoder(size_t length) : length_(length) {}
 
-  bool decode(Context* ctx,
+  bool decode(Context*,
               folly::IOBufQueue& q,
               std::unique_ptr<folly::IOBuf>& result,
               size_t& needed) override {

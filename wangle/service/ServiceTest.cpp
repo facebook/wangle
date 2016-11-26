@@ -27,7 +27,7 @@ typedef Pipeline<IOBufQueue&, std::string> ServicePipeline;
 
 class SimpleDecode : public ByteToByteDecoder {
  public:
-  bool decode(Context* ctx,
+  bool decode(Context*,
               IOBufQueue& buf,
               std::unique_ptr<IOBuf>& result,
               size_t&) override {
@@ -245,14 +245,14 @@ TEST(Wangle, FactoryToService) {
 
 class TimekeeperTester : public Timekeeper {
  public:
-  virtual Future<Unit> after(Duration dur) {
+  virtual Future<Unit> after(Duration) {
     Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));
     return f;
   }
   template <class Clock>
-  Future<Unit> at(std::chrono::time_point<Clock> when) {
+  Future<Unit> at(std::chrono::time_point<Clock>) {
     Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));

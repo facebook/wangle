@@ -77,7 +77,7 @@ class ServerPipelineFactory
   DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncSocket> sock,
       const char& routingData,
-      RoutingDataHandler<char>* routingHandler,
+      RoutingDataHandler<char>*,
       std::shared_ptr<TransportInfo> transportInfo) override {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));

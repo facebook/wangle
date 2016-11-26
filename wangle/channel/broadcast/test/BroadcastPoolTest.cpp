@@ -50,7 +50,7 @@ class BroadcastPoolTest : public Test {
   class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
    public:
     DefaultPipeline::Ptr newPipeline(
-        std::shared_ptr<AsyncTransportWrapper> sock) override {
+        std::shared_ptr<AsyncTransportWrapper>) override {
       auto pipeline = DefaultPipeline::create();
       pipeline->addBack(new BytesToBytesHandler());
       pipeline->finalize();
@@ -223,7 +223,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
       })
-      .onError([&] (const std::exception& ex) {
+      .onError([&] (const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -236,7 +236,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
       })
-      .onError([&] (const std::exception& ex) {
+      .onError([&] (const std::exception&) {
         handler2Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -290,7 +290,7 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
       })
-      .onError([&] (const std::exception& ex) {
+      .onError([&] (const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -314,7 +314,7 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler = h;
       })
-      .onError([&] (const std::exception& ex) {
+      .onError([&] (const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -342,7 +342,7 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler = h;
       })
-      .onError([&] (const std::exception& ex) {
+      .onError([&] (const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -403,7 +403,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .then([&](BroadcastHandler<int, std::string>*) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.
@@ -414,7 +414,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // Invoke getHandler() for the same routing data when a connect request
   // is outstanding
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .then([&](BroadcastHandler<int, std::string>*) {
         handler2Connected = true;
         // Do not subscribe to the handler.
       });
@@ -436,7 +436,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   handler1Connected = false;
   handler2Connected = false;
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .then([&](BroadcastHandler<int, std::string>*) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.

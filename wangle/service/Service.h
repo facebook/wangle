@@ -100,7 +100,7 @@ class ConstFactory : public ServiceFactory<Pipeline, Req, Resp> {
       : service_(service) {}
 
   virtual folly::Future<std::shared_ptr<Service<Req, Resp>>> operator()(
-    std::shared_ptr<ClientBootstrap<Pipeline>> client) {
+    std::shared_ptr<ClientBootstrap<Pipeline>> /* client */) {
     return service_;
   }
  private:

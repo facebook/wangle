@@ -17,7 +17,7 @@ using namespace wangle;
 using folly::BenchmarkSuspender;
 
 static std::unique_ptr<Observer<int>> makeObserver() {
-  return Observer<int>::create([&] (int x) {});
+  return Observer<int>::create([&] (int) {});
 }
 
 void subscribeImpl(uint iters, int N, bool countUnsubscribe) {

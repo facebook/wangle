@@ -29,10 +29,10 @@ bool TLSPlaintextPeekingCallback::looksLikeTLS(
 AcceptorHandshakeHelper::UniquePtr
 TLSPlaintextPeekingCallback::getHelper(
     const std::vector<uint8_t>& bytes,
-    Acceptor* acceptor,
-    const folly::SocketAddress& clientAddr,
-    std::chrono::steady_clock::time_point acceptTime,
-    TransportInfo& tinfo) {
+    Acceptor*,
+    const folly::SocketAddress& /* clientAddr */,
+    std::chrono::steady_clock::time_point /* acceptTime */,
+    TransportInfo&) {
   if (!TLSPlaintextPeekingCallback::looksLikeTLS(bytes)) {
     return AcceptorHandshakeHelper::UniquePtr(
         new UnencryptedAcceptorHandshakeHelper());

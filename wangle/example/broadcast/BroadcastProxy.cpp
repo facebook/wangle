@@ -60,7 +60,7 @@ DEFINE_int32(upstream_port, 8081, "Upstream server port");
  */
 class ByteToStringDecoder : public ByteToMessageDecoder<std::string> {
  public:
-  bool decode(Context* ctx,
+  bool decode(Context*,
               IOBufQueue& buf,
               std::string& result,
               size_t&) override {
@@ -126,7 +126,7 @@ class SimpleServerPool : public ServerPool<std::string> {
  public:
   Future<DefaultPipeline*> connect(
       BaseClientBootstrap<DefaultPipeline>* client,
-      const std::string& routingData) noexcept override {
+      const std::string& /* routingData */) noexcept override {
     SocketAddress address;
     address.setFromLocalPort(FLAGS_upstream_port);
 
@@ -160,8 +160,9 @@ class SimpleBroadcastPipelineFactory
     return pipeline->getHandler<BroadcastHandler<std::string, std::string>>();
   }
 
-  void setRoutingData(DefaultPipeline* pipeline,
-                      const std::string& routingData) noexcept override {}
+  void setRoutingData(
+      DefaultPipeline* /* pipeline */,
+      const std::string& /* routingData */) noexcept override {}
 };
 
 using SimpleObservingPipeline = ObservingPipeline<std::string>;
@@ -184,7 +185,7 @@ class SimpleObservingPipelineFactory
   SimpleObservingPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncSocket> socket,
       const std::string& routingData,
-      RoutingDataHandler<std::string>* routingHandler,
+      RoutingDataHandler<std::string>*,
       std::shared_ptr<TransportInfo> transportInfo) override {
     LOG(INFO) << "Creating a new ObservingPipeline for client "
               << *(transportInfo->remoteAddr);

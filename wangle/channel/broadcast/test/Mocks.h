@@ -60,7 +60,7 @@ class MockServerPool : public ServerPool<std::string> {
 
   folly::Future<DefaultPipeline*> connect(
       BaseClientBootstrap<DefaultPipeline>* client,
-      const std::string& routingData) noexcept override {
+      const std::string& /* routingData */) noexcept override {
     return failConnect_ ? folly::makeFuture<DefaultPipeline*>(std::exception())
                         : client->connect(*addr_);
   }
@@ -148,10 +148,10 @@ class MockObservingPipelineFactory
       : ObservingPipelineFactory(serverPool, broadcastPipelineFactory) {}
 
   ObservingPipeline<int>::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket,
+      std::shared_ptr<folly::AsyncSocket>,
       const std::string& routingData,
-      RoutingDataHandler<std::string>* routingHandler,
-      std::shared_ptr<TransportInfo> transportInfo) override {
+      RoutingDataHandler<std::string>*,
+      std::shared_ptr<TransportInfo>) override {
     auto pipeline = ObservingPipeline<int>::create();
     pipeline->addBack(std::make_shared<wangle::BytesToBytesHandler>());
     pipeline->addBack(std::make_shared<MockMessageToByteEncoder<int>>());

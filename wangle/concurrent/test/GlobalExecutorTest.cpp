@@ -52,7 +52,7 @@ TEST(GlobalExecutorTest, GlobalCPUExecutor) {
 TEST(GlobalExecutorTest, GlobalIOExecutor) {
   class DummyExecutor : public IOExecutor {
    public:
-    void add(folly::Func f) override {
+    void add(folly::Func) override {
       count++;
     }
     folly::EventBase* getEventBase() override {

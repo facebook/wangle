@@ -65,7 +65,7 @@ class SerialClientDispatcher
  public:
   typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
-  void read(Context* ctx, Resp in) override {
+  void read(Context*, Resp in) override {
     DCHECK(p_);
     p_->setValue(std::move(in));
     p_ = folly::none;
@@ -97,7 +97,7 @@ class PipelinedClientDispatcher
 
   typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
-  void read(Context* ctx, Resp in) override {
+  void read(Context*, Resp in) override {
     DCHECK(p_.size() >= 1);
     auto p = std::move(p_.front());
     p_.pop_front();

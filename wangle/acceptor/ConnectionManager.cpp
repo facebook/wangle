@@ -287,7 +287,7 @@ ConnectionManager::dropConnections(double pct) {
 
   const size_t N = conns_.size();
   const size_t numToDrop = std::max<size_t>(0, std::min<size_t>(N, N * pct));
-  for (auto i = 0; i < numToDrop && !conns_.empty(); i++) {
+  for (size_t i = 0; i < numToDrop && !conns_.empty(); i++) {
     ManagedConnection& conn = conns_.front();
     removeConnection(&conn);
     conn.dropConnection();

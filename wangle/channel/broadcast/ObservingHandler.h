@@ -77,7 +77,7 @@ class ObservingPipelineFactory
   typename ObservingPipeline<T>::Ptr newPipeline(
       std::shared_ptr<folly::AsyncSocket> socket,
       const R& routingData,
-      RoutingDataHandler<R>* routingHandler,
+      RoutingDataHandler<R>*,
       std::shared_ptr<TransportInfo> transportInfo) override {
     auto pipeline = ObservingPipeline<T>::create();
     pipeline->addBack(AsyncSocketHandler(socket));

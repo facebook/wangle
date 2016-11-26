@@ -16,7 +16,7 @@ RoutingDataHandler<R>::RoutingDataHandler(uint64_t connId, Callback* cob)
     : connId_(connId), cob_(CHECK_NOTNULL(cob)) {}
 
 template <typename R>
-void RoutingDataHandler<R>::read(Context* ctx, folly::IOBufQueue& q) {
+void RoutingDataHandler<R>::read(Context*, folly::IOBufQueue& q) {
   RoutingData routingData;
   if (parseRoutingData(q, routingData)) {
     cob_->onRoutingData(connId_, routingData);
@@ -24,7 +24,7 @@ void RoutingDataHandler<R>::read(Context* ctx, folly::IOBufQueue& q) {
 }
 
 template <typename R>
-void RoutingDataHandler<R>::readEOF(Context* ctx) {
+void RoutingDataHandler<R>::readEOF(Context*) {
   const auto& ex = folly::make_exception_wrapper<folly::AsyncSocketException>(
       folly::AsyncSocketException::END_OF_FILE,
       "Received EOF before parsing routing data");
@@ -32,7 +32,8 @@ void RoutingDataHandler<R>::readEOF(Context* ctx) {
 }
 
 template <typename R>
-void RoutingDataHandler<R>::readException(Context* ctx, folly::exception_wrapper ex) {
+void RoutingDataHandler<R>::readException(
+    Context*, folly::exception_wrapper ex) {
   cob_->onError(connId_, ex);
 }
 

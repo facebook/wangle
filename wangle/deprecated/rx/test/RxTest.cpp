@@ -15,7 +15,7 @@
 using namespace wangle;
 
 static std::unique_ptr<Observer<int>> incrementer(int& counter) {
-  return Observer<int>::create([&] (int x) {
+  return Observer<int>::create([&] (int) {
     counter++;
   });
 }
@@ -77,7 +77,7 @@ TEST(RxTest, SubscribeDuringCallback) {
   Subject<int> subject;
   int outerCount = 0, innerCount = 0;
   Subscription<int> s1, s2;
-  s1 = subject.subscribe(Observer<int>::create([&] (int x) {
+  s1 = subject.subscribe(Observer<int>::create([&] (int) {
     outerCount++;
     s2 = subject.subscribe(incrementer(innerCount));
   }));
@@ -90,7 +90,7 @@ TEST(RxTest, SubscribeDuringCallback) {
 TEST(RxTest, ObserveDuringCallback) {
   Subject<int> subject;
   int outerCount = 0, innerCount = 0;
-  subject.observe(Observer<int>::create([&] (int x) {
+  subject.observe(Observer<int>::create([&] (int) {
     outerCount++;
     subject.observe(incrementer(innerCount));
   }));
@@ -104,7 +104,7 @@ TEST(RxTest, ObserveInlineDuringCallback) {
   Subject<int> subject;
   int outerCount = 0, innerCount = 0;
   auto innerO = incrementer(innerCount).release();
-  auto outerO = Observer<int>::create([&] (int x) {
+  auto outerO = Observer<int>::create([&] (int) {
     outerCount++;
     subject.observe(innerO);
   }).release();
@@ -123,7 +123,7 @@ TEST(RxTest, UnsubscribeDuringCallback) {
   Subject<int> subject;
   int count1 = 0, count2 = 0;
   auto s1 = subject.subscribe(incrementer(count1));
-  auto s2 = subject.subscribe(Observer<int>::create([&] (int x) {
+  auto s2 = subject.subscribe(Observer<int>::create([&] (int) {
     count2++;
     s1.~Subscription();
   }));
@@ -138,7 +138,7 @@ TEST(RxTest, SubscribeUnsubscribeDuringCallback) {
   // callback should not get any updates
   Subject<int> subject;
   int outerCount = 0, innerCount = 0;
-  auto s2 = subject.subscribe(Observer<int>::create([&] (int x) {
+  auto s2 = subject.subscribe(Observer<int>::create([&] (int) {
     outerCount++;
     auto s3 = subject.subscribe(incrementer(innerCount));
   }));
@@ -178,7 +178,7 @@ struct CO {
 
 template <typename T>
 static ObserverPtr<T> makeCOObserver() {
-  return Observer<T>::create([](const T& mo) {});
+  return Observer<T>::create([](const T&) {});
 }
 
 TEST(RxTest, CopyOnly) {

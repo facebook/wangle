@@ -26,16 +26,16 @@ class ProxyBackendHandler : public InboundBytesToBytesHandler {
   explicit ProxyBackendHandler(DefaultPipeline* frontendPipeline) :
       frontendPipeline_(frontendPipeline) {}
 
-  void read(Context* ctx, IOBufQueue& q) override {
+  void read(Context*, IOBufQueue& q) override {
     frontendPipeline_->write(q.move());
   }
 
-  void readEOF(Context* ctx) override {
+  void readEOF(Context*) override {
     LOG(INFO) << "Connection closed by remote host";
     frontendPipeline_->close();
   }
 
-  void readException(Context* ctx, exception_wrapper e) override {
+  void readException(Context*, exception_wrapper e) override {
     LOG(ERROR) << "Remote error: " << exceptionStr(e);
     frontendPipeline_->close();
   }
@@ -67,7 +67,7 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
   explicit ProxyFrontendHandler(SocketAddress remoteAddress) :
       remoteAddress_(remoteAddress) {}
 
-  void read(Context* ctx, IOBufQueue& q) override {
+  void read(Context*, IOBufQueue& q) override {
     backendPipeline_->write(q.move());
   }
 

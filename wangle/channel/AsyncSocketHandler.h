@@ -76,7 +76,7 @@ class AsyncSocketHandler
     ctx->getPipeline()->setTransport(nullptr);
   }
 
-  void detachPipeline(Context* ctx) override {
+  void detachPipeline(Context*) override {
     detachReadCallback();
   }
 
@@ -178,7 +178,7 @@ class AsyncSocketHandler
       delete this;
     }
 
-    void writeErr(size_t bytesWritten,
+    void writeErr(size_t /* bytesWritten */,
                   const folly::AsyncSocketException& ex)
       noexcept override {
       promise_.setException(ex);

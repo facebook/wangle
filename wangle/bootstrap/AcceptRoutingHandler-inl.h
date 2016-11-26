@@ -12,8 +12,8 @@
 namespace wangle {
 
 template <typename Pipeline, typename R>
-void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
-                                             AcceptPipelineType conn) {
+void AcceptRoutingHandler<Pipeline, R>::read(
+    Context*, AcceptPipelineType conn) {
   if (conn.type() != typeid(ConnInfo&)) {
     return;
   }
@@ -47,13 +47,13 @@ void AcceptRoutingHandler<Pipeline, R>::read(Context* ctx,
 }
 
 template <typename Pipeline, typename R>
-void AcceptRoutingHandler<Pipeline, R>::readEOF(Context* ctx) {
+void AcceptRoutingHandler<Pipeline, R>::readEOF(Context*) {
   // Null implementation to terminate the call in this handler
 }
 
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::readException(
-    Context* ctx, folly::exception_wrapper ex) {
+    Context*, folly::exception_wrapper) {
   // Null implementation to terminate the call in this handler
 }
 

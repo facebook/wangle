@@ -27,7 +27,7 @@ typedef Pipeline<folly::IOBufQueue&, std::string> EchoPipeline;
 // the handler for receiving messages back from the server
 class EchoHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context* ctx, std::string msg) override {
+  virtual void read(Context*, std::string msg) override {
     std::cout << "received back: " << msg;
   }
   virtual void readException(Context* ctx, exception_wrapper e) override {

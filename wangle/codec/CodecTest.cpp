@@ -25,11 +25,11 @@ class FrameTester
   explicit FrameTester(std::function<void(std::unique_ptr<IOBuf>)> test)
     : test_(test) {}
 
-  void read(Context* ctx, std::unique_ptr<IOBuf> buf) override {
+  void read(Context*, std::unique_ptr<IOBuf> buf) override {
     test_(std::move(buf));
   }
 
-  void readException(Context* ctx, exception_wrapper w) override {
+  void readException(Context*, exception_wrapper) override {
     test_(nullptr);
   }
  private:

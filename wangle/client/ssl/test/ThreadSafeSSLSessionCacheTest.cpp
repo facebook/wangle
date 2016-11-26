@@ -38,7 +38,7 @@ class FakeSessionCallbacks : public SSLSessionCallbacks {
      return sess;
    }
 
-   bool removeSSLSession(const std::string& identity) noexcept {
+   bool removeSSLSession(const std::string& /* identity */) noexcept {
      return true;
    }
 

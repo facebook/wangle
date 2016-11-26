@@ -236,7 +236,7 @@ SSLCacheClient::connectErr(const AsyncSocketException& ex)
 }
 
 void
-SSLCacheClient::handshakeSuc(AsyncSSLSocket* socket) noexcept
+SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept
 {
   if (sslSocket_->getSSLSessionReused()) {
     cr_->hits++;
@@ -261,7 +261,7 @@ SSLCacheClient::handshakeSuc(AsyncSSLSocket* socket) noexcept
 
 void
 SSLCacheClient::handshakeErr(
-  AsyncSSLSocket* sock,
+  AsyncSSLSocket*,
   const AsyncSocketException& ex)
   noexcept
 {

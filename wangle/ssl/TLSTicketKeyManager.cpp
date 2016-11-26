@@ -61,7 +61,7 @@ TLSTicketKeyManager::callback(SSL* ssl, unsigned char* keyName,
 }
 
 int
-TLSTicketKeyManager::processTicket(SSL* ssl, unsigned char* keyName,
+TLSTicketKeyManager::processTicket(SSL*, unsigned char* keyName,
                                    unsigned char* iv,
                                    EVP_CIPHER_CTX* cipherCtx,
                                    HMAC_CTX* hmacCtx, int encrypt) {

@@ -52,7 +52,7 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
 class BonkMultiplexClientDispatcher
     : public ClientDispatcherBase<SerializePipeline, Bonk, Xtruct> {
  public:
-  void read(Context* ctx, Xtruct in) override {
+  void read(Context*, Xtruct in) override {
     auto search = requests_.find(in.i32_thing);
     CHECK(search != requests_.end());
     auto p = std::move(search->second);
@@ -63,7 +63,7 @@ class BonkMultiplexClientDispatcher
   Future<Xtruct> operator()(Bonk arg) override {
     auto& p = requests_[arg.type];
     auto f = p.getFuture();
-    p.setInterruptHandler([arg, this](const folly::exception_wrapper& e) {
+    p.setInterruptHandler([arg, this](const folly::exception_wrapper&) {
       this->requests_.erase(arg.type);
     });
     this->pipeline_->write(arg);

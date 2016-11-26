@@ -68,7 +68,7 @@ SSLSessionCacheManager::SSLSessionCacheManager(
   SSLContext* ctx,
   const folly::SocketAddress& sockaddr,
   const string& context,
-  EventBase* eventBase,
+  EventBase*,
   SSLStats* stats,
   const std::shared_ptr<SSLCacheProvider>& externalCache):
     ctx_(ctx),
@@ -132,7 +132,7 @@ int SSLSessionCacheManager::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
 }
 
 
-int SSLSessionCacheManager::newSession(SSL* ssl, SSL_SESSION* session) {
+int SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
   string sessionId((char*)session->session_id, session->session_id_length);
   VLOG(4) << "New SSL session; id=" << SSLUtil::hexlify(sessionId);
 
@@ -163,7 +163,7 @@ void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
   return manager->removeSession(ctx, session);
 }
 
-void SSLSessionCacheManager::removeSession(SSL_CTX* ctx,
+void SSLSessionCacheManager::removeSession(SSL_CTX*,
                                            SSL_SESSION* session) {
   string sessionId((char*)session->session_id, session->session_id_length);
 

@@ -261,7 +261,7 @@ Acceptor::processEstablishedConnection(
 
 void Acceptor::startHandshakeManager(
     AsyncSSLSocket::UniquePtr sslSock,
-    Acceptor* acceptor,
+    Acceptor*,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     TransportInfo& tinfo) noexcept {
@@ -327,7 +327,7 @@ Acceptor::sslConnectionReady(AsyncTransportWrapper::UniquePtr sock,
   }
 }
 
-void Acceptor::sslConnectionError(const folly::exception_wrapper& ex) {
+void Acceptor::sslConnectionError(const folly::exception_wrapper&) {
   CHECK(numPendingSSLConns_ > 0);
   --numPendingSSLConns_;
   --totalNumPendingSSLConns_;
@@ -363,7 +363,7 @@ Acceptor::acceptStopped() noexcept {
 }
 
 void
-Acceptor::onEmpty(const ConnectionManager& cm) {
+Acceptor::onEmpty(const ConnectionManager&) {
   VLOG(3) << "Acceptor=" << this << " onEmpty()";
   if (state_ == State::kDraining) {
     checkDrained();

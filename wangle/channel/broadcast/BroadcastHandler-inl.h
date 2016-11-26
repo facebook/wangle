@@ -12,7 +12,7 @@
 namespace wangle {
 
 template <typename T, typename R>
-void BroadcastHandler<T, R>::read(Context* ctx, T data) {
+void BroadcastHandler<T, R>::read(Context*, T data) {
   onData(data);
   forEachSubscriber([&](Subscriber<T, R>* s) {
     s->onNext(data);
@@ -20,7 +20,7 @@ void BroadcastHandler<T, R>::read(Context* ctx, T data) {
 }
 
 template <typename T, typename R>
-void BroadcastHandler<T, R>::readEOF(Context* ctx) {
+void BroadcastHandler<T, R>::readEOF(Context*) {
   forEachSubscriber([&](Subscriber<T, R>* s) {
     s->onCompleted();
   });
@@ -29,7 +29,7 @@ void BroadcastHandler<T, R>::readEOF(Context* ctx) {
 }
 
 template <typename T, typename R>
-void BroadcastHandler<T, R>::readException(Context* ctx,
+void BroadcastHandler<T, R>::readException(Context*,
                                         folly::exception_wrapper ex) {
   LOG(ERROR) << "Error while reading from upstream for broadcast: "
              << exceptionStr(ex);

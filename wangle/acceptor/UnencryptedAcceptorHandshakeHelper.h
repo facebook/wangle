@@ -32,7 +32,7 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
   }
 
   virtual void dropConnection(
-      SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
+      SSLErrorEnum /* reason */ = SSLErrorEnum::NO_ERROR) override {
     CHECK(false) << "Nothing to drop";
   }
 };

@@ -16,7 +16,7 @@ using folly::RWSpinLock;
 namespace wangle {
 
 ThreadPoolExecutor::ThreadPoolExecutor(
-    size_t numThreads,
+    size_t /* numThreads */,
     std::shared_ptr<ThreadFactory> threadFactory,
     bool isWaitForAll)
     : threadFactory_(std::move(threadFactory)),

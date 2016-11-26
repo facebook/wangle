@@ -159,7 +159,7 @@ SSLContextManager::~SSLContextManager() = default;
 
 SSLContextManager::SSLContextManager(
   folly::EventBase* eventBase,
-  const std::string& vipName,
+  const std::string& /* vipName */,
   bool strict,
   SSLStats* stats) :
     stats_(stats),

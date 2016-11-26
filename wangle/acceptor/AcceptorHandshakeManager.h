@@ -87,7 +87,7 @@ class AcceptorHandshakeManager : public ManagedConnection,
     helper_->dropConnection(reason);
   }
 
-  virtual void dumpConnectionState(uint8_t loglevel) override {}
+  virtual void dumpConnectionState(uint8_t /* loglevel */) override {}
 
  protected:
   virtual void connectionReady(

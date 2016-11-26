@@ -88,7 +88,7 @@ TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
 }
 
 MATCHER_P(DynSize, n, "") {
-  return n == arg.size();
+  return size_t(n) == arg.size();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, SettingPersistence) {

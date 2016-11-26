@@ -42,7 +42,7 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
   BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransportWrapper>) override {
     pipelines++;
     auto pipeline = BytesPipeline::create();
     pipeline->addBack(new BytesToBytesHandler());
@@ -58,16 +58,16 @@ EventBase base_;
   TestAcceptor() : Acceptor(ServerSocketConfig()) {
     Acceptor::init(nullptr, &base_);
   }
-  void onNewConnection(AsyncTransportWrapper::UniquePtr sock,
-                       const folly::SocketAddress* address,
-                       const std::string& nextProtocolName,
-                       SecureTransportType secureTransportType,
-                       const TransportInfo& tinfo) override {}
+  void onNewConnection(AsyncTransportWrapper::UniquePtr,
+                       const folly::SocketAddress*,
+                       const std::string& /* nextProtocolName */,
+                       SecureTransportType,
+                       const TransportInfo&) override {}
 };
 
 class TestAcceptorFactory : public AcceptorFactory {
  public:
-  std::shared_ptr<Acceptor> newAcceptor(EventBase* base) override {
+  std::shared_ptr<Acceptor> newAcceptor(EventBase*) override {
     return std::make_shared<TestAcceptor>();
   }
 };
@@ -322,7 +322,7 @@ TEST(Bootstrap, LoadBalanceHandler) {
 
 class TestUDPPipeline : public InboundHandler<AcceptPipelineType, Unit> {
  public:
-  void read(Context* ctx, AcceptPipelineType conn) override { connections++; }
+  void read(Context*, AcceptPipelineType) override { connections++; }
 };
 
 TEST(Bootstrap, UDP) {

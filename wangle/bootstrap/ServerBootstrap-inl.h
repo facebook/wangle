@@ -74,7 +74,7 @@ class ServerAcceptor
       pipeline_->readException(ew);
     }
 
-    void describe(std::ostream& os) const override {}
+    void describe(std::ostream&) const override {}
     bool isBusy() const override {
       return true;
     }
@@ -87,7 +87,7 @@ class ServerAcceptor
       pipeline_->readException(ew);
       destroy();
     }
-    void dumpConnectionState(uint8_t loglevel) override {}
+    void dumpConnectionState(uint8_t /* loglevel */) override {}
 
     void deletePipeline(wangle::PipelineBase* p) override {
       CHECK(p == pipeline_.get());
@@ -134,7 +134,7 @@ class ServerAcceptor
     acceptPipeline_->finalize();
   }
 
-  void read(Context* ctx, AcceptPipelineType conn) override {
+  void read(Context*, AcceptPipelineType conn) override {
     if (conn.type() != typeid(ConnInfo&)) {
       return;
     }
@@ -163,9 +163,8 @@ class ServerAcceptor
 
   // Null implementation to terminate the call in this handler
   // and suppress warnings
-  void readEOF(Context* ctx) override {}
-  void readException(Context* ctx,
-                     folly::exception_wrapper ex) override {}
+  void readEOF(Context*) override {}
+  void readException(Context*, folly::exception_wrapper) override {}
 
   /* See Acceptor::onNewConnection for details */
   void onNewConnection(folly::AsyncTransportWrapper::UniquePtr transport,
@@ -219,7 +218,7 @@ class ServerAcceptor
   void onDataAvailable(std::shared_ptr<folly::AsyncUDPSocket> socket,
                        const folly::SocketAddress& addr,
                        std::unique_ptr<folly::IOBuf> buf,
-                       bool truncated) noexcept override {
+                       bool /* truncated */) noexcept override {
     acceptPipeline_->read(
         AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }
@@ -323,7 +322,7 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
 
 class DefaultAcceptPipelineFactory : public AcceptPipelineFactory {
  public:
-  typename AcceptPipeline::Ptr newPipeline(Acceptor* acceptor) {
+  typename AcceptPipeline::Ptr newPipeline(Acceptor*) {
     return AcceptPipeline::create();
   }
 };

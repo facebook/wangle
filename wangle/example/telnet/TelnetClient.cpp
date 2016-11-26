@@ -27,7 +27,7 @@ typedef Pipeline<folly::IOBufQueue&, std::string> TelnetPipeline;
 
 class TelnetHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context* ctx, std::string msg) override {
+  virtual void read(Context*, std::string msg) override {
     std::cout << msg;
   }
   virtual void readException(Context* ctx, exception_wrapper e) override {

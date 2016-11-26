@@ -51,7 +51,7 @@ class PipelinedServerDispatcher : public HandlerAdapter<Req, Resp> {
   explicit PipelinedServerDispatcher(Service<Req, Resp>* service)
       : service_(service) {}
 
-  void read(Context* ctx, Req in) override {
+  void read(Context*, Req in) override {
     auto requestId = requestId_++;
     (*service_)(std::move(in)).then([requestId,this](Resp& resp){
       responses_[requestId] = resp;

@@ -44,7 +44,7 @@ class FileRegion {
       delete this;
     }
 
-    void writeErr(size_t bytesWritten,
+    void writeErr(size_t /* bytesWritten */,
                   const folly::AsyncSocketException& ex)
       noexcept override {
       promise_.setException(ex);
