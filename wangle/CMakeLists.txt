@@ -34,6 +34,7 @@ set(WANGLE_HEADER_DIRS
   acceptor
   bootstrap
   channel
+  client
   codec
   concurrent
   deprecated
