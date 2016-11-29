@@ -150,12 +150,13 @@ bool Acceptor::canAccept(const SocketAddress& address) {
     return true;
   }
 
-  uint64_t maxConnections = connectionCounter_->getMaxConnections();
-  if (maxConnections == 0) {
+  const auto totalConnLimit = loadShedConfig_.getMaxConnections();
+  if (totalConnLimit == 0) {
     return true;
   }
 
   uint64_t currentConnections = connectionCounter_->getNumConnections();
+  uint64_t maxConnections = getWorkerMaxConnections();
   if (currentConnections < maxConnections) {
     return true;
   }
@@ -166,15 +167,20 @@ bool Acceptor::canAccept(const SocketAddress& address) {
 
   // Take care of the connection counts across all acceptors.
   // Expensive since a lock must be taken to get the counter.
-  const auto activeConnLimit = loadShedConfig_.getMaxActiveConnections();
-  const auto totalConnLimit = loadShedConfig_.getMaxConnections();
-  const auto activeConnCount = getActiveConnectionCountForLoadShedding();
-  const auto totalConnCount = getConnectionCountForLoadShedding();
 
-  bool activeConnExceeded =
-      (activeConnLimit > 0) && (activeConnCount >= activeConnLimit);
-  bool totalConnExceeded =
-      (totalConnLimit > 0) && (totalConnCount >= totalConnLimit);
+  // getConnectionCountForLoadShedding() call can be very expensive,
+  // don't call it if you are not going to use the results.
+  const auto totalConnExceeded =
+    totalConnLimit > 0 && getConnectionCountForLoadShedding() >= totalConnLimit;
+
+  const auto activeConnLimit = loadShedConfig_.getMaxActiveConnections();
+  // getActiveConnectionCountForLoadShedding() call can be very expensive,
+  // don't call it if you are not going to use the results.
+  const auto activeConnExceeded =
+    !totalConnExceeded &&
+    activeConnLimit > 0 &&
+    getActiveConnectionCountForLoadShedding() >= activeConnLimit;
+
   if (!activeConnExceeded && !totalConnExceeded) {
     return true;
   }

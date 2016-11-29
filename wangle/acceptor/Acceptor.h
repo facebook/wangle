@@ -308,6 +308,9 @@ class Acceptor :
 
   virtual uint64_t getConnectionCountForLoadShedding(void) const { return 0; }
   virtual uint64_t getActiveConnectionCountForLoadShedding() const { return 0; }
+  virtual uint64_t getWorkerMaxConnections() const {
+    return connectionCounter_->getMaxConnections();
+  }
 
   /**
    * Hook for subclasses to drop newly accepted connections prior
