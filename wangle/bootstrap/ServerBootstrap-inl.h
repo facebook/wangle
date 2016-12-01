@@ -149,7 +149,7 @@ class ServerAcceptor
     transport->getLocalAddress(tInfoPtr->localAddr.get());
     tInfoPtr->remoteAddr =
       std::make_shared<folly::SocketAddress>(*connInfo.clientAddr);
-    tInfoPtr->sslNextProtocol =
+    tInfoPtr->appProtocol =
       std::make_shared<std::string>(connInfo.nextProtoName);
 
     auto pipeline = childPipelineFactory_->newPipeline(

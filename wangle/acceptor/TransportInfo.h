@@ -158,9 +158,9 @@ struct TransportInfo {
   std::shared_ptr<std::string> guessedUserAgent{nullptr};
 
   /**
-   * The result of SSL NPN negotiation.
+   * The application protocol running on the transport (h2, etc.)
    */
-  std::shared_ptr<std::string> sslNextProtocol{nullptr};
+  std::shared_ptr<std::string> appProtocol{nullptr};
 
   /*
    * total number of bytes sent over the connection
