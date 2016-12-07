@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <folly/Executor.h>
 
 namespace folly {
