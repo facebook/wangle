@@ -65,6 +65,7 @@ void ThreadPoolExecutor::runTask(
     task.stats_.runTime = std::chrono::steady_clock::now() - startTime;
   }
   thread->idle = true;
+  thread->lastActiveTime = std::chrono::steady_clock::now();
   thread->taskStatsSubject->onNext(std::move(task.stats_));
 }
 
@@ -134,12 +135,15 @@ void ThreadPoolExecutor::join() {
 }
 
 ThreadPoolExecutor::PoolStats ThreadPoolExecutor::getPoolStats() {
+  const auto now = std::chrono::steady_clock::now();
   RWSpinLock::ReadHolder{&threadListLock_};
   ThreadPoolExecutor::PoolStats stats;
   stats.threadCount = threadList_.get().size();
   for (auto thread : threadList_.get()) {
     if (thread->idle) {
       stats.idleThreadCount++;
+      const std::chrono::nanoseconds idleTime = now - thread->lastActiveTime;
+      stats.maxIdleTime = std::max(stats.maxIdleTime, idleTime);
     } else {
       stats.activeThreadCount++;
     }

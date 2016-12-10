@@ -62,9 +62,10 @@ class ThreadPoolExecutor : public virtual folly::Executor {
 
   struct PoolStats {
     PoolStats() : threadCount(0), idleThreadCount(0), activeThreadCount(0),
-                  pendingTaskCount(0), totalTaskCount(0) {}
+                  pendingTaskCount(0), totalTaskCount(0), maxIdleTime(0) {}
     size_t threadCount, idleThreadCount, activeThreadCount;
     uint64_t pendingTaskCount, totalTaskCount;
+    std::chrono::nanoseconds maxIdleTime;
   };
 
   PoolStats getPoolStats();
@@ -123,6 +124,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
       : id(nextId++),
         handle(),
         idle(true),
+        lastActiveTime(std::chrono::steady_clock::now()),
         taskStatsSubject(pool->taskStatsSubject_) {}
 
     virtual ~Thread() = default;
@@ -131,6 +133,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
     uint64_t id;
     std::thread handle;
     bool idle;
+    std::chrono::steady_clock::time_point lastActiveTime;
     folly::Baton<> startupBaton;
     std::shared_ptr<Subject<TaskStats>> taskStatsSubject;
   };
