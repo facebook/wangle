@@ -143,6 +143,11 @@ struct TransportInfo {
   std::shared_ptr<std::string> sslClientSigAlgs{nullptr};
 
   /*
+   * list of supported versions sent by client in supported versions extension
+   */
+  std::shared_ptr<std::string> sslClientSupportedVersions{nullptr};
+
+  /*
    * hash of all the SSL parameters sent by the client
    */
   std::shared_ptr<std::string> sslSignature{nullptr};
