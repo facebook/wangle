@@ -82,7 +82,7 @@ void IOThreadPoolExecutor::add(
     Func func,
     std::chrono::milliseconds expiration,
     Func expireCallback) {
-  RWSpinLock::ReadHolder{&threadListLock_};
+  RWSpinLock::ReadHolder r{&threadListLock_};
   if (threadList_.get().empty()) {
     throw std::runtime_error("No threads available");
   }
@@ -103,10 +103,17 @@ void IOThreadPoolExecutor::add(
 
 std::shared_ptr<IOThreadPoolExecutor::IOThread>
 IOThreadPoolExecutor::pickThread() {
-  if (*thisThread_) {
-    return *thisThread_;
+  auto& me = *thisThread_;
+  auto& ths = threadList_.get();
+  // When new task is added to IOThreadPoolExecutor, a thread is chosen for it
+  // to be executed on, thisThread_ is by default chosen, however, if the new
+  // task is added by the clean up operations on thread destruction, thisThread_
+  // is not an available thread anymore, thus, always check whether or not
+  // thisThread_ is an available thread before choosing it.
+  if (me && std::find(ths.cbegin(), ths.cend(), me) != ths.cend()) {
+    return me;
   }
-  auto thread = threadList_.get()[nextThread_++ % threadList_.get().size()];
+  auto thread = ths[nextThread_++ % ths.size()];
   return std::static_pointer_cast<IOThread>(thread);
 }
 
