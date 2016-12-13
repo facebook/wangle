@@ -165,7 +165,6 @@ void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
     // event base hookups, let's wait till all of them complete.
     ioThread->eventBase->loop();
   }
-  stoppedThreads_.add(ioThread);
 
   std::lock_guard<std::mutex> guard(ioThread->eventBaseShutdownMutex_);
   ioThread->eventBase = nullptr;
@@ -174,6 +173,8 @@ void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
 
 // threadListLock_ is writelocked
 void IOThreadPoolExecutor::stopThreads(size_t n) {
+  std::vector<ThreadPtr> stoppedThreads;
+  stoppedThreads.reserve(n);
   for (size_t i = 0; i < n; i++) {
     const auto ioThread = std::static_pointer_cast<IOThread>(
         threadList_.get()[i]);
@@ -181,10 +182,15 @@ void IOThreadPoolExecutor::stopThreads(size_t n) {
       o->threadStopped(ioThread.get());
     }
     ioThread->shouldRun = false;
+    stoppedThreads.push_back(ioThread);
     std::lock_guard<std::mutex> guard(ioThread->eventBaseShutdownMutex_);
     if (ioThread->eventBase) {
       ioThread->eventBase->terminateLoopSoon();
     }
+  }
+  for (auto thread : stoppedThreads) {
+    stoppedThreads_.add(thread);
+    threadList_.remove(thread);
   }
 }
 

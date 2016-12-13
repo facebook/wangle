@@ -115,7 +115,8 @@ void CPUThreadPoolExecutor::threadRun(std::shared_ptr<Thread> thread) {
       for (auto& o : observers_) {
         o->threadStopped(thread.get());
       }
-
+      folly::RWSpinLock::WriteHolder w{&threadListLock_};
+      threadList_.remove(thread);
       stoppedThreads_.add(thread);
       return;
     } else {
@@ -124,6 +125,8 @@ void CPUThreadPoolExecutor::threadRun(std::shared_ptr<Thread> thread) {
 
     if (UNLIKELY(threadsToStop_ > 0 && !isJoin_)) {
       if (--threadsToStop_ >= 0) {
+        folly::RWSpinLock::WriteHolder w{&threadListLock_};
+        threadList_.remove(thread);
         stoppedThreads_.add(thread);
         return;
       } else {
@@ -134,8 +137,7 @@ void CPUThreadPoolExecutor::threadRun(std::shared_ptr<Thread> thread) {
 }
 
 void CPUThreadPoolExecutor::stopThreads(size_t n) {
-  CHECK(stoppedThreads_.size() == 0);
-  threadsToStop_ = n;
+  threadsToStop_ += n;
   for (size_t i = 0; i < n; i++) {
     taskQueue_->addWithPriority(CPUTask(), Executor::LO_PRI);
   }

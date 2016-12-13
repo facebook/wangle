@@ -85,10 +85,10 @@ void ThreadPoolExecutor::setNumThreads(size_t n) {
       numThreadsToJoin = current - n;
       removeThreads(numThreadsToJoin, true);
     }
-    CHECK_EQ(n, threadList_.get().size());
   }
   joinStoppedThreads(numThreadsToJoin);
-  CHECK_EQ(0, waitingForJoinThreads_.size());
+  CHECK_EQ(n, threadList_.get().size());
+  CHECK_EQ(0, stoppedThreads_.size());
 }
 
 // threadListLock_ is writelocked
@@ -117,43 +117,39 @@ void ThreadPoolExecutor::addThreads(size_t n) {
 // threadListLock_ is writelocked
 void ThreadPoolExecutor::removeThreads(size_t n, bool isJoin) {
   CHECK_LE(n, threadList_.get().size());
-  CHECK_EQ(0, stoppedThreads_.size());
   isJoin_ = isJoin;
   stopThreads(n);
-  for (size_t i = 0; i < n; i++) {
-    auto thread = stoppedThreads_.take();
-    threadList_.remove(thread);
-    waitingForJoinThreads_.add(thread);
-  }
 }
 
 void ThreadPoolExecutor::joinStoppedThreads(size_t n) {
   for (size_t i = 0; i < n; i++) {
-    auto thread = waitingForJoinThreads_.take();
+    auto thread = stoppedThreads_.take();
     thread->handle.join();
   }
 }
 
 void ThreadPoolExecutor::stop() {
-  auto n = threadList_.get().size();
+  size_t n = 0;
   {
     RWSpinLock::WriteHolder w{&threadListLock_};
+    n = threadList_.get().size();
     removeThreads(n, false);
-    CHECK_EQ(0, threadList_.get().size());
   }
   joinStoppedThreads(n);
-  CHECK_EQ(0, waitingForJoinThreads_.size());
+  CHECK_EQ(0, threadList_.get().size());
+  CHECK_EQ(0, stoppedThreads_.size());
 }
 
 void ThreadPoolExecutor::join() {
-  auto n = threadList_.get().size();
+  size_t n = 0;
   {
     RWSpinLock::WriteHolder w{&threadListLock_};
+    n = threadList_.get().size();
     removeThreads(n, true);
-    CHECK_EQ(0, threadList_.get().size());
   }
   joinStoppedThreads(n);
-  CHECK_EQ(0, waitingForJoinThreads_.size());
+  CHECK_EQ(0, threadList_.get().size());
+  CHECK_EQ(0, stoppedThreads_.size());
 }
 
 ThreadPoolExecutor::PoolStats ThreadPoolExecutor::getPoolStats() {

@@ -497,3 +497,91 @@ TEST(ThreadPoolExecutorTest, BugD3527722) {
   consumer1.join();
   consumer2.join();
 }
+
+template <typename TPE, typename ERR_T>
+static void ShutdownTest() {
+  // test that adding a .then() after we have
+  // started shutting down does not deadlock
+  folly::Optional<folly::Future<int>> f;
+  {
+    TPE fe(1);
+    f = folly::makeFuture().via(&fe).then([]() {
+          burnMs(100)();
+        })
+        .then([]() {
+          return 77;
+        });
+  }
+  EXPECT_THROW(f->get(), ERR_T);
+}
+
+TEST(ThreadPoolExecutorTest, ShutdownTestIO) {
+  ShutdownTest<IOThreadPoolExecutor, std::runtime_error>();
+}
+
+TEST(ThreadPoolExecutorTest, ShutdownTestCPU) {
+  ShutdownTest<CPUThreadPoolExecutor, folly::FutureException>();
+}
+
+template <typename TPE>
+static void removeThreadTest() {
+  // test that adding a .then() after we have removed some threads
+  // doesn't cause deadlock and they are executed on different threads
+  folly::Optional<folly::Future<int>> f;
+  std::thread::id id1, id2;
+  TPE fe(2);
+  f = folly::makeFuture().via(&fe).then([&id1]() {
+        burnMs(100)();
+        id1 = std::this_thread::get_id();
+      })
+      .then([&id2]() {
+        return 77;
+        id2 = std::this_thread::get_id();
+      });
+  fe.setNumThreads(1);
+
+  // future::then should be fulfilled because there is other thread available
+  EXPECT_EQ(77, f->get());
+  // two thread should be different because then part should be rescheduled to
+  // the other thread
+  EXPECT_NE(id1, id2);
+}
+
+TEST(ThreadPoolExecutorTest, RemoveThreadTestIO) {
+  removeThreadTest<IOThreadPoolExecutor>();
+}
+
+TEST(ThreadPoolExecutorTest, RemoveThreadTestCPU) {
+  removeThreadTest<CPUThreadPoolExecutor>();
+}
+
+template <typename TPE>
+static void resizeThreadWhileExecutingTest() {
+  TPE tpe(10);
+  EXPECT_EQ(10, tpe.numThreads());
+
+  std::atomic<int> completed(0);
+  auto f = [&](){
+    burnMs(10)();
+    completed++;
+  };
+  for (int i = 0; i < 1000; i++) {
+    tpe.add(f);
+  }
+  tpe.setNumThreads(8);
+  EXPECT_EQ(8, tpe.numThreads());
+  tpe.setNumThreads(5);
+  EXPECT_EQ(5, tpe.numThreads());
+  tpe.setNumThreads(15);
+  EXPECT_EQ(15, tpe.numThreads());
+  tpe.stop();
+  EXPECT_EQ(1000, completed);
+}
+
+TEST(ThreadPoolExecutorTest, resizeThreadWhileExecutingTestIO) {
+  resizeThreadWhileExecutingTest<IOThreadPoolExecutor>();
+}
+
+TEST(ThreadPoolExecutorTest, resizeThreadWhileExecutingTestCPU) {
+  resizeThreadWhileExecutingTest<CPUThreadPoolExecutor>();
+}

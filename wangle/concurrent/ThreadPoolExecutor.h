@@ -160,6 +160,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   virtual void threadRun(ThreadPtr thread) = 0;
 
   // Stop n threads and put their ThreadPtrs in the stoppedThreads_ queue
+  // and remove them from threadList_, either synchronize or asynchronize
   // Prerequisite: threadListLock_ writelocked
   virtual void stopThreads(size_t n) = 0;
 
@@ -233,7 +234,6 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   ThreadList threadList_;
   folly::RWSpinLock threadListLock_;
   StoppedThreadQueue stoppedThreads_;
-  StoppedThreadQueue waitingForJoinThreads_;
   std::atomic<bool> isJoin_; // whether the current downsizing is a join
 
   std::shared_ptr<Subject<TaskStats>> taskStatsSubject_;
