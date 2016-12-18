@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <folly/portability/GFlags.h>
-#include <math.h>
 
 DEFINE_int32(codel_interval, 100,
              "Codel default interval time in ms");

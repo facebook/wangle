@@ -11,7 +11,6 @@
 #include <gflags/gflags.h>
 
 #include <wangle/service/Service.h>
-#include <wangle/service/ExpiringFilter.h>
 #include <wangle/service/ExecutorFilter.h>
 #include <wangle/service/ServerDispatcher.h>
 #include <wangle/bootstrap/ServerBootstrap.h>

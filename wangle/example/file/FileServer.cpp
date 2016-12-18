@@ -15,7 +15,6 @@
 #include <wangle/channel/FileRegion.h>
 #include <wangle/codec/LineBasedFrameDecoder.h>
 #include <wangle/codec/StringCodec.h>
-#include <sys/sendfile.h>
 
 using namespace folly;
 using namespace wangle;

@@ -13,11 +13,9 @@
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
-#include <fcntl.h>
 #include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
 #include <fstream>
-#include <sys/types.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/portability/Sockets.h>

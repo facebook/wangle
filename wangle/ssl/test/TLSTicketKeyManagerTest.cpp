@@ -9,7 +9,6 @@
  */
 #include <gtest/gtest.h>
 #include <wangle/ssl/TLSTicketKeyManager.h>
-#include <wangle/ssl/SSLStats.h>
 
 TEST(TLSTicketKeyManager, TestSetGetTLSTicketKeySeeds) {
   std::vector<std::string> origOld = {"67"};
