@@ -197,7 +197,7 @@ void SSLContextManager::resetSSLContextConfigs(
   TLSTicketKeySeeds oldTicketSeeds;
   // This assumes that all ctxs have the same ticket seeds. Which we assume in
   // other places as well
-  if (!ticketSeeds) {
+  if (!ticketSeeds && !contexts_.ticketManagers.empty()) {
     contexts_.ticketManagers[0]->getTLSTicketKeySeeds(
         oldTicketSeeds.oldSeeds,
         oldTicketSeeds.currentSeeds,
