@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2017, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -36,6 +36,7 @@ struct SSLCacheOptions;
 class SSLStats;
 class TLSTicketKeyManager;
 struct TLSTicketKeySeeds;
+class ServerSSLContext;
 
 class SSLContextManager {
  private:
@@ -43,11 +44,8 @@ class SSLContextManager {
     void clear();
     void swap(SslContexts& other) noexcept;
 
-    std::vector<std::shared_ptr<folly::SSLContext>> ctxs;
-    std::vector<std::unique_ptr<SSLSessionCacheManager>>
-      sessionCacheManagers;
-    std::vector<std::unique_ptr<TLSTicketKeyManager>> ticketManagers;
-    std::shared_ptr<folly::SSLContext> defaultCtx;
+    std::vector<std::shared_ptr<ServerSSLContext>> ctxs;
+    std::shared_ptr<ServerSSLContext> defaultCtx;
     std::string defaultCtxDomainName;
 
     /**
@@ -201,7 +199,7 @@ class SSLContextManager {
   SSLContextManager(const SSLContextManager&) = delete;
 
   void ctxSetupByOpensslFeature(
-    std::shared_ptr<folly::SSLContext> sslCtx,
+    std::shared_ptr<ServerSSLContext> sslCtx,
     const SSLContextConfig& ctxConfig,
     SslContexts& contexts);
 
@@ -239,9 +237,7 @@ class SSLContextManager {
    */
 
   void insert(
-    std::shared_ptr<folly::SSLContext> sslCtx,
-    std::unique_ptr<SSLSessionCacheManager> cmanager,
-    std::unique_ptr<TLSTicketKeyManager> tManager,
+    std::shared_ptr<ServerSSLContext> sslCtx,
     bool defaultFallback,
     SslContexts& contexts);
 

@@ -75,6 +75,7 @@ set(WANGLE_SOURCES
   concurrent/ThreadPoolExecutor.cpp
   deprecated/rx/Dummy.cpp
   ssl/PasswordInFile.cpp
+  ssl/ServerSSLContext.cpp
   ssl/SSLContextManager.cpp
   ssl/SSLSessionCacheManager.cpp
   ssl/SSLUtil.cpp
