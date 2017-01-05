@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2017, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -232,7 +232,7 @@ class ConnectionManager: public folly::DelayedDestruction,
     bool all_{true};
     double pct_{1.0};
     ConnectionManager& manager_;
-    ShutdownState shutdownState_{ShutdownState::NONE};;
+    ShutdownState shutdownState_{ShutdownState::NONE};
   };
 
 
