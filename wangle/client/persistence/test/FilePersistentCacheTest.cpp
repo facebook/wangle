@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2017, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -279,7 +279,7 @@ TYPED_TEST(FilePersistentCacheTest, threadstress) {
   // their own set of values on the same cache
   using CacheType = FilePersistentCache<string, int, TypeParam>;
   auto cacheFile = getPersistentCacheFilename();
-  auto cache = folly::make_unique<CacheType>(
+  auto sharedCache = folly::make_unique<CacheType>(
     cacheFile, 10, std::chrono::seconds(10));
 
   int numThreads = 3;
@@ -302,15 +302,15 @@ TYPED_TEST(FilePersistentCacheTest, threadstress) {
 
   std::vector<std::thread> threads;
   for (int i = 0; i < numThreads; ++i) {
-    threads.push_back(std::thread(threadFunc, cache.get(), i));
+    threads.push_back(std::thread(threadFunc, sharedCache.get(), i));
   }
   for (int i = 0; i < numThreads; ++i) {
     threads[i].join();
   }
-  EXPECT_EQ(cache->size(), numThreads);
+  EXPECT_EQ(sharedCache->size(), numThreads);
   for (auto i = 0; i < numThreads; ++i) {
     auto key = folly::to<string>("key", i);
-    auto val = cache->get(key);
+    auto val = sharedCache->get(key);
     EXPECT_TRUE(val.hasValue());
     EXPECT_EQ(*val, i);
   }
