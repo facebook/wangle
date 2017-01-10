@@ -21,6 +21,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_library(GLOG_LIBRARY_PATH glog)
 find_library(GFLAGS_LIBRARY_PATH gflags)
+find_library(DOUBLECONV_LIBRARY_PATH double-conversion)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
@@ -40,6 +41,7 @@ set(WANGLE_HEADER_DIRS
   deprecated
   service
   ssl
+  util
 )
 
 foreach(dir ${WANGLE_HEADER_DIRS})
@@ -80,6 +82,8 @@ set(WANGLE_SOURCES
   ssl/SSLSessionCacheManager.cpp
   ssl/SSLUtil.cpp
   ssl/TLSTicketKeyManager.cpp
+  ssl/TLSCredProcessor.cpp
+  util/FilePoller.cpp
 )
 
 add_library(wangle
@@ -97,7 +101,8 @@ target_link_libraries(wangle
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${GLOG_LIBRARY_PATH}
-  ${GFLAGS_LIBRARY_PATH})
+  ${GFLAGS_LIBRARY_PATH}
+  ${DOUBLECONV_LIBRARY_PATH})
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
@@ -183,6 +188,8 @@ if(BUILD_TESTS)
   # this test requires arguments?
   #  add_gtest(ssl/test/SSLCacheTest.cpp SSLCacheTest)
   add_gtest(ssl/test/SSLContextManagerTest.cpp SSLContextManagerTest)
+  add_gtest(ssl/test/TLSCredProcessorTest.cpp TLSCredProcessorTest)
+  add_gtest(util/test/FilePollerTest.cpp FilePollerTest)
 endif()
 
 option(BUILD_EXAMPLES "BUILD_EXAMPLES" OFF)
