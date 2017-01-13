@@ -33,6 +33,39 @@ void SSLAcceptorHandshakeHelper::start(
   socket_->sslAccept(this);
 }
 
+void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
+    AsyncSSLSocket* sock, TransportInfo& tinfo) {
+  tinfo.secure = true;
+  tinfo.securityType = sock->getSecurityProtocol();
+  tinfo.sslSetupBytesRead = sock->getRawBytesReceived();
+  tinfo.sslSetupBytesWritten = sock->getRawBytesWritten();
+  tinfo.sslServerName = sock->getSSLServerName() ?
+    std::make_shared<std::string>(sock->getSSLServerName()) : nullptr;
+  tinfo.sslCipher = sock->getNegotiatedCipherName() ?
+    std::make_shared<std::string>(sock->getNegotiatedCipherName()) : nullptr;
+  tinfo.sslVersion = sock->getSSLVersion();
+  const char* sigAlgName = sock->getSSLCertSigAlgName();
+  tinfo.sslCertSigAlgName =
+    std::make_shared<std::string>(sigAlgName ? sigAlgName : "");
+  tinfo.sslCertSize = sock->getSSLCertSize();
+  tinfo.sslResume = SSLUtil::getResumeState(sock);
+  tinfo.sslClientCiphers = std::make_shared<std::string>();
+  sock->getSSLClientCiphers(*tinfo.sslClientCiphers);
+  tinfo.sslClientCiphersHex = std::make_shared<std::string>();
+  sock->getSSLClientCiphers(
+      *tinfo.sslClientCiphersHex, /* convertToString = */ false);
+  tinfo.sslServerCiphers = std::make_shared<std::string>();
+  sock->getSSLServerCiphers(*tinfo.sslServerCiphers);
+  tinfo.sslClientComprMethods =
+      std::make_shared<std::string>(sock->getSSLClientComprMethods());
+  tinfo.sslClientExts =
+      std::make_shared<std::string>(sock->getSSLClientExts());
+  tinfo.sslClientSigAlgs =
+      std::make_shared<std::string>(sock->getSSLClientSigAlgs());
+  tinfo.sslClientSupportedVersions =
+      std::make_shared<std::string>(sock->getSSLClientSupportedVersions());
+}
+
 void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   const unsigned char* nextProto = nullptr;
   unsigned nextProtoLength = 0;
@@ -48,39 +81,11 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
 
   // fill in SSL-related fields from TransportInfo
   // the other fields like RTT are filled in the Acceptor
-  tinfo_.secure = true;
-  tinfo_.securityType = sock->getSecurityProtocol();
   tinfo_.acceptTime = acceptTime_;
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::steady_clock::now() - acceptTime_
   );
-  tinfo_.sslSetupBytesRead = sock->getRawBytesReceived();
-  tinfo_.sslSetupBytesWritten = sock->getRawBytesWritten();
-  tinfo_.sslServerName = sock->getSSLServerName() ?
-    std::make_shared<std::string>(sock->getSSLServerName()) : nullptr;
-  tinfo_.sslCipher = sock->getNegotiatedCipherName() ?
-    std::make_shared<std::string>(sock->getNegotiatedCipherName()) : nullptr;
-  tinfo_.sslVersion = sock->getSSLVersion();
-  const char* sigAlgName = sock->getSSLCertSigAlgName();
-  tinfo_.sslCertSigAlgName =
-    std::make_shared<std::string>(sigAlgName ? sigAlgName : "");
-  tinfo_.sslCertSize = sock->getSSLCertSize();
-  tinfo_.sslResume = SSLUtil::getResumeState(sock);
-  tinfo_.sslClientCiphers = std::make_shared<std::string>();
-  sock->getSSLClientCiphers(*tinfo_.sslClientCiphers);
-  tinfo_.sslClientCiphersHex = std::make_shared<std::string>();
-  sock->getSSLClientCiphers(
-      *tinfo_.sslClientCiphersHex, /* convertToString = */ false);
-  tinfo_.sslServerCiphers = std::make_shared<std::string>();
-  sock->getSSLServerCiphers(*tinfo_.sslServerCiphers);
-  tinfo_.sslClientComprMethods =
-      std::make_shared<std::string>(sock->getSSLClientComprMethods());
-  tinfo_.sslClientExts =
-      std::make_shared<std::string>(sock->getSSLClientExts());
-  tinfo_.sslClientSigAlgs =
-      std::make_shared<std::string>(sock->getSSLClientSigAlgs());
-  tinfo_.sslClientSupportedVersions =
-      std::make_shared<std::string>(sock->getSSLClientSupportedVersions());
+  fillSSLTransportInfoFields(sock, tinfo_);
 
   acceptor_->updateSSLStats(
     sock,
