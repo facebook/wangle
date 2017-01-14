@@ -11,6 +11,10 @@ add_compile_options(-std=c++1y)
 add_compile_options(-fPIC)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
+# When installing Folly & Wangle in a non-default prefix, this will let
+# projects linking against libwangle.so to find libfolly.so automatically.
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
