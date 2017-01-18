@@ -4,8 +4,11 @@
 
 ## Building and Installing
 
-First, download and install the folly library from https://github.com/facebook/folly/
-You'll also need cmake.
+The main dependencies are:
+* The folly library from https://github.com/facebook/folly/. 
+* Cmake
+* OpenSSL, at least version 1.0.2+, preferably with TLS extension support.
+
 Once folly is installed, run the following inside the wangle directory to build, test, and install wangle:
 ```
 cmake .
