@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2017, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -164,6 +164,15 @@ class SSLUtil {
    */
   static std::unique_ptr<std::list<std::string>> getSubjectAltName(
       const X509* cert);
+
+
+  /**
+   * Parse an X509 out of a certificate buffer (usually read from the cert file)
+   * @param certificateData  Buffer containing certificate data from file
+   * @return  unique_ptr to X509 (may be null)
+   */
+  static folly::ssl::X509UniquePtr getX509FromCertificate(
+      const std::string& certificateData);
 };
 
 } // namespace wangle

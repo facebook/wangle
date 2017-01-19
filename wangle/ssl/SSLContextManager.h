@@ -167,7 +167,8 @@ class SSLContextManager {
  protected:
   virtual void enableAsyncCrypto(
     const std::shared_ptr<folly::SSLContext>&,
-    const SSLContextConfig&) {
+    const SSLContextConfig&,
+    const std::string& /* certificateFile */) {
     LOG(FATAL) << "Unsupported in base SSLContextManager";
   }
 

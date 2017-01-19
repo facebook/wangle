@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2017, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -15,6 +15,7 @@
 #define OPENSSL_GE_101 1
 #include <openssl/asn1.h>
 #include <openssl/x509v3.h>
+#include <openssl/bio.h>
 #else
 #undef OPENSSL_GE_101
 #endif
@@ -71,6 +72,23 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
 #else
   return nullptr;
 #endif
+}
+
+folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
+    const std::string& certificateData) {
+  // BIO_new_mem_buf creates a bio pointing to a read-only buffer
+  folly::ssl::BioUniquePtr bio(
+      BIO_new_mem_buf(certificateData.data(), certificateData.length()));
+  if (!bio) {
+    throw std::runtime_error("Cannot create mem BIO");
+  }
+
+  auto x509 = folly::ssl::X509UniquePtr(
+      PEM_read_bio_X509(bio.get(), nullptr, nullptr, nullptr));
+  if (!x509) {
+    throw std::runtime_error("Cannot read X509 from PEM bio");
+  }
+  return x509;
 }
 
 } // namespace wangle
