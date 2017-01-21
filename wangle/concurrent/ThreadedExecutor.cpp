@@ -32,7 +32,7 @@ ThreadedExecutor::ThreadedExecutor(
 }
 
 ThreadedExecutor::~ThreadedExecutor() {
-  stopping_.store(std::memory_order_release);
+  stopping_.store(true, std::memory_order_release);
   notify();
   controlt_.join();
   CHECK(running_.empty());
