@@ -76,10 +76,10 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
 
 folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
     const std::string& certificateData) {
-  // BIO_new_mem_buf creates a bio pointing to a read-only buffer
+  // BIO_new_mem_buf creates a bio pointing to a read-only buffer. However,
+  // older versions of OpenSSL fail to mark the first argument `const`.
   folly::ssl::BioUniquePtr bio(
-    BIO_new_mem_buf((const void*)certificateData.data(),
-                    certificateData.length()));
+    BIO_new_mem_buf((void*)certificateData.data(), certificateData.length()));
   if (!bio) {
     throw std::runtime_error("Cannot create mem BIO");
   }
