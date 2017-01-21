@@ -9,15 +9,17 @@
  */
 #pragma once
 
-#include <atomic>
-#include <chrono>
-#include <map>
-#include <openssl/ssl.h>
 #include <folly/Memory.h>
 #include <wangle/client/persistence/PersistentCache.h>
 #include <wangle/client/ssl/SSLSessionCacheData.h>
 #include <wangle/client/ssl/SSLSession.h>
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
+
+#include <atomic>
+#include <chrono>
+#include <map>
+
+#include <openssl/ssl.h>
 
 namespace wangle {
 

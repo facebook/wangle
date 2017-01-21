@@ -9,11 +9,12 @@
  */
 #pragma once
 
-#include <openssl/ssl.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/client/ssl/SSLSession.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
+
+#include <openssl/ssl.h>
 
 #ifdef OPENSSL_NO_TLSEXT
 #define OPENSSL_TICKETS 0
