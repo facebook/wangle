@@ -190,10 +190,11 @@ bool Acceptor::canAccept(const SocketAddress& address) {
 void
 Acceptor::connectionAccepted(
     int fd, const SocketAddress& clientAddr) noexcept {
+  namespace fsp = folly::portability::sockets;
   if (!canAccept(clientAddr)) {
     // Send a RST to free kernel memory faster
     struct linger optLinger = {1, 0};
-    ::setsockopt(fd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
+    fsp::setsockopt(fd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
     close(fd);
     return;
   }

@@ -13,8 +13,9 @@
 #include <wangle/ssl/SSLUtil.h>
 
 #include <chrono>
-#include <netinet/tcp.h>
 #include <string>
+
+#include <folly/portability/Sockets.h>
 
 namespace folly {
 
