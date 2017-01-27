@@ -38,25 +38,27 @@ class SSLException : public std::exception {
   SSLException(SSLErrorEnum error,
                const std::chrono::milliseconds& latency,
                uint64_t bytesRead)
-      : error_(error), latency_(latency), bytesRead_(bytesRead) {}
+      : error_(error), latency_(latency), bytesRead_(bytesRead) {
+    errorString_ = folly::sformat(
+        "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
+        folly::to<int>(error_),
+        latency_.count(),
+        bytesRead_);
+  }
 
   SSLErrorEnum getError() const { return error_; }
   std::chrono::milliseconds getLatency() const { return latency_; }
   uint64_t getBytesRead() const { return bytesRead_; }
 
   const char* what() const noexcept {
-    const auto& err = folly::sformat(
-        "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
-        folly::to<int>(error_),
-        latency_.count(),
-        bytesRead_);
-    return err.c_str();
+    return errorString_.c_str();
   }
 
  private:
   SSLErrorEnum error_{SSLErrorEnum::NO_ERROR};
   std::chrono::milliseconds latency_;
   uint64_t bytesRead_{0};
+  std::string errorString_;
 };
 
 class SSLUtil {
