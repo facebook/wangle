@@ -16,7 +16,6 @@
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/PriorityThreadFactory.h>
 #include <wangle/concurrent/ThreadPoolExecutor.h>
-#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 using namespace folly;

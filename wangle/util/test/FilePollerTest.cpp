@@ -16,7 +16,6 @@
 #include <folly/Baton.h>
 #include <folly/File.h>
 #include <folly/FileUtil.h>
-#include <folly/Range.h>
 #include <folly/experimental/TestUtil.h>
 #include <wangle/util/FilePoller.h>
 
