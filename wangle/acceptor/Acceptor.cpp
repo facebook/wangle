@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2016-present, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -127,6 +127,16 @@ void Acceptor::addSSLContextConfig(const SSLContextConfig& sslCtxConfig) {
                                       &accConfig_.initialTicketSeeds,
                                       accConfig_.bindAddress,
                                       cacheProvider_);
+}
+
+void Acceptor::setTLSTicketSecrets(
+    const std::vector<std::string>& oldSecrets,
+    const std::vector<std::string>& currentSecrets,
+    const std::vector<std::string>& newSecrets) {
+  if (sslCtxManager_) {
+    sslCtxManager_->reloadTLSTicketKeys(
+        oldSecrets, currentSecrets, newSecrets);
+  }
 }
 
 void

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Facebook, Inc.
+ *  Copyright (c) 2016-present, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -97,6 +97,14 @@ class Acceptor :
   SSLContextManager* getSSLContextManager() const {
     return sslCtxManager_.get();
   }
+
+  /**
+   * Sets TLS ticket secrets to use, or updates previously set secrets.
+   */
+  virtual void setTLSTicketSecrets(
+      const std::vector<std::string>& oldSecrets,
+      const std::vector<std::string>& currentSecrets,
+      const std::vector<std::string>& newSecrets);
 
   /**
    * Return the number of outstanding connections in this service instance.
