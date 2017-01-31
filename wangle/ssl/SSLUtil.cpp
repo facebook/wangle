@@ -22,6 +22,17 @@
 
 namespace wangle {
 
+SSLException::SSLException(
+      SSLErrorEnum const error,
+      std::chrono::milliseconds const& latency,
+      uint64_t const bytesRead)
+      : std::runtime_error(folly::sformat(
+            "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
+            static_cast<int>(error),
+            latency.count(),
+            bytesRead)),
+        error_(error), latency_(latency), bytesRead_(bytesRead) {}
+
 std::mutex SSLUtil::sIndexLock_;
 
 std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {

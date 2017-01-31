@@ -9,7 +9,6 @@
  */
 #pragma once
 
-#include <folly/String.h>
 #include <mutex>
 #include <folly/io/async/AsyncSSLSocket.h>
 
@@ -24,41 +23,30 @@ enum class SSLResumeEnum : uint8_t {
   HANDSHAKE = 0,
   RESUME_SESSION_ID = 1,
   RESUME_TICKET = 3,
-  NA = 2
+  NA = 2,
 };
 
 enum class SSLErrorEnum {
   NO_ERROR,
   TIMEOUT,
-  DROPPED
+  DROPPED,
 };
 
-class SSLException : public std::exception {
+class SSLException : public std::runtime_error {
  public:
-  SSLException(SSLErrorEnum error,
-               const std::chrono::milliseconds& latency,
-               uint64_t bytesRead)
-      : error_(error), latency_(latency), bytesRead_(bytesRead) {
-    errorString_ = folly::sformat(
-        "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
-        folly::to<int>(error_),
-        latency_.count(),
-        bytesRead_);
-  }
+  SSLException(
+      SSLErrorEnum error,
+      const std::chrono::milliseconds& latency,
+      uint64_t bytesRead);
 
   SSLErrorEnum getError() const { return error_; }
   std::chrono::milliseconds getLatency() const { return latency_; }
   uint64_t getBytesRead() const { return bytesRead_; }
 
-  const char* what() const noexcept {
-    return errorString_.c_str();
-  }
-
  private:
   SSLErrorEnum error_{SSLErrorEnum::NO_ERROR};
   std::chrono::milliseconds latency_;
   uint64_t bytesRead_{0};
-  std::string errorString_;
 };
 
 class SSLUtil {
