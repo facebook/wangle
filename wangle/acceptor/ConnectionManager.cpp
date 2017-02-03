@@ -254,7 +254,9 @@ ConnectionManager::dropAllConnections() {
   stopDrainingForShutdown();
 
   // Iterate through our connection list, and drop each connection.
-  VLOG(2) << "connections to drop: " << conns_.size();
+  VLOG_IF(4, conns_.empty()) << "no connections to drop";
+  VLOG_IF(2, !conns_.empty()) << "connections to drop: " << conns_.size();
+
   unsigned i = 0;
   while (!conns_.empty()) {
     ManagedConnection& conn = conns_.front();
