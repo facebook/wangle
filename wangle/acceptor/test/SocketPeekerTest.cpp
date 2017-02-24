@@ -73,7 +73,6 @@ TEST_F(SocketPeekerTest, TestPeekSuccess) {
   // first 2 bytes of SSL3+.
   buf[0] = 0x16;
   buf[1] = 0x03;
-  peeker->readDataAvailable(1);
   EXPECT_CALL(callback, peekSuccess(BufMatches(buf, 2)));
   // once after peeking, and once during destruction.
   EXPECT_CALL(*sock, setReadCB(nullptr));
@@ -93,7 +92,7 @@ TEST_F(SocketPeekerTest, TestEOFDuringPeek) {
   peeker->readEOF();
 }
 
-TEST_F(SocketPeekerTest, TestErrAfterData) {
+TEST_F(SocketPeekerTest, TestNotEnoughData) {
   EXPECT_CALL(*sock, setReadCB(_));
   EXPECT_CALL(*sock, setPeek(true));
   SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
@@ -105,14 +104,11 @@ TEST_F(SocketPeekerTest, TestErrAfterData) {
   EXPECT_EQ(2, len);
   // first 2 bytes of SSL3+.
   buf[0] = 0x16;
-  peeker->readDataAvailable(1);
 
   EXPECT_CALL(callback, peekError(_));
   EXPECT_CALL(*sock, setReadCB(nullptr));
   EXPECT_CALL(*sock, setPeek(false));
-  peeker->readErr(AsyncSocketException(
-        AsyncSocketException::AsyncSocketExceptionType::END_OF_FILE,
-          "Unit test"));
+  peeker->readDataAvailable(1);
 }
 
 TEST_F(SocketPeekerTest, TestDestoryWhilePeeking) {

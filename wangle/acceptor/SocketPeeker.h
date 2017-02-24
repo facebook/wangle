@@ -74,6 +74,10 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
     // always re-read the existing bytes, so we should only
     // consider it a successful peek if we read all N bytes.
     if (len != peekBytes_.size()) {
+      folly::AsyncSocketException ase(
+          folly::AsyncSocketException::NOT_SUPPORTED,
+          "SocketPeeker did not read enough data");
+      readErr(ase);
       return;
     }
     unsetPeek();
