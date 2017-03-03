@@ -88,7 +88,7 @@ class BonkMultiplexClientDispatcher
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   /**
    * For specific protocols, all the following code would be wrapped

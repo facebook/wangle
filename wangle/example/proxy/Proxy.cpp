@@ -134,7 +134,7 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   ServerBootstrap<DefaultPipeline> server;
   server.childPipeline(std::make_shared<ProxyFrontendPipelineFactory>(

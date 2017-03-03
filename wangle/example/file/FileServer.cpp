@@ -87,7 +87,7 @@ class FileServerPipelineFactory : public PipelineFactory<FileServerPipeline> {
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   ServerBootstrap<FileServerPipeline> server;
   server.childPipeline(std::make_shared<FileServerPipelineFactory>());

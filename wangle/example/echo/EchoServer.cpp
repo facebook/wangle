@@ -46,7 +46,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   ServerBootstrap<EchoPipeline> server;
   server.childPipeline(std::make_shared<EchoPipelineFactory>());

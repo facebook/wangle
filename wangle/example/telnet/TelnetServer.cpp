@@ -60,7 +60,7 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   ServerBootstrap<TelnetPipeline> server;
   server.childPipeline(std::make_shared<TelnetPipelineFactory>());

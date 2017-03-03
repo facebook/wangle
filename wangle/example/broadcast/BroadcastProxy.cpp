@@ -202,7 +202,7 @@ class SimpleObservingPipelineFactory
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   auto serverPool = std::make_shared<SimpleServerPool>();
 

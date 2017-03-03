@@ -57,7 +57,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   ClientBootstrap<EchoPipeline> client;
   client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));

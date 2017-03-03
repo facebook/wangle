@@ -95,7 +95,7 @@ class ServerPipelineFactory
 };
 
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   auto routingHandlerFactory =
       std::make_shared<NaiveRoutingDataHandlerFactory>();
