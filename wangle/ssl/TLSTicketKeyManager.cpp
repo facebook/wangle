@@ -298,7 +298,8 @@ TLSTicketKeyManager::findEncryptionKey() {
   // likely only 1.
   size_t numKeys = activeKeys_.size();
   if (numKeys > 0) {
-    result = activeKeys_[folly::Random::rand32() % numKeys];
+    auto const i = numKeys == 1 ? 0ul : folly::Random::rand32(numKeys);
+    result = activeKeys_[i];
   }
   return result;
 }
