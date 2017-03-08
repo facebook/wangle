@@ -54,6 +54,11 @@ class BaseClientBootstrap {
     return this;
   }
 
+  BaseClientBootstrap* deferSecurityNegotiation(bool deferSecurityNegotiation) {
+    deferSecurityNegotiation_ = deferSecurityNegotiation;
+    return this;
+  }
+
   void setPipeline(const typename P::Ptr& pipeline) {
     pipeline_ = pipeline;
   }
@@ -67,6 +72,7 @@ class BaseClientBootstrap {
   typename P::Ptr pipeline_;
   folly::SSLContextPtr sslContext_;
   SSL_SESSION* sslSession_{nullptr};
+  bool deferSecurityNegotiation_{false};
 };
 
 template <typename ClientBootstrap = BaseClientBootstrap<>>
