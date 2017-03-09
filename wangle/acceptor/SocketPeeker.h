@@ -31,6 +31,12 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
   SocketPeeker(folly::AsyncSocket& socket, Callback* callback, size_t numBytes)
       : socket_(socket), callback_(callback), peekBytes_(numBytes) {}
 
+  ~SocketPeeker() {
+    if (socket_.getReadCallback() == this) {
+      socket_.setReadCB(nullptr);
+    }
+  }
+
   void start() {
     if (peekBytes_.size() == 0) {
       // No peeking necessary.
@@ -38,14 +44,14 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
       callback_ = nullptr;
       callback->peekSuccess(std::move(peekBytes_));
     } else {
-      socket_.setPeek(true);
       socket_.setReadCB(this);
     }
   }
 
   void getReadBuffer(void** bufReturn, size_t* lenReturn) override {
-    *bufReturn = reinterpret_cast<void*>(peekBytes_.data());
-    *lenReturn = peekBytes_.size();
+    CHECK_LT(read_, peekBytes_.size());
+    *bufReturn = reinterpret_cast<void*>(peekBytes_.data() + read_);
+    *lenReturn = peekBytes_.size() - read_;
   }
 
   void readEOF() noexcept override {
@@ -59,7 +65,7 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
   void readErr(const folly::AsyncSocketException& ex) noexcept override {
     folly::DelayedDestruction::DestructorGuard dg(this);
 
-    unsetPeek();
+    socket_.setReadCB(nullptr);
     if (callback_) {
       auto callback = callback_;
       callback_ = nullptr;
@@ -70,20 +76,17 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
   void readDataAvailable(size_t len) noexcept override {
     folly::DelayedDestruction::DestructorGuard dg(this);
 
-    // Peek does not advance the socket buffer, so we will
-    // always re-read the existing bytes, so we should only
-    // consider it a successful peek if we read all N bytes.
-    if (len != peekBytes_.size()) {
-      folly::AsyncSocketException ase(
-          folly::AsyncSocketException::NOT_SUPPORTED,
-          "SocketPeeker did not read enough data");
-      readErr(ase);
-      return;
+    read_ += len;
+    CHECK_LE(read_, peekBytes_.size());
+
+    if (read_ == peekBytes_.size()) {
+      socket_.setPreReceivedData(
+          folly::IOBuf::copyBuffer(folly::range(peekBytes_)));
+      socket_.setReadCB(nullptr);
+      auto callback = callback_;
+      callback_ = nullptr;
+      callback->peekSuccess(std::move(peekBytes_));
     }
-    unsetPeek();
-    auto callback = callback_;
-    callback_ = nullptr;
-    callback->peekSuccess(std::move(peekBytes_));
   }
 
   bool isBufferMovable() noexcept override {
@@ -92,21 +95,10 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
     return false;
   }
 
- protected:
-  void unsetPeek() {
-    socket_.setPeek(false);
-    socket_.setReadCB(nullptr);
-  }
-
-  ~SocketPeeker() {
-    if (socket_.getReadCallback() == this) {
-      unsetPeek();
-    }
-  }
-
  private:
   folly::AsyncSocket& socket_;
   Callback* callback_;
+  size_t read_{0};
   std::vector<uint8_t> peekBytes_;
 };
 }

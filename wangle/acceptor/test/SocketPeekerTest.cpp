@@ -60,9 +60,12 @@ MATCHER_P2(BufMatches, buf, len, "") {
   return memcmp(buf, arg.data(), len) == 0;
 }
 
+MATCHER_P2(IOBufMatches, buf, len, "") {
+  return folly::IOBufEqual()(arg, folly::IOBuf::copyBuffer(buf, len));
+}
+
 TEST_F(SocketPeekerTest, TestPeekSuccess) {
   EXPECT_CALL(*sock, setReadCB(_));
-  EXPECT_CALL(*sock, setPeek(true));
   SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
@@ -73,28 +76,25 @@ TEST_F(SocketPeekerTest, TestPeekSuccess) {
   // first 2 bytes of SSL3+.
   buf[0] = 0x16;
   buf[1] = 0x03;
+  EXPECT_CALL(*sock, _setPreReceivedData(IOBufMatches(buf, 2)));
   EXPECT_CALL(callback, peekSuccess(BufMatches(buf, 2)));
   // once after peeking, and once during destruction.
   EXPECT_CALL(*sock, setReadCB(nullptr));
-  EXPECT_CALL(*sock, setPeek(false));
   peeker->readDataAvailable(2);
 }
 
 TEST_F(SocketPeekerTest, TestEOFDuringPeek) {
   EXPECT_CALL(*sock, setReadCB(_));
-  EXPECT_CALL(*sock, setPeek(true));
   SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
   EXPECT_CALL(callback, peekError(_));
   EXPECT_CALL(*sock, setReadCB(nullptr));
-  EXPECT_CALL(*sock, setPeek(false));
   peeker->readEOF();
 }
 
-TEST_F(SocketPeekerTest, TestNotEnoughData) {
+TEST_F(SocketPeekerTest, TestNotEnoughDataError) {
   EXPECT_CALL(*sock, setReadCB(_));
-  EXPECT_CALL(*sock, setPeek(true));
   SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
 
@@ -102,18 +102,38 @@ TEST_F(SocketPeekerTest, TestNotEnoughData) {
   size_t len = 0;
   peeker->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
   EXPECT_EQ(2, len);
-  // first 2 bytes of SSL3+.
   buf[0] = 0x16;
+  peeker->readDataAvailable(1);
 
   EXPECT_CALL(callback, peekError(_));
   EXPECT_CALL(*sock, setReadCB(nullptr));
-  EXPECT_CALL(*sock, setPeek(false));
+  peeker->readEOF();
+}
+
+TEST_F(SocketPeekerTest, TestMultiplePeeks) {
+  EXPECT_CALL(*sock, setReadCB(_));
+  SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
+  peeker->start();
+
+  uint8_t* buf = nullptr;
+  size_t len = 0;
+  peeker->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
+  EXPECT_EQ(2, len);
+  buf[0] = 0x16;
+  peeker->readDataAvailable(1);
+
+  peeker->getReadBuffer(reinterpret_cast<void**>(&buf), &len);
+  EXPECT_EQ(1, len);
+  buf[0] = 0x03;
+
+  EXPECT_CALL(*sock, _setPreReceivedData(IOBufMatches("\x16\x03", 2)));
+  EXPECT_CALL(callback, peekSuccess(BufMatches("\x16\x03", 2)));
+  EXPECT_CALL(*sock, setReadCB(nullptr));
   peeker->readDataAvailable(1);
 }
 
 TEST_F(SocketPeekerTest, TestDestoryWhilePeeking) {
   EXPECT_CALL(*sock, setReadCB(_));
-  EXPECT_CALL(*sock, setPeek(true));
   SocketPeeker::UniquePtr peeker(new SocketPeeker(*sock, &callback, 2));
   peeker->start();
   peeker = nullptr;
