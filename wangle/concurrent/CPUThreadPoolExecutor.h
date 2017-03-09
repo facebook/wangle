@@ -49,7 +49,8 @@ class CPUThreadPoolExecutor : public ThreadPoolExecutor {
           std::make_shared<NamedThreadFactory>("CPUThreadPool"));
 
   explicit CPUThreadPoolExecutor(size_t numThreads);
-CPUThreadPoolExecutor(
+
+  CPUThreadPoolExecutor(
       size_t numThreads,
       std::shared_ptr<ThreadFactory> threadFactory);
 
