@@ -208,9 +208,7 @@ class SSLContextManager {
    * Callback function from openssl to find the right X509 to
    * use during SSL handshake
    */
-#if OPENSSL_VERSION_NUMBER >= 0x1000105fL && \
-    !defined(OPENSSL_NO_TLSEXT) && \
-    defined(SSL_CTRL_SET_TLSEXT_SERVERNAME_CB)
+#if FOLLY_OPENSSL_HAS_SNI
 # define PROXYGEN_HAVE_SERVERNAMECALLBACK
   folly::SSLContext::ServerNameCallbackResult
     serverNameCallback(SSL* ssl);
