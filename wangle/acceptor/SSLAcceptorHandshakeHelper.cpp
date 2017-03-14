@@ -69,7 +69,7 @@ void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
 void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   const unsigned char* nextProto = nullptr;
   unsigned nextProtoLength = 0;
-  sock->getSelectedNextProtocol(&nextProto, &nextProtoLength);
+  sock->getSelectedNextProtocolNoThrow(&nextProto, &nextProtoLength);
   if (VLOG_IS_ON(3)) {
     if (nextProto) {
       VLOG(3) << "Client selected next protocol " <<
