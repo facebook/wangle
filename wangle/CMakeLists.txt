@@ -20,18 +20,27 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 find_package(Folly REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system thread filesystem)
+find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context)
 find_package(OpenSSL REQUIRED)
+find_package(Glog REQUIRED)
+find_package(Gflags REQUIRED)
+find_package(Libevent REQUIRED)
+find_package(DoubleConversion REQUIRED)
 find_package(Threads REQUIRED)
-find_library(GLOG_LIBRARY_PATH glog)
-find_library(GFLAGS_LIBRARY_PATH gflags)
-find_library(DOUBLECONV_LIBRARY_PATH double-conversion)
+find_package(Libdl)
+find_package(Librt)
+
+include(CheckAtomic)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/..
   ${FOLLY_INCLUDE_DIR}
-  ${BOOST_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
+  ${GLOG_INCLUDE_DIRS}
+  ${GFLAGS_INCLUDE_DIRS}
+  ${LIBEVENT_INCLUDE_DIRS}
+  ${DOUBLE_CONVERSION_INCLUDE_DIRS}
   ${INCLUDE_DIR}
 )
 
@@ -104,9 +113,12 @@ target_link_libraries(wangle
   ${FOLLY_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
-  ${GLOG_LIBRARY_PATH}
-  ${GFLAGS_LIBRARY_PATH}
-  ${DOUBLECONV_LIBRARY_PATH})
+  ${GLOG_LIBRARIES}
+  ${GFLAGS_LIBRARIES}
+  ${LIBEVENT_LIBRARIES}
+  ${DOUBLE_CONVERSION_LIBRARIES}
+  ${LIBDL_LIBRARIES}
+  ${LIBRT_LIBRARIES})
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
