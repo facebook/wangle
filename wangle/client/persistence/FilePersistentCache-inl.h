@@ -93,7 +93,7 @@ folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
     return folly::parseJson(serializedCache, opts);
   } catch (const std::exception& err) {
     LOG(ERROR) << "Deserialization of cache file " << file_
-               << "failed with parse error: " << err.what();
+               << " failed with parse error: " << err.what();
   }
   return folly::none;
 }
