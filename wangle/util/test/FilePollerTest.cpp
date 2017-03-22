@@ -101,46 +101,124 @@ TEST_F(FilePollerTest, TestDeleteFile) {
     baton.post();
   });
   remove(tmpFile.c_str());
-  ASSERT_FALSE(baton.timed_wait(std::chrono::seconds(5)));
+  ASSERT_FALSE(baton.timed_wait(std::chrono::seconds(1)));
   ASSERT_FALSE(updated);
 }
 
-void waitForUpdate(
-    std::mutex& m,
-    std::condition_variable& cv,
-    bool& x,
-    bool expect = true) {
-  std::unique_lock<std::mutex> lk(m);
-  if (!x) {
-    cv.wait_for(lk, std::chrono::seconds(5), [&] { return x; });
-  }
-  if (expect) {
-    ASSERT_TRUE(x);
-  } else {
-    ASSERT_FALSE(x);
-  }
-  x = false;
-}
-
-TEST_F(FilePollerTest, TestTwoUpdatesAndDelete) {
-  createFile();
+struct UpdateSyncState {
   std::mutex m;
   std::condition_variable cv;
+  bool updated{false};
 
-  bool updated = false;
-  FilePoller poller(std::chrono::milliseconds(1));
-  poller.addFileToTrack(tmpFile, [&]() {
+  void updateTriggered() {
     std::unique_lock<std::mutex> lk(m);
     updated = true;
     cv.notify_one();
-  });
+  }
 
-  updateModifiedTime(tmpFile);
-  ASSERT_NO_FATAL_FAILURE(waitForUpdate(m, cv, updated));
+  void waitForUpdate(bool expect = true) {
+    std::unique_lock<std::mutex> lk(m);
+    cv.wait_for(lk, std::chrono::milliseconds(100), [&] { return updated; });
+    ASSERT_EQ(updated, expect);
+    updated = false;
+  }
+};
 
-  updateModifiedTime(tmpFile, false);
-  ASSERT_NO_FATAL_FAILURE(waitForUpdate(m, cv, updated));
+class TestFile {
+ public:
+  TestFile(bool exists, time_t mTime) : exists_(exists), modTime_(mTime) {}
 
-  remove(tmpFile.c_str());
-  ASSERT_NO_FATAL_FAILURE(waitForUpdate(m, cv, updated, false));
+  void update(bool e, time_t t) {
+    std::unique_lock<std::mutex> lk(m);
+    exists_ = e;
+    modTime_ = t;
+  }
+
+  FilePoller::FileModificationData toFileModData() {
+    std::unique_lock<std::mutex> lk(m);
+    return FilePoller::FileModificationData(exists_, modTime_);
+  }
+
+  const std::string name{"fakeFile"};
+ private:
+  bool exists_{false};
+  time_t modTime_{0};
+  std::mutex m;
+
+};
+
+class NoDiskPoller : public FilePoller {
+ public:
+  explicit NoDiskPoller(TestFile& testFile)
+    : FilePoller(std::chrono::milliseconds(10)), testFile_(testFile) {}
+
+ protected:
+  FilePoller::FileModificationData
+  getFileModData(const std::string& path) noexcept override {
+    EXPECT_EQ(path, testFile_.name);
+    return testFile_.toFileModData();
+  }
+
+ private:
+  TestFile& testFile_;
+};
+
+struct PollerWithState {
+  explicit PollerWithState(TestFile& testFile) {
+    poller = std::make_unique<NoDiskPoller>(testFile);
+    poller->addFileToTrack(testFile.name, [&] {
+      state.updateTriggered();
+    });
+  }
+
+  void waitForUpdate(bool expect = true) {
+    ASSERT_NO_FATAL_FAILURE(state.waitForUpdate(expect));
+  }
+
+  std::unique_ptr<FilePoller> poller;
+  UpdateSyncState state;
+};
+
+TEST_F(FilePollerTest, TestTwoUpdatesAndDelete) {
+  TestFile testFile(true, 1);
+  PollerWithState poller(testFile);
+
+  testFile.update(true, 2);
+  ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
+
+  testFile.update(true, 3);
+  ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
+
+  testFile.update(false, 0);
+  ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate(false));
+}
+
+TEST_F(FilePollerTest, TestFileCreatedLate) {
+  TestFile testFile(false, 0); // not created yet
+  PollerWithState poller(testFile);
+  ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate(false));
+
+  testFile.update(true, 1);
+  ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
+}
+
+TEST_F(FilePollerTest, TestMultiplePollers) {
+  TestFile testFile(true, 1);
+  PollerWithState p1(testFile);
+  PollerWithState p2(testFile);
+
+  testFile.update(true, 2);
+  ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
+  ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate());
+
+  testFile.update(true, 1);
+  ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
+  ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate());
+
+  // clear one of the pollers and make sure the other is still
+  // getting them
+  p2.poller.reset();
+  testFile.update(true, 3);
+  ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
+  ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate(false));
 }

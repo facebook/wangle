@@ -9,13 +9,15 @@
  */
 #pragma once
 
+#include <chrono>
+#include <functional>
+#include <memory>
+
 #include <folly/SharedMutex.h>
 #include <folly/ThreadLocal.h>
 #include <folly/experimental/FunctionScheduler.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
-#include <chrono>
-#include <functional>
 
 namespace wangle {
 
@@ -46,9 +48,9 @@ class FilePoller {
       bool(const FileModificationData&, const FileModificationData&)>;
 
   explicit FilePoller(std::chrono::milliseconds pollInterval =
-      kDefaultPollInterval);
+                      kDefaultPollInterval);
 
-  ~FilePoller();
+  virtual ~FilePoller();
 
   FilePoller(const FilePoller& other) = delete;
   FilePoller& operator=(const FilePoller& other) = delete;
@@ -67,9 +69,7 @@ class FilePoller {
 
   void removeFileToTrack(const std::string& fileName);
 
-  void stop() { scheduler_.shutdown(); }
-
-  void start() { scheduler_.start(); }
+  void stop();
 
   static Condition fileTouchedWithinCond(std::chrono::seconds expireTime) {
     return std::bind(
@@ -86,6 +86,9 @@ class FilePoller {
   static Condition fileTouchedCond() {
     return fileTouchedCondInternal;
   }
+
+ protected:
+  virtual FileModificationData getFileModData(const std::string& path) noexcept;
 
  private:
   static constexpr std::chrono::milliseconds kDefaultPollInterval =
@@ -126,19 +129,17 @@ class FilePoller {
     return (fileStillExists && fileTouched) || fileCreated;
   }
 
-  static FileModificationData getFileModData(const std::string& path) noexcept;
-
   // Grabs a read lock
   void checkFiles() noexcept;
   void initFileData(const std::string& fName, FileData& fData) noexcept;
   void init(std::chrono::milliseconds pollInterval);
 
-  folly::FunctionScheduler scheduler_;
-
   FileDatas fileDatum_;
 
   // This protects fileDatum_.
   std::mutex filesMutex_;
+
+  uint64_t pollerId_{0};
 
   // Used to disallow locking calls from callbacks.
   class ThreadProtector {

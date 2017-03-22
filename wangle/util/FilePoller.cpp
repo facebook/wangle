@@ -9,11 +9,42 @@
  */
 #include <wangle/util/FilePoller.h>
 
+#include <atomic>
 #include <sys/stat.h>
+
+#include <folly/Conv.h>
+#include <folly/Memory.h>
+#include <folly/Singleton.h>
 
 using namespace folly;
 
 namespace wangle {
+
+namespace {
+class PollerContext {
+ public:
+  PollerContext() : nextPollerId(1) {
+    scheduler.setThreadName("file-poller");
+    scheduler.start();
+  }
+
+  folly::FunctionScheduler& getScheduler() {
+    return scheduler;
+  }
+
+  uint64_t getNextId() {
+    return nextPollerId++;
+  }
+
+ private:
+  folly::FunctionScheduler scheduler;
+  std::atomic<uint64_t> nextPollerId;
+};
+
+folly::Singleton<PollerContext> contextSingleton([] {
+  return new PollerContext();
+});
+}
 
 folly::ThreadLocal<bool> FilePoller::ThreadProtector::polling_([] {
   return new bool(false);
@@ -25,13 +56,29 @@ FilePoller::FilePoller(std::chrono::milliseconds pollInterval) {
   init(pollInterval);
 }
 
-FilePoller::~FilePoller() { scheduler_.shutdown(); }
+FilePoller::~FilePoller() { stop(); }
 
 void FilePoller::init(std::chrono::milliseconds pollInterval) {
-  scheduler_.setThreadName("file-poller");
-  scheduler_.addFunction(
-      [this] { this->checkFiles(); }, pollInterval, "file-poller");
-  start();
+  auto context = contextSingleton.try_get();
+  if (!context) {
+    LOG(ERROR) << "Poller context requested after destruction.";
+    return;
+  }
+  pollerId_ = context->getNextId();
+  context->getScheduler().addFunction(
+      [this] { this->checkFiles(); },
+      pollInterval,
+      folly::to<std::string>(pollerId_));
+}
+
+void FilePoller::stop() {
+  auto context = contextSingleton.try_get();
+  if (!context) {
+    // already destroyed/stopped;
+    return;
+  }
+  context->getScheduler().cancelFunction(
+      folly::to<std::string>(pollerId_));
 }
 
 void FilePoller::checkFiles() noexcept {
