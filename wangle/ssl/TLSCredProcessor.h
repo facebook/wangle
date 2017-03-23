@@ -19,17 +19,26 @@ namespace wangle {
 
 class TLSCredProcessor {
  public:
-  TLSCredProcessor(const std::string& ticketFile,
-                   const std::string& certFile);
+  TLSCredProcessor();
+  TLSCredProcessor(const std::string& ticketFile, const std::string& certFile);
 
   ~TLSCredProcessor();
+
+  /**
+   * Set the ticket path to watch.  Any previous ticket path will stop being
+   * watched.  This is not thread safe.
+   */
+  void setTicketPathToWatch(const std::string& ticketFile);
+
+  /**
+   * Set the cert path to watch.  Any previous cert path will stop being
+   * watched.  This is not thread safe.
+   */
+  void setCertPathToWatch(const std::string& certFile);
 
   void addTicketCallback(
       std::function<void(wangle::TLSTicketKeySeeds)> callback);
   void addCertCallback(std::function<void()> callback);
-
-  void ticketFileUpdated() noexcept;
-  void certFileUpdated() noexcept;
 
   void stop();
 
@@ -55,9 +64,13 @@ class TLSCredProcessor {
   static folly::Optional<wangle::TLSTicketKeySeeds> processTLSTickets(
       const std::string& fileName);
 
-  const std::string ticketFile_;
-  const std::string certFile_;
+ private:
+  void ticketFileUpdated(const std::string& ticketFile) noexcept;
+  void certFileUpdated() noexcept;
+
   std::unique_ptr<FilePoller> poller_;
+  std::string ticketFile_;
+  std::string certFile_;
   std::vector<std::function<void(wangle::TLSTicketKeySeeds)>> ticketCallbacks_;
   std::vector<std::function<void()>> certCallbacks_;
 };

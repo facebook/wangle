@@ -35,19 +35,14 @@ void insertSeeds(const folly::dynamic& keyConfig,
 
 namespace wangle {
 
+TLSCredProcessor::TLSCredProcessor()
+    : poller_(folly::make_unique<FilePoller>(kTicketPollInterval)) {}
+
 TLSCredProcessor::TLSCredProcessor(const std::string& ticketFile,
                                    const std::string& certFile)
-    : ticketFile_(ticketFile),
-      certFile_(certFile),
-      poller_(folly::make_unique<FilePoller>(kTicketPollInterval)) {
-  if (!ticketFile_.empty()) {
-    auto ticketsChangedCob = [this]() { ticketFileUpdated(); };
-    poller_->addFileToTrack(ticketFile_, ticketsChangedCob);
-  }
-  if (!certFile_.empty()) {
-    auto certChangedCob = [this]() { certFileUpdated(); };
-    poller_->addFileToTrack(certFile_, certChangedCob);
-  }
+    : TLSCredProcessor() {
+  setTicketPathToWatch(ticketFile);
+  setCertPathToWatch(certFile);
 }
 
 void TLSCredProcessor::stop() {
@@ -66,8 +61,31 @@ void TLSCredProcessor::addCertCallback(
   certCallbacks_.push_back(std::move(callback));
 }
 
-void TLSCredProcessor::ticketFileUpdated() noexcept {
-  auto seeds = processTLSTickets(ticketFile_);
+void TLSCredProcessor::setTicketPathToWatch(const std::string& ticketFile) {
+  if (!ticketFile_.empty()) {
+    poller_->removeFileToTrack(ticketFile_);
+  }
+  ticketFile_ = ticketFile;
+  if (!ticketFile_.empty()) {
+    auto ticketsChangedCob = [=]() { ticketFileUpdated(ticketFile); };
+    poller_->addFileToTrack(ticketFile_, ticketsChangedCob);
+  }
+}
+
+void TLSCredProcessor::setCertPathToWatch(const std::string& certFile) {
+  if (!certFile_.empty()) {
+    poller_->removeFileToTrack(certFile_);
+  }
+  certFile_ = certFile;
+  if (!certFile_.empty()) {
+    auto certChangedCob = [this]() { certFileUpdated(); };
+    poller_->addFileToTrack(certFile_, certChangedCob);
+  }
+}
+
+void TLSCredProcessor::ticketFileUpdated(
+    const std::string& ticketFile) noexcept {
+  auto seeds = processTLSTickets(ticketFile);
   if (seeds) {
     for (auto& callback : ticketCallbacks_) {
       callback(*seeds);
