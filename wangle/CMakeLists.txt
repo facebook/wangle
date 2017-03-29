@@ -162,7 +162,7 @@ if(BUILD_TESTS)
   include_directories("${source_dir}/googletest/include")
 
   macro(add_gtest test_source test_name)
-  add_executable(${test_name} ${test_source})
+  add_executable(${test_name} ${test_source} test/TestMain.cpp)
   target_link_libraries(${test_name} wangle libgmock libgmock_main)
   add_test(${test_name} bin/${test_name})
   endmacro(add_gtest)

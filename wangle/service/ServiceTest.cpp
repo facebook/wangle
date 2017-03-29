@@ -318,12 +318,4 @@ TEST(ServiceFilter, NoIdleDuringRequests) {
   EXPECT_EQ(3, timekeeper.promises_.size());
 }
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  google::InitGoogleLogging(argv[0]);
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-  return RUN_ALL_TESTS();
-}
-
 } // namespace wangle
