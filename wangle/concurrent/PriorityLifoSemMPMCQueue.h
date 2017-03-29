@@ -57,13 +57,20 @@ class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
   T take() override {
     T item;
     while (true) {
-      for (auto it = queues_.rbegin(); it != queues_.rend(); it++) {
-        if (it->readIfNotEmpty(item)) {
-          return item;
-        }
+      if (nonBlockingTake(item)) {
+        return item;
       }
       sem_.wait();
     }
+  }
+
+  bool nonBlockingTake(T& item) {
+    for (auto it = queues_.rbegin(); it != queues_.rend(); it++) {
+      if (it->readIfNotEmpty(item)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   size_t size() override {
