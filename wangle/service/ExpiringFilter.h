@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include <wangle/service/Service.h>
+
 namespace wangle {
 /**
  * A service filter that expires the self service after a certain
