@@ -69,7 +69,7 @@ template <class H>
 PipelineBase& PipelineBase::removeHelper(H* handler, bool checkEqual) {
   typedef typename ContextType<H>::type Context;
   bool removed = false;
-  for (auto it = ctxs_.begin(); it != ctxs_.end(); it++) {
+  for (auto it = ctxs_.begin(); it != ctxs_.end();){
     auto ctx = std::dynamic_pointer_cast<Context>(*it);
     if (ctx && (!checkEqual || ctx->getHandler() == handler)) {
       it = removeAt(it);
@@ -77,7 +77,9 @@ PipelineBase& PipelineBase::removeHelper(H* handler, bool checkEqual) {
       if (it == ctxs_.end()) {
         break;
       }
-    }
+    }else{
+     ++it;
+    }   
   }
 
   if (!removed) {
