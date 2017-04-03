@@ -56,9 +56,9 @@ class SSLStats;
  */
 class TLSTicketKeyManager : private boost::noncopyable {
  public:
-
-  explicit TLSTicketKeyManager(folly::SSLContext* ctx,
-                               SSLStats* stats);
+  explicit TLSTicketKeyManager(
+      folly::SSLContext* ctx,
+      SSLStats* stats);
 
   virtual ~TLSTicketKeyManager();
 
@@ -182,6 +182,14 @@ class TLSTicketKeyManager : private boost::noncopyable {
    * Locate a key for decrypting a ticket with the given keyName
    */
   TLSTicketKeySource* findDecryptionKey(unsigned char* keyName);
+
+  /**
+   * Record the rotation of the ticket seeds with a new set
+   */
+  void recordTlsTicketRotation(
+      const std::vector<std::string>& oldSeeds,
+      const std::vector<std::string>& currentSeeds,
+      const std::vector<std::string>& newSeeds);
 
   /**
    * Derive a unique key from the parent key and the salt via hashing

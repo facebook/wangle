@@ -26,6 +26,7 @@ class SSLStats {
   virtual void recordSSLSessionGetError(uint32_t err) noexcept = 0;
   virtual void recordClientRenegotiation() noexcept = 0;
   virtual void recordSSLClientCertificateMismatch() noexcept = 0;
+  virtual void recordTLSTicketRotation(bool valid) noexcept = 0;
 
   // upstream
   virtual void recordSSLUpstreamConnection(bool handshake) noexcept = 0;

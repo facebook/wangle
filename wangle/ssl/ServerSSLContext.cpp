@@ -29,9 +29,9 @@ void ServerSSLContext::setupTicketManager(
   if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
     ticketManager_ = folly::make_unique<TLSTicketKeyManager>(this, stats);
     ticketManager_->setTLSTicketKeySeeds(
-      ticketSeeds->oldSeeds,
-      ticketSeeds->currentSeeds,
-      ticketSeeds->newSeeds);
+        ticketSeeds->oldSeeds,
+        ticketSeeds->currentSeeds,
+        ticketSeeds->newSeeds);
   } else {
     setOptions(SSL_OP_NO_TICKET);
     ticketManager_.reset();

@@ -15,6 +15,7 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <wangle/ssl/TLSTicketKeySeeds.h>
 #include <wangle/ssl/SSLStats.h>
 #include <wangle/ssl/SSLUtil.h>
 
@@ -34,9 +35,10 @@ namespace wangle {
 // TLSTicketKeyManager Implementation
 int32_t TLSTicketKeyManager::sExDataIndex_ = -1;
 
-TLSTicketKeyManager::TLSTicketKeyManager(folly::SSLContext* ctx, SSLStats* stats)
-  : ctx_(ctx),
-    stats_(stats) {
+TLSTicketKeyManager::TLSTicketKeyManager(
+    folly::SSLContext* ctx,
+    SSLStats* stats)
+    : ctx_(ctx), stats_(stats) {
   SSLUtil::getSSLCtxExIndex(&sExDataIndex_);
   SSL_CTX_set_ex_data(ctx_->getSSLCtx(), sExDataIndex_, this);
 }
@@ -146,6 +148,8 @@ TLSTicketKeyManager::setTLSTicketKeySeeds(
     const std::vector<std::string>& currentSeeds,
     const std::vector<std::string>& newSeeds) {
 
+  recordTlsTicketRotation(oldSeeds, currentSeeds, newSeeds);
+
   bool result = true;
 
   activeKeys_.clear();
@@ -208,6 +212,19 @@ TLSTicketKeyManager::getTLSTicketKeySeeds(
     }
   }
   return allGot;
+}
+
+void TLSTicketKeyManager::recordTlsTicketRotation(
+    const std::vector<std::string>& oldSeeds,
+    const std::vector<std::string>& currentSeeds,
+    const std::vector<std::string>& newSeeds) {
+  if (stats_) {
+    TLSTicketKeySeeds next{oldSeeds, currentSeeds, newSeeds};
+    TLSTicketKeySeeds current;
+    getTLSTicketKeySeeds(
+        current.oldSeeds, current.currentSeeds, current.newSeeds);
+    stats_->recordTLSTicketRotation(current.isValidRotation(next));
+  }
 }
 
 string
