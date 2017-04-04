@@ -118,6 +118,7 @@ TEST(SSLContextManagerTest, Test1)
 }
 
 
+#if !(FOLLY_OPENSSL_IS_110) && !defined(OPENSSL_IS_BORINGSSL)
 // TODO Opensource builds cannot the cert/key paths
 TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
 {
@@ -180,5 +181,6 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
   EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
   eventBase.loop();
 }
+#endif
 
 } // namespace wangle

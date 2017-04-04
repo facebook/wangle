@@ -168,7 +168,7 @@ TEST_F(SSLSessionPersistentCacheTest, SessionTicketTimeout) {
   // First verify element is successfully added to the cache
   auto s = cache_->getSSLSession(myhost);
   ASSERT_TRUE(s != nullptr);
-  ASSERT_TRUE(s->tlsext_ticklen > 0);
+  ASSERT_NE(SSL_SESSION_has_ticket(s.get()), 0);
   verifyEntryInCache(myhost, sessions_[3]);
 
   // Verify that if element is added to cache within
@@ -176,7 +176,7 @@ TEST_F(SSLSessionPersistentCacheTest, SessionTicketTimeout) {
 
   // advance current time by slightly less than tlsext_tick_lifetime_hint
   // Ticket should still be in cache
-  long lifetime_seconds = s->tlsext_tick_lifetime_hint;
+  long lifetime_seconds = SSL_SESSION_get_ticket_lifetime_hint(s.get());
   mockTimeUtil_->advance(
       duration_cast<milliseconds>(seconds(lifetime_seconds - 10)));
 

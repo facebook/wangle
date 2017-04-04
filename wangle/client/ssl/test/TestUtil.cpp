@@ -11,6 +11,8 @@
 
 namespace wangle {
 
+using namespace folly::ssl;
+
 const size_t kNumSessions = 3;
 const size_t kSessionDataLen = 1060;
 
@@ -345,7 +347,7 @@ SSLSessionPtr createPersistentTestSession(
     std::pair<SSL_SESSION*, size_t> session) {
   if (session.first) {
     // This simulates what openssl does before handing control to the cache.
-    CRYPTO_add(&(session.first)->references, 1, CRYPTO_LOCK_SSL_SESSION);
+    SSL_SESSION_up_ref(session.first);
   }
   return SSLSessionPtr(session.first);
 }

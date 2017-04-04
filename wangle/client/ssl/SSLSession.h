@@ -10,11 +10,7 @@
 #pragma once
 
 #include <memory>
-
-// This must come before any includes of OpenSSL.
-#include <folly/portability/Windows.h>
-
-#include <openssl/ssl.h>
+#include <folly/portability/OpenSSL.h>
 
 namespace wangle {
 

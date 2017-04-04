@@ -37,6 +37,8 @@ DEFINE_bool(dcache_unit_test, false, "All VIPs share one session cache");
 
 namespace wangle {
 
+using namespace folly::ssl;
+
 
 int SSLSessionCacheManager::sExDataIndex_ = -1;
 shared_ptr<ShardedLocalSSLSessionCache> SSLSessionCacheManager::sCache_;
@@ -59,6 +61,73 @@ void LocalSSLSessionCache::pruneSessionCallback(const string& sessionId,
   ++removedSessions_;
 }
 
+// ShardedLocalSSLSessionCache Implementation
+ShardedLocalSSLSessionCache::ShardedLocalSSLSessionCache(
+    uint32_t n_buckets,
+    uint32_t maxCacheSize,
+    uint32_t cacheCullSize) {
+  CHECK(n_buckets > 0);
+  maxCacheSize = (uint32_t)(((double)maxCacheSize) / n_buckets);
+  cacheCullSize = (uint32_t)(((double)cacheCullSize) / n_buckets);
+  if (maxCacheSize == 0) {
+    maxCacheSize = 1;
+  }
+  if (cacheCullSize == 0) {
+    cacheCullSize = 1;
+  }
+  for (uint32_t i = 0; i < n_buckets; i++) {
+    caches_.push_back(std::unique_ptr<LocalSSLSessionCache>(
+        new LocalSSLSessionCache(maxCacheSize, cacheCullSize)));
+  }
+}
+
+SSL_SESSION* ShardedLocalSSLSessionCache::lookupSession(
+    const std::string& sessionId) {
+  size_t bucket = hash(sessionId);
+  SSL_SESSION* session = nullptr;
+  std::lock_guard<std::mutex> g(caches_[bucket]->lock);
+
+  auto itr = caches_[bucket]->sessionCache.find(sessionId);
+  if (itr != caches_[bucket]->sessionCache.end()) {
+    session = itr->second;
+  }
+
+  if (session) {
+    SSL_SESSION_up_ref(session);
+  }
+  return session;
+}
+
+void ShardedLocalSSLSessionCache::storeSession(
+    const std::string& sessionId,
+    SSL_SESSION* session,
+    SSLStats* stats) {
+  size_t bucket = hash(sessionId);
+  SSL_SESSION* oldSession = nullptr;
+  std::lock_guard<std::mutex> g(caches_[bucket]->lock);
+
+  auto itr = caches_[bucket]->sessionCache.find(sessionId);
+  if (itr != caches_[bucket]->sessionCache.end()) {
+    oldSession = itr->second;
+  }
+
+  if (oldSession) {
+    // LRUCacheMap doesn't free on overwrite, so 2x the work for us
+    // This can happen in race conditions
+    SSL_SESSION_free(oldSession);
+  }
+  caches_[bucket]->removedSessions_ = 0;
+  caches_[bucket]->sessionCache.set(sessionId, session, true);
+  if (stats) {
+    stats->recordSSLSessionFree(caches_[bucket]->removedSessions_);
+  }
+}
+
+void ShardedLocalSSLSessionCache::removeSession(const std::string& sessionId) {
+  size_t bucket = hash(sessionId);
+  std::lock_guard<std::mutex> g(caches_[bucket]->lock);
+  caches_[bucket]->sessionCache.erase(sessionId);
+}
 
 // SSLSessionCacheManager implementation
 
@@ -133,7 +202,9 @@ int SSLSessionCacheManager::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
 
 
 int SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
-  string sessionId((char*)session->session_id, session->session_id_length);
+  unsigned int sessIdLen = 0;
+  const unsigned char* sessId = SSL_SESSION_get_id(session, &sessIdLen);
+  string sessionId((char*) sessId, sessIdLen);
   VLOG(4) << "New SSL session; id=" << SSLUtil::hexlify(sessionId);
 
   if (stats_) {
@@ -165,7 +236,9 @@ void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
 
 void SSLSessionCacheManager::removeSession(SSL_CTX*,
                                            SSL_SESSION* session) {
-  string sessionId((char*)session->session_id, session->session_id_length);
+  unsigned int sessIdLen = 0;
+  const unsigned char* sessId = SSL_SESSION_get_id(session, &sessIdLen);
+  string sessionId((char*) sessId, sessIdLen);
 
   // This hook is only called from SSL when the internal session cache needs to
   // flush sessions.  Since we run with the internal cache disabled, this should
@@ -179,25 +252,27 @@ void SSLSessionCacheManager::removeSession(SSL_CTX*,
   }
 }
 
-SSL_SESSION* SSLSessionCacheManager::getSessionCallback(SSL* ssl,
-                                                        unsigned char* sess_id,
-                                                        int id_len,
-                                                        int* copyflag) {
+SSL_SESSION* SSLSessionCacheManager::getSessionCallback(
+    SSL* ssl,
+    session_callback_arg_session_id_t sess_id,
+    int id_len,
+    int* copyflag) {
   SSLSessionCacheManager* manager = nullptr;
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-  manager = (SSLSessionCacheManager *)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
+  manager = (SSLSessionCacheManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null SSLSessionCacheManager in callback";
     return nullptr;
   }
-  return manager->getSession(ssl, sess_id, id_len, copyflag);
+  return manager->getSession(ssl, (unsigned char*)sess_id, id_len, copyflag);
 }
 
-SSL_SESSION* SSLSessionCacheManager::getSession(SSL* ssl,
-                                                unsigned char* session_id,
-                                                int id_len,
-                                                int* copyflag) {
+SSL_SESSION* SSLSessionCacheManager::getSession(
+    SSL* ssl,
+    unsigned char* session_id,
+    int id_len,
+    int* copyflag) {
   VLOG(7) << "SSL get session callback";
   SSL_SESSION* session = nullptr;
   bool foreign = false;
@@ -253,7 +328,7 @@ SSL_SESSION* SSLSessionCacheManager::getSession(SSL* ssl,
         // request is complete
         session = pit->second.session; // nullptr if our friend didn't have it
         if (session != nullptr) {
-          CRYPTO_add(&session->references, 1, CRYPTO_LOCK_SSL_SESSION);
+          SSL_SESSION_up_ref(session);
         }
       }
     }

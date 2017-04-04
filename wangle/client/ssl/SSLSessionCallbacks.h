@@ -67,80 +67,24 @@ class SSLSessionCallbacks {
    * responsible for detaching the callbacks from the context.
    */
   static void attachCallbacksToContext(SSL_CTX* ctx,
-                                       SSLSessionCallbacks* callbacks) {
-    SSL_CTX_set_session_cache_mode(ctx,
-        SSL_SESS_CACHE_NO_INTERNAL |
-        SSL_SESS_CACHE_CLIENT |
-        SSL_SESS_CACHE_NO_AUTO_CLEAR);
-    // Only initializes the cache index the first time.
-    SSLUtil::getSSLCtxExIndex(&getCacheIndex());
-    SSL_CTX_set_ex_data(ctx, getCacheIndex(), callbacks);
-    SSL_CTX_sess_set_new_cb(ctx, SSLSessionCallbacks::newSessionCallback);
-    SSL_CTX_sess_set_remove_cb(
-      ctx, SSLSessionCallbacks::removeSessionCallback);
-  }
+                                       SSLSessionCallbacks* callbacks);
 
   /**
    * Detach the passed in callbacks from the context.  If the callbacks are not
    * set on the context, it is unchanged.
    */
   static void detachCallbacksFromContext(SSL_CTX* ctx,
-                                         SSLSessionCallbacks* callbacks) {
-    auto sslSessionCache = getCacheFromContext(ctx);
-    if (sslSessionCache != callbacks) {
-      return;
-    }
-    // We don't unset flags here because we cannot assume that we are the only
-    // code that sets the cache flags.
-    SSL_CTX_set_ex_data(ctx, getCacheIndex(), nullptr);
-    SSL_CTX_sess_set_new_cb(ctx, nullptr);
-    SSL_CTX_sess_set_remove_cb(ctx, nullptr);
-  }
+                                         SSLSessionCallbacks* callbacks);
 
-  static SSLSessionCallbacks* getCacheFromContext(SSL_CTX* ctx) {
-    return static_cast<SSLSessionCallbacks*>(
-      SSL_CTX_get_ex_data(ctx, getCacheIndex()));
-  }
+  static SSLSessionCallbacks* getCacheFromContext(SSL_CTX* ctx);
 
  private:
 
-  static std::string getServiceIdentityFromSSL(SSL* ssl) {
-    auto sock = folly::AsyncSSLSocket::getFromSSL(ssl);
-    return sock ? sock->getServiceIdentity() : "";
-  }
+  static std::string getServiceIdentityFromSSL(SSL* ssl);
 
-  static int newSessionCallback(SSL* ssl, SSL_SESSION* session) {
-    SSLSessionPtr sessionPtr(session);
-    SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-    auto sslSessionCache = getCacheFromContext(ctx);
-    std::string identity = getServiceIdentityFromSSL(ssl);
-    if (identity.empty()) {
-      const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
-      identity = name ? name : "";
-    }
-    if (!identity.empty()) {
-      setSessionServiceIdentity(session, identity);
-      sslSessionCache->setSSLSession(identity, std::move(sessionPtr));
-      return 1;
-    }
-    return -1;
-  }
+  static int newSessionCallback(SSL* ssl, SSL_SESSION* session);
 
-  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session) {
-    auto sslSessionCache = getCacheFromContext(ctx);
-    auto identity = getSessionServiceIdentity(session);
-    if (identity && !identity->empty()) {
-      sslSessionCache->removeSSLSession(*identity);
-    }
-#if OPENSSL_TICKETS
-    else {
-      if (session->tlsext_hostname) {
-        auto hostname = std::string(session->tlsext_hostname);
-        sslSessionCache->removeSSLSession(hostname);
-      }
-    }
-#endif
-  }
+  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
   static int32_t& getCacheIndex() {
     static int32_t sExDataIndex = -1;

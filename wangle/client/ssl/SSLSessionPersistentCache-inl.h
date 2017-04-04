@@ -13,7 +13,13 @@
 
 #include <folly/io/IOBuf.h>
 #include <folly/Memory.h>
+#include <folly/portability/OpenSSL.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
+
+#if !FOLLY_OPENSSL_IS_110
+using folly::ssl::SSL_SESSION_has_ticket;
+using folly::ssl::SSL_SESSION_get_ticket_lifetime_hint;
+#endif
 
 namespace wangle {
 
@@ -64,12 +70,12 @@ SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
 
 #if OPENSSL_TICKETS
   if (sess &&
-      sess->tlsext_ticklen > 0 &&
-      sess->tlsext_tick_lifetime_hint > 0) {
+      SSL_SESSION_has_ticket(sess.get()) &&
+      SSL_SESSION_get_ticket_lifetime_hint(sess.get()) > 0) {
     auto now = timeUtil_->now();
     auto secsBetween =
       std::chrono::duration_cast<std::chrono::seconds>(now - value.addedTime);
-    if (secsBetween >= std::chrono::seconds(sess->tlsext_tick_lifetime_hint)) {
+    if (secsBetween >= std::chrono::seconds(SSL_SESSION_get_ticket_lifetime_hint(sess.get()))) {
       return nullptr;
     }
   }

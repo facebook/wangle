@@ -72,17 +72,34 @@ class SSLUtil {
     }
   }
 
+ private:
+   // The following typedefs are needed for compatibility across various OpenSSL
+   // versions since each change the dup function param types ever so slightly
+#if FOLLY_OPENSSL_IS_110 || defined(OPENSSL_IS_BORINGSSL)
+  using ex_data_dup_from_arg_t = const CRYPTO_EX_DATA*;
+#else
+  using ex_data_dup_from_arg_t = CRYPTO_EX_DATA*;
+#endif
+
+#ifdef OPENSSL_IS_BORINGSSL
+  using ex_data_dup_ptr_arg_t = void**;
+#else
+  using ex_data_dup_ptr_arg_t = void*;
+#endif
+
+ public:
   // ex data string dup func
   static int exDataStdStringDup(
       CRYPTO_EX_DATA* /* to */,
-      CRYPTO_EX_DATA* /* from */,
-      void* ptr,
+      ex_data_dup_from_arg_t /* from */,
+      ex_data_dup_ptr_arg_t ptr,
       int /* idx */,
       long /* argl */,
       void* /* argp */) {
-    // TODO: This is awful - ptr is actually a void** and needs to be set to the
-    // duped data.  Fix this when openssl fixes their API - see
-    // int_dup_ex_data in ex_data.c
+    // TODO: With OpenSSL, ptr is passed in as a void* but is actually a void**
+    // So we need to convert it and then set to the duped data.
+    // see int_dup_ex_data in ex_data.c
+    // BoringSSL is saner and uses a void**
     void** dataPtr = reinterpret_cast<void**>(ptr);
     std::string* strData = reinterpret_cast<std::string*>(*dataPtr);
     if (strData) {
@@ -109,7 +126,11 @@ class SSLUtil {
     std::lock_guard<std::mutex> g(sIndexLock_);
     if (*pindex < 0) {
       *pindex = SSL_SESSION_get_ex_new_index(
-        0, nullptr, nullptr, exDataStdStringDup, exDataStdStringFree);
+          0,
+          nullptr,
+          nullptr,
+          exDataStdStringDup,
+          exDataStdStringFree);
     }
   }
 

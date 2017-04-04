@@ -56,67 +56,14 @@ class LocalSSLSessionCache: private boost::noncopyable {
 class ShardedLocalSSLSessionCache : private boost::noncopyable {
  public:
   ShardedLocalSSLSessionCache(uint32_t n_buckets, uint32_t maxCacheSize,
-                              uint32_t cacheCullSize) {
-    CHECK(n_buckets > 0);
-    maxCacheSize = (uint32_t)(((double)maxCacheSize) / n_buckets);
-    cacheCullSize = (uint32_t)(((double)cacheCullSize) / n_buckets);
-    if (maxCacheSize == 0) {
-      maxCacheSize = 1;
-    }
-    if (cacheCullSize == 0) {
-      cacheCullSize = 1;
-    }
-    for (uint32_t i = 0; i < n_buckets; i++) {
-      caches_.push_back(
-        std::unique_ptr<LocalSSLSessionCache>(
-          new LocalSSLSessionCache(maxCacheSize, cacheCullSize)));
-    }
-  }
+                              uint32_t cacheCullSize);
 
-  SSL_SESSION* lookupSession(const std::string& sessionId) {
-    size_t bucket = hash(sessionId);
-    SSL_SESSION* session = nullptr;
-    std::lock_guard<std::mutex> g(caches_[bucket]->lock);
-
-    auto itr = caches_[bucket]->sessionCache.find(sessionId);
-    if (itr != caches_[bucket]->sessionCache.end()) {
-      session = itr->second;
-    }
-
-    if (session) {
-      CRYPTO_add(&session->references, 1, CRYPTO_LOCK_SSL_SESSION);
-    }
-    return session;
-  }
+  SSL_SESSION* lookupSession(const std::string& sessionId);
 
   void storeSession(const std::string& sessionId, SSL_SESSION* session,
-                    SSLStats* stats) {
-    size_t bucket = hash(sessionId);
-    SSL_SESSION* oldSession = nullptr;
-    std::lock_guard<std::mutex> g(caches_[bucket]->lock);
+                    SSLStats* stats);
 
-    auto itr = caches_[bucket]->sessionCache.find(sessionId);
-    if (itr != caches_[bucket]->sessionCache.end()) {
-      oldSession = itr->second;
-    }
-
-    if (oldSession) {
-      // LRUCacheMap doesn't free on overwrite, so 2x the work for us
-      // This can happen in race conditions
-      SSL_SESSION_free(oldSession);
-    }
-    caches_[bucket]->removedSessions_ = 0;
-    caches_[bucket]->sessionCache.set(sessionId, session, true);
-    if (stats) {
-      stats->recordSSLSessionFree(caches_[bucket]->removedSessions_);
-    }
-  }
-
-  void removeSession(const std::string& sessionId) {
-    size_t bucket = hash(sessionId);
-    std::lock_guard<std::mutex> g(caches_[bucket]->lock);
-    caches_[bucket]->sessionCache.erase(sessionId);
-  }
+  void removeSession(const std::string& sessionId);
 
  private:
 
@@ -300,8 +247,18 @@ class SSLSessionCacheManager : private boost::noncopyable {
    */
   static int newSessionCallback(SSL* ssl, SSL_SESSION* session);
   static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
-  static SSL_SESSION* getSessionCallback(SSL* ssl, unsigned char* session_id,
-                                         int id_len, int* copyflag);
+
+#if FOLLY_OPENSSL_IS_110
+  using session_callback_arg_session_id_t = const unsigned char*;
+#else
+  using session_callback_arg_session_id_t = unsigned char*;
+#endif
+
+  static SSL_SESSION* getSessionCallback(
+      SSL* ssl,
+      session_callback_arg_session_id_t session_id,
+      int id_len,
+      int* copyflag);
 
   static int32_t sExDataIndex_;
   static std::shared_ptr<ShardedLocalSSLSessionCache> sCache_;
