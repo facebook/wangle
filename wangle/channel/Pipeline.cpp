@@ -84,4 +84,8 @@ void PipelineBase::detachHandlers() {
   }
 }
 
+size_t PipelineBase::numHandlers() const {
+  return ctxs_.size();
+}
+
 } // namespace wangle

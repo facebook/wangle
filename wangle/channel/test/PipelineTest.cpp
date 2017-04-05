@@ -406,3 +406,24 @@ TEST(Pipeline, Concurrent) {
   spam();
   t.join();
 }
+
+TEST(PipelineTest, NumHandler) {
+  NiceMock<MockHandlerAdapter<int, int>> handler1, handler2;
+  auto pipeline = Pipeline<int, int>::create();
+  EXPECT_EQ(0, pipeline->numHandlers());
+
+  pipeline->addBack(&handler1);
+  EXPECT_EQ(1, pipeline->numHandlers());
+
+  pipeline->addBack(&handler2);
+  EXPECT_EQ(2, pipeline->numHandlers());
+
+  pipeline->finalize();
+  EXPECT_EQ(2, pipeline->numHandlers());
+
+  pipeline->remove(&handler1);
+  EXPECT_EQ(1, pipeline->numHandlers());
+
+  pipeline->remove(&handler2);
+  EXPECT_EQ(0, pipeline->numHandlers());
+}

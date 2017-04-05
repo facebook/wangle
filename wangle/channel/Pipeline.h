@@ -118,6 +118,8 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
 
   virtual void finalize() = 0;
 
+  size_t numHandlers() const;
+
  protected:
   template <class Context>
   void addContextFront(Context* ctx);
