@@ -55,7 +55,7 @@ class ThreadSafeSSLSessionCacheTest : public Test {
        sessions_.emplace_back(it.first, it.second);
      }
      cache_.reset(new ThreadSafeSSLSessionCache(
-           folly::make_unique<FakeSessionCallbacks>()));
+           std::make_unique<FakeSessionCallbacks>()));
    }
 
    std::vector<std::pair<SSL_SESSION*, size_t>> sessions_;

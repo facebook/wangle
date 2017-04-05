@@ -32,7 +32,7 @@ CPUThreadPoolExecutor::CPUThreadPoolExecutor(
     std::shared_ptr<ThreadFactory> threadFactory)
     : CPUThreadPoolExecutor(
           numThreads,
-          folly::make_unique<LifoSemMPMCQueue<CPUTask>>(
+          std::make_unique<LifoSemMPMCQueue<CPUTask>>(
               CPUThreadPoolExecutor::kDefaultMaxQueueSize),
           std::move(threadFactory)) {}
 
@@ -47,7 +47,7 @@ CPUThreadPoolExecutor::CPUThreadPoolExecutor(
     std::shared_ptr<ThreadFactory> threadFactory)
     : CPUThreadPoolExecutor(
           numThreads,
-          folly::make_unique<PriorityLifoSemMPMCQueue<CPUTask>>(
+          std::make_unique<PriorityLifoSemMPMCQueue<CPUTask>>(
               numPriorities,
               CPUThreadPoolExecutor::kDefaultMaxQueueSize),
           std::move(threadFactory)) {}
@@ -59,7 +59,7 @@ CPUThreadPoolExecutor::CPUThreadPoolExecutor(
     std::shared_ptr<ThreadFactory> threadFactory)
     : CPUThreadPoolExecutor(
           numThreads,
-          folly::make_unique<PriorityLifoSemMPMCQueue<CPUTask>>(
+          std::make_unique<PriorityLifoSemMPMCQueue<CPUTask>>(
               numPriorities,
               maxQueueSize),
           std::move(threadFactory)) {}

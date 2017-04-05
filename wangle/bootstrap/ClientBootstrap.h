@@ -107,7 +107,7 @@ class ClientBootstrapFactory
   ClientBootstrapFactory() {}
 
   BaseClientBootstrap<>::Ptr newClient() override {
-    return folly::make_unique<ClientBootstrap<DefaultPipeline>>();
+    return std::make_unique<ClientBootstrap<DefaultPipeline>>();
   }
 };
 

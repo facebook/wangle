@@ -113,5 +113,5 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
     : cache_(cacheCapacity,
         std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
         nSyncRetries,
-        folly::make_unique<FilePersistenceLayer<K, V>>(file)) {}
+        std::make_unique<FilePersistenceLayer<K, V>>(file)) {}
 } // namespace wangle

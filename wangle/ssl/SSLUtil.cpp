@@ -47,14 +47,14 @@ std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
     return nullptr;
   } else {
     cn[ub_common_name] = '\0';
-    return folly::make_unique<std::string>(cn);
+    return std::make_unique<std::string>(cn);
   }
 }
 
 std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
     const X509* cert) {
 #ifdef OPENSSL_GE_101
-  auto nameList = folly::make_unique<std::list<std::string>>();
+  auto nameList = std::make_unique<std::list<std::string>>();
   GENERAL_NAMES* names = (GENERAL_NAMES*)X509_get_ext_d2i(
       (X509*)cert, NID_subject_alt_name, nullptr, nullptr);
   if (names) {

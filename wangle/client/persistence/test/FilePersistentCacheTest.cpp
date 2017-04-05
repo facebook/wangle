@@ -263,10 +263,10 @@ TYPED_TEST(FilePersistentCacheTest, destroy) {
   using CacheType = FilePersistentCache<int, int, TypeParam>;
   std::string cacheFile = getPersistentCacheFilename();
 
-  auto cache1 = folly::make_unique<CacheType>(
+  auto cache1 = std::make_unique<CacheType>(
     cacheFile, 10, std::chrono::seconds(3));
   cache1.reset();
-  auto cache2 = folly::make_unique<CacheType>(
+  auto cache2 = std::make_unique<CacheType>(
     cacheFile, 10, std::chrono::seconds(3));
   cache2.reset();
 }
@@ -279,7 +279,7 @@ TYPED_TEST(FilePersistentCacheTest, threadstress) {
   // their own set of values on the same cache
   using CacheType = FilePersistentCache<string, int, TypeParam>;
   auto cacheFile = getPersistentCacheFilename();
-  auto sharedCache = folly::make_unique<CacheType>(
+  auto sharedCache = std::make_unique<CacheType>(
     cacheFile, 10, std::chrono::seconds(10));
 
   int numThreads = 3;

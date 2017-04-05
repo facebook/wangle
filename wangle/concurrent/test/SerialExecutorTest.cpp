@@ -62,7 +62,7 @@ TEST(SerialExecutor, SimpleInline) {
 // destroy the SerialExecutor
 TEST(SerialExecutor, Afterlife) {
   auto cpu_executor = std::make_shared<wangle::CPUThreadPoolExecutor>(4);
-  auto executor = folly::make_unique<SerialExecutor>(cpu_executor);
+  auto executor = std::make_unique<SerialExecutor>(cpu_executor);
 
   // block executor until we call start_baton.post()
   folly::Baton<> start_baton;

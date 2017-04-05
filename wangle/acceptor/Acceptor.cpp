@@ -60,7 +60,7 @@ Acceptor::init(AsyncServerSocket* serverSocket,
     securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
 
     if (!sslCtxManager_) {
-      sslCtxManager_ = folly::make_unique<SSLContextManager>(
+      sslCtxManager_ = std::make_unique<SSLContextManager>(
         eventBase,
         "vip_" + getName(),
         accConfig_.strictSSL, stats);

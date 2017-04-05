@@ -146,7 +146,7 @@ void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
   ioThread->eventBase = eventBaseManager_->getEventBase();
   thisThread_.reset(new std::shared_ptr<IOThread>(ioThread));
 
-  auto idler = folly::make_unique<MemoryIdlerTimeout>(ioThread->eventBase);
+  auto idler = std::make_unique<MemoryIdlerTimeout>(ioThread->eventBase);
   ioThread->eventBase->runBeforeLoop(idler.get());
 
   ioThread->eventBase->runInEventBaseThread(

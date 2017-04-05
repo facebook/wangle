@@ -131,7 +131,7 @@ class Observable {
       Observable* observable_;
     };
 
-    return folly::make_unique<Subject_>(scheduler, this);
+    return std::make_unique<Subject_>(scheduler, this);
   }
 
  protected:

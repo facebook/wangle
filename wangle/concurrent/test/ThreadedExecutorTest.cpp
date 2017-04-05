@@ -34,7 +34,7 @@ TEST_F(ThreadedExecutorTest, example) {
 
 TEST_F(ThreadedExecutorTest, dtor_waits) {
   constexpr auto kDelay = std::chrono::milliseconds(100);
-  auto x = folly::make_unique<wangle::ThreadedExecutor>();
+  auto x = std::make_unique<wangle::ThreadedExecutor>();
   auto fut = folly::via(&*x, [&] {
     /* sleep override */ std::this_thread::sleep_for(kDelay);
   });

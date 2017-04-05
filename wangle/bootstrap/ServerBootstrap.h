@@ -340,7 +340,7 @@ class ServerBootstrap {
   bool reusePort_{false};
 
   std::unique_ptr<folly::Baton<>> stopBaton_{
-    folly::make_unique<folly::Baton<>>()};
+    std::make_unique<folly::Baton<>>()};
   bool stopped_{false};
 };
 

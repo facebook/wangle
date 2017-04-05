@@ -27,7 +27,7 @@ void ServerSSLContext::setupTicketManager(
     SSLStats* stats) {
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
   if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
-    ticketManager_ = folly::make_unique<TLSTicketKeyManager>(this, stats);
+    ticketManager_ = std::make_unique<TLSTicketKeyManager>(this, stats);
     ticketManager_->setTLSTicketKeySeeds(
         ticketSeeds->oldSeeds,
         ticketSeeds->currentSeeds,
@@ -64,7 +64,7 @@ void ServerSSLContext::setupSessionCache(
   if (ctxConfig.sessionCacheEnabled &&
       cacheOptions.maxSSLCacheSize > 0 &&
       cacheOptions.sslCacheFlushSize > 0) {
-    sessionCacheManager_ = folly::make_unique<SSLSessionCacheManager>(
+    sessionCacheManager_ = std::make_unique<SSLSessionCacheManager>(
       cacheOptions.maxSSLCacheSize,
       cacheOptions.sslCacheFlushSize,
       this,

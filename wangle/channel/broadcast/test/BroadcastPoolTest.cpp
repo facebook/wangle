@@ -26,7 +26,7 @@ class BroadcastPoolTest : public Test {
     pipelineFactory =
         std::make_shared<StrictMock<MockBroadcastPipelineFactory>>();
 
-    pool = folly::make_unique<BroadcastPool<int, std::string>>(
+    pool = std::make_unique<BroadcastPool<int, std::string>>(
         serverPool,
         pipelineFactory,
         std::make_shared<ClientBootstrapFactory>());
@@ -59,7 +59,7 @@ class BroadcastPoolTest : public Test {
   };
 
   void startServer() {
-    server = folly::make_unique<ServerBootstrap<DefaultPipeline>>();
+    server = std::make_unique<ServerBootstrap<DefaultPipeline>>();
     server->childPipeline(std::make_shared<ServerPipelineFactory>());
     server->bind(0);
     server->getSockets()[0]->getAddress(addr.get());

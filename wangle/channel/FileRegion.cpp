@@ -131,7 +131,7 @@ void FileRegion::FileWriteRequest::start() {
     socket_->getEventBase()->runInEventBaseThreadAndWait([&]{
       startConsuming(socket_->getEventBase(), &queue_);
     });
-    readHandler_ = folly::make_unique<FileReadHandler>(
+    readHandler_ = std::make_unique<FileReadHandler>(
         this, pipeFds[1], count_);
 #endif
   });

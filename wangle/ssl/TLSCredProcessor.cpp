@@ -36,7 +36,7 @@ void insertSeeds(const folly::dynamic& keyConfig,
 namespace wangle {
 
 TLSCredProcessor::TLSCredProcessor()
-    : poller_(folly::make_unique<FilePoller>(kTicketPollInterval)) {}
+    : poller_(std::make_unique<FilePoller>(kTicketPollInterval)) {}
 
 TLSCredProcessor::TLSCredProcessor(const std::string& ticketFile,
                                    const std::string& certFile)

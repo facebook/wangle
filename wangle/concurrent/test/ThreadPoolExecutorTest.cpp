@@ -394,7 +394,7 @@ TEST(ThreadPoolExecutorTest, BlockingQueue) {
   const int kThreads = 1;
 
   auto queue =
-      folly::make_unique<LifoSemMPMCQueue<CPUThreadPoolExecutor::CPUTask,
+      std::make_unique<LifoSemMPMCQueue<CPUThreadPoolExecutor::CPUTask,
                                           QueueBehaviorIfFull::BLOCK>>(
           kQueueCapacity);
 

@@ -150,7 +150,7 @@ TEST(RxTest, SubscribeUnsubscribeDuringCallback) {
 
 // Move only type
 typedef std::unique_ptr<int> MO;
-static MO makeMO() { return folly::make_unique<int>(1); }
+static MO makeMO() { return std::make_unique<int>(1); }
 template <typename T>
 static ObserverPtr<T> makeMOObserver() {
   return Observer<T>::create([](const T& mo) {
