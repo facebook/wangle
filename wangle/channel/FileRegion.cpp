@@ -71,7 +71,7 @@ bool FileRegion::FileWriteRequest::isComplete() {
   return totalBytesWritten_ == count_;
 }
 
-void FileRegion::FileWriteRequest::messageAvailable(size_t&& count) {
+void FileRegion::FileWriteRequest::messageAvailable(size_t&& count) noexcept {
   bool shouldWrite = bytesInPipe_ == 0;
   bytesInPipe_ += count;
   if (shouldWrite) {

@@ -73,7 +73,7 @@ class FileRegion {
 
     bool isComplete() override;
 
-    void messageAvailable(size_t&& count) override;
+    void messageAvailable(size_t&& count) noexcept override;
 
     void start() override;
 
