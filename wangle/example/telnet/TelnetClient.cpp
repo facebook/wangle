@@ -11,6 +11,8 @@
 #include <iostream>
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
+
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -56,7 +58,7 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::init(&argc, &argv, true);
 
   ClientBootstrap<TelnetPipeline> client;
   client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));
