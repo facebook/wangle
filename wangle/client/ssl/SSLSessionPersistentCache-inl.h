@@ -16,11 +16,6 @@
 #include <folly/portability/OpenSSL.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 
-#if !FOLLY_OPENSSL_IS_110
-using folly::ssl::SSL_SESSION_has_ticket;
-using folly::ssl::SSL_SESSION_get_ticket_lifetime_hint;
-#endif
-
 namespace wangle {
 
 template<typename K>

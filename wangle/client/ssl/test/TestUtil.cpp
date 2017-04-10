@@ -11,8 +11,6 @@
 
 namespace wangle {
 
-using namespace folly::ssl;
-
 const size_t kNumSessions = 3;
 const size_t kSessionDataLen = 1060;
 
