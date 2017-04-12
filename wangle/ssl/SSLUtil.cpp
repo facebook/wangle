@@ -65,7 +65,7 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
       GENERAL_NAME* generalName = sk_GENERAL_NAME_value(names, i);
       if (generalName->type == GEN_DNS) {
         ASN1_STRING* s = generalName->d.dNSName;
-        const char* name = (const char*)ASN1_STRING_data(s);
+        const char* name = (const char*)ASN1_STRING_get0_data(s);
         // I can't find any docs on what a negative return value here
         // would mean, so I'm going to ignore it.
         auto len = ASN1_STRING_length(s);
