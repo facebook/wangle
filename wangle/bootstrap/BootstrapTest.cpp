@@ -35,7 +35,11 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
       EXPECT_TRUE(sock->good());
       EXPECT_TRUE(sock->readable());
     }, 100);
-    return nullptr;
+
+    auto pipeline = BytesPipeline::create();
+    pipeline->addBack(new BytesToBytesHandler());
+    pipeline->finalize();
+    return pipeline;
   }
 };
 
@@ -380,11 +384,12 @@ TEST(Bootstrap, UnixServer) {
 
   TestClient client;
   client.pipelineFactory(std::make_shared<TestClientPipelineFactory>());
-  client.connect(address);
+  auto pipelineFuture = client.connect(address);
   base->loop();
   server.stop();
   server.join();
 
+  EXPECT_TRUE(pipelineFuture.get() != nullptr);
   EXPECT_EQ(factory->pipelines, 1);
 }
 

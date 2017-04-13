@@ -85,11 +85,11 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
       }
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
+      this->makePipeline(socket);
       socket->connect(
           new ConnectCallback(std::move(promise), this),
           address,
           timeout.count());
-      this->makePipeline(socket);
     });
     return retval;
   }
