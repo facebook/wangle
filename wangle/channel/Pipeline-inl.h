@@ -69,18 +69,18 @@ template <class H>
 PipelineBase& PipelineBase::removeHelper(H* handler, bool checkEqual) {
   typedef typename ContextType<H>::type Context;
   bool removed = false;
-  for (auto it = ctxs_.begin(); it != ctxs_.end();){
-    auto ctx = std::dynamic_pointer_cast<Context>(*it);
-    if (ctx && (!checkEqual || ctx->getHandler() == handler)) {
-      it = removeAt(it);
-      removed = true;
-      if (it == ctxs_.end()) {
-        break;
+  auto unaryPredict = [&] (auto pipelineCtx) {
+      auto ctx = std::dynamic_pointer_cast<Context>(pipelineCtx);
+      if (ctx && (!checkEqual || ctx->getHandler() == handler)) {
+          removed = true;   
+          return true;
       }
-    }else{
-     ++it;
-    }   
-  }
+      return false;
+  };
+
+  ctxs_.erase(
+          std::remove_if(ctxs_.begin(), ctxs_.end(), unaryPredict),
+          ctxs_.end());
 
   if (!removed) {
     throw std::invalid_argument("No such handler in pipeline");
