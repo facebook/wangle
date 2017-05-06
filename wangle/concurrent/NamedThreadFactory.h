@@ -27,10 +27,10 @@ class NamedThreadFactory : public ThreadFactory {
     : prefix_(prefix.str()), suffix_(0) {}
 
   std::thread newThread(folly::Func&& func) override {
-    auto thread = std::thread([&](folly::Func&& funct) {
-      folly::setThreadName(folly::to<std::string>(prefix_, suffix_++));
-      funct();
-    }, std::move(func));
+    auto thread = std::thread(std::move(func));
+    folly::setThreadName(
+        thread.native_handle(),
+        folly::to<std::string>(prefix_, suffix_++));
     return thread;
   }
 
