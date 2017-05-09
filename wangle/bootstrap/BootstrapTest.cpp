@@ -30,9 +30,11 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
   BytesPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransportWrapper> sock) override {
-    // We probably aren't connected immedately, check after a small delay
+    // Socket should be connected already
+    EXPECT_TRUE(sock->good());
+
+    // Check after a small delay that socket is readable
     EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
-      EXPECT_TRUE(sock->good());
       EXPECT_TRUE(sock->readable());
     }, 100);
 

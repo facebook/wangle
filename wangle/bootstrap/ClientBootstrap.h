@@ -26,11 +26,16 @@ template <typename Pipeline>
 class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
   class ConnectCallback : public folly::AsyncSocket::ConnectCallback {
    public:
-    ConnectCallback(folly::Promise<Pipeline*> promise, ClientBootstrap* bootstrap)
-        : promise_(std::move(promise))
-        , bootstrap_(bootstrap) {}
+    ConnectCallback(
+        folly::Promise<Pipeline*> promise,
+        ClientBootstrap* bootstrap,
+        std::shared_ptr<folly::AsyncSocket> socket)
+        : promise_(std::move(promise)),
+          bootstrap_(bootstrap),
+          socket_(socket) {}
 
     void connectSuccess() noexcept override {
+      bootstrap_->makePipeline(std::move(socket_));
       if (bootstrap_->getPipeline()) {
         bootstrap_->getPipeline()->transportActive();
       }
@@ -46,6 +51,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
    private:
     folly::Promise<Pipeline*> promise_;
     ClientBootstrap* bootstrap_;
+    std::shared_ptr<folly::AsyncSocket> socket_;
   };
 
  public:
@@ -85,9 +91,8 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
       }
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
-      this->makePipeline(socket);
       socket->connect(
-          new ConnectCallback(std::move(promise), this),
+          new ConnectCallback(std::move(promise), this, socket),
           address,
           timeout.count());
     });

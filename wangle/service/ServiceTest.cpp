@@ -108,7 +108,6 @@ class ClientServiceFactory : public ServiceFactory<Pipeline, Req, Resp> {
 TEST(Wangle, ClientServerTest) {
   int port = 1234;
   // server
-
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
     std::make_shared<ServerPipelineFactory<std::string, std::string>>());
@@ -120,7 +119,8 @@ TEST(Wangle, ClientServerTest) {
   client->pipelineFactory(
     std::make_shared<ClientPipelineFactory<std::string, std::string>>());
   SocketAddress addr("127.0.0.1", port);
-  client->connect(addr);
+  client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
+
   auto service = serviceFactory(client).value();
   auto rep = (*service)("test");
 
@@ -210,6 +210,14 @@ class ConnectionCountFilter : public ServiceFactoryFilter<Pipeline, Req, Resp> {
 };
 
 TEST(Wangle, ServiceFactoryFilter) {
+  int port = 1235;
+  // server
+  ServerBootstrap<ServicePipeline> server;
+  server.childPipeline(
+    std::make_shared<ServerPipelineFactory<std::string, std::string>>());
+  server.bind(port);
+
+  // client
   auto clientFactory =
     std::make_shared<
     ClientServiceFactory<ServicePipeline, std::string, std::string>>();
@@ -219,18 +227,18 @@ TEST(Wangle, ServiceFactoryFilter) {
       clientFactory);
 
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();
-
   client->pipelineFactory(
     std::make_shared<ClientPipelineFactory<std::string, std::string>>());
-  // It doesn't matter if connect succeds or not, but it needs to be called
-  // to create a pipeline
-  client->connect(folly::SocketAddress("::1", 8090));
+  SocketAddress addr("127.0.0.1", port);
+  client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
 
   auto service = (*countingFactory)(client).value();
 
   // After the first service goes away, the client can be reused
   service = (*countingFactory)(client).value();
   EXPECT_EQ(2, countingFactory->connectionCount);
+
+  server.stop();
 }
 
 TEST(Wangle, FactoryToService) {
