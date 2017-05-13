@@ -51,6 +51,8 @@ struct SSLContextConfig {
     bool localFallback{false};
     // An identifier for the service to which we are offloading.
     std::string serviceId{"default"};
+    // Whether we want to offload certificates
+    bool enableCertOffload{false};
   };
 
   /**

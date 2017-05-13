@@ -23,8 +23,8 @@
 #include <folly/String.h>
 #include <folly/portability/OpenSSL.h>
 #include <functional>
-#include <openssl/asn1.h>
-#include <openssl/ssl.h>
+
+
 #include <string>
 #include <folly/io/async/EventBase.h>
 
@@ -239,6 +239,13 @@ void SSLContextManager::resetSSLContextConfigs(
   contexts_.swap(contexts);
 }
 
+void SSLContextManager::loadCertificate(
+    ServerSSLContext* sslCtx,
+    const SSLContextConfig& /* ctxConfig */,
+    const std::string& certPath) {
+  sslCtx->loadCertificate(certPath.c_str());
+}
+
 void SSLContextManager::addSSLContextConfig(
   const SSLContextConfig& ctxConfig,
   const SSLCacheOptions& cacheOptions,
@@ -259,7 +266,7 @@ void SSLContextManager::addSSLContextConfig(
       std::make_shared<ServerSSLContext>(ctxConfig.sslVersion);
   for (const auto& cert : ctxConfig.certificates) {
     try {
-      sslCtx->loadCertificate(cert.certPath.c_str());
+      loadCertificate(sslCtx.get(), ctxConfig, cert.certPath);
     } catch (const std::exception& ex) {
       // The exception isn't very useful without the certificate path name,
       // so throw a new exception that includes the path to the certificate.

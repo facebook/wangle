@@ -172,6 +172,11 @@ class SSLContextManager {
     LOG(FATAL) << "Unsupported in base SSLContextManager";
   }
 
+  virtual void loadCertificate(
+      wangle::ServerSSLContext* sslCtx,
+      const SSLContextConfig& ctxConfig,
+      const std::string& certPath);
+
   virtual void overrideConfiguration(
     const std::shared_ptr<folly::SSLContext>&,
     const SSLContextConfig&) {}
