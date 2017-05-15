@@ -77,7 +77,7 @@ void FilePoller::stop() {
     // already destroyed/stopped;
     return;
   }
-  context->getScheduler().cancelFunction(
+  context->getScheduler().cancelFunctionAndWait(
       folly::to<std::string>(pollerId_));
 }
 
