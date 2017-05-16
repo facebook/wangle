@@ -27,7 +27,7 @@ class ObservingHandlerTest : public Test {
   void SetUp() override {
     prevHandler = new StrictMock<MockBytesToBytesHandler>();
     observingHandler = new StrictMock<MockObservingHandler>(&pool);
-    broadcastHandler = make_unique<StrictMock<MockBroadcastHandler>>();
+    broadcastHandler = std::make_unique<StrictMock<MockBroadcastHandler>>();
 
     pipeline = ObservingPipeline<int>::create();
     pipeline->addBack(
