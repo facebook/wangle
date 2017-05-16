@@ -99,7 +99,7 @@ class AsyncSocketHandler
     auto future = cb->promise_.getFuture();
     socket_->writeChain(cb, std::move(buf), ctx->getWriteFlags());
     return future;
-  };
+  }
 
   folly::Future<folly::Unit> writeException(Context* ctx,
                                             folly::exception_wrapper) override {

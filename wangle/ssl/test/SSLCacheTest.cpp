@@ -70,7 +70,7 @@ public:
       socket_->destroy();
       socket_ = nullptr;
     }
-  };
+  }
 
   void start();
 

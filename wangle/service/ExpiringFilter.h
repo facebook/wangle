@@ -60,7 +60,7 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
         this->close();
       });
     }
-  };
+  }
 
   virtual folly::Future<Resp> operator()(Req req) override {
     if (!idleTimeout_.isReady()) {

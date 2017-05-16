@@ -24,7 +24,7 @@ namespace wangle {
 template <typename K, typename V>
 class PersistentCache {
   public:
-    virtual ~PersistentCache() {};
+    virtual ~PersistentCache() {}
 
     /**
      * Get a value corresponding to a key

@@ -69,7 +69,7 @@ class IOThreadPoolExecutor : public ThreadPoolExecutor, public IOExecutor {
     IOThread(IOThreadPoolExecutor* pool)
       : Thread(pool),
         shouldRun(true),
-        pendingTasks(0) {};
+        pendingTasks(0) {}
     std::atomic<bool> shouldRun;
     std::atomic<size_t> pendingTasks;
     folly::EventBase* eventBase;

@@ -28,7 +28,7 @@ class LRUInMemoryCache {
   /**
    * Create with the specified capacity.
    */
-  explicit LRUInMemoryCache(size_t capacity) : cache_(capacity) {};
+  explicit LRUInMemoryCache(size_t capacity) : cache_(capacity) {}
   ~LRUInMemoryCache() = default;
 
   folly::Optional<V> get(const K& key);
