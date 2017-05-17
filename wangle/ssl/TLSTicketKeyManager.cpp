@@ -57,7 +57,6 @@ TLSTicketKeyManager::callback(SSL* ssl, unsigned char* keyName,
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null TLSTicketKeyManager in callback" ;
-    return -1;
   }
   return manager->processTicket(ssl, keyName, iv, cipherCtx, hmacCtx, encrypt);
 }

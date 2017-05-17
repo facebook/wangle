@@ -195,7 +195,6 @@ int SSLSessionCacheManager::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null SSLSessionCacheManager in callback";
-    return -1;
   }
   return manager->newSession(ssl, session);
 }
@@ -229,7 +228,6 @@ void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null SSLSessionCacheManager in callback";
-    return;
   }
   return manager->removeSession(ctx, session);
 }
@@ -263,7 +261,6 @@ SSL_SESSION* SSLSessionCacheManager::getSessionCallback(
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null SSLSessionCacheManager in callback";
-    return nullptr;
   }
   return manager->getSession(ssl, (unsigned char*)sess_id, id_len, copyflag);
 }

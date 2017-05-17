@@ -26,7 +26,6 @@ AsyncSocket::OptionMap filterIPSocketOptions(
     exclude = IPPROTO_IP;
   } else {
     LOG(FATAL) << "Address family " << addrFamily << " was not IPv4 or IPv6";
-    return opts;
   }
   for (const auto& opt: allOptions) {
     if (opt.first.level != exclude) {
