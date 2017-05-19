@@ -88,7 +88,7 @@ class AsyncSocketHandler
       return folly::makeFuture();
     }
 
-    if (!socket_->writable()) {
+    if (!socket_->good()) {
       VLOG(5) << "socket is closed in write()";
       return folly::makeFuture<folly::Unit>(folly::AsyncSocketException(
           folly::AsyncSocketException::AsyncSocketExceptionType::NOT_OPEN,
