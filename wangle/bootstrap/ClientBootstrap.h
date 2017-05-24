@@ -29,17 +29,21 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
     ConnectCallback(
         folly::Promise<Pipeline*> promise,
         ClientBootstrap* bootstrap,
-        std::shared_ptr<folly::AsyncSocket> socket)
+        std::shared_ptr<folly::AsyncSocket> socket,
+        std::shared_ptr<bool> deleted)
         : promise_(std::move(promise)),
           bootstrap_(bootstrap),
-          socket_(socket) {}
+          socket_(socket),
+          deleted_(deleted) {}
 
     void connectSuccess() noexcept override {
-      bootstrap_->makePipeline(std::move(socket_));
-      if (bootstrap_->getPipeline()) {
-        bootstrap_->getPipeline()->transportActive();
+      if (!*deleted_) {
+        bootstrap_->makePipeline(std::move(socket_));
+        if (bootstrap_->getPipeline()) {
+          bootstrap_->getPipeline()->transportActive();
+        }
+        promise_.setValue(bootstrap_->getPipeline());
       }
-      promise_.setValue(bootstrap_->getPipeline());
       delete this;
     }
 
@@ -52,6 +56,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
     folly::Promise<Pipeline*> promise_;
     ClientBootstrap* bootstrap_;
     std::shared_ptr<folly::AsyncSocket> socket_;
+    std::shared_ptr<bool> deleted_;
   };
 
  public:
@@ -92,18 +97,21 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
       socket->connect(
-          new ConnectCallback(std::move(promise), this, socket),
+          new ConnectCallback(std::move(promise), this, socket, deleted_),
           address,
           timeout.count());
     });
     return retval;
   }
 
-  virtual ~ClientBootstrap() = default;
+  virtual ~ClientBootstrap() {
+    *deleted_ = true;
+  }
 
  protected:
   int port_;
   std::shared_ptr<wangle::IOThreadPoolExecutor> group_;
+  std::shared_ptr<bool> deleted_{new bool(false)};
 };
 
 class ClientBootstrapFactory
