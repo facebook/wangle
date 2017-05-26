@@ -63,45 +63,45 @@ See the CONTRIBUTING file for how to help out.
 
 <h2 id="methods">Methods <a href="#methods" class="headerLink">#</a></h2>
 
-<p><strong>childPipeline(PipelineFactory&lt;Pipeline&gt;)</strong></p>
+<p><strong>`childPipeline(PipelineFactory&lt;Pipeline&gt;)`</strong></p>
 
 <p>Sets the pipeline factory for each new connection.  One pipeline per connection will be created.</p>
 
-<p><strong>group(IOThreadPoolExecutor accept, IOThreadPoolExecutor io)</strong></p>
+<p><strong>`group(IOThreadPoolExecutor accept, IOThreadPoolExecutor io)`</strong></p>
 
 <p>Sets the thread pools for accept and io thread pools.  If more than one thread is in the accept group, SO_REUSEPORT is used.  Defaults to a single accept thread, and one io thread per core.</p>
 
-<p><strong>bind(SocketAddress),bind(port)</strong></p>
+<p><strong>`bind(SocketAddress),bind(port)`</strong></p>
 
 <p>Binds to a port. Automatically starts to accept after bind.</p>
 
-<p><strong>stop()</strong></p>
+<p><strong>`stop()`</strong></p>
 
 <p>Stops listening on all sockets.</p>
 
-<p><strong>join()</strong></p>
+<p><strong>`join()`</strong></p>
 
 <p>Joins all threadpools - all current reads and writes will be completed before this method returns.</p>
 
 <div class="remarkup-note"><span class="remarkup-note-word">NOTE:</span> however that both accept and io thread pools will be stopped using this method, so the thread pools can&#039;t be shared, or care must be taken using shared pools during shutdown.</div>
 
-<p><strong>waitForStop()</strong></p>
+<p><strong>`waitForStop()`</strong></p>
 
 <p>Waits for stop() to be called from another thread.</p>
 
 <h2 id="other-methods">Other methods <a href="#other-methods" class="headerLink">#</a></h2>
 
-<p><strong>channelFactory(ServerSocketFactory)</strong></p>
+<p><strong>`channelFactory(ServerSocketFactory)`</strong></p>
 
 <p>Sets up the type of server.  Defaults to TCP AsyncServerSocket, but AsyncUDPServerSocket is also supported to receive udp messages.  In practice, ServerBootstrap is only useful for udp if you need to multiplex the messages across many threads, or have TCP connections going on at the same time, etc.  Simple usages of AsyncUDPSocket probably don&#039;t need the complexity of ServerBootstrap.</p>
 
-<p><strong>pipeline(PipelineFactory&lt;AcceptPipeline&gt;)</strong></p>
+<p><strong>`pipeline(PipelineFactory&lt;AcceptPipeline&gt;)`</strong></p>
 
 <p>This pipeline method is used to get the accepted socket (or udp message) *before* it has been handed off to an IO thread.  This can be used to steer the accept thread to a particular thread, or for logging.</p>
 
 <p>See also AcceptRoutingHandler and RoutingDataHandler for additional help in reading data off of the accepted socket <strong>before</strong> it gets attached to an IO thread.  These can be used to hash incoming sockets to specific threads.</p>
 
-<p><strong>childHandler(AcceptorFactory)</strong></p>
+<p><strong>`childHandler(AcceptorFactory)`</strong></p>
 
 <p>Previously facebook had lots of code that used AcceptorFactories instead of Pipelines, this is a method to support this code and be backwards compatible.  The AcceptorFactory is responsible for creating acceptors, setting up pipelines, setting up AsyncSocket read callbacks, etc.</p>
 
@@ -116,21 +116,21 @@ See the CONTRIBUTING file for how to help out.
 
 <h2 id="methods">Methods <a href="#methods" class="headerLink">#</a></h2>
 
-<p><strong>group(IOThreadPoolExecutor)</strong></p>
+<p><strong>`group(IOThreadPoolExecutor)`</strong></p>
 
 <p>Sets the thread or group of threads where the IO will take place.  Callbacks are also made on this thread.</p>
 
-<p><strong>bind(port)</strong></p>
+<p><strong>`bind(port)`</strong></p>
 
 <p>Optionally bind to a specific port</p>
 
-<p><strong>Future&lt;Pipeline*&gt; connect(SocketAddress)</strong></p>
+<p><strong>`Future<Pipeline*> connect(SocketAddress)`</strong></p>
 
 <p>Connect to the selected address.  When the future is complete, the initialized pipeline will be returned.</p>
 
-<div class="remarkup-note"><span class="remarkup-note-word">NOTE:</span> future.cancel() can be called to cancel an outstanding connection attempt.</div>
+<div class="remarkup-note"><span class="remarkup-note-word">NOTE:</span> `future.cancel()` can be called to cancel an outstanding connection attempt.</div>
 
-<p><strong>pipelineFactory(PipelineFactory&lt;Pipeline&gt;)</strong></p>
+<p><strong>`pipelineFactory(PipelineFactory<Pipeline>)`</strong></p>
 
 <p>Set the pipeline factory to use after a connection is successful.</p>
 
@@ -167,7 +167,7 @@ See the CONTRIBUTING file for how to help out.
     <span class="k">if</span> <span class="o">(</span><span class="no">q</span><span class="o">.</span><span class="nf" data-symbol-name="chainLength">chainLength</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="o">)</span> <span class="o">&#123;</span>
        <span class="no">data</span><span class="o">.</span><span class="nf" data-symbol-name="append">append</span><span class="o">(</span><span class="no">q</span><span class="o">.</span><span class="nf" data-symbol-name="split">split</span><span class="o">(</span><span class="mi">4</span><span class="o">));</span>
        <span class="no">ctx</span><span class="o">-&gt;</span><span class="na" data-symbol-name="fireRead">fireRead</span><span class="o">(</span><span class="no">data</span><span class="o">);</span>
-    <span class="o">&#125;</span> 
+    <span class="o">&#125;</span>
   <span class="o">&#125;</span>
 <span class="o">&#125;;</span></pre></div>
 
