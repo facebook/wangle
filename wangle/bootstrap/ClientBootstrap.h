@@ -11,6 +11,7 @@
 
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/DestructorCheck.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <wangle/bootstrap/BaseClientBootstrap.h>
 #include <wangle/channel/Pipeline.h>
@@ -23,21 +24,21 @@ namespace wangle {
  * ServerBootstrap.  On connect() a new pipeline is created.
  */
 template <typename Pipeline>
-class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
+class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
+                        public folly::DestructorCheck {
   class ConnectCallback : public folly::AsyncSocket::ConnectCallback {
    public:
     ConnectCallback(
         folly::Promise<Pipeline*> promise,
         ClientBootstrap* bootstrap,
-        std::shared_ptr<folly::AsyncSocket> socket,
-        std::shared_ptr<bool> deleted)
+        std::shared_ptr<folly::AsyncSocket> socket)
         : promise_(std::move(promise)),
           bootstrap_(bootstrap),
           socket_(socket),
-          deleted_(deleted) {}
+          safety_(*bootstrap) {}
 
     void connectSuccess() noexcept override {
-      if (!*deleted_) {
+      if (!safety_.destroyed()) {
         bootstrap_->makePipeline(std::move(socket_));
         if (bootstrap_->getPipeline()) {
           bootstrap_->getPipeline()->transportActive();
@@ -56,7 +57,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
     folly::Promise<Pipeline*> promise_;
     ClientBootstrap* bootstrap_;
     std::shared_ptr<folly::AsyncSocket> socket_;
-    std::shared_ptr<bool> deleted_;
+    folly::DestructorCheck::Safety safety_;
   };
 
  public:
@@ -97,21 +98,18 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline> {
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
       socket->connect(
-          new ConnectCallback(std::move(promise), this, socket, deleted_),
+          new ConnectCallback(std::move(promise), this, socket),
           address,
           timeout.count());
     });
     return retval;
   }
 
-  virtual ~ClientBootstrap() {
-    *deleted_ = true;
-  }
+  virtual ~ClientBootstrap() = default;
 
  protected:
   int port_;
   std::shared_ptr<wangle::IOThreadPoolExecutor> group_;
-  std::shared_ptr<bool> deleted_{new bool(false)};
 };
 
 class ClientBootstrapFactory
