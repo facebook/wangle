@@ -25,7 +25,7 @@ typedef Pipeline<IOBufQueue&, std::string> EchoPipeline;
 // back
 class EchoHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context* ctx, std::string msg) override {
+  void read(Context* ctx, std::string msg) override {
     std::cout << "handling " << msg << std::endl;
     write(ctx, msg + "\r\n");
   }
@@ -34,7 +34,8 @@ class EchoHandler : public HandlerAdapter<std::string> {
 // where we define the chain of handlers for each messeage received
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
-  EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
+  EchoPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder(8192));

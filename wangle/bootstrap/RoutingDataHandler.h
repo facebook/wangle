@@ -31,7 +31,7 @@ class RoutingDataHandler : public wangle::BytesToBytesHandler {
   };
 
   RoutingDataHandler(uint64_t connId, Callback* cob);
-  virtual ~RoutingDataHandler() {}
+  ~RoutingDataHandler() override {}
 
   // BytesToBytesHandler implementation
   void read(Context* ctx, folly::IOBufQueue& q) override;

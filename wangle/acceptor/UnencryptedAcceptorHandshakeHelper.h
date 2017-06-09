@@ -22,7 +22,7 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
  public:
   UnencryptedAcceptorHandshakeHelper() = default;
 
-  virtual void start(
+  void start(
       folly::AsyncSSLSocket::UniquePtr sock,
       AcceptorHandshakeHelper::Callback* callback) noexcept override {
     callback->connectionReady(
@@ -31,7 +31,7 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
       SecureTransportType::NONE);
   }
 
-  virtual void dropConnection(
+  void dropConnection(
       SSLErrorEnum /* reason */ = SSLErrorEnum::NO_ERROR) override {
     CHECK(false) << "Nothing to drop";
   }

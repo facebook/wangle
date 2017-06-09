@@ -63,7 +63,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
         numBytes_(numBytes) {}
 
   // From AcceptorHandshakeHelper
-  virtual void start(
+  void start(
       folly::AsyncSSLSocket::UniquePtr sock,
       AcceptorHandshakeHelper::Callback* callback) noexcept override {
     socket_ = std::move(sock);
@@ -75,8 +75,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     peeker_->start();
   }
 
-  virtual void dropConnection(
-      SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
+  void dropConnection(SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
     CHECK_NE(socket_.get() == nullptr, helper_.get() == nullptr);
     if (socket_) {
       socket_->closeNow();
@@ -119,7 +118,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   }
 
  private:
-  ~PeekingAcceptorHandshakeHelper() = default;
+  ~PeekingAcceptorHandshakeHelper() override = default;
 
   folly::AsyncSSLSocket::UniquePtr socket_;
   AcceptorHandshakeHelper::UniquePtr helper_;
@@ -154,7 +153,7 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
       numBytes_(numBytes) {}
 
  protected:
-  virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
+  void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
     helper_.reset(new PeekingAcceptorHandshakeHelper(
         acceptor_,
         clientAddr_,

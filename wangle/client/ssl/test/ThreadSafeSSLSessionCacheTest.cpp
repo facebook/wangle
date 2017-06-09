@@ -22,13 +22,14 @@ using namespace wangle;
 // One time use cache for testing.
 class FakeSessionCallbacks : public SSLSessionCallbacks {
  public:
-   void setSSLSession(
-       const std::string& identity,
-       SSLSessionPtr session) noexcept {
-     cache_.emplace(identity, std::move(session));
+  void setSSLSession(
+      const std::string& identity,
+      SSLSessionPtr session) noexcept override {
+    cache_.emplace(identity, std::move(session));
    }
 
-   SSLSessionPtr getSSLSession(const std::string& identity) const noexcept {
+   SSLSessionPtr getSSLSession(const std::string& identity) const
+       noexcept override {
      auto it = cache_.find(identity);
      if (it == cache_.end()) {
        return SSLSessionPtr(nullptr);
@@ -38,7 +39,7 @@ class FakeSessionCallbacks : public SSLSessionCallbacks {
      return sess;
    }
 
-   bool removeSSLSession(const std::string& /* identity */) noexcept {
+   bool removeSSLSession(const std::string& /* identity */) noexcept override {
      return true;
    }
 

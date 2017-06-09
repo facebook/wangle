@@ -105,7 +105,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
     return retval;
   }
 
-  virtual ~ClientBootstrap() = default;
+  ~ClientBootstrap() override = default;
 
  protected:
   int port_;

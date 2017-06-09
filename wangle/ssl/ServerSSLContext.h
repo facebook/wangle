@@ -37,7 +37,7 @@ class ServerSSLContext : public folly::SSLContext {
  public:
   using folly::SSLContext::SSLContext;
 
-  virtual ~ServerSSLContext() = default;
+  ~ServerSSLContext() override = default;
 
   void setupTicketManager(
       const TLSTicketKeySeeds* ticketSeeds,

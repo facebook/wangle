@@ -81,7 +81,7 @@ class FileRegion {
      public:
       FileReadHandler(FileWriteRequest* req, int pipe_in, size_t bytesToRead);
 
-      ~FileReadHandler();
+      ~FileReadHandler() override;
 
       void handlerReady(uint16_t events) noexcept override;
 
@@ -92,7 +92,7 @@ class FileRegion {
     };
 
    private:
-    ~FileWriteRequest();
+    ~FileWriteRequest() override;
 
     void fail(const char* fn, const folly::AsyncSocketException& ex);
 

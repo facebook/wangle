@@ -50,7 +50,7 @@ class IOThreadPoolExecutor : public ThreadPoolExecutor, public IOExecutor {
       folly::EventBaseManager* ebm = folly::EventBaseManager::get(),
       bool waitForAll = false);
 
-  ~IOThreadPoolExecutor();
+  ~IOThreadPoolExecutor() override;
 
   void add(folly::Func func) override;
   void add(

@@ -64,11 +64,11 @@ class ServiceFilter : public Service<ReqA, RespA> {
       : service_(service) {}
   virtual ~ServiceFilter() = default;
 
-  virtual folly::Future<folly::Unit> close() override {
+  folly::Future<folly::Unit> close() override {
     return service_->close();
   }
 
-  virtual bool isAvailable() override {
+  bool isAvailable() override {
     return service_->isAvailable();
   }
 
@@ -99,8 +99,8 @@ class ConstFactory : public ServiceFactory<Pipeline, Req, Resp> {
   explicit ConstFactory(std::shared_ptr<Service<Req, Resp>> service)
       : service_(service) {}
 
-  virtual folly::Future<std::shared_ptr<Service<Req, Resp>>> operator()(
-    std::shared_ptr<ClientBootstrap<Pipeline>> /* client */) {
+  folly::Future<std::shared_ptr<Service<Req, Resp>>> operator()(
+      std::shared_ptr<ClientBootstrap<Pipeline>> /* client */) override {
     return service_;
   }
  private:
@@ -115,7 +115,7 @@ class ServiceFactoryFilter : public ServiceFactory<Pipeline, ReqA, RespA> {
     std::shared_ptr<ServiceFactory<Pipeline, ReqB, RespB>> serviceFactory)
       : serviceFactory_(std::move(serviceFactory)) {}
 
-  virtual ~ServiceFactoryFilter() = default;
+  ~ServiceFactoryFilter() override = default;
 
  protected:
   std::shared_ptr<ServiceFactory<Pipeline, ReqB, RespB>> serviceFactory_;
@@ -129,7 +129,7 @@ class FactoryToService : public Service<Req, Resp> {
       : factory_(factory) {}
   virtual ~FactoryToService() = default;
 
-  virtual folly::Future<Resp> operator()(Req request) override {
+  folly::Future<Resp> operator()(Req request) override {
     DCHECK(factory_);
     return ((*factory_)(nullptr)).then(
       [=](std::shared_ptr<Service<Req, Resp>> service)

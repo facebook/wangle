@@ -50,7 +50,7 @@ class LengthFieldPrepender : public OutboundBytesToBytesHandler {
 
   folly::Future<folly::Unit> write(
       Context* ctx,
-      std::unique_ptr<folly::IOBuf> buf);
+      std::unique_ptr<folly::IOBuf> buf) override;
 
  private:
   int lengthFieldLength_;

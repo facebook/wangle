@@ -73,12 +73,12 @@ class BonkMultiplexClientDispatcher
 
   // Print some nice messages for close
 
-  virtual Future<Unit> close() override {
+  Future<Unit> close() override {
     printf("Channel closed\n");
     return ClientDispatcherBase::close();
   }
 
-  virtual Future<Unit> close(Context* ctx) override {
+  Future<Unit> close(Context* ctx) override {
     printf("Channel closed\n");
     return ClientDispatcherBase::close(ctx);
   }

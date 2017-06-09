@@ -169,7 +169,7 @@ class Pipeline : public PipelineBase {
     return std::shared_ptr<Pipeline>(new Pipeline());
   }
 
-  ~Pipeline();
+  ~Pipeline() override;
 
   template <class T = R>
   typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
