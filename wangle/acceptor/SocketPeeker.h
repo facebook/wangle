@@ -31,7 +31,7 @@ class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
   SocketPeeker(folly::AsyncSocket& socket, Callback* callback, size_t numBytes)
       : socket_(socket), callback_(callback), peekBytes_(numBytes) {}
 
-  ~SocketPeeker() {
+  ~SocketPeeker() override {
     if (socket_.getReadCallback() == this) {
       socket_.setReadCB(nullptr);
     }

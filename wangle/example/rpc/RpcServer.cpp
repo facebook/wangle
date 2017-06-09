@@ -34,7 +34,7 @@ DEFINE_int32(port, 8080, "test server port");
 
 class RpcService : public Service<Bonk, Xtruct> {
  public:
-  virtual Future<Xtruct> operator()(Bonk request) override {
+  Future<Xtruct> operator()(Bonk request) override {
     // Oh no, we got Bonked!  Quick, Bonk back
     printf("Bonk: %s, %i\n", request.message.c_str(), request.type);
 
@@ -55,7 +55,7 @@ class RpcService : public Service<Bonk, Xtruct> {
 class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
  public:
   SerializePipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) {
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = SerializePipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     // ensure we can write from any thread

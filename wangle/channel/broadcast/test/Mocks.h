@@ -130,7 +130,7 @@ class MockBroadcastPipelineFactory
     return pipeline;
   }
 
-  virtual BroadcastHandler<int, std::string>* getBroadcastHandler(
+  BroadcastHandler<int, std::string>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept override {
     return pipeline->getHandler<BroadcastHandler<int, std::string>>(2);
   }

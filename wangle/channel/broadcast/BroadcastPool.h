@@ -58,7 +58,7 @@ class BroadcastPool {
       client_->pipelineFactory(broadcastPool_->broadcastPipelineFactory_);
     }
 
-    virtual ~BroadcastManager() {
+    ~BroadcastManager() override {
       if (client_->getPipeline()) {
         client_->getPipeline()->setPipelineManager(nullptr);
       }

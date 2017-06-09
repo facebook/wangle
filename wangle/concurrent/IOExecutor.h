@@ -33,7 +33,7 @@ namespace wangle {
 // IOThreadPoolExecutor will be created and returned.
 class IOExecutor : public virtual folly::Executor {
  public:
-  virtual ~IOExecutor() = default;
+  ~IOExecutor() override = default;
   virtual folly::EventBase* getEventBase() = 0;
 };
 

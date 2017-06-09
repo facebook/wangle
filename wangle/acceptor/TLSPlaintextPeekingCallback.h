@@ -26,7 +26,7 @@ class TLSPlaintextPeekingCallback :
   TLSPlaintextPeekingCallback():
     PeekingAcceptorHandshakeHelper::PeekCallback(kPeekCount) {}
 
-  virtual AcceptorHandshakeHelper::UniquePtr getHelper(
+  AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& bytes,
       Acceptor* acceptor,
       const folly::SocketAddress& clientAddr,

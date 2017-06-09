@@ -33,9 +33,9 @@ class ThreadPoolExecutor : public virtual folly::Executor {
       std::shared_ptr<ThreadFactory> threadFactory,
       bool isWaitForAll = false);
 
-  ~ThreadPoolExecutor();
+  ~ThreadPoolExecutor() override;
 
-  virtual void add(folly::Func func) override = 0;
+  void add(folly::Func func) override = 0;
   virtual void add(
       folly::Func func,
       std::chrono::milliseconds expiration,
@@ -127,7 +127,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
         lastActiveTime(std::chrono::steady_clock::now()),
         taskStatsSubject(pool->taskStatsSubject_) {}
 
-    virtual ~Thread() = default;
+    ~Thread() override = default;
 
     static std::atomic<uint64_t> nextId;
     uint64_t id;

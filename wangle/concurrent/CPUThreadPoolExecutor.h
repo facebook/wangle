@@ -67,7 +67,7 @@ class CPUThreadPoolExecutor : public ThreadPoolExecutor {
       std::shared_ptr<ThreadFactory> threadFactory =
           std::make_shared<NamedThreadFactory>("CPUThreadPool"));
 
-  ~CPUThreadPoolExecutor();
+  ~CPUThreadPoolExecutor() override;
 
   void add(folly::Func func) override;
   void add(

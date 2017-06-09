@@ -253,7 +253,7 @@ TEST(Wangle, FactoryToService) {
 
 class TimekeeperTester : public Timekeeper {
  public:
-  virtual Future<Unit> after(Duration) {
+  Future<Unit> after(Duration) override {
     Promise<Unit> p;
     auto f = p.getFuture();
     promises_.push_back(std::move(p));

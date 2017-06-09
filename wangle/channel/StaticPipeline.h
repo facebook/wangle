@@ -76,7 +76,7 @@ class StaticPipeline<R, W, Handler, Handlers...>
     return ptr;
   }
 
-  ~StaticPipeline() {
+  ~StaticPipeline() override {
     if (isFirst_) {
       Pipeline<R, W>::detachHandlers();
     }

@@ -42,7 +42,7 @@ class ManagedConnection:
   };
 
   // HHWheelTimer::Callback API (left for subclasses to implement).
-  virtual void timeoutExpired() noexcept = 0;
+  void timeoutExpired() noexcept override = 0;
 
   /**
    * Print a human-readable description of the connection.
@@ -129,7 +129,7 @@ class ManagedConnection:
   }
 
  protected:
-  virtual ~ManagedConnection();
+  ~ManagedConnection() override;
 
  private:
   enum class DrainState {

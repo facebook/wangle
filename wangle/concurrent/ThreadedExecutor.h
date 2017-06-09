@@ -50,7 +50,7 @@ class ThreadedExecutor : public virtual folly::Executor {
  public:
   explicit ThreadedExecutor(
       std::shared_ptr<ThreadFactory> threadFactory = newDefaultThreadFactory());
-  ~ThreadedExecutor();
+  ~ThreadedExecutor() override;
 
   ThreadedExecutor(ThreadedExecutor const&) = delete;
   ThreadedExecutor(ThreadedExecutor&&) = delete;

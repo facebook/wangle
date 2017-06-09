@@ -20,7 +20,7 @@ template<typename K, typename V>
 class FilePersistenceLayer : public CachePersistence<K, V> {
  public:
   explicit FilePersistenceLayer(const std::string& file) : file_(file) {}
-  ~FilePersistenceLayer() {}
+  ~FilePersistenceLayer() override {}
 
   bool persist(const folly::dynamic& arrayOfKvPairs) noexcept override;
 

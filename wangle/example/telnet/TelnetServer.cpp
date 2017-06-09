@@ -26,7 +26,7 @@ typedef Pipeline<IOBufQueue&, std::string> TelnetPipeline;
 
 class TelnetHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context* ctx, std::string msg) override {
+  void read(Context* ctx, std::string msg) override {
     if (msg.empty()) {
       write(ctx, "Please type something.\r\n");
     } else if (msg == "bye") {
@@ -38,7 +38,7 @@ class TelnetHandler : public HandlerAdapter<std::string> {
     }
   }
 
-  virtual void transportActive(Context* ctx) override {
+  void transportActive(Context* ctx) override {
     auto sock = ctx->getTransport();
     SocketAddress localAddress;
     sock->getLocalAddress(&localAddress);
@@ -49,7 +49,8 @@ class TelnetHandler : public HandlerAdapter<std::string> {
 
 class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
  public:
-  TelnetPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
+  TelnetPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = TelnetPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder(8192));

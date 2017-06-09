@@ -49,7 +49,7 @@ class Handler : public HandlerBase<HandlerContext<Rout, Wout>> {
   typedef Win win;
   typedef Wout wout;
   typedef HandlerContext<Rout, Wout> Context;
-  virtual ~Handler() = default;
+  ~Handler() override = default;
 
   virtual void read(Context* ctx, Rin msg) = 0;
   virtual void readEOF(Context* ctx) {
@@ -110,7 +110,7 @@ class InboundHandler : public HandlerBase<InboundHandlerContext<Rout>> {
   typedef folly::Unit win;
   typedef folly::Unit wout;
   typedef InboundHandlerContext<Rout> Context;
-  virtual ~InboundHandler() = default;
+  ~InboundHandler() override = default;
 
   virtual void read(Context* ctx, Rin msg) = 0;
   virtual void readEOF(Context* ctx) {
@@ -137,7 +137,7 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext<Wout>> {
   typedef Win win;
   typedef Wout wout;
   typedef OutboundHandlerContext<Wout> Context;
-  virtual ~OutboundHandler() = default;
+  ~OutboundHandler() override = default;
 
   virtual folly::Future<folly::Unit> write(Context* ctx, Win msg) = 0;
   virtual folly::Future<folly::Unit> writeException(

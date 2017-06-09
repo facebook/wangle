@@ -103,7 +103,7 @@ class ServerAcceptor
     }
 
    private:
-    ~ServerConnection() {
+    ~ServerConnection() override {
       pipeline_->setPipelineManager(nullptr);
     }
     typename Pipeline::Ptr pipeline_;
@@ -253,7 +253,7 @@ class ServerAcceptorFactory : public AcceptorFactory {
         childPipelineFactory_(childPipelineFactory),
         accConfig_(accConfig) {}
 
-  std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) {
+  std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) override {
     auto acceptor = std::make_shared<ServerAcceptor<Pipeline>>(
         acceptPipelineFactory_, childPipelineFactory_, accConfig_);
     acceptor->init(nullptr, base, nullptr);
@@ -285,16 +285,14 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
   template <typename F>
   void forEachWorker(F&& f) const;
 
-  void threadStarted(
-    wangle::ThreadPoolExecutor::ThreadHandle*);
-  void threadStopped(
-    wangle::ThreadPoolExecutor::ThreadHandle*);
+  void threadStarted(wangle::ThreadPoolExecutor::ThreadHandle*) override;
+  void threadStopped(wangle::ThreadPoolExecutor::ThreadHandle*) override;
   void threadPreviouslyStarted(
-      wangle::ThreadPoolExecutor::ThreadHandle* thread) {
+      wangle::ThreadPoolExecutor::ThreadHandle* thread) override {
     threadStarted(thread);
   }
   void threadNotYetStopped(
-      wangle::ThreadPoolExecutor::ThreadHandle* thread) {
+      wangle::ThreadPoolExecutor::ThreadHandle* thread) override {
     threadStopped(thread);
   }
 
@@ -322,7 +320,7 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
 
 class DefaultAcceptPipelineFactory : public AcceptPipelineFactory {
  public:
-  typename AcceptPipeline::Ptr newPipeline(Acceptor*) {
+  typename AcceptPipeline::Ptr newPipeline(Acceptor*) override {
     return AcceptPipeline::create();
   }
 };

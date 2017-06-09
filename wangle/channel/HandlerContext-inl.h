@@ -58,7 +58,7 @@ class OutboundLink {
 template <class H, class Context>
 class ContextImplBase : public PipelineContext {
  public:
-  ~ContextImplBase() = default;
+  ~ContextImplBase() override = default;
 
   H* getHandler() {
     return handler_.get();
@@ -157,7 +157,7 @@ class ContextImpl
     this->impl_ = this;
   }
 
-  ~ContextImpl() = default;
+  ~ContextImpl() override = default;
 
   // HandlerContext overrides
   void fireRead(Rout msg) override {
@@ -326,7 +326,7 @@ class InboundContextImpl
     this->impl_ = this;
   }
 
-  ~InboundContextImpl() = default;
+  ~InboundContextImpl() override = default;
 
   // InboundHandlerContext overrides
   void fireRead(Rout msg) override {
@@ -429,7 +429,7 @@ class OutboundContextImpl
     this->impl_ = this;
   }
 
-  ~OutboundContextImpl() = default;
+  ~OutboundContextImpl() override = default;
 
   // OutboundHandlerContext overrides
   folly::Future<folly::Unit> fireWrite(Wout msg) override {

@@ -159,9 +159,9 @@ class ConnectionManager: public folly::DelayedDestruction,
   /**
    * ManagedConnection::Callbacks
    */
-  void onActivated(ManagedConnection& conn);
+  void onActivated(ManagedConnection& conn) override;
 
-  void onDeactivated(ManagedConnection& conn);
+  void onDeactivated(ManagedConnection& conn) override;
 
  private:
 
@@ -235,8 +235,7 @@ class ConnectionManager: public folly::DelayedDestruction,
     ShutdownState shutdownState_{ShutdownState::NONE};
   };
 
-
-  ~ConnectionManager() = default;
+  ~ConnectionManager() override = default;
 
   ConnectionManager(const ConnectionManager&) = delete;
   ConnectionManager& operator=(ConnectionManager&) = delete;

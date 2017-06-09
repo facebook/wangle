@@ -41,7 +41,7 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
     startIdleTimer();
   }
 
-  ~ExpiringFilter() {
+  ~ExpiringFilter() override {
     if (!idleTimeout_.isReady()) {
       idleTimeout_.cancel();
     }
@@ -62,7 +62,7 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
     }
   }
 
-  virtual folly::Future<Resp> operator()(Req req) override {
+  folly::Future<Resp> operator()(Req req) override {
     if (!idleTimeout_.isReady()) {
       idleTimeout_.cancel();
     }

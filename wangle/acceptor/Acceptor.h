@@ -62,7 +62,7 @@ class Acceptor :
   };
 
   explicit Acceptor(const ServerSocketConfig& accConfig);
-  virtual ~Acceptor();
+  ~Acceptor() override;
 
   /**
    * Supply an SSL cache provider
@@ -350,12 +350,13 @@ class Acceptor :
       SecureTransportType /*secureTransportType*/,
       const TransportInfo& /*tinfo*/) {}
 
-  void onListenStarted() noexcept {}
-  void onListenStopped() noexcept {}
+  void onListenStarted() noexcept override {}
+  void onListenStopped() noexcept override {}
   void onDataAvailable(
-    std::shared_ptr<folly::AsyncUDPSocket> /*socket*/,
-    const folly::SocketAddress&,
-    std::unique_ptr<folly::IOBuf>, bool) noexcept {}
+      std::shared_ptr<folly::AsyncUDPSocket> /*socket*/,
+      const folly::SocketAddress&,
+      std::unique_ptr<folly::IOBuf>,
+      bool) noexcept override {}
 
   virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
       folly::EventBase* base,
@@ -387,16 +388,16 @@ class Acceptor :
   virtual void onConnectionsDrained() {}
 
   // AsyncServerSocket::AcceptCallback methods
-  void connectionAccepted(int fd,
-      const folly::SocketAddress& clientAddr)
-      noexcept;
-  void acceptError(const std::exception& ex) noexcept;
-  void acceptStopped() noexcept;
+  void connectionAccepted(
+      int fd,
+      const folly::SocketAddress& clientAddr) noexcept override;
+  void acceptError(const std::exception& ex) noexcept override;
+  void acceptStopped() noexcept override;
 
   // ConnectionManager::Callback methods
-  void onEmpty(const wangle::ConnectionManager& cm);
-  void onConnectionAdded(const wangle::ConnectionManager& /*cm*/) {}
-  void onConnectionRemoved(const wangle::ConnectionManager& /*cm*/) {}
+  void onEmpty(const wangle::ConnectionManager& cm) override;
+  void onConnectionAdded(const wangle::ConnectionManager& /*cm*/) override {}
+  void onConnectionRemoved(const wangle::ConnectionManager& /*cm*/) override {}
 
   const LoadShedConfiguration& getLoadShedConfiguration() const {
     return loadShedConfig_;

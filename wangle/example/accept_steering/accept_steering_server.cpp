@@ -59,7 +59,7 @@ class ThreadPrintingHandler : public BytesToBytesHandler {
   explicit ThreadPrintingHandler(const char& routingData)
       : routingData_(routingData) {}
 
-  virtual void transportActive(Context* ctx) override {
+  void transportActive(Context* ctx) override {
     std::stringstream out;
     out << "You were hashed to thread " << std::this_thread::get_id()
         << " based on '" << routingData_ << "'" << std::endl;
