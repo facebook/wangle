@@ -59,26 +59,28 @@ class AcceptorHandshakeManager : public ManagedConnection,
     acceptTime_(acceptTime),
     tinfo_(std::move(tinfo)) {}
 
-  virtual ~AcceptorHandshakeManager() = default;
+  ~AcceptorHandshakeManager() override = default;
 
   virtual void start(folly::AsyncSSLSocket::UniquePtr sock) noexcept;
 
-  virtual void timeoutExpired() noexcept override {
+  void timeoutExpired() noexcept override {
     VLOG(4) << "SSL handshake timeout expired";
     dropConnection(SSLErrorEnum::TIMEOUT);
   }
 
-  virtual void describe(std::ostream& os) const override {
+  void describe(std::ostream& os) const override {
     os << "pending handshake on " << clientAddr_;
   }
 
-  virtual bool isBusy() const override { return true; }
+  bool isBusy() const override {
+    return true;
+  }
 
-  virtual void notifyPendingShutdown() override {}
+  void notifyPendingShutdown() override {}
 
-  virtual void closeWhenIdle() override {}
+  void closeWhenIdle() override {}
 
-  virtual void dropConnection() override {
+  void dropConnection() override {
     dropConnection(SSLErrorEnum::NO_ERROR);
   }
 
@@ -87,16 +89,15 @@ class AcceptorHandshakeManager : public ManagedConnection,
     helper_->dropConnection(reason);
   }
 
-  virtual void dumpConnectionState(uint8_t /* loglevel */) override {}
+  void dumpConnectionState(uint8_t /* loglevel */) override {}
 
  protected:
-  virtual void connectionReady(
+  void connectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType) noexcept override;
 
-  virtual void connectionError(
-      folly::exception_wrapper ex) noexcept override;
+  void connectionError(folly::exception_wrapper ex) noexcept override;
 
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) = 0;
 

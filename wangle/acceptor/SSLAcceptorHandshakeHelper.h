@@ -32,12 +32,11 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     acceptTime_(acceptTime),
     tinfo_(tinfo) {}
 
-  virtual void start(
+  void start(
       folly::AsyncSSLSocket::UniquePtr sock,
       AcceptorHandshakeHelper::Callback* callback) noexcept override;
 
-  virtual void dropConnection(
-      SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
+  void dropConnection(SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
     sslError_ = reason;
     socket_->closeNow();
   }

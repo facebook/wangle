@@ -41,8 +41,8 @@ static shared_ptr<LRUPersistentCache<string, string, T>> createCache(
 
 class MockPersistenceLayer : public TestPersistenceLayer {
   public:
-    virtual ~MockPersistenceLayer() {
-      LOG(ERROR) << "ok.";
+   ~MockPersistenceLayer() override {
+     LOG(ERROR) << "ok.";
     }
     bool persist(const dynamic& obj) noexcept override {
       return persist_(obj);
@@ -62,13 +62,12 @@ class MockPersistenceLayer : public TestPersistenceLayer {
 template<typename MutexT>
 class LRUPersistentCacheTest : public Test {
   protected:
-    virtual void SetUp() override {
-      persistence = make_unique<MockPersistenceLayer>();
-      ON_CALL(*persistence, getLastPersistedVersion())
-        .WillByDefault(
-            Invoke(
-              persistence.get(),
-              &MockPersistenceLayer::getLastPersistedVersionConcrete));
+   void SetUp() override {
+     persistence = make_unique<MockPersistenceLayer>();
+     ON_CALL(*persistence, getLastPersistedVersion())
+         .WillByDefault(Invoke(
+             persistence.get(),
+             &MockPersistenceLayer::getLastPersistedVersionConcrete));
     }
 
     unique_ptr<MockPersistenceLayer> persistence;

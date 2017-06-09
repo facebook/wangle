@@ -40,7 +40,7 @@ class FilePersistentCache : public PersistentCache<K, V>,
     const std::chrono::seconds& syncInterval = std::chrono::seconds(5),
     const int nSyncRetries = 3);
 
-  ~FilePersistentCache() {}
+  ~FilePersistentCache() override {}
 
   /**
    * PersistentCache operations

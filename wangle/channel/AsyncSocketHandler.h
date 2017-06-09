@@ -30,7 +30,7 @@ class AsyncSocketHandler
 
   AsyncSocketHandler(AsyncSocketHandler&&) = default;
 
-  ~AsyncSocketHandler() {
+  ~AsyncSocketHandler() override {
     detachReadCallback();
   }
 

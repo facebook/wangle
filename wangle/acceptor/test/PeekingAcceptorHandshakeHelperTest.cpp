@@ -33,7 +33,7 @@ class MockPeekingCallback :
             std::chrono::steady_clock::time_point,
             TransportInfo&));
 
-    virtual AcceptorHandshakeHelper::UniquePtr getHelper(
+    AcceptorHandshakeHelper::UniquePtr getHelper(
         const std::vector<uint8_t>& peekedBytes,
         Acceptor* acceptor,
         const folly::SocketAddress& clientAddr,
@@ -53,7 +53,7 @@ class MockHandshakeHelperCallback : public AcceptorHandshakeHelper::Callback {
           std::string nextProtocol,
           SecureTransportType secureTransportType));
 
-    virtual void connectionReady(
+    void connectionReady(
         folly::AsyncTransportWrapper::UniquePtr transport,
         std::string nextProtocol,
         SecureTransportType secureTransportType) noexcept override {
@@ -74,7 +74,7 @@ class MockHandshakeHelper : public AcceptorHandshakeHelper {
         std::shared_ptr<AsyncSSLSocket> sock,
         AcceptorHandshakeHelper::Callback* callback));
 
-  virtual void start(
+  void start(
       folly::AsyncSSLSocket::UniquePtr sock,
       AcceptorHandshakeHelper::Callback* callback) noexcept override {
     startInternal(std::shared_ptr<AsyncSSLSocket>(std::move(sock)), callback);

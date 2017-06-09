@@ -29,14 +29,14 @@ typedef Pipeline<folly::IOBufQueue&, std::string> TelnetPipeline;
 
 class TelnetHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context*, std::string msg) override {
+  void read(Context*, std::string msg) override {
     std::cout << msg;
   }
-  virtual void readException(Context* ctx, exception_wrapper e) override {
+  void readException(Context* ctx, exception_wrapper e) override {
     std::cout << exceptionStr(e) << std::endl;
     close(ctx);
   }
-  virtual void readEOF(Context* ctx) override {
+  void readEOF(Context* ctx) override {
     std::cout << "EOF received :(" << std::endl;
     close(ctx);
   }
@@ -44,7 +44,8 @@ class TelnetHandler : public HandlerAdapter<std::string> {
 
 class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
  public:
-  TelnetPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
+  TelnetPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = TelnetPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(EventBaseHandler()); // ensure we can write from any thread

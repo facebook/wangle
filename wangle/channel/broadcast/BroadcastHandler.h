@@ -25,7 +25,7 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
  public:
   typedef typename HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>::Context Context;
 
-  virtual ~BroadcastHandler() {
+  ~BroadcastHandler() override {
     CHECK(subscribers_.empty());
   }
 
@@ -88,7 +88,7 @@ template <typename T, typename R>
 class BroadcastPipelineFactory
     : public PipelineFactory<DefaultPipeline> {
  public:
-  virtual DefaultPipeline::Ptr newPipeline(
+  DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransportWrapper> socket) override = 0;
 
   virtual BroadcastHandler<T, R>* getBroadcastHandler(

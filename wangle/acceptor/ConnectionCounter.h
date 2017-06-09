@@ -46,7 +46,7 @@ class SimpleConnectionCounter: public IConnectionCounter {
 
   void onConnectionAdded() override { numConnections_++; }
   void onConnectionRemoved() override { numConnections_--; }
-  virtual ~SimpleConnectionCounter() = default;
+  ~SimpleConnectionCounter() override = default;
 
  protected:
   uint64_t maxConnections_{0};

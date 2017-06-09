@@ -27,14 +27,14 @@ typedef Pipeline<folly::IOBufQueue&, std::string> EchoPipeline;
 // the handler for receiving messages back from the server
 class EchoHandler : public HandlerAdapter<std::string> {
  public:
-  virtual void read(Context*, std::string msg) override {
+  void read(Context*, std::string msg) override {
     std::cout << "received back: " << msg;
   }
-  virtual void readException(Context* ctx, exception_wrapper e) override {
+  void readException(Context* ctx, exception_wrapper e) override {
     std::cout << exceptionStr(e) << std::endl;
     close(ctx);
   }
-  virtual void readEOF(Context* ctx) override {
+  void readEOF(Context* ctx) override {
     std::cout << "EOF received :(" << std::endl;
     close(ctx);
   }
@@ -43,7 +43,8 @@ class EchoHandler : public HandlerAdapter<std::string> {
 // chains the handlers together to define the response pipeline
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
-  EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransportWrapper> sock) {
+  EchoPipeline::Ptr newPipeline(
+      std::shared_ptr<AsyncTransportWrapper> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(

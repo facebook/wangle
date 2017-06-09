@@ -27,7 +27,7 @@ class TestableAcceptor : public Acceptor {
   public:
     explicit TestableAcceptor(const ServerSocketConfig& accConfig) :
       Acceptor(accConfig) {}
-    virtual ~TestableAcceptor() {}
+    ~TestableAcceptor() override {}
 
     void setActiveConnectionCountForLoadShedding(
         const uint64_t activeConnectionCountForLoadShedding) {
@@ -44,10 +44,10 @@ class TestableAcceptor : public Acceptor {
     using Acceptor::canAccept;
 
   protected:
-    virtual uint64_t getConnectionCountForLoadShedding() const override {
-      return connectionCountForLoadShedding_;
+   uint64_t getConnectionCountForLoadShedding() const override {
+     return connectionCountForLoadShedding_;
     }
-    virtual uint64_t getActiveConnectionCountForLoadShedding() const override {
+    uint64_t getActiveConnectionCountForLoadShedding() const override {
       return activeConnectionCountForLoadShedding_;
     }
 

@@ -20,27 +20,22 @@ class MockSSLStats : public wangle::SSLStats {
 
   // downstream
   void recordSSLAcceptLatency(int64_t /* unused */) noexcept override {}
-  virtual void recordTLSTicket(
+  void recordTLSTicket(bool /* unused */, bool /* unused */) noexcept override {
+  }
+  void recordSSLSession(
+      bool /* unused */,
       bool /* unused */,
       bool /* unused */) noexcept override {}
-  virtual void recordSSLSession(
-      bool /* unused */,
-      bool /* unused */,
-      bool /* unused */) noexcept override {}
-  virtual void recordSSLSessionRemove() noexcept override {}
-  virtual void recordSSLSessionFree(uint32_t /* unused */) noexcept override {}
-  virtual void recordSSLSessionSetError(
-      uint32_t /* unused */) noexcept override {}
-  virtual void recordSSLSessionGetError(
-      uint32_t /* unused */) noexcept override {}
-  virtual void recordClientRenegotiation() noexcept override {}
-  virtual void recordSSLClientCertificateMismatch() noexcept override {}
+  void recordSSLSessionRemove() noexcept override {}
+  void recordSSLSessionFree(uint32_t /* unused */) noexcept override {}
+  void recordSSLSessionSetError(uint32_t /* unused */) noexcept override {}
+  void recordSSLSessionGetError(uint32_t /* unused */) noexcept override {}
+  void recordClientRenegotiation() noexcept override {}
+  void recordSSLClientCertificateMismatch() noexcept override {}
 
   // upstream
-  virtual void recordSSLUpstreamConnection(
-      bool /* unused */) noexcept override {}
-  virtual void recordSSLUpstreamConnectionError(
-      bool /* unused */) noexcept override {}
+  void recordSSLUpstreamConnection(bool /* unused */) noexcept override {}
+  void recordSSLUpstreamConnectionError(bool /* unused */) noexcept override {}
 };
 
 TEST(TLSTicketKeyManager, TestSetGetTLSTicketKeySeeds) {

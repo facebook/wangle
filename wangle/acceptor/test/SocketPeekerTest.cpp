@@ -22,7 +22,7 @@ using namespace testing;
 
 class MockSocketPeekerCallback : public SocketPeeker::Callback {
  public:
-  ~MockSocketPeekerCallback() = default;
+  ~MockSocketPeekerCallback() override = default;
 
   GMOCK_METHOD1_(
       ,

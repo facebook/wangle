@@ -16,7 +16,7 @@ namespace wangle {
 class PasswordInFile: public folly::PasswordCollector {
  public:
   explicit PasswordInFile(const std::string& file);
-  ~PasswordInFile();
+  ~PasswordInFile() override;
 
   void getPassword(std::string& password, int /* size */) const override {
     password = password_;

@@ -21,7 +21,7 @@ class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
  public:
   typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
-  ~ClientDispatcherBase() {
+  ~ClientDispatcherBase() override {
     if (pipeline_) {
       try {
         pipeline_->remove(this).finalize();
@@ -42,11 +42,11 @@ class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
     pipeline_->finalize();
   }
 
-  virtual folly::Future<folly::Unit> close() override {
+  folly::Future<folly::Unit> close() override {
     return HandlerAdapter<Resp, Req>::close(this->getContext());
   }
 
-  virtual folly::Future<folly::Unit> close(Context* ctx) override {
+  folly::Future<folly::Unit> close(Context* ctx) override {
     return HandlerAdapter<Resp, Req>::close(ctx);
   }
 
@@ -71,7 +71,7 @@ class SerialClientDispatcher
     p_ = folly::none;
   }
 
-  virtual folly::Future<Resp> operator()(Req arg) override {
+  folly::Future<Resp> operator()(Req arg) override {
     CHECK(!p_);
     DCHECK(this->pipeline_);
 
@@ -104,7 +104,7 @@ class PipelinedClientDispatcher
     p.setValue(std::move(in));
   }
 
-  virtual folly::Future<Resp> operator()(Req arg) override {
+  folly::Future<Resp> operator()(Req arg) override {
     DCHECK(this->pipeline_);
 
     folly::Promise<Resp> p;
