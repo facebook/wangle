@@ -11,6 +11,7 @@
 #pragma once
 
 #include <wangle/concurrent/BlockingQueue.h>
+#include <folly/Executor.h>
 #include <folly/LifoSem.h>
 #include <folly/MPMCQueue.h>
 
