@@ -62,7 +62,7 @@ class ServiceFilter : public Service<ReqA, RespA> {
   public:
   explicit ServiceFilter(std::shared_ptr<Service<ReqB, RespB>> service)
       : service_(service) {}
-  virtual ~ServiceFilter() = default;
+  ~ServiceFilter() override = default;
 
   folly::Future<folly::Unit> close() override {
     return service_->close();
@@ -127,7 +127,7 @@ class FactoryToService : public Service<Req, Resp> {
   explicit FactoryToService(
     std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
       : factory_(factory) {}
-  virtual ~FactoryToService() = default;
+  ~FactoryToService() override = default;
 
   folly::Future<Resp> operator()(Req request) override {
     DCHECK(factory_);
