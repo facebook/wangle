@@ -81,11 +81,9 @@ class ServerAcceptor
     void notifyPendingShutdown() override {}
     void closeWhenIdle() override {}
     void dropConnection() override {
-      DestructorGuard dg(this);
       auto ew = folly::make_exception_wrapper<AcceptorException>(
           AcceptorException::ExceptionType::DROPPED, "dropped");
       pipeline_->readException(ew);
-      destroy();
     }
     void dumpConnectionState(uint8_t /* loglevel */) override {}
 
