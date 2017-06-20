@@ -11,6 +11,7 @@
 #pragma once
 
 #include <exception>
+#include <stdexcept>
 
 #include <glog/logging.h>
 
