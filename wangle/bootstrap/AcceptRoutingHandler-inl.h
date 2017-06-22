@@ -62,7 +62,11 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
     uint64_t connId, typename RoutingDataHandler<R>::RoutingData& routingData) {
   // Get the routing pipeline corresponding to this connection
   auto routingPipelineIter = routingPipelines_.find(connId);
-  DCHECK(routingPipelineIter != routingPipelines_.end());
+  if (routingPipelineIter == routingPipelines_.end()) {
+    VLOG(2) << "Connection has already been closed, "
+      "or routed to a worker thread.";
+    return;
+  }
   auto routingPipeline = std::move(routingPipelineIter->second);
   routingPipelines_.erase(routingPipelineIter);
 
