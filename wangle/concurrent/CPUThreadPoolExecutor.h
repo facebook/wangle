@@ -21,7 +21,15 @@ namespace wangle {
  * Because of this contention can be quite high,
  * since all the worker threads and all the producer threads hit
  * the same queue. MPMC queue excels in this situation but dictates a max queue
- * size
+ * size.
+ *
+ * @note If a blocking queue (wangle::QueueBehaviorIfFull::BLOCK) is used, and
+ * tasks executing on a given thread pool schedule more tasks, deadlock is
+ * possible if the queue becomes full.  Deadlock is also possible if there is
+ * a circular dependency among multiple thread pools with blocking queues.
+ * To avoid this situation, use non-blocking queue(s), or schedule tasks only
+ * from threads not belonging to the given thread pool(s), or use
+ * wangle::IOThreadPoolExecutor.
  *
  * @note LifoSem wakes up threads in Lifo order - i.e. there are only few
  * threads as necessary running, and we always try to reuse the same few threads
@@ -30,13 +38,13 @@ namespace wangle {
  * combination with Lifosem - it almost doesn't matter if more threads than are
  * necessary are specified at startup.
  *
- * @note stop() will finish all outstanding tasks at exit
+ * @note stop() will finish all outstanding tasks at exit.
  *
  * @note Supports priorities - priorities are implemented as multiple queues -
  * each worker thread checks the highest priority queue first. Threads
  * themselves don't have priorities set, so a series of long running low
  * priority tasks could still hog all the threads. (at last check pthreads
- * thread priorities didn't work very well)
+ * thread priorities didn't work very well).
  */
 class CPUThreadPoolExecutor : public ThreadPoolExecutor {
  public:
