@@ -14,39 +14,11 @@
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>
 #include <wangle/codec/LengthFieldPrepender.h>
 #include <wangle/codec/LineBasedFrameDecoder.h>
+#include <wangle/codec/CodecTestUtils.h>
 
 using namespace folly;
 using namespace wangle;
 using namespace folly::io;
-
-class FrameTester
-    : public InboundHandler<std::unique_ptr<IOBuf>> {
- public:
-  explicit FrameTester(std::function<void(std::unique_ptr<IOBuf>)> test)
-    : test_(test) {}
-
-  void read(Context*, std::unique_ptr<IOBuf> buf) override {
-    test_(std::move(buf));
-  }
-
-  void readException(Context*, exception_wrapper) override {
-    test_(nullptr);
-  }
- private:
-  std::function<void(std::unique_ptr<IOBuf>)> test_;
-};
-
-class BytesReflector
-    : public BytesToBytesHandler {
- public:
-  Future<Unit> write(Context* ctx, std::unique_ptr<IOBuf> buf) override {
-    IOBufQueue q_(IOBufQueue::cacheChainLength());
-    q_.append(std::move(buf));
-    ctx->fireRead(q_);
-
-    return makeFuture();
-  }
-};
 
 TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
   auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
@@ -54,7 +26,7 @@ TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
 
   (*pipeline)
     .addBack(FixedLengthFrameDecoder(10))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 10);
@@ -88,10 +60,10 @@ TEST(LengthFieldFramePipeline, SimpleTest) {
   int called = 0;
 
   (*pipeline)
-    .addBack(BytesReflector())
+    .addBack(test::BytesReflector())
     .addBack(LengthFieldPrepender())
     .addBack(LengthFieldBasedFrameDecoder())
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 2);
@@ -109,9 +81,9 @@ TEST(LengthFieldFramePipeline, LittleEndian) {
   int called = 0;
 
   (*pipeline)
-    .addBack(BytesReflector())
+    .addBack(test::BytesReflector())
     .addBack(LengthFieldBasedFrameDecoder(4, 100, 0, 0, 4, false))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
@@ -131,7 +103,7 @@ TEST(LengthFieldFrameDecoder, Simple) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder())
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
@@ -162,7 +134,7 @@ TEST(LengthFieldFrameDecoder, NoStrip) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 0, 0))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
@@ -193,7 +165,7 @@ TEST(LengthFieldFrameDecoder, Adjustment) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, -2, 0))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
@@ -224,7 +196,7 @@ TEST(LengthFieldFrameDecoder, PreHeader) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 0, 0))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 5);
@@ -256,7 +228,7 @@ TEST(LengthFieldFrameDecoder, PostHeader) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 2, 0))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 5);
@@ -288,7 +260,7 @@ TEST(LengthFieldFrameDecoderStrip, PrePostHeader) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 2, 4))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
@@ -321,7 +293,7 @@ TEST(LengthFieldFrameDecoder, StripPrePostHeaderFrameInclHeader) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, -2, 4))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
@@ -354,7 +326,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldEndOffset) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 4, -2, 4))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
@@ -379,7 +351,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldFrameSize) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 4))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
@@ -406,7 +378,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldInitialBytes) {
 
   (*pipeline)
     .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 10))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
@@ -433,7 +405,7 @@ TEST(LineBasedFrameDecoder, Simple) {
 
   (*pipeline)
     .addBack(LineBasedFrameDecoder(10))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
@@ -484,7 +456,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
 
   (*pipeline)
     .addBack(LineBasedFrameDecoder(10, false))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 4);
@@ -533,7 +505,7 @@ TEST(LineBasedFrameDecoder, Fail) {
 
   (*pipeline)
     .addBack(LineBasedFrameDecoder(10))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
@@ -582,7 +554,7 @@ TEST(LineBasedFrameDecoder, NewLineOnly) {
   (*pipeline)
     .addBack(LineBasedFrameDecoder(
                10, true, LineBasedFrameDecoder::TerminatorType::NEWLINE))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
@@ -609,7 +581,7 @@ TEST(LineBasedFrameDecoder, CarriageNewLineOnly) {
   (*pipeline)
     .addBack(LineBasedFrameDecoder(
               10, true, LineBasedFrameDecoder::TerminatorType::CARRIAGENEWLINE))
-    .addBack(FrameTester([&](std::unique_ptr<IOBuf> buf) {
+    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
