@@ -20,10 +20,13 @@ namespace wangle {
 template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
 class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
  public:
-  explicit PriorityLifoSemMPMCQueue(uint8_t numPriorities, size_t capacity) {
+  // Note A: The queue pre-allocates all memory for max_capacity
+  // Note B: To use folly::Executor::*_PRI, for numPriorities == 2
+  //         MID_PRI and HI_PRI are treated at the same priority level.
+  PriorityLifoSemMPMCQueue(uint8_t numPriorities, size_t max_capacity) {
     queues_.reserve(numPriorities);
     for (int8_t i = 0; i < numPriorities; i++) {
-      queues_.emplace_back(capacity);
+      queues_.emplace_back(max_capacity);
     }
   }
 

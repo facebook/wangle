@@ -19,6 +19,7 @@ namespace wangle {
 template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
 class LifoSemMPMCQueue : public BlockingQueue<T> {
  public:
+  // Note: The queue pre-allocates all memory for max_capacity
   explicit LifoSemMPMCQueue(size_t max_capacity) : queue_(max_capacity) {}
 
   void add(T item) override {
