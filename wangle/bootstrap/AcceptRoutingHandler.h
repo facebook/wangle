@@ -56,8 +56,15 @@ class AcceptRoutingHandler : public wangle::InboundHandler<AcceptPipelineType>,
       typename RoutingDataHandler<R>::RoutingData& routingData) override;
   void onError(uint64_t connId, folly::exception_wrapper ex) override;
 
+  size_t getRoutingPipelineCount() const {
+    return routingPipelines_.size();
+  }
+
  private:
   void populateAcceptors();
+  virtual DefaultPipeline::Ptr newRoutingPipeline() {
+    return DefaultPipeline::create();
+  }
 
   ServerBootstrap<Pipeline>* server_;
   std::shared_ptr<RoutingDataHandlerFactory<R>> routingHandlerFactory_;

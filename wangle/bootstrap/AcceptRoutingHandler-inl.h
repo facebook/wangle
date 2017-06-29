@@ -13,7 +13,8 @@ namespace wangle {
 
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::read(
-    Context*, AcceptPipelineType conn) {
+    Context*,
+    AcceptPipelineType conn) {
   if (conn.type() != typeid(ConnInfo&)) {
     return;
   }
@@ -28,7 +29,7 @@ void AcceptRoutingHandler<Pipeline, R>::read(
 
   // Create a new routing pipeline for this connection to read from
   // the socket until it parses the routing data
-  auto routingPipeline = DefaultPipeline::create();
+  auto routingPipeline = newRoutingPipeline();
   routingPipeline->addBack(wangle::AsyncSocketHandler(socket));
   routingPipeline->addBack(routingHandlerFactory_->newHandler(connId, this));
   routingPipeline->finalize();
@@ -36,8 +37,13 @@ void AcceptRoutingHandler<Pipeline, R>::read(
   // Initialize TransportInfo and set it on the routing pipeline
   auto transportInfo = std::make_shared<TransportInfo>(connInfo.tinfo);
   folly::SocketAddress localAddr, peerAddr;
-  socket->getLocalAddress(&localAddr);
-  socket->getPeerAddress(&peerAddr);
+  try {
+    socket->getLocalAddress(&localAddr);
+    socket->getPeerAddress(&peerAddr);
+  } catch (...) {
+    VLOG(2) << "Socket is no longer valid.";
+    return;
+  }
   transportInfo->localAddr = std::make_shared<folly::SocketAddress>(localAddr);
   transportInfo->remoteAddr = std::make_shared<folly::SocketAddress>(peerAddr);
   routingPipeline->setTransportInfo(transportInfo);
@@ -53,18 +59,20 @@ void AcceptRoutingHandler<Pipeline, R>::readEOF(Context*) {
 
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::readException(
-    Context*, folly::exception_wrapper) {
+    Context*,
+    folly::exception_wrapper) {
   // Null implementation to terminate the call in this handler
 }
 
 template <typename Pipeline, typename R>
 void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
-    uint64_t connId, typename RoutingDataHandler<R>::RoutingData& routingData) {
+    uint64_t connId,
+    typename RoutingDataHandler<R>::RoutingData& routingData) {
   // Get the routing pipeline corresponding to this connection
   auto routingPipelineIter = routingPipelines_.find(connId);
   if (routingPipelineIter == routingPipelines_.end()) {
     VLOG(2) << "Connection has already been closed, "
-      "or routed to a worker thread.";
+               "or routed to a worker thread.";
     return;
   }
   auto routingPipeline = std::move(routingPipelineIter->second);
@@ -105,8 +113,9 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 }
 
 template <typename Pipeline, typename R>
-void AcceptRoutingHandler<Pipeline, R>::onError(uint64_t connId,
-                                                folly::exception_wrapper ex) {
+void AcceptRoutingHandler<Pipeline, R>::onError(
+    uint64_t connId,
+    folly::exception_wrapper ex) {
   VLOG(4) << "Exception while parsing routing data: " << ex.what();
 
   // Notify all handlers of the exception
