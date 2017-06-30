@@ -70,6 +70,11 @@ class AcceptRoutingHandlerTest : public Test {
         ->group(ioGroup, ioGroup)
         ->bind(0);
     server_->getSockets()[0]->getAddress(&address_);
+    VLOG(4) << "Start server at " << address_;
+  }
+
+  EventBase* getEventBase() {
+    return server_->getIOGroup()->getEventBase();
   }
 
   Future<DefaultPipeline*> clientConnect() {
@@ -83,44 +88,48 @@ class AcceptRoutingHandlerTest : public Test {
     auto clientPipelinePromise =
         std::make_shared<folly::Promise<DefaultPipeline*>>();
 
-    clientConnect().then([=](DefaultPipeline* clientPipeline) {
-      clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
-          [=]() {
-            VLOG(4) << "Client connected. Send data.";
-            auto data = IOBuf::create(1);
-            data->append(1);
-            *(data->writableData()) = 'a';
-            clientPipeline->write(std::move(data)).then([=]() {
-              clientPipelinePromise->setValue(clientPipeline);
-            });
-          });
+    getEventBase()->runInEventBaseThread([=]() {
+      clientConnect().then([=](DefaultPipeline* clientPipeline) {
+        VLOG(4) << "Client connected. Send data.";
+        auto data = IOBuf::create(1);
+        data->append(1);
+        *(data->writableData()) = 'a';
+        clientPipeline->write(std::move(data)).then([=]() {
+          clientPipelinePromise->setValue(clientPipeline);
+        });
+      });
     });
 
     return clientPipelinePromise->getFuture();
   }
 
   Future<DefaultPipeline*> clientConnectAndCleanClose() {
-    return clientConnectAndWrite().then([&](DefaultPipeline* clientPipeline) {
-      VLOG(4) << "Client close";
-      clientPipeline->close();
-      return clientPipeline;
+    auto clientPipelinePromise =
+        std::make_shared<folly::Promise<DefaultPipeline*>>();
+
+    getEventBase()->runInEventBaseThread([=]() {
+      clientConnectAndWrite().then([=](DefaultPipeline* clientPipeline) {
+        VLOG(4) << "Client close";
+        clientPipeline->close().then(
+            [=]() { clientPipelinePromise->setValue(clientPipeline); });
+      });
     });
+
+    return clientPipelinePromise->getFuture();
   }
 
   Future<DefaultPipeline*> clientConnectWithException() {
     auto clientPipelinePromise =
         std::make_shared<folly::Promise<DefaultPipeline*>>();
 
-    clientConnect().then([=](DefaultPipeline* clientPipeline) {
-      clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
-          [=]() {
-            VLOG(4) << "Client connected. Induce an unclean close.";
-            clientPipeline
-                ->writeException(std::runtime_error(
-                    "Client socket exception, right after connect."))
-                .then(
-                    [=]() { clientPipelinePromise->setValue(clientPipeline); });
-          });
+    getEventBase()->runInEventBaseThread([=]() {
+      clientConnect().then([=](DefaultPipeline* clientPipeline) {
+        VLOG(4) << "Client connected. Induce an unclean close.";
+        clientPipeline
+            ->writeException(std::runtime_error(
+                "Client socket exception, right after connect."))
+            .then([=]() { clientPipelinePromise->setValue(clientPipeline); });
+      });
     });
 
     return clientPipelinePromise->getFuture();
@@ -152,8 +161,6 @@ class AcceptRoutingHandlerTest : public Test {
 };
 
 TEST_F(AcceptRoutingHandlerTest, ParseRoutingDataSuccess) {
-  auto futureClientPipeline = clientConnectAndCleanClose();
-
   // Server receives data, and parses routing data
   EXPECT_CALL(*routingDataHandler_, transportActive(_));
   EXPECT_CALL(*routingDataHandler_, parseRoutingData(_, _))
@@ -179,10 +186,12 @@ TEST_F(AcceptRoutingHandlerTest, ParseRoutingDataSuccess) {
         barrier.wait();
       }));
   EXPECT_CALL(*downstreamHandler_, transportInactive(_));
-  barrier.wait();
 
+  // Send client request that triggers server processing
+  auto futureClientPipeline = clientConnectAndCleanClose();
   futureClientPipeline.wait();
 
+  barrier.wait();
   VLOG(4) << "Stopping server";
   server_->stop();
   server_->join();
@@ -192,8 +201,6 @@ TEST_F(AcceptRoutingHandlerTest, ParseRoutingDataSuccess) {
 }
 
 TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
-  auto futureClientPipeline = clientConnectAndWrite();
-
   // Server receives data, and parses routing data
   boost::barrier barrierConnect(2);
   EXPECT_CALL(*routingDataHandler_, transportActive(_));
@@ -205,8 +212,12 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
             barrierConnect.wait();
             return false;
           }));
-  barrierConnect.wait();
 
+  // Send client request that triggers server processing
+  auto futureClientPipeline = clientConnectAndWrite();
+
+  // Socket exception after routing pipeline had been created
+  barrierConnect.wait();
   boost::barrier barrierException(2);
   futureClientPipeline.then([](DefaultPipeline* clientPipeline) {
     clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
@@ -228,8 +239,6 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
   EXPECT_CALL(*downstreamHandler_, transportActive(_)).Times(0);
   delete downstreamHandler_;
 
-  futureClientPipeline.wait();
-
   VLOG(4) << "Stopping server";
   server_->stop();
   server_->join();
@@ -239,8 +248,6 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
 }
 
 TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
-  auto futureClientPipeline = clientConnectWithException();
-
   // Routing data handler doesn't receive any data
   EXPECT_CALL(*routingDataHandler_, transportActive(_)).Times(0);
   EXPECT_CALL(*routingDataHandler_, parseRoutingData(_, _)).Times(0);
@@ -249,6 +256,8 @@ TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
   EXPECT_CALL(*downstreamHandler_, transportActive(_)).Times(0);
   delete downstreamHandler_;
 
+  // Send client request that triggers server processing
+  auto futureClientPipeline = clientConnectWithException();
   futureClientPipeline.wait();
 
   VLOG(4) << "Stopping server";
