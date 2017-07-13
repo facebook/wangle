@@ -28,12 +28,12 @@ class FiberIOExecutor : public IOExecutor {
       const std::shared_ptr<IOExecutor>& ioExecutor)
       : ioExecutor_(ioExecutor) {}
 
-  virtual void add(std::function<void()> f) override {
+  virtual void add(folly::Function<void()> f) override {
     auto eventBase = ioExecutor_->getEventBase();
-    getFiberManager(*eventBase).add(std::move(f));
+    folly::fibers::getFiberManager(*eventBase).add(std::move(f));
   }
 
-  virtual EventBase* getEventBase() override {
+  virtual folly::EventBase* getEventBase() override {
     return ioExecutor_->getEventBase();
   }
 
