@@ -359,6 +359,12 @@ struct TransportInfo {
   bool tfoSucceded{false};
 
   /*
+   * Stores the TokenBindingKeyParameter that was negotiatied during the
+   * handshake. Needed for the validation step of Token Binding.
+   */
+  folly::Optional<uint8_t> negotiatedTokenBindingKeyParameters;
+
+  /*
    * get the RTT value in milliseconds
    */
   std::chrono::milliseconds getRttMs() const {
