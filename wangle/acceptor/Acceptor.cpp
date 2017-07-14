@@ -13,14 +13,14 @@
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
-#include <folly/ScopeGuard.h>
 #include <folly/io/async/EventBase.h>
-#include <fstream>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/portability/GFlags.h>
 #include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
-#include <gflags/gflags.h>
+
+#include <fstream>
 
 using folly::AsyncSocket;
 using folly::AsyncSSLSocket;
@@ -78,10 +78,14 @@ Acceptor::init(AsyncServerSocket* serverSocket,
 
       CHECK(sslCtxManager_->getDefaultSSLCtx());
     } catch (const std::runtime_error& ex) {
-      sslCtxManager_->clear();
-      // This is not a Not a fatal error, but useful to know.
-      LOG(INFO) << "Failed to configure TLS. This is not a fatal error. "
-                << ex.what();
+      if (accConfig_.strictSSL) {
+        throw;
+      } else {
+        sslCtxManager_->clear();
+        // This is not a Not a fatal error, but useful to know.
+        LOG(INFO) << "Failed to configure TLS. This is not a fatal error. "
+                  << ex.what();
+      }
     }
   }
   base_ = eventBase;
