@@ -85,7 +85,10 @@ TLSTicketKeyManager::processTicket(SSL*, unsigned char* keyName,
       SSLUtil::hexlify(key->keyName_);
 
     // Get a random salt and write out key name
-    RAND_pseudo_bytes(salt, (int)sizeof(salt));
+    if (RAND_bytes(salt, (int)sizeof(salt)) != 1 &&
+        ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
+      ERR_get_error();
+    }
     memcpy(keyName, key->keyName_.data(), kTLSTicketKeyNameLen);
     memcpy(keyName + kTLSTicketKeyNameLen, salt, kTLSTicketKeySaltLen);
 
@@ -97,7 +100,10 @@ TLSTicketKeyManager::processTicket(SSL*, unsigned char* keyName,
     aesKey = output + SHA256_DIGEST_LENGTH / 2;
 
     // Initialize iv and cipher/mac CTX
-    RAND_pseudo_bytes(iv, AES_BLOCK_SIZE);
+    if (RAND_bytes(iv, AES_BLOCK_SIZE) != 1 &&
+        ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
+      ERR_get_error();
+    }
     HMAC_Init_ex(hmacCtx, hmacKey, SHA256_DIGEST_LENGTH / 2,
                  EVP_sha256(), nullptr);
     EVP_EncryptInit_ex(cipherCtx, EVP_aes_128_cbc(), nullptr, aesKey, iv);
