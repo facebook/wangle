@@ -26,8 +26,12 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
     return false;
   }
   rtt = microseconds(tcpinfo.tcpi_rtt);
+  rtt_var = tcpinfo.tcpi_rttvar;
+  rtx_tm = tcpinfo.tcpi_retransmits;
+  rto = tcpinfo.tcpi_rto;
   cwnd = tcpinfo.tcpi_snd_cwnd;
   mss = tcpinfo.tcpi_snd_mss;
+  ssthresh = tcpinfo.tcpi_snd_ssthresh;
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
   rtx = tcpinfo.tcpi_total_retrans;
 #else
@@ -37,9 +41,13 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
 #else
   tcpinfoErrno = EINVAL;
   rtt = microseconds(-1);
+  rtt_var = -1;
   rtx = -1;
+  rtx_tm = -1;
+  rto = -1;
   cwnd = -1;
   mss = -1;
+  ssthresh = -1;
 #endif
   return true;
 }

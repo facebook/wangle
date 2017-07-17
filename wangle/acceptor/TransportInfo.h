@@ -77,9 +77,24 @@ struct TransportInfo {
   std::chrono::microseconds rtt{0};
 
   /*
+   * RTT variance in usecs (microseconds)
+   */
+  int64_t rtt_var{-1};
+
+  /*
    * the total number of packets retransmitted during the connection lifetime.
    */
   int64_t rtx{-1};
+
+  /*
+   * the number of packets retransmitted due to timeout
+   */
+  int64_t rtx_tm{-1};
+
+  /*
+   * retransmission timeout (usec)
+   */
+  int64_t rto{-1};
 
   /*
    * The congestion window size in MSS
@@ -90,6 +105,11 @@ struct TransportInfo {
    * MSS
    */
   int64_t mss{-1};
+
+  /*
+   * slow start threshold
+   */
+  int64_t ssthresh{-1};
 
 #if defined(__linux__) || defined(__FreeBSD__)
   /*
