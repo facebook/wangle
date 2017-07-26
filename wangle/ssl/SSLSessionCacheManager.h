@@ -14,6 +14,7 @@
 
 #include <folly/EvictingCacheMap.h>
 #include <mutex>
+#include <folly/Hash.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 
 namespace wangle {
@@ -65,12 +66,8 @@ class ShardedLocalSSLSessionCache : private boost::noncopyable {
 
   void removeSession(const std::string& sessionId);
 
- private:
-
-  /* SSL session IDs are 32 bytes of random data, hash based on first 16 bits */
   size_t hash(const std::string& key) {
-    CHECK(key.length() >= 2);
-    return (key[0] << 8 | key[1]) % caches_.size();
+    return folly::Hash()(key) % caches_.size();
   }
 
   std::vector< std::unique_ptr<LocalSSLSessionCache> > caches_;
