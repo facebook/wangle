@@ -358,16 +358,6 @@ void SSLContextManager::addSSLContextConfig(
     SSL_OP_SINGLE_ECDH_USE |
     SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
 
-  // Configure SSL ciphers list
-  if (!ctxConfig.tls11Ciphers.empty()) {
-    // FIXME: create a dummy SSL_CTX for cipher testing purpose? It can
-    //        remove the ordering dependency
-
-    // Test to see if the specified TLS1.1 ciphers are valid.  Note that
-    // these will be overwritten by the ciphers() call below.
-    sslCtx->setCiphersOrThrow(ctxConfig.tls11Ciphers);
-  }
-
   // Important that we do this *after* checking the TLS1.1 ciphers above,
   // since we test their validity by actually setting them.
   sslCtx->ciphers(ctxConfig.sslCiphers);
@@ -557,28 +547,6 @@ SSLContextManager::ctxSetupByOpensslFeature(
 #ifdef SSL_CTRL_SET_MAX_SEND_FRAGMENT
   SSL_CTX_set_max_send_fragment(sslCtx->getSSLCtx(), 8000);
 #endif
-
-  // Specify cipher(s) to be used for TLS1.1 client
-  if (!ctxConfig.tls11Ciphers.empty() ||
-      !ctxConfig.tls11AltCipherlist.empty()) {
-#ifdef PROXYGEN_HAVE_SERVERNAMECALLBACK
-    // Specified TLS1.1 ciphers are valid
-    // XXX: this callback will be called for every new (TLS 1.1 or greater)
-    // handshake, so it relies on ctxConfig.tls11Ciphers and
-    // ctxConfig.tls11AltCipherlist not changing.
-    sslCtx->addClientHelloCallback(
-      std::bind(
-        &SSLContext::switchCiphersIfTLS11,
-        sslCtx.get(),
-        std::placeholders::_1,
-        ctxConfig.tls11Ciphers,
-        ctxConfig.tls11AltCipherlist
-      )
-    );
-#else
-    OPENSSL_MISSING_FEATURE(SNI);
-#endif
-  }
 
   // NPN (Next Protocol Negotiation)
   if (!ctxConfig.nextProtocols.empty()) {

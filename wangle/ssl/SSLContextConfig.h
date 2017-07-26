@@ -94,10 +94,7 @@ struct SSLContextConfig {
     "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:"
     "AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA:"};
   std::string eccCurveName{"prime256v1"};
-  // Ciphers to negotiate if TLS version >= 1.1
-  std::string tls11Ciphers{""};
-  // Knobs to tune ciphersuite picking probability for TLS >= 1.1
-  std::vector<std::pair<std::string, int>> tls11AltCipherlist;
+
   // Weighted lists of NPN strings to advertise
   std::list<folly::SSLContext::NextProtocolsItem>
       nextProtocols;
