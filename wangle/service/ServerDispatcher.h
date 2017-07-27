@@ -78,22 +78,6 @@ class PipelinedServerDispatcher : public HandlerAdapter<Req, Resp> {
 };
  
  
-template <typename Req, typename Resp = Req>
-class MultiplexServerDispatcherGuard{
-public:
-	typedef typename HandlerAdapter<Req, Resp>::Context Context;
-	MultiplexServerDispatcherGuard(Context* ctx,std::shared_ptr<PipelineBase> pipeline)
- :ctx_(ctx), pipeline_(pipeline){}
-	std::shared_ptr<PipelineBase> pipeline(){
-		return pipeline_;
-	}
-	Context* context(){
-		return ctx_;
-	}
-private:
-	std::shared_ptr<PipelineBase> pipeline_;
-	Context *ctx_;
-};
 /**
  * Dispatch requests from pipeline as they come in.  Concurrent
  * requests are assumed to have sequence id's that are taken care of
@@ -111,20 +95,21 @@ class MultiplexServerDispatcher : public HandlerAdapter<Req, Resp> {
       : service_(service) {}
 
   void read(Context* ctx, Req in) override {
-    auto guard = std::make_shared<MultiplexServerDispatcherGuard<Req, Resp>>(ctx, ctx->getPipelineShared());
-    (*service_)(std::move(in)).then([ctx](Resp resp) {
-       auto pipe = bone->pipeline();
-	      bone->context()->fireWrite(std::move(resp));
-	      bone->context()->getTransport()->getEventBase()->runInEventBaseThread([pipe = std::move(pipe)]{/*nothing but free pipeline in io thread*/});
+    std::tuple<Context*, std::shared_ptr<PipelineBase> > guard{ctx, ctx->getPipelineShared()};
+    (*service_)(std::move(in)).then([guard = std::move(guard)](Resp resp) {
+	auto ctx = std::get<0>(guard);
+	auto  pipe = std::get<1>(guard);
+	ctx->fireWrite(std::move(resp));	
+	ctx->getTransport()->getEventBase()->runInEventBaseThread([pipe = std::move(pipe)]{/*nothing but free pipeline in io thread*/});
     });
   }
   //there must be some way to free pipeline, otherwise the pipeline never freed
-	 virtual void readEOF(Context* ctx) {	
-		    ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
-  	}
-  	virtual void readException(Context* ctx, folly::exception_wrapper e) {
-    	ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
-  	}
+  virtual void readEOF(Context* ctx) {	
+	ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
+  }
+  virtual void readException(Context* ctx, folly::exception_wrapper e) {
+  	ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
+  }
  private:
   Service<Req, Resp>* service_;
 };
