@@ -113,7 +113,11 @@ IOThreadPoolExecutor::pickThread() {
   if (me && std::find(ths.cbegin(), ths.cend(), me) != ths.cend()) {
     return me;
   }
-  auto thread = ths[nextThread_++ % ths.size()];
+  auto n = ths.size();
+  if (n == 0) {
+    return me;
+  }
+  auto thread = ths[nextThread_++ % n];
   return std::static_pointer_cast<IOThread>(thread);
 }
 
