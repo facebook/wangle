@@ -23,8 +23,8 @@ namespace wangle {
 std::shared_ptr<folly::Executor> getCPUExecutor();
 
 // Set an Executor to be the global Executor which will be returned by
-// subsequent calls to getCPUExecutor(). Takes a non-owning (weak) reference.
-void setCPUExecutor(std::shared_ptr<folly::Executor> executor);
+// subsequent calls to getCPUExecutor().
+void setCPUExecutor(std::weak_ptr<folly::Executor> executor);
 
 // Retrieve the global IOExecutor. If there is none, a default
 // IOThreadPoolExecutor will be constructed and returned.
@@ -37,7 +37,7 @@ std::shared_ptr<IOExecutor> getIOExecutor();
 folly::EventBase* getEventBase();
 
 // Set an IOExecutor to be the global IOExecutor which will be returned by
-// subsequent calls to getIOExecutor(). Takes a non-owning (weak) reference.
-void setIOExecutor(std::shared_ptr<IOExecutor> executor);
+// subsequent calls to getIOExecutor().
+void setIOExecutor(std::weak_ptr<IOExecutor> executor);
 
 } // namespace wangle

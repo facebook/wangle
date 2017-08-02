@@ -77,12 +77,12 @@ std::shared_ptr<Exe> getExecutor(
 
 template <class Exe, class LockTag>
 void setExecutor(
-    std::shared_ptr<Exe> executor,
+    std::weak_ptr<Exe> executor,
     Singleton<std::weak_ptr<Exe>>& sExecutor,
     Singleton<RWSpinLock, LockTag>& sExecutorLock) {
   auto lock = sExecutorLock.try_get();
   RWSpinLock::WriteHolder guard(*lock);
-  std::weak_ptr<Exe> executor_weak = executor;
+  std::weak_ptr<Exe> executor_weak = std::move(executor);
   sExecutor.try_get().get()->swap(executor_weak);
 }
 
@@ -93,7 +93,7 @@ std::shared_ptr<Executor> getCPUExecutor() {
       globalCPUExecutorLock);
 }
 
-void setCPUExecutor(std::shared_ptr<Executor> executor) {
+void setCPUExecutor(std::weak_ptr<Executor> executor) {
   setExecutor(
       std::move(executor),
       globalCPUExecutor,
@@ -111,7 +111,7 @@ EventBase* getEventBase() {
   return getIOExecutor()->getEventBase();
 }
 
-void setIOExecutor(std::shared_ptr<IOExecutor> executor) {
+void setIOExecutor(std::weak_ptr<IOExecutor> executor) {
   setExecutor(
       std::move(executor),
       globalIOExecutor,
