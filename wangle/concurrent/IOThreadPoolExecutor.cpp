@@ -66,8 +66,7 @@ IOThreadPoolExecutor::IOThreadPoolExecutor(
   : ThreadPoolExecutor(numThreads, std::move(threadFactory), waitForAll),
     nextThread_(0),
     eventBaseManager_(ebm) {
-  addThreads(numThreads);
-  CHECK(threadList_.get().size() == numThreads);
+  setNumThreads(numThreads);
 }
 
 IOThreadPoolExecutor::~IOThreadPoolExecutor() {

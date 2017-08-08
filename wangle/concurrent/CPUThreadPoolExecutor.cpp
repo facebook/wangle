@@ -23,8 +23,7 @@ CPUThreadPoolExecutor::CPUThreadPoolExecutor(
     std::shared_ptr<ThreadFactory> threadFactory)
     : ThreadPoolExecutor(numThreads, std::move(threadFactory)),
       taskQueue_(std::move(taskQueue)) {
-  addThreads(numThreads);
-  CHECK(threadList_.get().size() == numThreads);
+  setNumThreads(numThreads);
 }
 
 CPUThreadPoolExecutor::CPUThreadPoolExecutor(
