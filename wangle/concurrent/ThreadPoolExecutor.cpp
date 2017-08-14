@@ -10,6 +10,8 @@
 
 #include <wangle/concurrent/ThreadPoolExecutor.h>
 
+#include <folly/GlobalThreadPoolList.h>
+
 using folly::Func;
 using folly::RWSpinLock;
 
@@ -21,7 +23,8 @@ ThreadPoolExecutor::ThreadPoolExecutor(
     bool isWaitForAll)
     : threadFactory_(std::move(threadFactory)),
       isWaitForAll_(isWaitForAll),
-      taskStatsSubject_(std::make_shared<Subject<TaskStats>>()) {}
+      taskStatsSubject_(std::make_shared<Subject<TaskStats>>()),
+      threadPoolHook_("Wangle::ThreadPoolExecutor") {}
 
 ThreadPoolExecutor::~ThreadPoolExecutor() {
   CHECK_EQ(0, threadList_.get().size());

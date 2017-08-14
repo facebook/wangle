@@ -106,6 +106,8 @@ CPUThreadPoolExecutor::getTaskQueue() {
 }
 
 void CPUThreadPoolExecutor::threadRun(std::shared_ptr<Thread> thread) {
+  this->threadPoolHook_.registerThread();
+
   thread->startupBaton.post();
   while (1) {
     auto task = taskQueue_->take();

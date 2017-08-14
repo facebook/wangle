@@ -11,6 +11,7 @@
 #pragma once
 #include <folly/Baton.h>
 #include <folly/Executor.h>
+#include <folly/GlobalThreadPoolList.h>
 #include <folly/Memory.h>
 #include <folly/RWSpinLock.h>
 #include <folly/io/async/Request.h>
@@ -238,6 +239,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
 
   std::shared_ptr<Subject<TaskStats>> taskStatsSubject_;
   std::vector<std::shared_ptr<Observer>> observers_;
+  folly::ThreadPoolListHook threadPoolHook_;
 };
 
 } // namespace wangle
