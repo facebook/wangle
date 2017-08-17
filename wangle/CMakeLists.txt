@@ -28,7 +28,9 @@ find_package(Libevent REQUIRED)
 find_package(DoubleConversion REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Libdl)
-find_package(Librt)
+if (UNIX AND NOT APPLE)
+  find_package(Librt)
+endif()
 
 include(CheckAtomic)
 
