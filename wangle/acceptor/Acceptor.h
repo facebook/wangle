@@ -296,8 +296,7 @@ class Acceptor :
   virtual void updateSSLStats(
       const folly::AsyncTransportWrapper* /*sock*/,
       std::chrono::milliseconds /*acceptLatency*/,
-      SSLErrorEnum /*error*/,
-      SecureTransportType /*type*/ = SecureTransportType::TLS) noexcept {}
+      SSLErrorEnum /*error*/) noexcept {}
 
   bool getParseClientHello() {
     return parseClientHello_;
