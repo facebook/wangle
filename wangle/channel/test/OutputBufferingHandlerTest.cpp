@@ -57,4 +57,5 @@ TEST(OutputBufferingHandlerTest, Basic) {
   EXPECT_CALL(mockHandler, write_(_, IOBufContains("foo")));
   eb.loopOnce();
   EXPECT_TRUE(f.isReady());
+  pipeline.reset();
 }
