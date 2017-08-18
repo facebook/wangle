@@ -25,7 +25,6 @@ class LengthPeeker :
 
   AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& /* bytes */,
-      Acceptor*,
       const folly::SocketAddress& /* clientAddr */,
       std::chrono::steady_clock::time_point /* acceptTime */,
       TransportInfo&) override {

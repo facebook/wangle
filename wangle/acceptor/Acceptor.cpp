@@ -73,7 +73,6 @@ Acceptor::init(AsyncServerSocket* serverSocket,
           &accConfig_.initialTicketSeeds,
           accConfig_.bindAddress,
           cacheProvider_);
-        parseClientHello_ |= sslCtxConfig.clientHelloParsingEnabled;
       }
 
       CHECK(sslCtxManager_->getDefaultSSLCtx());

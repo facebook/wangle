@@ -23,11 +23,9 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
                                    public folly::AsyncSSLSocket::HandshakeCB {
  public:
   SSLAcceptorHandshakeHelper(
-      Acceptor* acceptor,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo) :
-    acceptor_(acceptor),
     clientAddr_(clientAddr),
     acceptTime_(acceptTime),
     tinfo_(tinfo) {}
@@ -51,7 +49,6 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
                     const folly::AsyncSocketException& ex) noexcept override;
 
   folly::AsyncSSLSocket::UniquePtr socket_;
-  Acceptor* acceptor_;
   AcceptorHandshakeHelper::Callback* callback_;
   const folly::SocketAddress& clientAddr_;
   std::chrono::steady_clock::time_point acceptTime_;
@@ -67,12 +64,11 @@ class DefaultToSSLPeekingCallback :
 
   AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& /* bytes */,
-      Acceptor* acceptor,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo) override {
     return AcceptorHandshakeHelper::UniquePtr(new SSLAcceptorHandshakeHelper(
-        acceptor, clientAddr, acceptTime, tinfo));
+        clientAddr, acceptTime, tinfo));
   }
 };
 

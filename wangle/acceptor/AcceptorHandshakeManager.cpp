@@ -21,9 +21,16 @@ void AcceptorHandshakeManager::start(
 }
 
 void AcceptorHandshakeManager::connectionReady(
-    folly::AsyncTransportWrapper::UniquePtr transport,
-    std::string nextProtocol,
-    SecureTransportType secureTransportType) noexcept {
+      folly::AsyncTransportWrapper::UniquePtr transport,
+      std::string nextProtocol,
+      SecureTransportType secureTransportType,
+      folly::Optional<SSLErrorEnum> sslErr) noexcept {
+  if (sslErr) {
+    acceptor_->updateSSLStats(
+        transport.get(),
+        timeSinceAcceptMs(),
+        sslErr.value());
+  }
   acceptor_->getConnectionManager()->removeConnection(this);
   // We pass TransportInfo by reference even though we're about to destroy it,
   // so lets hope that anything saving it makes a copy!
@@ -37,10 +44,21 @@ void AcceptorHandshakeManager::connectionReady(
 }
 
 void AcceptorHandshakeManager::connectionError(
-    folly::exception_wrapper ex) noexcept {
+    folly::AsyncTransportWrapper* transport,
+    folly::exception_wrapper ex,
+    folly::Optional<SSLErrorEnum> sslErr) noexcept {
+  if (sslErr) {
+    acceptor_->updateSSLStats(
+        transport, timeSinceAcceptMs(), sslErr.value());
+  }
   acceptor_->getConnectionManager()->removeConnection(this);
   acceptor_->sslConnectionError(std::move(ex));
   destroy();
+}
+
+std::chrono::milliseconds AcceptorHandshakeManager::timeSinceAcceptMs() const {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - acceptTime_);
 }
 
 void AcceptorHandshakeManager::startHandshakeTimeout() {

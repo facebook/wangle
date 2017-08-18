@@ -28,7 +28,8 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
     callback->connectionReady(
       std::move(sock),
       "",
-      SecureTransportType::NONE);
+      SecureTransportType::NONE,
+      folly::none);
   }
 
   void dropConnection(

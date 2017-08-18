@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <folly/ExceptionWrapper.h>
+#include <folly/Optional.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <wangle/acceptor/ManagedConnection.h>
@@ -30,13 +31,26 @@ class AcceptorHandshakeHelper : public folly::DelayedDestruction {
    public:
     virtual ~Callback() = default;
 
+    /**
+     * Called after handshake has been completed successfully.
+     *
+     * If sslErr is set, Acceptor::updateSSLStats will be called.
+     */
     virtual void connectionReady(
         folly::AsyncTransportWrapper::UniquePtr transport,
         std::string nextProtocol,
-        SecureTransportType secureTransportType) noexcept = 0;
+        SecureTransportType secureTransportType,
+        folly::Optional<SSLErrorEnum> sslErr) noexcept = 0;
 
+    /**
+     * Called if an error was encountered while performing handshake.
+     *
+     * If sslErr is set, Acceptor::updateSSLStats will be called.
+     */
     virtual void connectionError(
-        folly::exception_wrapper ex) noexcept = 0;
+        folly::AsyncTransportWrapper* transport,
+        folly::exception_wrapper ex,
+        folly::Optional<SSLErrorEnum> sslErr) noexcept = 0;
   };
 
   virtual void start(
@@ -95,9 +109,17 @@ class AcceptorHandshakeManager : public ManagedConnection,
   void connectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,
       std::string nextProtocol,
-      SecureTransportType secureTransportType) noexcept override;
+      SecureTransportType secureTransportType,
+      folly::Optional<SSLErrorEnum>
+          details) noexcept override;
 
-  void connectionError(folly::exception_wrapper ex) noexcept override;
+  void connectionError(
+      folly::AsyncTransportWrapper* transport,
+      folly::exception_wrapper ex,
+      folly::Optional<SSLErrorEnum>
+          details) noexcept override;
+
+  std::chrono::milliseconds timeSinceAcceptMs() const;
 
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) = 0;
 

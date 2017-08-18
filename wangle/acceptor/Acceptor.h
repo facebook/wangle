@@ -298,10 +298,6 @@ class Acceptor :
       std::chrono::milliseconds /*acceptLatency*/,
       SSLErrorEnum /*error*/) noexcept {}
 
-  bool getParseClientHello() {
-    return parseClientHello_;
-  }
-
  protected:
 
   /**
@@ -421,12 +417,6 @@ class Acceptor :
 
   TLSPlaintextPeekingCallback tlsPlaintextPeekingCallback_;
   DefaultToSSLPeekingCallback defaultPeekingCallback_;
-
-  /**
-   * Whether we want to enable client hello parsing in the handshake helper
-   * to get list of supported client ciphers.
-   */
-  bool parseClientHello_{false};
 
   wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
 

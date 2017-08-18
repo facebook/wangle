@@ -39,7 +39,6 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
 
     virtual AcceptorHandshakeHelper::UniquePtr getHelper(
         const std::vector<uint8_t>& peekedBytes,
-        Acceptor* acceptor,
         const folly::SocketAddress& clientAddr,
         std::chrono::steady_clock::time_point acceptTime,
         TransportInfo& tinfo) = 0;
@@ -49,14 +48,12 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   };
 
   PeekingAcceptorHandshakeHelper(
-      Acceptor* acceptor,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo,
       const std::vector<PeekCallback*>& peekCallbacks,
       size_t numBytes)
-      : acceptor_(acceptor),
-        clientAddr_(clientAddr),
+      : clientAddr_(clientAddr),
         acceptTime_(acceptTime),
         tinfo_(tinfo),
         peekCallbacks_(peekCallbacks),
@@ -90,7 +87,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
 
     for (auto& peekCallback : peekCallbacks_) {
       helper_ = peekCallback->getHelper(
-          peekBytes, acceptor_, clientAddr_, acceptTime_, tinfo_);
+          peekBytes, clientAddr_, acceptTime_, tinfo_);
       if (helper_) {
         break;
       }
@@ -114,7 +111,8 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     peeker_ = nullptr;
     auto callback = callback_;
     callback_ = nullptr;
-    callback->connectionError(folly::exception_wrapper(ex));
+    callback->connectionError(
+        socket_.get(), folly::exception_wrapper(ex), folly::none);
   }
 
  private:
@@ -124,7 +122,6 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   AcceptorHandshakeHelper::UniquePtr helper_;
   SocketPeeker::UniquePtr peeker_;
 
-  Acceptor* acceptor_;
   AcceptorHandshakeHelper::Callback* callback_;
   const folly::SocketAddress& clientAddr_;
   std::chrono::steady_clock::time_point acceptTime_;
@@ -155,7 +152,6 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
  protected:
   void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
     helper_.reset(new PeekingAcceptorHandshakeHelper(
-        acceptor_,
         clientAddr_,
         acceptTime_,
         tinfo_,

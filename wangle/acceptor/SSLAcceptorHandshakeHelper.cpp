@@ -25,10 +25,7 @@ void SSLAcceptorHandshakeHelper::start(
   socket_ = std::move(sock);
   callback_ = callback;
 
-  if (acceptor_->getParseClientHello()) {
-    socket_->enableClientHelloParsing();
-  }
-
+  socket_->enableClientHelloParsing();
   socket_->forceCacheAddrOnFailure(true);
   socket_->sslAccept(this);
 }
@@ -87,11 +84,6 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   );
   fillSSLTransportInfoFields(sock, tinfo_);
 
-  acceptor_->updateSSLStats(
-    sock,
-    tinfo_.sslSetupTime,
-    SSLErrorEnum::NO_ERROR
-  );
   auto nextProtocol = nextProto ?
     std::string((const char*)nextProto, nextProtoLength) : empty_string;
 
@@ -99,7 +91,8 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   callback_->connectionReady(
       std::move(socket_),
       std::move(nextProtocol),
-      SecureTransportType::TLS);
+      SecureTransportType::TLS,
+      SSLErrorEnum::NO_ERROR);
 }
 
 void SSLAcceptorHandshakeHelper::handshakeErr(
@@ -112,12 +105,12 @@ void SSLAcceptorHandshakeHelper::handshakeErr(
       " ms; " << sock->getRawBytesReceived() << " bytes received & " <<
       sock->getRawBytesWritten() << " bytes sent: " <<
       ex.what();
-  acceptor_->updateSSLStats(sock, elapsedTime, sslError_);
+
   auto sslEx = folly::make_exception_wrapper<SSLException>(
       sslError_, elapsedTime, sock->getRawBytesReceived());
 
   // The callback will delete this.
-  callback_->connectionError(sslEx);
+  callback_->connectionError(socket_.get(), sslEx, sslError_);
 }
 
 }
