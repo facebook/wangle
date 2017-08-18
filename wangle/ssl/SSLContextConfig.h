@@ -9,11 +9,12 @@
  */
 #pragma once
 
-#include <string>
 #include <folly/Optional.h>
 #include <folly/io/async/SSLContext.h>
-#include <vector>
+#include <folly/io/async/SSLOptions.h>
 #include <set>
+#include <string>
+#include <vector>
 
 /**
  * SSLContextConfig helps to describe the configs/options for
@@ -41,6 +42,12 @@ struct SSLContextConfig {
     std::string keyPath;
     std::string passwordPath;
   };
+
+  static const std::string& getDefaultCiphers() {
+    static const std::string& defaultCiphers =
+        folly::join(':', folly::ssl::SSLServerOptions::kCipherList);
+    return defaultCiphers;
+  }
 
   struct KeyOffloadParams {
     // What keys do we want to offload
@@ -88,11 +95,7 @@ struct SSLContextConfig {
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
   bool clientHelloParsingEnabled{true};
-  std::string sslCiphers{
-    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:"
-    "ECDHE-ECDSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES128-GCM-SHA256:"
-    "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:"
-    "AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA:"};
+  std::string sslCiphers{getDefaultCiphers()};
   std::string eccCurveName{"prime256v1"};
 
   // Weighted lists of NPN strings to advertise
