@@ -17,7 +17,8 @@
 #include <folly/io/async/Request.h>
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/NamedThreadFactory.h>
-#include <wangle/deprecated/rx/Observable.h>
+#include <wangle/deprecated/rx/Subject.h>
+#include <wangle/deprecated/rx/Subscription.h>
 
 #include <algorithm>
 #include <mutex>
