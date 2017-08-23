@@ -427,3 +427,44 @@ TEST(PipelineTest, NumHandler) {
   pipeline->remove(&handler2);
   EXPECT_EQ(0, pipeline->numHandlers());
 }
+
+
+TEST(PipelineTest, HandlerReuse) {
+  NiceMock<MockHandlerAdapter<int, int>> handler1, handler2, handler3;
+  auto pipeline1 = Pipeline<int, int>::create();
+
+  // pipeline1 contains the first two handlers
+  (*pipeline1)
+    .addBack(&handler1)
+    .addBack(&handler2)
+    .finalize();
+  pipeline1->read(42);
+  EXPECT_NE(nullptr, handler2.getContext());
+
+  // Close and detach the back handler (#2)
+  pipeline1->close();
+  pipeline1->removeBack();
+  ASSERT_EQ(nullptr, handler2.getContext());
+
+  auto pipeline2 = Pipeline<int, int>::create();
+  (*pipeline2)
+    .addBack(&handler2)
+    .addBack(&handler3)
+    .finalize();
+  pipeline2->read(24);
+  EXPECT_NE(nullptr, handler2.getContext());
+
+  // detach both
+  pipeline2->remove(&handler2);
+  pipeline2->remove(&handler3);
+  ASSERT_EQ(nullptr, handler2.getContext());
+  ASSERT_EQ(nullptr, handler3.getContext());
+
+  auto pipeline3 = Pipeline<int, int>::create();
+  (*pipeline3)
+    .addBack(&handler2)
+    .addBack(&handler3)
+    .finalize();
+  pipeline2->read(1);
+  EXPECT_NE(nullptr, handler2.getContext());
+}

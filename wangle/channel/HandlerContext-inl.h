@@ -28,10 +28,18 @@ class PipelineContext {
     }
   }
 
-  virtual void setNextIn(PipelineContext* ctx) = 0;
-  virtual void setNextOut(PipelineContext* ctx) = 0;
+  template <class H, class HandlerContext>
+  void detachContext(H* handler, HandlerContext* /*ctx*/) {
+    if (handler->attachCount_ >= 1) {
+      --handler->attachCount_;
+    }
+    handler->ctx_ = nullptr;
+  }
 
-  virtual HandlerDir getDirection() = 0;
+    virtual void setNextIn(PipelineContext * ctx) = 0;
+    virtual void setNextOut(PipelineContext * ctx) = 0;
+
+    virtual HandlerDir getDirection() = 0;
 };
 
 template <class In>
@@ -84,6 +92,7 @@ class ContextImplBase : public PipelineContext {
   void detachPipeline() override {
     handler_->detachPipeline(impl_);
     attached_ = false;
+    this->detachContext(handler_.get(), impl_);
   }
 
   void setNextIn(PipelineContext* ctx) override {
