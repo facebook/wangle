@@ -23,7 +23,7 @@ ThreadPoolExecutor::ThreadPoolExecutor(
     bool isWaitForAll)
     : threadFactory_(std::move(threadFactory)),
       isWaitForAll_(isWaitForAll),
-      taskStatsSubject_(std::make_shared<Subject<TaskStats>>()),
+      taskStatsCallbacks_(std::make_shared<TaskStatsCallbackRegistry>()),
       threadPoolHook_("Wangle::ThreadPoolExecutor") {}
 
 ThreadPoolExecutor::~ThreadPoolExecutor() {
@@ -69,7 +69,22 @@ void ThreadPoolExecutor::runTask(
   }
   thread->idle = true;
   thread->lastActiveTime = std::chrono::steady_clock::now();
-  thread->taskStatsSubject->onNext(std::move(task.stats_));
+  thread->taskStatsCallbacks->callbackList.withRLock([&](auto& callbacks) {
+    *thread->taskStatsCallbacks->inCallback = true;
+    SCOPE_EXIT { *thread->taskStatsCallbacks->inCallback = false; };
+    try {
+      for (auto& callback : callbacks) {
+        callback(task.stats_);
+      }
+    } catch (const std::exception& e) {
+      LOG(ERROR) << "ThreadPoolExecutor: task stats callback threw "
+                    "unhandled " << typeid(e).name() << " exception: " <<
+                    e.what();
+    } catch (...) {
+      LOG(ERROR) << "ThreadPoolExecutor: task stats callback threw "
+                    "unhandled non-exception object";
+    }
+  });
 }
 
 size_t ThreadPoolExecutor::numThreads() {
@@ -175,6 +190,13 @@ ThreadPoolExecutor::PoolStats ThreadPoolExecutor::getPoolStats() {
 }
 
 std::atomic<uint64_t> ThreadPoolExecutor::Thread::nextId(0);
+
+void ThreadPoolExecutor::subscribeToTaskStats(TaskStatsCallback cb) {
+  if (*taskStatsCallbacks_->inCallback) {
+    throw std::runtime_error("cannot subscribe in task stats callback");
+  }
+  taskStatsCallbacks_->callbackList.wlock()->push_back(std::move(cb));
+}
 
 void ThreadPoolExecutor::StoppedThreadQueue::add(
     ThreadPoolExecutor::ThreadPtr item) {

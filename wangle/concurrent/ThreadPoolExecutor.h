@@ -17,8 +17,6 @@
 #include <folly/io/async/Request.h>
 #include <wangle/concurrent/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/NamedThreadFactory.h>
-#include <wangle/deprecated/rx/Subject.h>
-#include <wangle/deprecated/rx/Subscription.h>
 
 #include <algorithm>
 #include <mutex>
@@ -79,10 +77,8 @@ class ThreadPoolExecutor : public virtual folly::Executor {
     std::chrono::nanoseconds runTime;
   };
 
-  Subscription<TaskStats> subscribeToTaskStats(
-      const ObserverPtr<TaskStats>& observer) {
-    return taskStatsSubject_->subscribe(observer);
-  }
+  using TaskStatsCallback = std::function<void(TaskStats)>;
+  void subscribeToTaskStats(TaskStatsCallback cb);
 
   /**
    * Base class for threads created with ThreadPoolExecutor.
@@ -121,13 +117,15 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   // Prerequisite: threadListLock_ writelocked
   void removeThreads(size_t n, bool isJoin);
 
+  struct TaskStatsCallbackRegistry;
+
   struct FOLLY_ALIGN_TO_AVOID_FALSE_SHARING Thread : public ThreadHandle {
     explicit Thread(ThreadPoolExecutor* pool)
       : id(nextId++),
         handle(),
         idle(true),
         lastActiveTime(std::chrono::steady_clock::now()),
-        taskStatsSubject(pool->taskStatsSubject_) {}
+        taskStatsCallbacks(pool->taskStatsCallbacks_) {}
 
     ~Thread() override = default;
 
@@ -137,7 +135,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
     bool idle;
     std::chrono::steady_clock::time_point lastActiveTime;
     folly::Baton<> startupBaton;
-    std::shared_ptr<Subject<TaskStats>> taskStatsSubject;
+    std::shared_ptr<TaskStatsCallbackRegistry> taskStatsCallbacks;
   };
 
   typedef std::shared_ptr<Thread> ThreadPtr;
@@ -238,7 +236,11 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   StoppedThreadQueue stoppedThreads_;
   std::atomic<bool> isJoin_; // whether the current downsizing is a join
 
-  std::shared_ptr<Subject<TaskStats>> taskStatsSubject_;
+  struct TaskStatsCallbackRegistry {
+    folly::ThreadLocal<bool> inCallback;
+    folly::Synchronized<std::vector<TaskStatsCallback>> callbackList;
+  };
+  std::shared_ptr<TaskStatsCallbackRegistry> taskStatsCallbacks_;
   std::vector<std::shared_ptr<Observer>> observers_;
   folly::ThreadPoolListHook threadPoolHook_;
 };
