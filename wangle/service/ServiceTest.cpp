@@ -106,19 +106,19 @@ class ClientServiceFactory : public ServiceFactory<Pipeline, Req, Resp> {
 };
 
 TEST(Wangle, ClientServerTest) {
-  int port = 1234;
   // server
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
     std::make_shared<ServerPipelineFactory<std::string, std::string>>());
-  server.bind(port);
+  server.bind(0);
 
   // client
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();
   ClientServiceFactory<ServicePipeline, std::string, std::string> serviceFactory;
   client->pipelineFactory(
     std::make_shared<ClientPipelineFactory<std::string, std::string>>());
-  SocketAddress addr("127.0.0.1", port);
+  SocketAddress addr;
+  server.getSockets()[0]->getAddress(&addr);
   client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
 
   auto service = serviceFactory(client).value();
@@ -210,12 +210,11 @@ class ConnectionCountFilter : public ServiceFactoryFilter<Pipeline, Req, Resp> {
 };
 
 TEST(Wangle, ServiceFactoryFilter) {
-  int port = 1235;
   // server
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
     std::make_shared<ServerPipelineFactory<std::string, std::string>>());
-  server.bind(port);
+  server.bind(0);
 
   // client
   auto clientFactory =
@@ -229,7 +228,8 @@ TEST(Wangle, ServiceFactoryFilter) {
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();
   client->pipelineFactory(
     std::make_shared<ClientPipelineFactory<std::string, std::string>>());
-  SocketAddress addr("127.0.0.1", port);
+  SocketAddress addr;
+  server.getSockets()[0]->getAddress(&addr);
   client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
 
   auto service = (*countingFactory)(client).value();
