@@ -465,6 +465,6 @@ TEST(PipelineTest, HandlerReuse) {
     .addBack(&handler2)
     .addBack(&handler3)
     .finalize();
-  pipeline2->read(1);
+  pipeline3->read(1);
   EXPECT_NE(nullptr, handler2.getContext());
 }
