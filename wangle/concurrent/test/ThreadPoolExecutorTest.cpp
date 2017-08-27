@@ -156,6 +156,7 @@ static void poolStats() {
   EXPECT_EQ(1, stats.idleThreadCount);
   EXPECT_EQ(0, stats.activeThreadCount);
   EXPECT_EQ(0, stats.pendingTaskCount);
+  EXPECT_EQ(0, tpe.getPendingTaskCount());
   EXPECT_EQ(0, stats.totalTaskCount);
   tpe.add([&](){ startBaton.post(); endBaton.wait(); });
   tpe.add([&](){});
@@ -165,6 +166,7 @@ static void poolStats() {
   EXPECT_EQ(0, stats.idleThreadCount);
   EXPECT_EQ(1, stats.activeThreadCount);
   EXPECT_EQ(1, stats.pendingTaskCount);
+  EXPECT_EQ(1, tpe.getPendingTaskCount());
   EXPECT_EQ(2, stats.totalTaskCount);
   endBaton.post();
 }

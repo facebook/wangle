@@ -144,7 +144,9 @@ void CPUThreadPoolExecutor::stopThreads(size_t n) {
   }
 }
 
-uint64_t CPUThreadPoolExecutor::getPendingTaskCount() {
+// threadListLock_ is readlocked
+uint64_t CPUThreadPoolExecutor::getPendingTaskCountImpl(
+      const folly::RWSpinLock::ReadHolder&) {
   return taskQueue_->size();
 }
 

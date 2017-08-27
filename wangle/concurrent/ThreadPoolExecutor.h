@@ -69,6 +69,7 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   };
 
   PoolStats getPoolStats();
+  uint64_t getPendingTaskCount();
 
   struct TaskStats {
     TaskStats() : expired(false), waitTime(0), runTime(0) {}
@@ -176,7 +177,8 @@ class ThreadPoolExecutor : public virtual folly::Executor {
   }
 
   // Prerequisite: threadListLock_ readlocked
-  virtual uint64_t getPendingTaskCount() = 0;
+  virtual uint64_t getPendingTaskCountImpl(
+      const folly::RWSpinLock::ReadHolder&) = 0;
 
   class ThreadList {
    public:

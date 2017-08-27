@@ -200,7 +200,8 @@ void IOThreadPoolExecutor::stopThreads(size_t n) {
 }
 
 // threadListLock_ is readlocked
-uint64_t IOThreadPoolExecutor::getPendingTaskCount() {
+uint64_t IOThreadPoolExecutor::getPendingTaskCountImpl(
+      const folly::RWSpinLock::ReadHolder&) {
   uint64_t count = 0;
   for (const auto& thread : threadList_.get()) {
     auto ioThread = std::static_pointer_cast<IOThread>(thread);
