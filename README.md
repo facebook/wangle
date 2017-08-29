@@ -26,7 +26,7 @@ There is a tutorial [here](tutorial.md) that explains the basics of Wangle and s
 See the examples/ directory for some example Wangle servers and clients
 
 ## License
-Wangle is BSD-licensed. We also provide an additional patent grant.
+Wangle is Apache 2.0-licensed.
 
 ## Contributing
 See the CONTRIBUTING file for how to help out.

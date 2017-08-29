@@ -36,4 +36,4 @@ outlined on that page and do not file a public issue.
 
 ## License
 By contributing to wangle, you agree that your contributions will be licensed
-under its BSD license.
+under its Apache 2.0 license.
