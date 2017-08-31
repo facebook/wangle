@@ -26,6 +26,15 @@ using namespace folly;
 using namespace wangle;
 using namespace folly::io;
 
+namespace {
+auto createZeroedBuffer(size_t size) {
+  auto ret = IOBuf::create(size);
+  ret->append(size);
+  std::memset(ret->writableData(), 0x00, size);
+  return ret;
+}
+}
+
 TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
   auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
@@ -39,12 +48,9 @@ TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
       }))
     .finalize();
 
-  auto buf3 = IOBuf::create(3);
-  buf3->append(3);
-  auto buf11 = IOBuf::create(11);
-  buf11->append(11);
-  auto buf16 = IOBuf::create(16);
-  buf16->append(16);
+  auto buf3 = createZeroedBuffer(3);
+  auto buf11 = createZeroedBuffer(11);
+  auto buf16 = createZeroedBuffer(16);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -76,8 +82,7 @@ TEST(LengthFieldFramePipeline, SimpleTest) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(2);
-  buf->append(2);
+  auto buf = createZeroedBuffer(2);
   pipeline->write(std::move(buf));
   EXPECT_EQ(called, 1);
 }
@@ -97,8 +102,7 @@ TEST(LengthFieldFramePipeline, LittleEndian) {
     .addBack(LengthFieldPrepender(4, 0, false, false))
     .finalize();
 
-  auto buf = IOBuf::create(1);
-  buf->append(1);
+  auto buf = createZeroedBuffer(1);
   pipeline->write(std::move(buf));
   EXPECT_EQ(called, 1);
 }
@@ -116,12 +120,10 @@ TEST(LengthFieldFrameDecoder, Simple) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(4);
-  bufFrame->append(4);
+  auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint32_t)1);
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -147,12 +149,10 @@ TEST(LengthFieldFrameDecoder, NoStrip) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(2);
-  bufFrame->append(2);
+  auto bufFrame = createZeroedBuffer(2);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint16_t)1);
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -178,12 +178,10 @@ TEST(LengthFieldFrameDecoder, Adjustment) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(2);
-  bufFrame->append(2);
+  auto bufFrame = createZeroedBuffer(2);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint16_t)3); // includes frame size
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -209,13 +207,11 @@ TEST(LengthFieldFrameDecoder, PreHeader) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(4);
-  bufFrame->append(4);
+  auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
   c.write((uint16_t)100); // header
   c.writeBE((uint16_t)1); // frame size
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -241,13 +237,11 @@ TEST(LengthFieldFrameDecoder, PostHeader) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(4);
-  bufFrame->append(4);
+  auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint16_t)1); // frame size
   c.write((uint16_t)100); // header
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -273,14 +267,12 @@ TEST(LengthFieldFrameDecoderStrip, PrePostHeader) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(6);
-  bufFrame->append(6);
+  auto bufFrame = createZeroedBuffer(6);
   RWPrivateCursor c(bufFrame.get());
   c.write((uint16_t)100); // pre header
   c.writeBE((uint16_t)1); // frame size
   c.write((uint16_t)100); // post header
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -306,14 +298,12 @@ TEST(LengthFieldFrameDecoder, StripPrePostHeaderFrameInclHeader) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(6);
-  bufFrame->append(6);
+  auto bufFrame = createZeroedBuffer(6);
   RWPrivateCursor c(bufFrame.get());
   c.write((uint16_t)100); // pre header
   c.writeBE((uint16_t)5); // frame size
   c.write((uint16_t)100); // post header
-  auto bufData = IOBuf::create(1);
-  bufData->append(1);
+  auto bufData = createZeroedBuffer(1);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -338,8 +328,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldEndOffset) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(8);
-  bufFrame->append(8);
+  auto bufFrame = createZeroedBuffer(8);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint32_t)0); // frame size
   c.write((uint32_t)0); // crap
@@ -363,8 +352,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldFrameSize) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(16);
-  bufFrame->append(16);
+  auto bufFrame = createZeroedBuffer(16);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint32_t)12); // frame size
   c.write((uint32_t)0); // nothing
@@ -390,8 +378,7 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldInitialBytes) {
       }))
     .finalize();
 
-  auto bufFrame = IOBuf::create(16);
-  bufFrame->append(16);
+  auto bufFrame = createZeroedBuffer(16);
   RWPrivateCursor c(bufFrame.get());
   c.writeBE((uint32_t)4); // frame size
   c.write((uint32_t)0); // nothing
@@ -418,8 +405,7 @@ TEST(LineBasedFrameDecoder, Simple) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(3);
-  buf->append(3);
+  auto buf = createZeroedBuffer(3);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -427,16 +413,14 @@ TEST(LineBasedFrameDecoder, Simple) {
   pipeline->read(q);
   EXPECT_EQ(called, 0);
 
-  buf = IOBuf::create(1);
-  buf->append(1);
+  buf = createZeroedBuffer(1);
   RWPrivateCursor c(buf.get());
   c.write<char>('\n');
   q.append(std::move(buf));
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(4);
-  buf->append(4);
+  buf = createZeroedBuffer(4);
   RWPrivateCursor c1(buf.get());
   c1.write(' ');
   c1.write(' ');
@@ -447,8 +431,7 @@ TEST(LineBasedFrameDecoder, Simple) {
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(1);
-  buf->append(1);
+  buf = createZeroedBuffer(1);
   RWPrivateCursor c2(buf.get());
   c2.write('\n');
   q.append(std::move(buf));
@@ -469,8 +452,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(3);
-  buf->append(3);
+  auto buf = createZeroedBuffer(3);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -478,16 +460,14 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   pipeline->read(q);
   EXPECT_EQ(called, 0);
 
-  buf = IOBuf::create(1);
-  buf->append(1);
+  buf = createZeroedBuffer(1);
   RWPrivateCursor c(buf.get());
   c.write<char>('\n');
   q.append(std::move(buf));
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(3);
-  buf->append(3);
+  buf = createZeroedBuffer(3);
   RWPrivateCursor c1(buf.get());
   c1.write(' ');
   c1.write(' ');
@@ -496,8 +476,7 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(1);
-  buf->append(1);
+  buf = createZeroedBuffer(1);
   RWPrivateCursor c2(buf.get());
   c2.write('\n');
   q.append(std::move(buf));
@@ -517,8 +496,7 @@ TEST(LineBasedFrameDecoder, Fail) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(11);
-  buf->append(11);
+  auto buf = createZeroedBuffer(11);
 
   IOBufQueue q(IOBufQueue::cacheChainLength());
 
@@ -526,14 +504,12 @@ TEST(LineBasedFrameDecoder, Fail) {
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(1);
-  buf->append(1);
+  buf = createZeroedBuffer(1);
   q.append(std::move(buf));
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(2);
-  buf->append(2);
+  buf = createZeroedBuffer(2);
   RWPrivateCursor c(buf.get());
   c.write(' ');
   c.write<char>('\n');
@@ -541,8 +517,7 @@ TEST(LineBasedFrameDecoder, Fail) {
   pipeline->read(q);
   EXPECT_EQ(called, 1);
 
-  buf = IOBuf::create(12);
-  buf->append(12);
+  buf = createZeroedBuffer(12);
   RWPrivateCursor c2(buf.get());
   for (int i = 0; i < 11; i++) {
     c2.write(' ');
@@ -567,8 +542,7 @@ TEST(LineBasedFrameDecoder, NewLineOnly) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(2);
-  buf->append(2);
+  auto buf = createZeroedBuffer(2);
   RWPrivateCursor c(buf.get());
   c.write<char>('\r');
   c.write<char>('\n');
@@ -594,8 +568,7 @@ TEST(LineBasedFrameDecoder, CarriageNewLineOnly) {
       }))
     .finalize();
 
-  auto buf = IOBuf::create(3);
-  buf->append(3);
+  auto buf = createZeroedBuffer(3);
   RWPrivateCursor c(buf.get());
   c.write<char>('\n');
   c.write<char>('\r');
