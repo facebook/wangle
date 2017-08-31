@@ -403,13 +403,11 @@ void SSLContextManager::addSSLContextConfig(
   sslCtx->setupSessionCache(
       ctxConfig,
       cacheOptions,
-      vipAddress,
       externalCache,
       commonName,
-      eventBase_,
       stats_);
-
   sslCtx->setupTicketManager(ticketSeeds, ctxConfig, stats_);
+  VLOG(2) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
 
   // finalize sslCtx setup by the individual features supported by openssl
   ctxSetupByOpensslFeature(sslCtx, ctxConfig, *contexts);

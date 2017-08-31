@@ -141,9 +141,7 @@ SSLSessionCacheManager::SSLSessionCacheManager(
   uint32_t maxCacheSize,
   uint32_t cacheCullSize,
   SSLContext* ctx,
-  const folly::SocketAddress& sockaddr,
   const string& context,
-  EventBase*,
   SSLStats* stats,
   const std::shared_ptr<SSLCacheProvider>& externalCache):
     ctx_(ctx),
@@ -169,8 +167,6 @@ SSLSessionCacheManager::SSLSessionCacheManager(
 
   localCache_ = SSLSessionCacheManager::getLocalCache(maxCacheSize,
                                                       cacheCullSize);
-
-  VLOG(2) << "On VipID=" << sockaddr.describe() << " context=" << context;
 }
 
 SSLSessionCacheManager::~SSLSessionCacheManager() {

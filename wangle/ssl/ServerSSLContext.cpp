@@ -52,10 +52,8 @@ void ServerSSLContext::setupTicketManager(
 void ServerSSLContext::setupSessionCache(
     const SSLContextConfig& ctxConfig,
     const SSLCacheOptions& cacheOptions,
-    const folly::SocketAddress& vipAddress,
     const std::shared_ptr<SSLCacheProvider>& externalCache,
     const std::string& commonName,
-    folly::EventBase* evb,
     SSLStats* stats) {
   // the internal cache never does what we want (per-thread-per-vip).
   // Disable it.  SSLSessionCacheManager will set it appropriately.
@@ -74,9 +72,7 @@ void ServerSSLContext::setupSessionCache(
       cacheOptions.maxSSLCacheSize,
       cacheOptions.sslCacheFlushSize,
       this,
-      vipAddress,
       sessionContext,
-      evb,
       stats,
       externalCache);
   } else {

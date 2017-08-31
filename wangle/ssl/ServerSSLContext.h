@@ -53,10 +53,8 @@ class ServerSSLContext : public folly::SSLContext {
   void setupSessionCache(
       const SSLContextConfig& ctxConfig,
       const SSLCacheOptions& cacheOptions,
-      const folly::SocketAddress& vipAddress,
       const std::shared_ptr<SSLCacheProvider>& externalCache,
       const std::string& commonName,
-      folly::EventBase* evb,
       SSLStats* stats);
 
   // Get the ticket key manager that this context manages.

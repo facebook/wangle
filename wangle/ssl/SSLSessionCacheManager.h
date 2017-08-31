@@ -145,9 +145,7 @@ class SSLSessionCacheManager : private boost::noncopyable {
     uint32_t maxCacheSize,
     uint32_t cacheCullSize,
     folly::SSLContext* ctx,
-    const folly::SocketAddress& sockaddr,
     const std::string& context,
-    folly::EventBase* eventBase,
     SSLStats* stats,
     const std::shared_ptr<SSLCacheProvider>& externalCache);
 
