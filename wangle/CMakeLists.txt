@@ -80,6 +80,9 @@ set(WANGLE_SOURCES
   bootstrap/ServerBootstrap.cpp
   channel/FileRegion.cpp
   channel/Pipeline.cpp
+  client/ssl/SSLSessionCacheData.cpp
+  client/ssl/SSLSessionCacheUtils.cpp
+  client/ssl/SSLSessionCallbacks.cpp
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
