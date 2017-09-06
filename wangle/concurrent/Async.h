@@ -15,15 +15,12 @@
  */
 
 #pragma once
-#include <folly/futures/Future.h>
+
+#include <folly/executors/Async.h>
 #include <wangle/concurrent/GlobalExecutor.h>
 
 namespace wangle {
 
-template <class F>
-auto async(F&& fn) {
-  return folly::via<F>(getCPUExecutor().get(), std::forward<F>(fn));
-}
-
+using folly::async;
 
 } //namespace wangle

@@ -15,16 +15,11 @@
  */
 
 #pragma once
-#include <folly/Executor.h>
 
-#include <thread>
+#include <folly/executors/ThreadFactory.h>
 
 namespace wangle {
 
-class ThreadFactory {
- public:
-  virtual ~ThreadFactory() = default;
-  virtual std::thread newThread(folly::Func&& func) = 0;
-};
+using folly::ThreadFactory;
 
-} // namespace wangle
+} // wangle

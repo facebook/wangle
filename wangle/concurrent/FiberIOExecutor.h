@@ -16,35 +16,11 @@
 
 #pragma once
 
-#include <folly/fibers/FiberManagerMap.h>
+#include <folly/executors/FiberIOExecutor.h>
 #include <wangle/concurrent/IOExecutor.h>
 
 namespace wangle {
 
-/**
- * @class FiberIOExecutor
- * @brief An IOExecutor that executes funcs under mapped fiber context
- *
- * A FiberIOExecutor wraps an IOExecutor, but executes funcs on the FiberManager
- * mapped to the underlying IOExector's event base.
- */
-class FiberIOExecutor : public IOExecutor {
- public:
-  explicit FiberIOExecutor(
-      const std::shared_ptr<IOExecutor>& ioExecutor)
-      : ioExecutor_(ioExecutor) {}
-
-  virtual void add(folly::Function<void()> f) override {
-    auto eventBase = ioExecutor_->getEventBase();
-    folly::fibers::getFiberManager(*eventBase).add(std::move(f));
-  }
-
-  virtual folly::EventBase* getEventBase() override {
-    return ioExecutor_->getEventBase();
-  }
-
- private:
-  std::shared_ptr<IOExecutor> ioExecutor_;
-};
+using folly::FiberIOExecutor;
 
 } // namespace wangle

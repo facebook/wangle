@@ -16,35 +16,13 @@
 
 #pragma once
 
-#include <exception>
-#include <stdexcept>
-
-#include <glog/logging.h>
+#include <folly/executors/BlockingQueue.h>
 
 namespace wangle {
 
-// Some queue implementations (for example, LifoSemMPMCQueue or
-// PriorityLifoSemMPMCQueue) support both blocking (BLOCK) and
-// non-blocking (THROW) behaviors.
-enum class QueueBehaviorIfFull { THROW, BLOCK };
-
-class QueueFullException : public std::runtime_error {
-  using std::runtime_error::runtime_error; // Inherit constructors.
-};
-
+using folly::QueueBehaviorIfFull;
+using folly::QueueFullException;
 template <class T>
-class BlockingQueue {
- public:
-  virtual ~BlockingQueue() = default;
-  virtual void add(T item) = 0;
-  virtual void addWithPriority(T item, int8_t /* priority */) {
-    add(std::move(item));
-  }
-  virtual uint8_t getNumPriorities() {
-    return 1;
-  }
-  virtual T take() = 0;
-  virtual size_t size() = 0;
-};
+using BlockingQueue = folly::BlockingQueue<T>;
 
 } // namespace wangle

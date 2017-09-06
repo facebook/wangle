@@ -16,45 +16,11 @@
 
 #pragma once
 
+#include <folly/executors/PriorityThreadFactory.h>
 #include <wangle/concurrent/ThreadFactory.h>
-
-#include <folly/portability/SysResource.h>
-#include <folly/portability/SysTime.h>
 
 namespace wangle {
 
-/**
- * A ThreadFactory that sets nice values for each thread.  The main
- * use case for this class is if there are multiple
- * CPUThreadPoolExecutors in a single process, or between multiple
- * processes, where some should have a higher priority than the others.
- *
- * Note that per-thread nice values are not POSIX standard, but both
- * pthreads and linux support per-thread nice.  The default linux
- * scheduler uses these values to do smart thread prioritization.
- * sched_priority function calls only affect real-time schedulers.
- */
-class PriorityThreadFactory : public ThreadFactory {
- public:
-  explicit PriorityThreadFactory(std::shared_ptr<ThreadFactory> factory,
-                                int priority)
-    : factory_(std::move(factory))
-    , priority_(priority) {}
-
-  std::thread newThread(folly::Func&& func) override {
-    int priority = priority_;
-    return factory_->newThread([ priority, func = std::move(func) ]() mutable {
-      if (setpriority(PRIO_PROCESS, 0, priority) != 0) {
-        LOG(ERROR) << "setpriority failed (are you root?) with error " <<
-          errno, strerror(errno);
-      }
-      func();
-    });
-  }
-
- private:
-  std::shared_ptr<ThreadFactory> factory_;
-  int priority_;
-};
+using folly::PriorityThreadFactory;
 
 } // wangle

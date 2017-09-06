@@ -16,51 +16,13 @@
 
 #pragma once
 
+#include <folly/executors/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/BlockingQueue.h>
-#include <folly/LifoSem.h>
-#include <folly/MPMCQueue.h>
 
 namespace wangle {
 
-template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
-class LifoSemMPMCQueue : public BlockingQueue<T> {
- public:
-  // Note: The queue pre-allocates all memory for max_capacity
-  explicit LifoSemMPMCQueue(size_t max_capacity) : queue_(max_capacity) {}
-
-  void add(T item) override {
-    switch (kBehavior) { // static
-    case QueueBehaviorIfFull::THROW:
-      if (!queue_.write(std::move(item))) {
-        throw QueueFullException("LifoSemMPMCQueue full, can't add item");
-      }
-      break;
-    case QueueBehaviorIfFull::BLOCK:
-      queue_.blockingWrite(std::move(item));
-      break;
-    }
-    sem_.post();
-  }
-
-  T take() override {
-    T item;
-    while (!queue_.readIfNotEmpty(item)) {
-      sem_.wait();
-    }
-    return item;
-  }
-
-  size_t capacity() {
-    return queue_.capacity();
-  }
-
-  size_t size() override {
-    return queue_.size();
-  }
-
- private:
-  folly::LifoSem sem_;
-  folly::MPMCQueue<T> queue_;
-};
+template <class T, folly::QueueBehaviorIfFull kBehavior =
+  folly::QueueBehaviorIfFull::THROW>
+using LifoSemMPMCQueue = folly::LifoSemMPMCQueue<T, kBehavior>;
 
 } // namespace wangle

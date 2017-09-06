@@ -16,92 +16,13 @@
 
 #pragma once
 
+#include <folly/executors/PriorityLifoSemMPMCQueue.h>
 #include <wangle/concurrent/BlockingQueue.h>
-#include <folly/Executor.h>
-#include <folly/LifoSem.h>
-#include <folly/MPMCQueue.h>
 
 namespace wangle {
 
-template <class T, QueueBehaviorIfFull kBehavior = QueueBehaviorIfFull::THROW>
-class PriorityLifoSemMPMCQueue : public BlockingQueue<T> {
- public:
-  // Note A: The queue pre-allocates all memory for max_capacity
-  // Note B: To use folly::Executor::*_PRI, for numPriorities == 2
-  //         MID_PRI and HI_PRI are treated at the same priority level.
-  PriorityLifoSemMPMCQueue(uint8_t numPriorities, size_t max_capacity) {
-    queues_.reserve(numPriorities);
-    for (int8_t i = 0; i < numPriorities; i++) {
-      queues_.emplace_back(max_capacity);
-    }
-  }
-
-  uint8_t getNumPriorities() override {
-    return queues_.size();
-  }
-
-  // Add at medium priority by default
-  void add(T item) override {
-    addWithPriority(std::move(item), folly::Executor::MID_PRI);
-  }
-
-  void addWithPriority(T item, int8_t priority) override {
-    int mid = getNumPriorities() / 2;
-    size_t queue = priority < 0 ?
-                   std::max(0, mid + priority) :
-                   std::min(getNumPriorities() - 1, mid + priority);
-    CHECK_LT(queue, queues_.size());
-    switch (kBehavior) { // static
-    case QueueBehaviorIfFull::THROW:
-      if (!queues_[queue].write(std::move(item))) {
-        throw QueueFullException("LifoSemMPMCQueue full, can't add item");
-      }
-      break;
-    case QueueBehaviorIfFull::BLOCK:
-      queues_[queue].blockingWrite(std::move(item));
-      break;
-    }
-    sem_.post();
-  }
-
-  T take() override {
-    T item;
-    while (true) {
-      if (nonBlockingTake(item)) {
-        return item;
-      }
-      sem_.wait();
-    }
-  }
-
-  bool nonBlockingTake(T& item) {
-    for (auto it = queues_.rbegin(); it != queues_.rend(); it++) {
-      if (it->readIfNotEmpty(item)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  size_t size() override {
-    size_t size = 0;
-    for (auto& q : queues_) {
-      size += q.size();
-    }
-    return size;
-  }
-
-  size_t sizeGuess() const {
-    size_t size = 0;
-    for (auto& q : queues_) {
-      size += q.sizeGuess();
-    }
-    return size;
-  }
-
- private:
-  folly::LifoSem sem_;
-  std::vector<folly::MPMCQueue<T>> queues_;
-};
+template <class T, folly::QueueBehaviorIfFull kBehavior =
+  folly::QueueBehaviorIfFull::THROW>
+using PriorityLifoSemMPMCQueue = folly::PriorityLifoSemMPMCQueue<T, kBehavior>;
 
 } // namespace wangle
