@@ -298,6 +298,8 @@ class Acceptor :
 
   /**
    * Hook for subclasses to record stats about SSL connection establishment.
+   *
+   * sock may be nullptr.
    */
   virtual void updateSSLStats(
       const folly::AsyncTransportWrapper* /*sock*/,

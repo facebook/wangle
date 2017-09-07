@@ -42,7 +42,9 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
 
   void dropConnection(SSLErrorEnum reason = SSLErrorEnum::NO_ERROR) override {
     sslError_ = reason;
-    socket_->closeNow();
+    if (socket_) {
+      socket_->closeNow();
+    }
   }
 
   static void fillSSLTransportInfoFields(
