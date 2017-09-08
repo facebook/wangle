@@ -70,6 +70,7 @@ set(WANGLE_SOURCES
   acceptor/Acceptor.cpp
   acceptor/AcceptorHandshakeManager.cpp
   acceptor/ConnectionManager.cpp
+  acceptor/EvbHandshakeHelper.cpp
   acceptor/LoadShedConfiguration.cpp
   acceptor/ManagedConnection.cpp
   acceptor/SecureTransportType.cpp
