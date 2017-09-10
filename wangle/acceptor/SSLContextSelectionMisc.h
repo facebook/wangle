@@ -86,9 +86,9 @@ struct SSLContextKeyHash {
   size_t operator()(const SSLContextKey& sslContextKey) const noexcept {
     std::string lowercase(sslContextKey.dnString.data(),
                           sslContextKey.dnString.size());
-    folly::toLowerAscii((char *) lowercase.data(), lowercase.size());
-    return folly::hash::hash_combine(lowercase,
-        static_cast<int>(sslContextKey.certCrypto));
+    folly::toLowerAscii(lowercase);
+    return folly::hash::hash_combine(
+        lowercase, static_cast<int>(sslContextKey.certCrypto));
   }
 };
 
