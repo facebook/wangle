@@ -27,6 +27,11 @@ using folly::EventBase;
 
 namespace wangle {
 
+ServerSSLContext::ServerSSLContext(SSLVersion version)
+    : folly::SSLContext(version) {
+  setSessionCacheContext("ServerSSLContext");
+}
+
 void ServerSSLContext::setupTicketManager(
     const TLSTicketKeySeeds* ticketSeeds,
     const SSLContextConfig& ctxConfig,
@@ -53,18 +58,12 @@ void ServerSSLContext::setupSessionCache(
     const SSLContextConfig& ctxConfig,
     const SSLCacheOptions& cacheOptions,
     const std::shared_ptr<SSLCacheProvider>& externalCache,
-    const std::string& commonName,
+    const std::string& sessionIdContext,
     SSLStats* stats) {
   // the internal cache never does what we want (per-thread-per-vip).
   // Disable it.  SSLSessionCacheManager will set it appropriately.
   SSL_CTX_set_session_cache_mode(getSSLCtx(), SSL_SESS_CACHE_OFF);
   SSL_CTX_set_timeout(getSSLCtx(), cacheOptions.sslCacheTimeout.count());
-  std::string sessionContext;
-  if (ctxConfig.sessionContext) {
-    sessionContext = *ctxConfig.sessionContext;
-  } else {
-    sessionContext = commonName;
-  }
   if (ctxConfig.sessionCacheEnabled &&
       cacheOptions.maxSSLCacheSize > 0 &&
       cacheOptions.sslCacheFlushSize > 0) {
@@ -72,15 +71,12 @@ void ServerSSLContext::setupSessionCache(
       cacheOptions.maxSSLCacheSize,
       cacheOptions.sslCacheFlushSize,
       this,
-      sessionContext,
+      sessionIdContext,
       stats,
       externalCache);
   } else {
     sessionCacheManager_.reset();
   }
-  // even though SSLSessionCacheManager might set the context if enabled,
-  // we also want to setup the context in case a cache is not enabled.
-  setSessionCacheContext(sessionContext);
 }
 
 }

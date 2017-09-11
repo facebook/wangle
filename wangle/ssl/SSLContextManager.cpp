@@ -177,16 +177,16 @@ std::string flattenList(const std::list<std::string>& list) {
   }
   return s;
 }
-
 }
 
 SSLContextManager::~SSLContextManager() = default;
 
 SSLContextManager::SSLContextManager(
   folly::EventBase* eventBase,
-  const std::string& /* vipName */,
+  const std::string& vipName,
   bool strict,
   SSLStats* stats) :
+    vipName_(vipName),
     stats_(stats),
     eventBase_(eventBase),
     strict_(strict) {
@@ -400,11 +400,21 @@ void SSLContextManager::addSSLContextConfig(
     }
   }
 
+  // we always want to setup the session id context
+  // to make session resumption work (tickets or session cache)
+  std::string sessionIdContext = commonName;
+  if (ctxConfig.sessionContext && !ctxConfig.sessionContext->empty()) {
+    sessionIdContext = *ctxConfig.sessionContext;
+  }
+  VLOG(2) << "For vip " << vipName_ << ", CN " << commonName
+          << ", setting sid_ctx " << sessionIdContext;
+  sslCtx->setSessionCacheContext(sessionIdContext);
+
   sslCtx->setupSessionCache(
       ctxConfig,
       cacheOptions,
       externalCache,
-      commonName,
+      sessionIdContext,
       stats_);
   sslCtx->setupTicketManager(ticketSeeds, ctxConfig, stats_);
   VLOG(2) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;

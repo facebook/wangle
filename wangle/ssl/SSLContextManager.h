@@ -187,6 +187,7 @@ class SSLContextManager {
     const std::shared_ptr<folly::SSLContext>&,
     const SSLContextConfig&) {}
 
+  std::string vipName_;
   SSLStats* stats_{nullptr};
 
   /**

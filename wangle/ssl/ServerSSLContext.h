@@ -41,9 +41,9 @@ class SSLCacheProvider;
 // It is used for server side SSL connections.
 class ServerSSLContext : public folly::SSLContext {
  public:
-  using folly::SSLContext::SSLContext;
+  explicit ServerSSLContext(SSLVersion version = TLSv1);
 
-  ~ServerSSLContext() override = default;
+  virtual ~ServerSSLContext() override = default;
 
   void setupTicketManager(
       const TLSTicketKeySeeds* ticketSeeds,
@@ -54,7 +54,7 @@ class ServerSSLContext : public folly::SSLContext {
       const SSLContextConfig& ctxConfig,
       const SSLCacheOptions& cacheOptions,
       const std::shared_ptr<SSLCacheProvider>& externalCache,
-      const std::string& commonName,
+      const std::string& sessionIdContext,
       SSLStats* stats);
 
   // Get the ticket key manager that this context manages.
