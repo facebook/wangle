@@ -50,20 +50,6 @@ struct HTTPHeaderSize {
 };
 
 /**
- * A structure that encapsulates information regarding to the ingress and
- * egress heasder table information
-**/
-struct HTTPHeaderTableInfo {
-  uint32_t egressHeaderTableSize_{0};
-  uint32_t egressBytesStored_{0};
-  uint32_t egressHeadersStored_{0};
-
-  uint32_t ingressHeaderTableSize_{0};
-  uint32_t ingressBytesStored_{0};
-  uint32_t ingressHeadersStored_{0};
-};
-
-/**
  * A struct that can store additional information specific to the protocol being
  * used.
  */
@@ -240,8 +226,6 @@ struct TransportInfo {
    * header bytes written
    */
   HTTPHeaderSize egressHeader;
-
-  HTTPHeaderTableInfo headerTableInfo;
 
   /*
    * Here is how the timeToXXXByte variables are planned out:
