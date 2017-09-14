@@ -66,6 +66,15 @@ class OutputBufferingHandler : public OutboundBytesToBytesHandler,
         });
   }
 
+  void cleanUp() {
+    if (isLoopCallbackScheduled()) {
+      cancelLoopCallback();
+    }
+
+    sends_.reset();
+    sharedPromise_ = folly::SharedPromise<folly::Unit>();
+  }
+
   folly::Future<folly::Unit> close(Context* ctx) override {
     if (isLoopCallbackScheduled()) {
       cancelLoopCallback();
