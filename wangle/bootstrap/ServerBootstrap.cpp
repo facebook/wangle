@@ -57,9 +57,12 @@ void ServerWorkerPool::threadStopped(
     });
   }
 
-  worker->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-    [&]() {
-      worker->dropAllConnections();
+  auto evb = worker->getEventBase();
+
+  evb->runImmediatelyOrRunInEventBaseThreadAndWait(
+    [w = std::move(worker)]() mutable {
+      w->dropAllConnections();
+      w.reset();
     });
 }
 
