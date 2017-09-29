@@ -60,10 +60,10 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
 
  protected:
   enum class HandshakeState : unsigned {
-    INVALID,
-    STARTED,
-    DROPPED,
-    CALLBACK,
+    Invalid,
+    Started,
+    Dropped,
+    Callback,
   };
 
   ~EvbHandshakeHelper();
@@ -79,11 +79,11 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
   //
   // State machine diagram:
   //                                dropConnection()
-  //                               .--------> DROPPED
+  //                               .--------> Dropped
   //          start()             /
-  // INVALID  ------> STARTED ---+
+  // Invalid  ------> Started ---+
   //                              \
-  //                               `--------> CALLBACK
+  //                               `--------> Callback
   //                               connectionReady()
   //                               connectionError()
   //
@@ -164,7 +164,7 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
   // Here are some other states that we do not have to consider, for
   // completeness:
   //
-  // # INVALID CASE 1: D comes after C'.
+  // # Invalid CASE 1: D comes after C'.
   //
   // -------------------C'-D---------   Acceptor Thread (originalEvb_)
   //                   /
@@ -183,14 +183,14 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
   // callers will see that this helper doesn't exist.
   //
   //
-  // # INVALID CASE 2: D occurs much earlier than C
+  // # Invalid CASE 2: D occurs much earlier than C
   //
   // ---D----------------------------   Acceptor Thread (originalEvb_)
   //     \
   //      \
   // ------D'-------C----------------   Handshake Thread (handshakeEvb_)
   //
-  // In this case, D will obviously be able to update the state_ to DROPPED.
+  // In this case, D will obviously be able to update the state_ to Dropped.
   // Therefore, it will be able to schedule D' to run on the handshake thread.
   //
   // When D' runs, the transport will be closed and cleaned up, so it is
@@ -200,7 +200,7 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
   // connectionError. But since connectionError will fail to update the state_,
   // it does nothing and immediately returns.
   //
-  std::atomic<HandshakeState> state_{HandshakeState::INVALID};
+  std::atomic<HandshakeState> state_{HandshakeState::Invalid};
 
   // dropConnectionGuard_ is used to keep the EvbHandshakeHelper alive when
   // dropConnection() is called until after the underlying helper's

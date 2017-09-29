@@ -21,7 +21,7 @@ void EvbHandshakeHelper::start(
     folly::AsyncSSLSocket::UniquePtr sock,
     AcceptorHandshakeHelper::Callback* callback) noexcept {
   auto transition =
-      tryTransition(HandshakeState::INVALID, HandshakeState::STARTED);
+      tryTransition(HandshakeState::Invalid, HandshakeState::Started);
   if (!transition.first) {
     VLOG(5) << "Ignoring call to start(), since state is currently "
             << static_cast<unsigned>(transition.second);
@@ -44,7 +44,7 @@ void EvbHandshakeHelper::dropConnection(SSLErrorEnum reason) {
   originalEvb_->dcheckIsInEventBaseThread();
 
   auto transition =
-      tryTransition(HandshakeState::STARTED, HandshakeState::DROPPED);
+      tryTransition(HandshakeState::Started, HandshakeState::Dropped);
 
   // Regardless of whether or not we win the race or not, we will set
   // dropConnectionGuard_ (see case 2) to let a potential C' know that the
@@ -86,10 +86,10 @@ void EvbHandshakeHelper::connectionReady(
   DCHECK_EQ(transport->getEventBase(), handshakeEvb_);
 
   auto transition =
-      tryTransition(HandshakeState::STARTED, HandshakeState::CALLBACK);
+      tryTransition(HandshakeState::Started, HandshakeState::Callback);
   if (!transition.first) {
     VLOG(5) << "Ignoring call to connectionReady(), expected state to be "
-            << static_cast<unsigned>(HandshakeState::STARTED)
+            << static_cast<unsigned>(HandshakeState::Started)
             << " but actual state was "
             << static_cast<unsigned>(transition.second);
     return;
@@ -130,10 +130,10 @@ void EvbHandshakeHelper::connectionError(
   DCHECK(transport->getEventBase() == handshakeEvb_);
 
   auto transition =
-      tryTransition(HandshakeState::STARTED, HandshakeState::CALLBACK);
+      tryTransition(HandshakeState::Started, HandshakeState::Callback);
   if (!transition.first) {
     VLOG(5) << "Ignoring call to connectionError(), expected state to be "
-            << static_cast<unsigned>(HandshakeState::STARTED)
+            << static_cast<unsigned>(HandshakeState::Started)
             << " but actual state was "
             << static_cast<unsigned>(transition.second);
     return;
