@@ -84,7 +84,7 @@ TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
   auto cache = createCache<TypeParam>(10, 1, nullptr);
   cache->put("k0", "v0");
   makeFuture().delayed(chrono::milliseconds(20))
-    .then([cache, this]{
+    .then([cache]{
         auto val = cache->get("k0");
         EXPECT_TRUE(val);
         EXPECT_EQ(*val, "v0");
