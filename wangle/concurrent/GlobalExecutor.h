@@ -21,10 +21,4 @@
 
 namespace wangle {
 
-using folly::getCPUExecutor;
-using folly::setCPUExecutor;
-using folly::getIOExecutor;
-using folly::getEventBase;
-using folly::setIOExecutor;
-
 } // namespace wangle
