@@ -20,7 +20,7 @@
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>
 #include <wangle/codec/LengthFieldPrepender.h>
 #include <wangle/codec/LineBasedFrameDecoder.h>
-#include <wangle/codec/CodecTestUtils.h>
+#include <wangle/codec/test/CodecTestUtils.h>
 
 using namespace folly;
 using namespace wangle;
