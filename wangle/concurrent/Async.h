@@ -17,7 +17,7 @@
 #pragma once
 
 #include <folly/executors/Async.h>
-#include <wangle/concurrent/GlobalExecutor.h>
+#include <folly/executors/GlobalExecutor.h>
 
 namespace wangle {
 
