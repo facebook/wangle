@@ -38,6 +38,16 @@ class AsyncSocketHandler
 
   ~AsyncSocketHandler() override {
     detachReadCallback();
+
+    if (socket_) {
+      auto evb = socket_->getEventBase();
+      if (evb) {
+        evb->runImmediatelyOrRunInEventBaseThreadAndWait(
+            [s = std::move(socket_)]() mutable {
+              s.reset();
+            });
+      }
+    }
   }
 
   void attachReadCallback() {
