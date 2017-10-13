@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <folly/Format.h>
+
 namespace wangle {
 
 class PipelineContext {

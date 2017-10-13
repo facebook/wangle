@@ -15,6 +15,7 @@
  */
 #include <wangle/ssl/SSLUtil.h>
 
+#include <folly/Format.h>
 #include <folly/Memory.h>
 
 #if OPENSSL_VERSION_NUMBER >= 0x1000105fL
