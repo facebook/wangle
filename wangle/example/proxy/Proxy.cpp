@@ -118,7 +118,7 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
  private:
   SocketAddress remoteAddress_;
   ClientBootstrap<DefaultPipeline> client_;
-  DefaultPipeline* backendPipeline_;
+  DefaultPipeline* backendPipeline_{nullptr};
 };
 
 class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
