@@ -24,7 +24,7 @@
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>
 #include <wangle/codec/LengthFieldPrepender.h>
 #include <wangle/channel/EventBaseHandler.h>
-#include <wangle/concurrent/CPUThreadPoolExecutor.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
 
 #include <wangle/example/rpc/ServerSerializeHandler.h>
 

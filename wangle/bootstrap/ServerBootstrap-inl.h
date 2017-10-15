@@ -24,7 +24,7 @@
 #include <wangle/bootstrap/ServerSocketFactory.h>
 #include <wangle/channel/Handler.h>
 #include <wangle/channel/Pipeline.h>
-#include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <folly/executors/IOThreadPoolExecutor.h>
 #include <wangle/ssl/SSLStats.h>
 
 namespace wangle {
@@ -270,11 +270,11 @@ class ServerAcceptorFactory : public AcceptorFactory {
   ServerSocketConfig accConfig_;
 };
 
-class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
+class ServerWorkerPool : public folly::ThreadPoolExecutor::Observer {
  public:
   explicit ServerWorkerPool(
     std::shared_ptr<AcceptorFactory> acceptorFactory,
-    wangle::IOThreadPoolExecutor* exec,
+    folly::IOThreadPoolExecutor* exec,
     std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets,
     std::shared_ptr<ServerSocketFactory> socketFactory)
       : workers_(std::make_shared<WorkerMap>())
@@ -289,26 +289,26 @@ class ServerWorkerPool : public wangle::ThreadPoolExecutor::Observer {
   template <typename F>
   void forEachWorker(F&& f) const;
 
-  void threadStarted(wangle::ThreadPoolExecutor::ThreadHandle*) override;
-  void threadStopped(wangle::ThreadPoolExecutor::ThreadHandle*) override;
+  void threadStarted(folly::ThreadPoolExecutor::ThreadHandle*) override;
+  void threadStopped(folly::ThreadPoolExecutor::ThreadHandle*) override;
   void threadPreviouslyStarted(
-      wangle::ThreadPoolExecutor::ThreadHandle* thread) override {
+      folly::ThreadPoolExecutor::ThreadHandle* thread) override {
     threadStarted(thread);
   }
   void threadNotYetStopped(
-      wangle::ThreadPoolExecutor::ThreadHandle* thread) override {
+      folly::ThreadPoolExecutor::ThreadHandle* thread) override {
     threadStopped(thread);
   }
 
  private:
-  using WorkerMap = std::map<wangle::ThreadPoolExecutor::ThreadHandle*,
+  using WorkerMap = std::map<folly::ThreadPoolExecutor::ThreadHandle*,
         std::shared_ptr<Acceptor>>;
   using Mutex = folly::SharedMutexReadPriority;
 
   std::shared_ptr<WorkerMap> workers_;
   std::shared_ptr<Mutex> workersMutex_;
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
-  wangle::IOThreadPoolExecutor* exec_{nullptr};
+  folly::IOThreadPoolExecutor* exec_{nullptr};
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
       sockets_;
   std::shared_ptr<ServerSocketFactory> socketFactory_;

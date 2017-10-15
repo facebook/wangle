@@ -21,7 +21,7 @@
 #include <folly/io/async/EventBaseManager.h>
 #include <wangle/bootstrap/BaseClientBootstrap.h>
 #include <wangle/channel/Pipeline.h>
-#include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <folly/executors/IOThreadPoolExecutor.h>
 
 namespace wangle {
 
@@ -71,7 +71,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
   }
 
   ClientBootstrap* group(
-      std::shared_ptr<wangle::IOThreadPoolExecutor> group) {
+      std::shared_ptr<folly::IOThreadPoolExecutor> group) {
     group_ = group;
     return this;
   }
@@ -115,7 +115,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
 
  protected:
   int port_;
-  std::shared_ptr<wangle::IOThreadPoolExecutor> group_;
+  std::shared_ptr<folly::IOThreadPoolExecutor> group_;
 };
 
 class ClientBootstrapFactory

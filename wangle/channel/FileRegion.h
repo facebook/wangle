@@ -21,7 +21,7 @@
 #include <folly/io/async/NotificationQueue.h>
 #include <folly/futures/Future.h>
 #include <folly/futures/Promise.h>
-#include <wangle/concurrent/IOThreadPoolExecutor.h>
+#include <folly/executors/IOThreadPoolExecutor.h>
 
 #ifdef SPLICE_F_NONBLOCK
 namespace wangle {

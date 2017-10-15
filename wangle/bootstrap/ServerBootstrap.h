@@ -101,7 +101,7 @@ class ServerBootstrap {
    * @param io_group - io executor to use for IO threads.
    */
   ServerBootstrap* group(
-      std::shared_ptr<wangle::IOThreadPoolExecutor> io_group) {
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
     return group(nullptr, io_group);
   }
 
@@ -115,11 +115,11 @@ class ServerBootstrap {
    * @param io_group - io executor to use for IO threads.
    */
   ServerBootstrap* group(
-      std::shared_ptr<wangle::IOThreadPoolExecutor> accept_group,
-      std::shared_ptr<wangle::IOThreadPoolExecutor> io_group) {
+      std::shared_ptr<folly::IOThreadPoolExecutor> accept_group,
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
     if (!accept_group) {
-      accept_group = std::make_shared<wangle::IOThreadPoolExecutor>(
-        1, std::make_shared<wangle::NamedThreadFactory>("Acceptor Thread"));
+      accept_group = std::make_shared<folly::IOThreadPoolExecutor>(
+        1, std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
     }
     if (!io_group) {
       auto threads = std::thread::hardware_concurrency();
@@ -127,8 +127,8 @@ class ServerBootstrap {
         // Reasonable mid-point for concurrency when actual value unknown
         threads = 8;
       }
-      io_group = std::make_shared<wangle::IOThreadPoolExecutor>(
-        threads, std::make_shared<wangle::NamedThreadFactory>("IO Thread"));
+      io_group = std::make_shared<folly::IOThreadPoolExecutor>(
+        threads, std::make_shared<folly::NamedThreadFactory>("IO Thread"));
     }
 
     // TODO better config checking
@@ -307,7 +307,7 @@ class ServerBootstrap {
     return *sockets_;
   }
 
-  std::shared_ptr<wangle::IOThreadPoolExecutor> getIOGroup() const {
+  std::shared_ptr<folly::IOThreadPoolExecutor> getIOGroup() const {
     return io_group_;
   }
 
@@ -327,8 +327,8 @@ class ServerBootstrap {
   }
 
  private:
-  std::shared_ptr<wangle::IOThreadPoolExecutor> acceptor_group_;
-  std::shared_ptr<wangle::IOThreadPoolExecutor> io_group_;
+  std::shared_ptr<folly::IOThreadPoolExecutor> acceptor_group_;
+  std::shared_ptr<folly::IOThreadPoolExecutor> io_group_;
 
   std::shared_ptr<ServerWorkerPool> workerFactory_;
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets_{

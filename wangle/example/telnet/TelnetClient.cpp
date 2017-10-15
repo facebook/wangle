@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
   folly::init(&argc, &argv, true);
 
   ClientBootstrap<TelnetPipeline> client;
-  client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));
+  client.group(std::make_shared<folly::IOThreadPoolExecutor>(1));
   client.pipelineFactory(std::make_shared<TelnetPipelineFactory>());
   auto pipeline = client.connect(SocketAddress(FLAGS_host,FLAGS_port)).get();
 

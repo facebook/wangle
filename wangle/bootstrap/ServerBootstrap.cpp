@@ -15,14 +15,14 @@
  */
 
 #include <wangle/bootstrap/ServerBootstrap.h>
-#include <wangle/concurrent/NamedThreadFactory.h>
+#include <folly/executors/NamedThreadFactory.h>
 #include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBaseManager.h>
 
 namespace wangle {
 
 void ServerWorkerPool::threadStarted(
-  wangle::ThreadPoolExecutor::ThreadHandle* h) {
+  folly::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = acceptorFactory_->newAcceptor(exec_->getEventBase(h));
   {
     Mutex::WriteHolder holder(workersMutex_.get());
@@ -39,7 +39,7 @@ void ServerWorkerPool::threadStarted(
 }
 
 void ServerWorkerPool::threadStopped(
-  wangle::ThreadPoolExecutor::ThreadHandle* h) {
+  folly::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = [&] {
     Mutex::WriteHolder holder(workersMutex_.get());
     auto workerIt = workers_->find(h);
