@@ -20,7 +20,7 @@
 #include <wangle/deprecated/rx/Subject.h>
 #include <wangle/deprecated/rx/Subscription.h>
 
-#include <folly/RWSpinLock.h>
+#include <folly/SharedMutex.h>
 #include <folly/SmallLocks.h>
 #include <folly/ThreadLocal.h>
 #include <folly/small_vector.h>
@@ -76,7 +76,7 @@ class Observable {
       }
       newObservers_->push_back(observer);
     } else {
-      folly::RWSpinLock::WriteHolder{&observersLock_};
+      folly::SharedMutex::WriteHolder{&observersLock_};
       observers_.push_back(observer);
     }
   }
@@ -152,7 +152,7 @@ class Observable {
     *inCallback_ = true;
 
     {
-      folly::RWSpinLock::ReadHolder rh(observersLock_);
+      folly::SharedMutex::ReadHolder rh(observersLock_);
       for (auto o : observers_) {
         f(o);
       }
@@ -166,7 +166,7 @@ class Observable {
                  (newSubscribers_ && !newSubscribers_->empty()) ||
                  (oldSubscribers_ && !oldSubscribers_->empty()))) {
       {
-        folly::RWSpinLock::WriteHolder wh(observersLock_);
+        folly::SharedMutex::WriteHolder wh(observersLock_);
         if (newObservers_) {
           for (auto observer : *(newObservers_)) {
             observers_.push_back(observer);
@@ -200,7 +200,7 @@ class Observable {
       }
       newSubscribers_->insert(std::move(kv));
     } else {
-      folly::RWSpinLock::WriteHolder{&observersLock_};
+      folly::SharedMutex::WriteHolder{&observersLock_};
       subscribers_.insert(std::move(kv));
     }
     return subscription;
@@ -214,19 +214,19 @@ class Observable {
 
     void unsubscribe(uint64_t id) {
       CHECK(id > 0);
-      folly::RWSpinLock::ReadHolder guard(lock_);
+      folly::SharedMutex::ReadHolder guard(lock_);
       if (observable_) {
         observable_->unsubscribe(id);
       }
     }
 
     void disable() {
-      folly::RWSpinLock::WriteHolder guard(lock_);
+      folly::SharedMutex::WriteHolder guard(lock_);
       observable_ = nullptr;
     }
 
    private:
-    folly::RWSpinLock lock_;
+    folly::SharedMutex lock_;
     Observable* observable_;
   };
 
@@ -249,7 +249,7 @@ class Observable {
       }
       oldSubscribers_->push_back(id);
     } else {
-      folly::RWSpinLock::WriteHolder{&observersLock_};
+      folly::SharedMutex::WriteHolder{&observersLock_};
       subscribers_.erase(id);
     }
   }
@@ -269,7 +269,7 @@ class Observable {
   }
 
   std::atomic<uint64_t> nextSubscriptionId_;
-  folly::RWSpinLock observersLock_;
+  folly::SharedMutex observersLock_;
   folly::ThreadLocalPtr<bool> inCallback_;
 
   typedef folly::small_vector<Observer<T>*, InlineObservers> ObserverList;
