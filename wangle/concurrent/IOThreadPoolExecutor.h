@@ -22,6 +22,4 @@
 
 namespace wangle {
 
-using folly::IOThreadPoolExecutor;
-
 } // namespace wangle
