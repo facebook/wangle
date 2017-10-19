@@ -17,6 +17,8 @@
 
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 
+#include <folly/io/async/AsyncSSLSocket.h>
+
 namespace wangle {
 
 /**

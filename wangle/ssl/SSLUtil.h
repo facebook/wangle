@@ -15,8 +15,15 @@
  */
 #pragma once
 
+#include <list>
 #include <mutex>
-#include <folly/io/async/AsyncSSLSocket.h>
+
+#include <folly/String.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
+
+namespace folly {
+class AsyncSSLSocket;
+}
 
 namespace wangle {
 
@@ -157,14 +164,8 @@ class SSLUtil {
   /**
    * Return the SSL resume type for the given socket.
    */
-  static inline SSLResumeEnum getResumeState(
-    folly::AsyncSSLSocket* sslSocket) {
-    return sslSocket->getSSLSessionReused() ?
-      (sslSocket->sessionIDResumed() ?
-        SSLResumeEnum::RESUME_SESSION_ID :
-        SSLResumeEnum::RESUME_TICKET) :
-      SSLResumeEnum::HANDSHAKE;
-  }
+  static SSLResumeEnum getResumeState(
+    folly::AsyncSSLSocket* sslSocket);
 
   /**
    * Get the Common Name from an X.509 certificate

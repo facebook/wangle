@@ -20,6 +20,7 @@
 #include <folly/Optional.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncSSLSocket.h>
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>

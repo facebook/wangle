@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncSSLSocket.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 
 namespace wangle {

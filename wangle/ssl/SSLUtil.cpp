@@ -17,6 +17,7 @@
 
 #include <folly/Format.h>
 #include <folly/Memory.h>
+#include <folly/io/async/AsyncSSLSocket.h>
 
 #if OPENSSL_VERSION_NUMBER >= 0x1000105fL
 #define OPENSSL_GE_101 1
@@ -41,6 +42,14 @@ SSLException::SSLException(
         error_(error), latency_(latency), bytesRead_(bytesRead) {}
 
 std::mutex SSLUtil::sIndexLock_;
+
+SSLResumeEnum SSLUtil::getResumeState(folly::AsyncSSLSocket* sslSocket) {
+  return sslSocket->getSSLSessionReused() ?
+    (sslSocket->sessionIDResumed() ?
+     SSLResumeEnum::RESUME_SESSION_ID :
+     SSLResumeEnum::RESUME_TICKET) :
+    SSLResumeEnum::HANDSHAKE;
+}
 
 std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
   X509_NAME* subject = X509_get_subject_name((X509*)cert);

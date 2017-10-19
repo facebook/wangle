@@ -21,6 +21,7 @@
 #include <chrono>
 #include <string>
 
+#include <folly/SocketAddress.h>
 #include <folly/portability/Sockets.h>
 
 namespace folly {
