@@ -16,7 +16,7 @@
 #pragma once
 
 #include <string>
-#include <folly/hash/Hash.h>
+#include <folly/Hash.h>
 #include <folly/String.h>
 
 namespace wangle {
