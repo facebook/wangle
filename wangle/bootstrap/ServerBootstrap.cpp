@@ -15,7 +15,7 @@
  */
 
 #include <wangle/bootstrap/ServerBootstrap.h>
-#include <folly/executors/NamedThreadFactory.h>
+#include <folly/executors/thread_factory/NamedThreadFactory.h>
 #include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBaseManager.h>
 

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/executors/NamedThreadFactory.h>
+#include <folly/executors/thread_factory/NamedThreadFactory.h>
 #include <wangle/concurrent/ThreadFactory.h>
 
 namespace wangle {

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/executors/PriorityThreadFactory.h>
+#include <folly/executors/thread_factory/PriorityThreadFactory.h>
 #include <wangle/concurrent/ThreadFactory.h>
 
 namespace wangle {

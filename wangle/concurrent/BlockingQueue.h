@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/executors/BlockingQueue.h>
+#include <folly/executors/task_queue/BlockingQueue.h>
 
 namespace wangle {
 

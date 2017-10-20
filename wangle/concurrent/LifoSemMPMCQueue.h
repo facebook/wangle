@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <folly/executors/LifoSemMPMCQueue.h>
+#include <folly/executors/task_queue/LifoSemMPMCQueue.h>
 #include <wangle/concurrent/BlockingQueue.h>
 
 namespace wangle {
