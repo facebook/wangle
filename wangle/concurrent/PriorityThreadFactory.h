@@ -21,6 +21,4 @@
 
 namespace wangle {
 
-using folly::PriorityThreadFactory;
-
 } // wangle
