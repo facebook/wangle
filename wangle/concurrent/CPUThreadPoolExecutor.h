@@ -21,6 +21,4 @@
 
 namespace wangle {
 
-using folly::CPUThreadPoolExecutor;
-
 } // namespace wangle
