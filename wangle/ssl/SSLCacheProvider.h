@@ -30,14 +30,13 @@ public:
    * Context saved during an external cache request that is used to
    * resume the waiting client.
    */
-  typedef struct {
+  struct CacheContext {
     std::string sessionId;
     SSL_SESSION* session;
     SSLSessionCacheManager* manager;
     folly::AsyncSSLSocket* sslSocket;
-    std::unique_ptr<
-      folly::DelayedDestruction::DestructorGuard> guard;
-  } CacheContext;
+    std::unique_ptr<folly::DelayedDestruction::DestructorGuard> guard;
+  };
 
   virtual ~SSLCacheProvider() = default;
 
