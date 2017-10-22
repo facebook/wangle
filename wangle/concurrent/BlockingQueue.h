@@ -20,7 +20,6 @@
 
 namespace wangle {
 
-using folly::QueueFullException;
 template <class T>
 using BlockingQueue = folly::BlockingQueue<T>;
 
