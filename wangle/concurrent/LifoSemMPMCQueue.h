@@ -21,8 +21,4 @@
 
 namespace wangle {
 
-template <class T, folly::QueueBehaviorIfFull kBehavior =
-  folly::QueueBehaviorIfFull::THROW>
-using LifoSemMPMCQueue = folly::LifoSemMPMCQueue<T, kBehavior>;
-
 } // namespace wangle
