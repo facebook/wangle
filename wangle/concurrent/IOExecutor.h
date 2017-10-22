@@ -20,6 +20,4 @@
 
 namespace wangle {
 
-using folly::IOExecutor;
-
 } // namespace wangle
