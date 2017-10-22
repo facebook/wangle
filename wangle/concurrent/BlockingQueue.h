@@ -20,7 +20,4 @@
 
 namespace wangle {
 
-template <class T>
-using BlockingQueue = folly::BlockingQueue<T>;
-
 } // namespace wangle
