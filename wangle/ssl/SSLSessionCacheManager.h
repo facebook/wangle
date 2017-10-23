@@ -18,7 +18,7 @@
 #include <wangle/ssl/SSLCacheProvider.h>
 #include <wangle/ssl/SSLStats.h>
 
-#include <folly/EvictingCacheMap.h>
+#include <folly/container/EvictingCacheMap.h>
 #include <mutex>
 #include <folly/Hash.h>
 #include <folly/io/async/AsyncSSLSocket.h>

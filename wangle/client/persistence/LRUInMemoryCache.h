@@ -18,7 +18,7 @@
 #include <utility>
 
 #include <folly/dynamic.h>
-#include <folly/EvictingCacheMap.h>
+#include <folly/container/EvictingCacheMap.h>
 #include <folly/Optional.h>
 #include <wangle/client/persistence/PersistentCacheCommon.h>
 
