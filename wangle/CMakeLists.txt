@@ -52,7 +52,6 @@ set(WANGLE_HEADER_DIRS
   channel
   client
   codec
-  concurrent
   deprecated
   service
   ssl
