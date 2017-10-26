@@ -27,7 +27,7 @@ class ServerSocketFactory {
  public:
   virtual std::shared_ptr<folly::AsyncSocketBase> newSocket(
       folly::SocketAddress address, int backlog,
-      bool reuse, ServerSocketConfig& config) = 0;
+      bool reuse, const ServerSocketConfig& config) = 0;
 
   virtual void removeAcceptCB(
       std::shared_ptr<folly::AsyncSocketBase> sock,
@@ -46,12 +46,14 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<folly::AsyncSocketBase> newSocket(
       folly::SocketAddress address, int /*backlog*/, bool reuse,
-      ServerSocketConfig& config) override {
+      const ServerSocketConfig& config) override {
 
     auto* evb = folly::EventBaseManager::get()->getEventBase();
     std::shared_ptr<folly::AsyncServerSocket> socket(
         new folly::AsyncServerSocket(evb),
         ThreadSafeDestructor());
+    socket->setMaxNumMessagesInQueue(
+        config.maxNumPendingConnectionsPerWorker);
     socket->setReusePortEnabled(reuse);
     if (config.enableTCPFastOpen) {
       socket->setTFOEnabled(true, config.fastOpenQueueSize);
@@ -97,7 +99,7 @@ class AsyncUDPServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<folly::AsyncSocketBase> newSocket(
       folly::SocketAddress address, int /*backlog*/, bool reuse,
-      ServerSocketConfig& /*config*/) override {
+      const ServerSocketConfig& /*config*/) override {
 
     folly::EventBase* evb = folly::EventBaseManager::get()->getEventBase();
     std::shared_ptr<folly::AsyncUDPServerSocket> socket(

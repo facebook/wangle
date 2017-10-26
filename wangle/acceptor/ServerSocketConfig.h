@@ -90,6 +90,11 @@ struct ServerSocketConfig {
   uint32_t acceptBacklog{1024};
 
   /**
+   * The maximum number of pending connections each io worker thread can hold.
+   */
+  uint32_t maxNumPendingConnectionsPerWorker{1024};
+
+  /**
    * The number of milliseconds a connection can be idle before we close it.
    */
   std::chrono::milliseconds connectionIdleTimeout{600000};

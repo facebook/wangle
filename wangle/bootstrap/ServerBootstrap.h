@@ -171,6 +171,8 @@ class ServerBootstrap {
 
     std::shared_ptr<folly::AsyncServerSocket> socket(
       s.release(), AsyncServerSocketFactory::ThreadSafeDestructor());
+    socket->setMaxNumMessagesInQueue(
+        accConfig_.maxNumPendingConnectionsPerWorker);
 
     folly::via(acceptor_group_.get(), [&] {
       socket->attachEventBase(folly::EventBaseManager::get()->getEventBase());
