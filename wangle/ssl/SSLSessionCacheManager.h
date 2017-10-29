@@ -20,7 +20,7 @@
 
 #include <folly/container/EvictingCacheMap.h>
 #include <mutex>
-#include <folly/Hash.h>
+#include <folly/hash/Hash.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 
 namespace wangle {
