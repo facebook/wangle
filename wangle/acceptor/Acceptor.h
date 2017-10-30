@@ -93,7 +93,7 @@ class Acceptor :
   /**
    * Recreates ssl configs, re-reads certs
    */
-  void resetSSLContextConfigs();
+  virtual void resetSSLContextConfigs();
 
   /**
    * Dynamically add a new SSLContextConfig
