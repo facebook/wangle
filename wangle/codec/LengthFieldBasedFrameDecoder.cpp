@@ -61,7 +61,7 @@ bool LengthFieldBasedFrameDecoder::decode(Context* ctx,
   }
 
   if (frameLength > maxFrameLength_) {
-    buf.trimStart(frameLength);
+    buf.trimStartAtMost(frameLength);
     ctx->fireReadException(folly::make_exception_wrapper<std::runtime_error>(
                              "Frame larger than " +
                              folly::to<std::string>(maxFrameLength_)));
