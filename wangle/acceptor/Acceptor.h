@@ -411,6 +411,10 @@ class Acceptor :
   void setLoadShedConfig(const LoadShedConfiguration& from,
                          IConnectionCounter* counter);
 
+  // Helper function to initialize downstreamConnectionManager_
+  virtual void initDownstreamConnectionManager(folly::EventBase* eventBase);
+
+
   /**
    * Socket options to apply to the client socket
    */

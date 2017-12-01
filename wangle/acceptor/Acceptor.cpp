@@ -57,8 +57,6 @@ void
 Acceptor::init(AsyncServerSocket* serverSocket,
                EventBase* eventBase,
                SSLStats* stats) {
-  CHECK(nullptr == this->base_ || eventBase == this->base_);
-
   if (accConfig_.isSSL()) {
     if (accConfig_.allowInsecureConnectionsOnSecureServer) {
       securityProtocolCtxManager_.addPeeker(&tlsPlaintextPeekingCallback_);
@@ -93,11 +91,8 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       }
     }
   }
-  base_ = eventBase;
-  state_ = State::kRunning;
-  downstreamConnectionManager_ = ConnectionManager::makeUnique(
-    eventBase, accConfig_.connectionIdleTimeout, this);
 
+  initDownstreamConnectionManager(eventBase);
   if (serverSocket) {
     serverSocket->addAcceptCallback(this, eventBase);
 
@@ -110,6 +105,14 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       }
     }
   }
+}
+
+void Acceptor::initDownstreamConnectionManager(EventBase* eventBase) {
+  CHECK(nullptr == this->base_ || eventBase == this->base_);
+  base_ = eventBase;
+  state_ = State::kRunning;
+  downstreamConnectionManager_ = ConnectionManager::makeUnique(
+    eventBase, accConfig_.connectionIdleTimeout, this);
 }
 
 void Acceptor::resetSSLContextConfigs() {
