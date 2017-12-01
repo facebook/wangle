@@ -76,6 +76,12 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
    */
   virtual void onData(T& /* data */) {}
 
+  /**
+   * FOR TESTS ONLY!
+   * Return a unique identifier of this object.
+   */
+  uint64_t getArbitraryIdentifier();
+
  protected:
   template <typename FUNC> // FUNC: Subscriber<T, R>* -> void
   void forEachSubscriber(FUNC f) {
@@ -88,6 +94,9 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
  private:
   std::map<uint64_t, Subscriber<T, R>*> subscribers_;
   uint64_t nextSubscriptionId_{0};
+
+  // For unit tests only.
+  uint64_t identifier_{0};
 };
 
 template <typename T, typename R>

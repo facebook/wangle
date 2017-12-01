@@ -89,6 +89,8 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   std::string routingData2 = "url2";
   BroadcastHandler<int, std::string>* handler1 = nullptr;
   BroadcastHandler<int, std::string>* handler2 = nullptr;
+  uint64_t handler1Id = 0;
+  uint64_t handler2Id = 0;
   auto base = EventBaseManager::get()->getEventBase();
 
   InSequence dummy;
@@ -99,18 +101,21 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   pool->getHandler(routingData1)
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
+        handler1Id = handler1->getArbitraryIdentifier();
         handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler1 != nullptr);
+  EXPECT_NE(0, handler1Id);
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
 
   // Broadcast available for routingData1. Test that the same handler
   // is returned.
   pool->getHandler(routingData1)
       .then([&](BroadcastHandler<int, std::string>* h) {
+        EXPECT_EQ(handler1Id, h->getArbitraryIdentifier());
         EXPECT_TRUE(h == handler1);
       })
       .wait();
@@ -126,6 +131,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   pool->getHandler(routingData1)
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
+        handler1Id = handler1->getArbitraryIdentifier();
         handler1->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler1 == nullptr);
@@ -143,13 +149,14 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   pool->getHandler(routingData2)
       .then([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
+        handler2Id = handler2->getArbitraryIdentifier();
         handler2->subscribe(&subscriber);
       });
   EXPECT_TRUE(handler2 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url2")).Times(1);
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler2 != nullptr);
-  EXPECT_TRUE(handler2 != handler1);
+  EXPECT_TRUE(handler2Id != handler1Id);
   EXPECT_TRUE(pool->isBroadcasting(routingData2));
 
   // Cleanup
@@ -479,6 +486,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
   MockObservingPipelineFactory factory1(serverPool, pipelineFactory);
   MockObservingPipelineFactory factory2(serverPool, pipelineFactory);
   BroadcastHandler<int, std::string>* broadcastHandler = nullptr;
+  uint64_t broadcastHandlerId = 0;
   const std::string kUrl = "url";
 
   InSequence dummy;
@@ -491,6 +499,7 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
       .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
         broadcastHandler = pipelineFactory->getBroadcastHandler(pipeline);
+        broadcastHandlerId = broadcastHandler->getArbitraryIdentifier();
       }));
   auto pipeline1 = factory1.newPipeline(nullptr, kUrl, nullptr, nullptr);
   pipeline1->transportActive();
@@ -516,8 +525,10 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
 
     EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
         .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
-          EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
-                    broadcastHandler);
+          EXPECT_NE(
+              pipelineFactory->getBroadcastHandler(pipeline)
+                  ->getArbitraryIdentifier(),
+              broadcastHandlerId);
         }));
     auto pipeline3 = factory1.newPipeline(nullptr, kUrl, nullptr, nullptr);
     pipeline3->transportActive();
@@ -534,8 +545,10 @@ TEST_F(BroadcastPoolTest, ThreadLocalPool) {
   // handler since a different thread-local BroadcastPool is used.
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, kUrl))
       .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
-        EXPECT_NE(pipelineFactory->getBroadcastHandler(pipeline),
-                  broadcastHandler);
+        EXPECT_NE(
+            pipelineFactory->getBroadcastHandler(pipeline)
+                ->getArbitraryIdentifier(),
+            broadcastHandlerId);
       }));
   auto pipeline4 = factory2.newPipeline(nullptr, kUrl, nullptr, nullptr);
   pipeline4->transportActive();

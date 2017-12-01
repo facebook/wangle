@@ -76,4 +76,10 @@ void BroadcastHandler<T, R>::closeIfIdle() {
   }
 }
 
+template <typename T, typename R>
+uint64_t BroadcastHandler<T, R>::getArbitraryIdentifier() {
+  static std::atomic<uint64_t> identifierCounter{42};
+  return identifier_ ? identifier_ : (identifier_ = ++identifierCounter);
+}
+
 } // namespace wangle
