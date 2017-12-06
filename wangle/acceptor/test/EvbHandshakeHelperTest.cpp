@@ -18,7 +18,7 @@
 #include <chrono>
 #include <thread>
 
-#include <folly/Baton.h>
+#include <folly/synchronization/Baton.h>
 #include <folly/futures/Barrier.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/io/async/test/MockAsyncSSLSocket.h>

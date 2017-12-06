@@ -17,7 +17,7 @@
 #pragma once
 
 #include <wangle/bootstrap/ServerBootstrap-inl.h>
-#include <folly/Baton.h>
+#include <folly/synchronization/Baton.h>
 #include <wangle/channel/Pipeline.h>
 #include <iostream>
 #include <thread>

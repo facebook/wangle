@@ -19,7 +19,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <folly/Baton.h>
+#include <folly/synchronization/Baton.h>
 #include <folly/Memory.h>
 #include <folly/futures/Future.h>
 #include <wangle/client/persistence/LRUPersistentCache.h>
