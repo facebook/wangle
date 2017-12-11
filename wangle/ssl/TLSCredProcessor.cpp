@@ -109,11 +109,15 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     const std::string& fileName) {
   try {
     std::string jsonData;
-    folly::readFile(fileName.c_str(), jsonData);
+    if (!folly::readFile(fileName.c_str(), jsonData)) {
+      LOG(WARNING) << "Failed to read " << fileName
+                   << "; Ticket seeds are unavailable.";
+      return folly::none;
+    }
     folly::dynamic conf = folly::parseJson(jsonData);
     if (conf.type() != dynamic::Type::OBJECT) {
-      LOG(ERROR) << "Error parsing " << fileName << " expected object";
-      return Optional<TLSTicketKeySeeds>();
+      LOG(WARNING) << "Error parsing " << fileName << " expected object";
+      return folly::none;
     }
     TLSTicketKeySeeds seedData;
     if (conf.count("old")) {
@@ -127,8 +131,8 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     }
     return seedData;
   } catch (const std::exception& ex) {
-    LOG(ERROR) << "parsing " << fileName << " " << ex.what();
-    return Optional<TLSTicketKeySeeds>();
+    LOG(WARNING) << "Parsing " << fileName << " failed: " << ex.what();
+    return folly::none;
   }
 }
 }

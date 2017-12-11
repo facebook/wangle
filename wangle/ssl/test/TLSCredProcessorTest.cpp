@@ -69,6 +69,11 @@ TEST_F(ProcessTicketTest, ParseInvalidFile) {
   ASSERT_FALSE(seeds);
 }
 
+TEST_F(ProcessTicketTest, handleAbsentFile) {
+  auto seeds = TLSCredProcessor::processTLSTickets("/path/does/not/exist");
+  ASSERT_FALSE(seeds);
+}
+
 void updateModifiedTime(const std::string& fileName) {
   auto previous = fs::last_write_time(fileName);
   auto newTime = std::chrono::system_clock::to_time_t(
