@@ -16,6 +16,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 
 #include <folly/Optional.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
@@ -23,10 +24,13 @@
 
 namespace wangle {
 
+/**
+ * A class that monitors files related to TLS credentials that fire callbacks
+ * when they change.  Callbacks are fired in a background thread.
+ */
 class TLSCredProcessor {
  public:
   TLSCredProcessor();
-  TLSCredProcessor(const std::string& ticketFile, const std::string& certFile);
 
   ~TLSCredProcessor();
 
@@ -37,10 +41,11 @@ class TLSCredProcessor {
   void setTicketPathToWatch(const std::string& ticketFile);
 
   /**
-   * Set the cert path to watch.  Any previous cert path will stop being
-   * watched.  This is not thread safe.
+   * Set cert related files to watch.  This would include paths like
+   * cert, key, and CA.  Cert callbacks will be fired if any of these
+   * change.  Empty strings are ignored.
    */
-  void setCertPathToWatch(const std::string& certFile);
+  void setCertPathsToWatch(std::set<std::string> certFiles);
 
   void addTicketCallback(
       std::function<void(wangle::TLSTicketKeySeeds)> callback);
@@ -76,7 +81,7 @@ class TLSCredProcessor {
 
   std::unique_ptr<FilePoller> poller_;
   std::string ticketFile_;
-  std::string certFile_;
+  std::set<std::string> certFiles_;
   std::vector<std::function<void(wangle::TLSTicketKeySeeds)>> ticketCallbacks_;
   std::vector<std::function<void()>> certCallbacks_;
 };

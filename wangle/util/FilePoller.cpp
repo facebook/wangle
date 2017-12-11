@@ -115,6 +115,10 @@ void FilePoller::addFileToTrack(
     Cob yCob,
     Cob nCob,
     Condition condition) {
+  if (fileName.empty()) {
+    // ignore empty file paths
+    return;
+  }
   if (ThreadProtector::inPollerThread()) {
     LOG(ERROR) << "Adding files from a callback is disallowed";
     return;
@@ -125,6 +129,10 @@ void FilePoller::addFileToTrack(
 }
 
 void FilePoller::removeFileToTrack(const std::string& fileName) {
+  if (fileName.empty()) {
+    // ignore
+    return;
+  }
   if (ThreadProtector::inPollerThread()) {
     LOG(ERROR) << "Adding files from a callback is disallowed";
     return;

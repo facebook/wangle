@@ -85,7 +85,9 @@ void updateModifiedTime(const std::string& fileName) {
 TEST_F(ProcessTicketTest, TestUpdateTicketFile) {
   Baton<> ticketBaton;
   Baton<> certBaton;
-  TLSCredProcessor processor(ticketFile, certFile);
+  TLSCredProcessor processor;
+  processor.setTicketPathToWatch(ticketFile);
+  processor.setCertPathsToWatch({certFile});
   bool ticketUpdated = false;
   bool certUpdated = false;
   processor.addTicketCallback([&](TLSTicketKeySeeds) {
@@ -98,13 +100,29 @@ TEST_F(ProcessTicketTest, TestUpdateTicketFile) {
   });
   CHECK(writeFile(validTicketData, ticketFile.c_str()));
   updateModifiedTime(ticketFile);
-  ticketBaton.timed_wait(std::chrono::seconds(30));
+  EXPECT_TRUE(ticketBaton.timed_wait(std::chrono::seconds(30)));
   ASSERT_TRUE(ticketUpdated);
   ASSERT_FALSE(certUpdated);
   ticketUpdated = false;
   CHECK(writeFile(validTicketData, certFile.c_str()));
   updateModifiedTime(certFile);
-  certBaton.timed_wait(std::chrono::seconds(30));
+  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
   ASSERT_TRUE(certUpdated);
   ASSERT_FALSE(ticketUpdated);
+}
+
+TEST_F(ProcessTicketTest, TestMultipleCerts) {
+  Baton<> certBaton;
+  TLSCredProcessor processor;
+  processor.setCertPathsToWatch({certFile, ticketFile});
+  processor.addCertCallback([&]() {
+    certBaton.post();
+  });
+  CHECK(writeFile(validTicketData, ticketFile.c_str()));
+  updateModifiedTime(ticketFile);
+  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
+  certBaton.reset();
+  CHECK(writeFile(validTicketData, certFile.c_str()));
+  updateModifiedTime(certFile);
+  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
 }

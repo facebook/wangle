@@ -24,7 +24,7 @@ using namespace folly;
 
 namespace {
 
-constexpr std::chrono::milliseconds kTicketPollInterval =
+constexpr std::chrono::milliseconds kCredentialPollInterval =
     std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::seconds(10));
 
@@ -42,14 +42,7 @@ void insertSeeds(const folly::dynamic& keyConfig,
 namespace wangle {
 
 TLSCredProcessor::TLSCredProcessor()
-    : poller_(std::make_unique<FilePoller>(kTicketPollInterval)) {}
-
-TLSCredProcessor::TLSCredProcessor(const std::string& ticketFile,
-                                   const std::string& certFile)
-    : TLSCredProcessor() {
-  setTicketPathToWatch(ticketFile);
-  setCertPathToWatch(certFile);
-}
+    : poller_(std::make_unique<FilePoller>(kCredentialPollInterval)) {}
 
 void TLSCredProcessor::stop() {
   poller_->stop();
@@ -78,14 +71,16 @@ void TLSCredProcessor::setTicketPathToWatch(const std::string& ticketFile) {
   }
 }
 
-void TLSCredProcessor::setCertPathToWatch(const std::string& certFile) {
-  if (!certFile_.empty()) {
-    poller_->removeFileToTrack(certFile_);
+void TLSCredProcessor::setCertPathsToWatch(std::set<std::string> certFiles) {
+  for (const auto& path: certFiles_) {
+    poller_->removeFileToTrack(path);
   }
-  certFile_ = certFile;
-  if (!certFile_.empty()) {
+  certFiles_ = std::move(certFiles);
+  if (!certFiles_.empty()) {
     auto certChangedCob = [this]() { certFileUpdated(); };
-    poller_->addFileToTrack(certFile_, certChangedCob);
+    for (const auto& path: certFiles_) {
+      poller_->addFileToTrack(path, certChangedCob);
+    }
   }
 }
 
