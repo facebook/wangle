@@ -64,7 +64,7 @@ TEST_F(FilePollerTest, TestUpdateFile) {
     baton.post();
   });
   updateModifiedTime(tmpFile);
-  ASSERT_TRUE(baton.timed_wait(std::chrono::seconds(5)));
+  ASSERT_TRUE(baton.try_wait_for(std::chrono::seconds(5)));
   ASSERT_TRUE(updated);
 }
 
@@ -78,7 +78,7 @@ TEST_F(FilePollerTest, TestUpdateFileBackwards) {
     baton.post();
   });
   updateModifiedTime(tmpFile, false);
-  ASSERT_TRUE(baton.timed_wait(std::chrono::seconds(5)));
+  ASSERT_TRUE(baton.try_wait_for(std::chrono::seconds(5)));
   ASSERT_TRUE(updated);
 }
 
@@ -93,7 +93,7 @@ TEST_F(FilePollerTest, TestCreateFile) {
     baton.post();
   });
   File(creat(tmpFile.c_str(), O_RDONLY));
-  ASSERT_TRUE(baton.timed_wait(std::chrono::seconds(5)));
+  ASSERT_TRUE(baton.try_wait_for(std::chrono::seconds(5)));
   ASSERT_TRUE(updated);
 }
 
@@ -107,7 +107,7 @@ TEST_F(FilePollerTest, TestDeleteFile) {
     baton.post();
   });
   remove(tmpFile.c_str());
-  ASSERT_FALSE(baton.timed_wait(std::chrono::seconds(1)));
+  ASSERT_FALSE(baton.try_wait_for(std::chrono::seconds(1)));
   ASSERT_FALSE(updated);
 }
 

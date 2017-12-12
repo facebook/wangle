@@ -100,13 +100,13 @@ TEST_F(ProcessTicketTest, TestUpdateTicketFile) {
   });
   CHECK(writeFile(validTicketData, ticketFile.c_str()));
   updateModifiedTime(ticketFile);
-  EXPECT_TRUE(ticketBaton.timed_wait(std::chrono::seconds(30)));
+  EXPECT_TRUE(ticketBaton.try_wait_for(std::chrono::seconds(30)));
   ASSERT_TRUE(ticketUpdated);
   ASSERT_FALSE(certUpdated);
   ticketUpdated = false;
   CHECK(writeFile(validTicketData, certFile.c_str()));
   updateModifiedTime(certFile);
-  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
+  EXPECT_TRUE(certBaton.try_wait_for(std::chrono::seconds(30)));
   ASSERT_TRUE(certUpdated);
   ASSERT_FALSE(ticketUpdated);
 }
@@ -120,9 +120,9 @@ TEST_F(ProcessTicketTest, TestMultipleCerts) {
   });
   CHECK(writeFile(validTicketData, ticketFile.c_str()));
   updateModifiedTime(ticketFile);
-  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
+  EXPECT_TRUE(certBaton.try_wait_for(std::chrono::seconds(30)));
   certBaton.reset();
   CHECK(writeFile(validTicketData, certFile.c_str()));
   updateModifiedTime(certFile);
-  EXPECT_TRUE(certBaton.timed_wait(std::chrono::seconds(30)));
+  EXPECT_TRUE(certBaton.try_wait_for(std::chrono::seconds(30)));
 }

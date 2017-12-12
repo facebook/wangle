@@ -106,7 +106,7 @@ TEST_F(EvbHandshakeHelperTest, TestSuccessPath) {
   original_.getEventBase()->runInEventBaseThreadAndWait(
       [=] { evbHelper_->start(std::move(sockPtr_), &mockCb_); });
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout waiting for connectionReady callback to be called";
   }
 }
@@ -135,7 +135,7 @@ TEST_F(EvbHandshakeHelperTest, TestFailPath) {
   original_.getEventBase()->runInEventBaseThreadAndWait(
       [=] { evbHelper_->start(std::move(sockPtr_), &mockCb_); });
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for connectionError callback to be called";
   }
 }
@@ -166,7 +166,7 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
   original_.getEventBase()->runInEventBaseThreadAndWait(
       [=] { evbHelper_->start(std::move(sockPtr_), &mockCb_); });
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for startInternal to be called";
   }
 
@@ -175,7 +175,7 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
   original_.getEventBase()->runInEventBaseThreadAndWait(
       [=] { evbHelper_->dropConnection(SSLErrorEnum::DROPPED); });
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for dropConnection to be called";
   }
 
@@ -219,7 +219,7 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnectionTricky) {
   original_.getEventBase()->runInEventBaseThreadAndWait(
       [=] { evbHelper_->start(std::move(sockPtr_), &mockCb_); });
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for startInternal to be called";
   }
 
@@ -240,12 +240,11 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnectionTricky) {
 
   raceBarrier.wait();
 
-  if (!barrier.timed_wait(std::chrono::steady_clock::now() + 2s)) {
+  if (!barrier.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for connectionError to be called";
   }
 
-  if (!connectionReadyCalled.timed_wait(
-          std::chrono::steady_clock::now() + 2s)) {
+  if (!connectionReadyCalled.try_wait_for(2s)) {
     FAIL() << "Timeout while waiting for connectionReady to call";
   }
 }
