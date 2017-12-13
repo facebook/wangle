@@ -42,7 +42,7 @@ static shared_ptr<LRUPersistentCache<string, string, T>> createCache(
     std::unique_ptr<TestPersistenceLayer> persistence = nullptr) {
   using TestCache = LRUPersistentCache<string, string, T>;
   return std::make_shared<TestCache>(
-      capacity, chrono::milliseconds(syncMillis), 3, std::move(persistence));
+      capacity, std::chrono::milliseconds(syncMillis), 3, std::move(persistence));
 }
 
 class MockPersistenceLayer : public TestPersistenceLayer {
@@ -83,7 +83,7 @@ TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
   // make sure things sync even without a persistence layer
   auto cache = createCache<TypeParam>(10, 1, nullptr);
   cache->put("k0", "v0");
-  makeFuture().delayed(chrono::milliseconds(20))
+  makeFuture().delayed(std::chrono::milliseconds(20))
     .then([cache]{
         auto val = cache->get("k0");
         EXPECT_TRUE(val);
@@ -147,7 +147,7 @@ TYPED_TEST(LRUPersistentCacheTest, SetPersistenceMidPersist) {
     .WillOnce(Invoke(func));
 
   cache->setPersistence(std::move(this->persistence));
-  makeFuture().delayed(chrono::milliseconds(100)).get();
+  makeFuture().delayed(std::chrono::milliseconds(100)).get();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {
