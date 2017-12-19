@@ -20,14 +20,16 @@
 
 #include <folly/DynamicConverter.h>
 #include <folly/FBString.h>
+#include <wangle/client/ssl/SSLSession.h>
 
 namespace wangle {
 
-typedef struct SSLSessionCacheData {
+struct SSLSessionCacheData {
   folly::fbstring sessionData;
   std::chrono::time_point<std::chrono::system_clock> addedTime;
   folly::fbstring serviceIdentity;
-} SSLSessionCacheData;
+  std::shared_ptr<SSL_SESSION> sessionDuplicateTemplate;
+};
 
 } //proxygen
 

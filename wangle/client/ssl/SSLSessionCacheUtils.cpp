@@ -107,10 +107,19 @@ folly::Optional<SSLSessionCacheData> getCacheDataForSession(SSL_SESSION* sess) {
   if (serviceIdentity) {
     result.serviceIdentity = std::move(*serviceIdentity);
   }
+#ifdef WANGLE_HAVE_SSL_SESSION_DUP
+  result.sessionDuplicateTemplate =
+      std::shared_ptr<SSL_SESSION>(SSL_SESSION_dup(sess), SessionDestructor{});
+#endif
   return result;
 }
 
 SSL_SESSION* getSessionFromCacheData(const SSLSessionCacheData& data) {
+#ifdef WANGLE_HAVE_SSL_SESSION_DUP
+  if (data.sessionDuplicateTemplate) {
+    return SSL_SESSION_dup(data.sessionDuplicateTemplate.get());
+  }
+#endif
   auto result = fbStringToSession(data.sessionData);
   if (!result) {
     return nullptr;
@@ -123,11 +132,16 @@ SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone) {
   if (!toClone) {
     return nullptr;
   }
+
+#ifdef WANGLE_HAVE_SSL_SESSION_DUP
+  return SSL_SESSION_dup(toClone);
+#else
   auto sessionData = sessionToFbString(toClone);
   if (!sessionData) {
     return nullptr;
   }
   auto clone = fbStringToSession(std::move(*sessionData));
+
   if (!clone) {
     return nullptr;
   }
@@ -136,6 +150,7 @@ SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone) {
     setSessionServiceIdentity(clone, serviceIdentity.value());
   }
   return clone;
+#endif
 }
 
 }

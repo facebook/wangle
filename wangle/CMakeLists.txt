@@ -102,6 +102,12 @@ add_library(wangle
   ${WANGLE_SOURCES}
 )
 
+include(CheckLibraryExists)
+check_library_exists(ssl SSL_SESSION_dup "${OPENSSL_SSL_LIBRARY}" WANGLE_HAVE_SSL_SESSION_DUP)
+if(WANGLE_HAVE_SSL_SESSION_DUP)
+  target_compile_definitions(wangle PRIVATE WANGLE_HAVE_SSL_SESSION_DUP)
+endif()
+
 if (BUILD_SHARED_LIBS)
   set_target_properties(wangle
     PROPERTIES VERSION 1.0.0 SOVERSION 1)
