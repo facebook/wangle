@@ -16,7 +16,7 @@
 
 #include <wangle/channel/FileRegion.h>
 #include <folly/io/async/test/AsyncSocketTest.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #ifdef SPLICE_F_NONBLOCK
 using namespace folly;
@@ -57,9 +57,9 @@ struct FileRegionTest : public Test {
 };
 
 TEST_F(FileRegionTest, Basic) {
-  size_t count = 1000000000; // 1 GB
-  void* zeroBuf = calloc(1, count);
-  write(fd, zeroBuf, count);
+  const size_t count = 1000000000; // 1 GB
+  std::unique_ptr<uint8_t[]> zeroBuf = std::make_unique<uint8_t[]>(count);
+  write(fd, zeroBuf.get(), count);
 
   FileRegion fileRegion(fd, 0, count);
   auto f = fileRegion.transferTo(socket);
@@ -78,15 +78,15 @@ TEST_F(FileRegionTest, Basic) {
   size_t receivedBytes = 0;
   for (auto& buf : rcb.buffers) {
     receivedBytes += buf.length;
-    ASSERT_EQ(memcmp(buf.buffer, zeroBuf, buf.length), 0);
+    ASSERT_EQ(memcmp(buf.buffer, zeroBuf.get(), buf.length), 0);
   }
   ASSERT_EQ(receivedBytes, count);
 }
 
 TEST_F(FileRegionTest, Repeated) {
-  size_t count = 1000000;
-  void* zeroBuf = calloc(1, count);
-  write(fd, zeroBuf, count);
+  const size_t count = 1000000;
+  std::unique_ptr<uint8_t[]> zeroBuf = std::make_unique<uint8_t[]>(count);
+  write(fd, zeroBuf.get(), count);
 
   int sendCount = 1000;
 
