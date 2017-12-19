@@ -160,6 +160,7 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
         EXPECT_EQ(alternate_.getEventBase(), sock->getEventBase());
         EXPECT_EQ(alternateThreadId_, std::this_thread::get_id());
         sslSock_ = dynamic_cast<MockAsyncSSLSocket*>(sock);
+        sockPtr_.reset(sslSock_);
         barrier.post();
       }));
 
