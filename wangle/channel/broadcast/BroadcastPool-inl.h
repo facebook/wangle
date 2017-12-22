@@ -21,7 +21,11 @@ template <typename T, typename R, typename P>
 folly::Future<BroadcastHandler<T, R>*>
 BroadcastPool<T, R, P>::BroadcastManager::getHandler() {
   // getFuture() returns a completed future if we are already connected
-  auto future = sharedPromise_.getFuture();
+  // Set the executor to the InlineExecutor because subsequent code depends
+  // on the future callback being called inline to ensure that the handler
+  // is not garbage collected before use.
+  auto future = sharedPromise_.getFuture().via(
+    &folly::InlineExecutor::instance());
 
   if (connectStarted_) {
     // Either already connected, in which case the future has the handler,
@@ -101,6 +105,9 @@ folly::Future<BroadcastHandler<T, R>*> BroadcastPool<T, R, P>::getHandler(
   auto broadcastPtr = broadcast.get();
   broadcasts_.insert(std::make_pair(routingData, std::move(broadcast)));
 
+  // The executor on this future is set to be an InlineExecutor to ensure that
+  // the continuation can be run inline and satisfy the lifetime requirement
+  // on the return value of this function.
   return broadcastPtr->getHandler();
 }
 

@@ -118,6 +118,9 @@ class BroadcastPool {
    *
    * Caller should immediately subscribe to the returned BroadcastHandler
    * to prevent it from being garbage collected.
+   * Note that to ensure that this works correctly, the returned future
+   * completes on an InlineExecutor such that .then will be called inline with
+   * satisfaction of the underlying promise.
    */
   virtual folly::Future<BroadcastHandler<T, R>*> getHandler(
       const R& routingData);
