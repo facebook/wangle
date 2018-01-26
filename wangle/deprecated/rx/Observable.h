@@ -21,7 +21,7 @@
 #include <wangle/deprecated/rx/Subscription.h>
 
 #include <folly/SharedMutex.h>
-#include <folly/SmallLocks.h>
+#include <folly/synchronization/SmallLocks.h>
 #include <folly/ThreadLocal.h>
 #include <folly/small_vector.h>
 #include <folly/Executor.h>
