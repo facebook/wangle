@@ -40,14 +40,22 @@ void ServerWorkerPool::threadStarted(
 
 void ServerWorkerPool::threadStopped(
   folly::ThreadPoolExecutor::ThreadHandle* h) {
-  auto worker = [&] {
+  auto worker = [&]() -> std::shared_ptr<Acceptor> {
     Mutex::WriteHolder holder(workersMutex_.get());
     auto workerIt = workers_->find(h);
-    CHECK(workerIt != workers_->end());
+    if (workerIt == workers_->end()) {
+      // The thread handle may not be present in the map if newAcceptor() throws
+      // an exception. For example, some acceptors require TLS keys / certs to
+      // start and will throw exceptions if those files do not exist.
+      return nullptr;
+    }
     auto w = std::move(workerIt->second);
     workers_->erase(workerIt);
     return w;
   }();
+  if (!worker) {
+    return;
+  }
 
   for (auto socket : *sockets_) {
     socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
