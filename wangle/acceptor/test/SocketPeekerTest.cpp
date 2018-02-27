@@ -62,6 +62,8 @@ class SocketPeekerTest : public Test {
 MATCHER_P2(BufMatches, buf, len, "") {
   if (arg.size() != size_t(len)) {
     return false;
+  } else if (len == 0) {
+    return true;
   }
   return memcmp(buf, arg.data(), len) == 0;
 }
