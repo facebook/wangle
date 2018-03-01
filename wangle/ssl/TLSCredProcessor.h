@@ -31,6 +31,7 @@ namespace wangle {
 class TLSCredProcessor {
  public:
   TLSCredProcessor();
+  explicit TLSCredProcessor(std::chrono::milliseconds pollInterval);
 
   ~TLSCredProcessor();
 
@@ -52,6 +53,8 @@ class TLSCredProcessor {
   void addCertCallback(std::function<void()> callback);
 
   void stop();
+
+  void setPollInterval(std::chrono::milliseconds pollInterval);
 
   /**
    * This parses a TLS ticket file with the tickets and returns a

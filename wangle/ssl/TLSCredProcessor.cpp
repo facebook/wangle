@@ -44,11 +44,21 @@ namespace wangle {
 TLSCredProcessor::TLSCredProcessor()
     : poller_(std::make_unique<FilePoller>(kCredentialPollInterval)) {}
 
+TLSCredProcessor::TLSCredProcessor(std::chrono::milliseconds pollInterval)
+    : poller_(std::make_unique<FilePoller>(pollInterval)) {}
+
 void TLSCredProcessor::stop() {
   poller_->stop();
 }
 
 TLSCredProcessor::~TLSCredProcessor() { stop(); }
+
+void TLSCredProcessor::setPollInterval(std::chrono::milliseconds pollInterval) {
+  poller_->stop();
+  poller_ = std::make_unique<FilePoller>(pollInterval);
+  setTicketPathToWatch(ticketFile_);
+  setCertPathsToWatch(certFiles_);
+}
 
 void TLSCredProcessor::addTicketCallback(
     std::function<void(TLSTicketKeySeeds)> callback) {
@@ -130,4 +140,5 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     return folly::none;
   }
 }
+
 }
