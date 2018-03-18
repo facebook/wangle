@@ -24,6 +24,23 @@
 #include <folly/SocketAddress.h>
 #include <folly/portability/Sockets.h>
 
+#ifdef __APPLE__
+#define tcp_info tcp_connection_info
+#define TCP_INFO TCP_CONNECTION_INFO
+#include <netinet/tcp_fsm.h>
+#define TCP_CLOSED       TCPS_CLOSED
+#define TCP_LISTEN       TCPS_LISTEN
+#define TCP_SYN_SENT     TCPS_SYN_SENT
+#define TCP_SYN_RECEIVED TCPS_SYN_RECEIVED
+#define TCP_ESTABLISHED  TCPS_ESTABLISHED
+#define TCP_CLOSE_WAIT   TCPS_CLOSE_WAIT
+#define TCP_FIN_WAIT_1   TCPS_FIN_WAIT_1
+#define TCP_CLOSING      TCPS_CLOSING
+#define TCP_LAST_ACK     TCPS_LAST_ACK
+#define TCP_FIN_WAIT_2   TCPS_FIN_WAIT_2
+#define TCP_TIME_WAIT    TCPS_TIME_WAIT
+#endif
+
 namespace folly {
 
 class AsyncSocket;
@@ -104,18 +121,20 @@ struct TransportInfo {
    */
   int64_t ssthresh{-1};
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   /*
    * TCP information as fetched from getsockopt(2)
    */
   tcp_info tcpinfo {
-#if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
+#ifdef __APPLE__
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 // 38
+#elif __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 // 32
 #else
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 // 29
 #endif  // __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
   };
-#endif  // defined(__linux__) || defined(__FreeBSD__)
+#endif  // defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
 
   /*
    * time for setting the connection, from the moment in was accepted until it
@@ -409,7 +428,7 @@ struct TransportInfo {
    */
   static int64_t readRTT(const folly::AsyncSocket* sock);
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   /*
    * perform the getsockopt(2) syscall to fetch TCP info for a given socket
    */
