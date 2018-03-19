@@ -120,9 +120,15 @@ target_link_libraries(wangle
   ${GLOG_LIBRARIES}
   ${GFLAGS_LIBRARIES}
   ${LIBEVENT_LIBRARIES}
-  ${DOUBLE_CONVERSION_LIBRARIES}
-  ${LIBDL_LIBRARIES}
-  ${LIBRT_LIBRARIES})
+  ${DOUBLE_CONVERSION_LIBRARIES})
+
+if (LIBDL_FOUND)
+  target_link_libraries(wangle ${LIBDL_LIBRARIES})
+endif ()
+
+if (LIBRT_FOUND)
+  target_link_libraries(wangle ${LIBRT_LIBRARIES})
+endif ()
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
