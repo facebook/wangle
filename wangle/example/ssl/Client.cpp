@@ -40,7 +40,7 @@ DEFINE_string(cert_path, "", "Path to client cert pem");
 DEFINE_string(key_path, "", "Path to client cert key pem");
 DEFINE_string(ca_path, "", "Path to trusted CA file");
 
-const std::string SVC_IDENTITY = "test_client";
+const std::string SESSION_KEY = "test_client";
 
 /**
  * This is meant to be a simple client that can be configured for SSL or
@@ -93,8 +93,7 @@ class EchoClientBootstrap : public ClientBootstrap<EchoPipeline> {
   virtual void makePipeline(std::shared_ptr<folly::AsyncSocket> socket) {
     auto sslSock = socket->getUnderlyingTransport<AsyncSSLSocket>();
     if (sslSock) {
-      // service identity ends up being the session cache key
-      sslSock->setServiceIdentity(SVC_IDENTITY);
+      sslSock->setSessionKey(SESSION_KEY);
     }
     ClientBootstrap<EchoPipeline>::makePipeline(std::move(socket));
   }
@@ -140,10 +139,9 @@ int main(int argc, char** argv) {
     auto ctx = createSSLContext();
     // attach the context to the cache
     if (cache) {
-      // service identity acts as the session cache key
       wangle::SSLSessionCallbacks::attachCallbacksToContext(
         ctx->getSSLCtx(), cache.get());
-      auto session = cache->getSSLSession(SVC_IDENTITY);
+      auto session = cache->getSSLSession(SESSION_KEY);
       if (session) {
         VLOG(0) << "Reusing session";
         client.sslSession(session.release());

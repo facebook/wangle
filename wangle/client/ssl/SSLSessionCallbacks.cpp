@@ -57,9 +57,9 @@ SSLSessionCallbacks* SSLSessionCallbacks::getCacheFromContext(SSL_CTX* ctx) {
 }
 
 // static
-std::string SSLSessionCallbacks::getServiceIdentityFromSSL(SSL* ssl) {
+std::string SSLSessionCallbacks::getSessionKeyFromSSL(SSL* ssl) {
   auto sock = folly::AsyncSSLSocket::getFromSSL(ssl);
-  return sock ? sock->getServiceIdentity() : "";
+  return sock ? sock->getSessionKey() : "";
 }
 
 // static
@@ -67,14 +67,14 @@ int SSLSessionCallbacks::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
   SSLSessionPtr sessionPtr(session);
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
   auto sslSessionCache = getCacheFromContext(ctx);
-  std::string identity = getServiceIdentityFromSSL(ssl);
-  if (identity.empty()) {
+  std::string sessionKey = getSessionKeyFromSSL(ssl);
+  if (sessionKey.empty()) {
     const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
-    identity = name ? name : "";
+    sessionKey = name ? name : "";
   }
-  if (!identity.empty()) {
-    setSessionServiceIdentity(session, identity);
-    sslSessionCache->setSSLSession(identity, std::move(sessionPtr));
+  if (!sessionKey.empty()) {
+    setSessionServiceIdentity(session, sessionKey);
+    sslSessionCache->setSSLSession(sessionKey, std::move(sessionPtr));
     return 1;
   }
   return -1;

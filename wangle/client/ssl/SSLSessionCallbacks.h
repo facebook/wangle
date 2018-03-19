@@ -86,7 +86,7 @@ class SSLSessionCallbacks {
 
  private:
 
-  static std::string getServiceIdentityFromSSL(SSL* ssl);
+  static std::string getSessionKeyFromSSL(SSL* ssl);
 
   static int newSessionCallback(SSL* ssl, SSL_SESSION* session);
 
