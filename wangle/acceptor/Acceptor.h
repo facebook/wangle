@@ -432,6 +432,8 @@ class Acceptor :
 
   wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
 
+  std::shared_ptr<SSLCacheProvider> cacheProvider_;
+
  private:
 
   // Forbidden copy constructor and assignment opererator
@@ -448,7 +450,6 @@ class Acceptor :
   bool forceShutdownInProgress_{false};
   LoadShedConfiguration loadShedConfig_;
   IConnectionCounter* connectionCounter_{nullptr};
-  std::shared_ptr<SSLCacheProvider> cacheProvider_;
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 };
 
