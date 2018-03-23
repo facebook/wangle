@@ -106,7 +106,6 @@ struct TransportInfo {
 
 #ifdef __APPLE__
   typedef tcp_connection_info tcp_info;
-  static const int TCP_INFO = TCP_CONNECTION_INFO;
 #endif
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)

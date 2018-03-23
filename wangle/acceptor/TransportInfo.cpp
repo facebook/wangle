@@ -86,6 +86,10 @@ int64_t TransportInfo::readRTT(const folly::AsyncSocket* sock) {
 #endif
 }
 
+#ifdef __APPLE__
+#define TCP_INFO TCP_CONNECTION_INFO;
+#endif
+
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
 bool TransportInfo::readTcpInfo(tcp_info* tcpinfo,
                                 const folly::AsyncSocket* sock) {
