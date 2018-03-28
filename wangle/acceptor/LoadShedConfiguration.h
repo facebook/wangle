@@ -162,6 +162,13 @@ class LoadShedConfiguration {
   }
   std::chrono::milliseconds getLoadUpdatePeriod() const { return period_; }
 
+  void setLoadSheddingEnabled(bool enabled) {
+    loadSheddingEnabled_ = enabled;
+  }
+  bool getLoadSheddingEnabled() const {
+    return loadSheddingEnabled_;
+  }
+
   bool isWhitelisted(const folly::SocketAddress& addr) const;
 
  private:
@@ -178,6 +185,7 @@ class LoadShedConfiguration {
   double minCpuIdle_{0.0};
   uint64_t cpuUsageExceedWindowSize_{0};
   std::chrono::milliseconds period_;
+  bool loadSheddingEnabled_{true};
 };
 
 } // namespace wangle
