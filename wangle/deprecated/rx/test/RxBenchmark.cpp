@@ -126,27 +126,27 @@ void notifyInlineObservers(uint iters, int N) {
   }
 }
 
-BENCHMARK_PARAM(subscribeAndUnsubscribe, 1);
-BENCHMARK_RELATIVE_PARAM(subscribe, 1);
-BENCHMARK_RELATIVE_PARAM(observe, 1);
-BENCHMARK_RELATIVE_PARAM(inlineObserve, 1);
+BENCHMARK_PARAM(subscribeAndUnsubscribe, 1)
+BENCHMARK_RELATIVE_PARAM(subscribe, 1)
+BENCHMARK_RELATIVE_PARAM(observe, 1)
+BENCHMARK_RELATIVE_PARAM(inlineObserve, 1)
 
 BENCHMARK_DRAW_LINE();
 
-BENCHMARK_PARAM(subscribeAndUnsubscribe, 1000);
-BENCHMARK_RELATIVE_PARAM(subscribe, 1000);
-BENCHMARK_RELATIVE_PARAM(observe, 1000);
-BENCHMARK_RELATIVE_PARAM(inlineObserve, 1000);
+BENCHMARK_PARAM(subscribeAndUnsubscribe, 1000)
+BENCHMARK_RELATIVE_PARAM(subscribe, 1000)
+BENCHMARK_RELATIVE_PARAM(observe, 1000)
+BENCHMARK_RELATIVE_PARAM(inlineObserve, 1000)
 
 BENCHMARK_DRAW_LINE();
 
-BENCHMARK_PARAM(notifySubscribers, 1);
-BENCHMARK_RELATIVE_PARAM(notifyInlineObservers, 1);
+BENCHMARK_PARAM(notifySubscribers, 1)
+BENCHMARK_RELATIVE_PARAM(notifyInlineObservers, 1)
 
 BENCHMARK_DRAW_LINE();
 
-BENCHMARK_PARAM(notifySubscribers, 1000);
-BENCHMARK_RELATIVE_PARAM(notifyInlineObservers, 1000);
+BENCHMARK_PARAM(notifySubscribers, 1000)
+BENCHMARK_RELATIVE_PARAM(notifyInlineObservers, 1000)
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);

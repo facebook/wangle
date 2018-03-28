@@ -31,4 +31,4 @@ class SessionDestructor {
 
 typedef std::unique_ptr<SSL_SESSION, SessionDestructor> SSLSessionPtr;
 
-};
+}
