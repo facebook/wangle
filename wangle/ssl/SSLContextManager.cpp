@@ -565,7 +565,9 @@ SSLContextManager::ctxSetupByOpensslFeature(
   // NPN (Next Protocol Negotiation)
   if (!ctxConfig.nextProtocols.empty()) {
 #ifdef OPENSSL_NPN_NEGOTIATED
-    sslCtx->setRandomizedAdvertisedNextProtocols(ctxConfig.nextProtocols);
+    sslCtx->setRandomizedAdvertisedNextProtocols(
+        ctxConfig.nextProtocols,
+        SSLContext::NextProtocolType::ALPN);
 #else
     OPENSSL_MISSING_FEATURE(NPN);
 #endif
