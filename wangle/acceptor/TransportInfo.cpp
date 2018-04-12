@@ -26,17 +26,29 @@ using std::string;
 namespace wangle {
 
 bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   if (!TransportInfo::readTcpInfo(&tcpinfo, sock)) {
     tcpinfoErrno = errno;
     return false;
   }
+#ifdef __APPLE__
+  rtt = microseconds(tcpinfo.tcpi_srtt);
+#else
   rtt = microseconds(tcpinfo.tcpi_rtt);
+#endif
   rtt_var = tcpinfo.tcpi_rttvar;
+#ifdef __APPLE__
+  rtx_tm = -1;
+#else
   rtx_tm = tcpinfo.tcpi_retransmits;
+#endif
   rto = tcpinfo.tcpi_rto;
   cwnd = tcpinfo.tcpi_snd_cwnd;
+#ifdef __APPLE__
+  mss = -1;
+#else
   mss = tcpinfo.tcpi_snd_mss;
+#endif
   ssthresh = tcpinfo.tcpi_snd_ssthresh;
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
   rtx = tcpinfo.tcpi_total_retrans;
@@ -59,21 +71,29 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
 }
 
 int64_t TransportInfo::readRTT(const folly::AsyncSocket* sock) {
-#if defined(__linux__) || defined(__FreeBSD__)
-  struct tcp_info tcpinfo;
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+  tcp_info tcpinfo;
   if (!TransportInfo::readTcpInfo(&tcpinfo, sock)) {
     return -1;
   }
+#endif
+#if defined(__linux__) || defined(__FreeBSD__)
   return tcpinfo.tcpi_rtt;
+#elif defined(__APPLE__)
+  return tcpinfo.tcpi_srtt;
 #else
   return -1;
 #endif
 }
 
-#if defined(__linux__) || defined(__FreeBSD__)
-bool TransportInfo::readTcpInfo(struct tcp_info* tcpinfo,
+#ifdef __APPLE__
+#define TCP_INFO TCP_CONNECTION_INFO
+#endif
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+bool TransportInfo::readTcpInfo(tcp_info* tcpinfo,
                                 const folly::AsyncSocket* sock) {
-  socklen_t len = sizeof(struct tcp_info);
+  socklen_t len = sizeof(tcp_info);
   if (!sock) {
     return false;
   }
