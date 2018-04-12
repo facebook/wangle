@@ -69,7 +69,7 @@ MATCHER_P2(BufMatches, buf, len, "") {
 }
 
 MATCHER_P2(IOBufMatches, buf, len, "") {
-  return folly::IOBufEqual()(arg, folly::IOBuf::copyBuffer(buf, len));
+  return folly::IOBufEqualTo()(arg, folly::IOBuf::copyBuffer(buf, len));
 }
 
 TEST_F(SocketPeekerTest, TestPeekSuccess) {
