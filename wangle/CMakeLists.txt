@@ -27,7 +27,15 @@ set(LIB_INSTALL_DIR lib CACHE STRING
 set(CMAKE_INSTALL_DIR lib/cmake/wangle CACHE STRING
     "The subdirectory where CMake package config files should be installed")
 
-find_package(Folly REQUIRED)
+# Try finding folly via its installed CMake configuration file first.
+# This should work if folly was built with CMake.
+find_package(folly CONFIG)
+if (NOT folly_FOUND)
+  # Look for folly using our FindFolly.cmake module.  This may work if the
+  # folly was built with its older autoconf build files rather than with CMake.
+  find_package(Folly MODULE REQUIRED)
+endif()
+
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context)
 find_package(OpenSSL REQUIRED)
 find_package(Glog REQUIRED)
