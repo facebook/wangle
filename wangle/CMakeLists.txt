@@ -27,7 +27,6 @@ find_package(Gflags REQUIRED)
 find_package(Libevent REQUIRED)
 find_package(DoubleConversion REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Libdl)
 if (UNIX AND NOT APPLE)
   find_package(Librt)
 endif()
@@ -121,7 +120,7 @@ target_link_libraries(wangle
   ${GFLAGS_LIBRARIES}
   ${LIBEVENT_LIBRARIES}
   ${DOUBLE_CONVERSION_LIBRARIES}
-  ${LIBDL_LIBRARIES}
+  ${CMAKE_DL_LIBS}
   ${LIBRT_LIBRARIES})
 
 install(TARGETS wangle DESTINATION lib)
