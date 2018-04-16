@@ -104,18 +104,16 @@ struct TransportInfo {
    */
   int64_t ssthresh{-1};
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#ifdef __APPLE__
+  typedef tcp_connection_info tcp_info;
+#endif
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   /*
    * TCP information as fetched from getsockopt(2)
    */
-  tcp_info tcpinfo {
-#if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 // 32
-#else
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 // 29
-#endif  // __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
-  };
-#endif  // defined(__linux__) || defined(__FreeBSD__)
+  tcp_info tcpinfo {};
+#endif  // defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
 
   /*
    * time for setting the connection, from the moment in was accepted until it
@@ -409,11 +407,11 @@ struct TransportInfo {
    */
   static int64_t readRTT(const folly::AsyncSocket* sock);
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   /*
    * perform the getsockopt(2) syscall to fetch TCP info for a given socket
    */
-  static bool readTcpInfo(struct tcp_info* tcpinfo,
+  static bool readTcpInfo(tcp_info* tcpinfo,
                           const folly::AsyncSocket* sock);
 #endif
 };
