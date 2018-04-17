@@ -17,7 +17,6 @@
 #include <gflags/gflags.h>
 
 #include <folly/init/Init.h>
-
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/codec/LineBasedFrameDecoder.h>
@@ -69,7 +68,7 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
 };
 
 int main(int argc, char** argv) {
-  folly::init(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   ServerBootstrap<TelnetPipeline> server;
   server.childPipeline(std::make_shared<TelnetPipelineFactory>());

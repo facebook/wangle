@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <iostream>
+
 #include <folly/init/Init.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/SSLOptions.h>
 #include <folly/portability/GFlags.h>
 #include <folly/ssl/Init.h>
 #include <folly/io/async/DelayedDestruction.h>
-
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -121,7 +122,7 @@ std::shared_ptr<SSLContext> createSSLContext() {
 } // namespace
 
 int main(int argc, char** argv) {
-  folly::init(&argc, &argv);
+  folly::Init init(&argc, &argv);
   folly::ssl::init();
 
   // an in memory ssl session cache used for caching sessions

@@ -16,6 +16,7 @@
 
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
 #include <wangle/service/Service.h>
 #include <wangle/service/ExecutorFilter.h>
 #include <wangle/service/ServerDispatcher.h>
@@ -86,7 +87,7 @@ class RpcPipelineFactory : public PipelineFactory<SerializePipeline> {
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   ServerBootstrap<SerializePipeline> server;
   server.childPipeline(std::make_shared<RpcPipelineFactory>());

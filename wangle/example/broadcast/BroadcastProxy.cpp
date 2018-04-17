@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
 #include <wangle/bootstrap/AcceptRoutingHandler.h>
 #include <wangle/bootstrap/RoutingDataHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
@@ -208,7 +210,7 @@ class SimpleObservingPipelineFactory
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   auto serverPool = std::make_shared<SimpleServerPool>();
 

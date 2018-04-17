@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gflags/gflags.h>
+
 #include <iostream>
 
+#include <gflags/gflags.h>
+
+#include <folly/init/Init.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -64,7 +67,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   ClientBootstrap<EchoPipeline> client;
   client.group(std::make_shared<folly::IOThreadPoolExecutor>(1));

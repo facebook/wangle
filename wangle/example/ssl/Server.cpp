@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <folly/init/Init.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/portability/GFlags.h>
@@ -114,7 +115,7 @@ void initCredProcessorCallbacks(
 } // namespace
 
 int main(int argc, char** argv) {
-  folly::init(&argc, &argv);
+  folly::Init init(&argc, &argv);
   folly::ssl::init();
 
   ServerSocketConfig cfg;

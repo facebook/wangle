@@ -16,6 +16,7 @@
 
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -140,7 +141,7 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   ServerBootstrap<DefaultPipeline> server;
   server.childPipeline(std::make_shared<ProxyFrontendPipelineFactory>(

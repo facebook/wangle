@@ -16,6 +16,7 @@
 
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
 #include <wangle/bootstrap/AcceptRoutingHandler.h>
 #include <wangle/bootstrap/RoutingDataHandler.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
@@ -101,7 +102,7 @@ class ServerPipelineFactory
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   auto routingHandlerFactory =
       std::make_shared<NaiveRoutingDataHandlerFactory>();

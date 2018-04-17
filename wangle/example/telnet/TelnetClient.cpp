@@ -15,10 +15,10 @@
  */
 
 #include <iostream>
+
 #include <gflags/gflags.h>
 
 #include <folly/init/Init.h>
-
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -65,7 +65,7 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
 };
 
 int main(int argc, char** argv) {
-  folly::init(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   ClientBootstrap<TelnetPipeline> client;
   client.group(std::make_shared<folly::IOThreadPoolExecutor>(1));

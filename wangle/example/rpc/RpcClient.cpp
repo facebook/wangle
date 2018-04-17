@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <gflags/gflags.h>
 
+#include <folly/init/Init.h>
 #include <wangle/service/Service.h>
 #include <wangle/service/ExpiringFilter.h>
 #include <wangle/service/ClientDispatcher.h>
@@ -94,7 +96,7 @@ class BonkMultiplexClientDispatcher
 };
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  folly::Init init(&argc, &argv);
 
   /**
    * For specific protocols, all the following code would be wrapped
