@@ -21,6 +21,7 @@
 #include <folly/json.h>
 #include <folly/ScopeGuard.h>
 #include <folly/portability/SysTime.h>
+#include <folly/system/ThreadName.h>
 #include <functional>
 
 namespace wangle {
@@ -71,6 +72,8 @@ bool LRUPersistentCache<K, V, MutexT>::hasPendingUpdates() {
 
 template<typename K, typename V, typename MutexT>
 void* LRUPersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
+  folly::setThreadName("lru-sync-thread");
+
   auto self = static_cast<LRUPersistentCache<K, V, MutexT>*>(arg);
   self->sync();
   return nullptr;
