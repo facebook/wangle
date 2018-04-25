@@ -22,13 +22,11 @@ namespace wangle {
 
 class MockSSLSessionCallbacks : public SSLSessionCallbacks {
  public:
-  GMOCK_METHOD2_(, noexcept,, setSSLSessionInternal,
-    void(const std::string&, SSL_SESSION*));
+  MOCK_METHOD2(setSSLSessionInternal, void(const std::string&, SSL_SESSION*));
 
-  GMOCK_METHOD1_(, const,, getSSLSessionInternal,
-    SSL_SESSION*(const std::string&));
+  MOCK_CONST_METHOD1(getSSLSessionInternal, SSL_SESSION*(const std::string&));
 
-  GMOCK_METHOD1_(, noexcept,, removeSSLSession, bool(const std::string&));
+  MOCK_METHOD1(removeSSLSessionInternal, bool(const std::string&));
 
   SSLSessionPtr getSSLSession(
       const std::string& host) const noexcept override {
@@ -39,6 +37,10 @@ class MockSSLSessionCallbacks : public SSLSessionCallbacks {
       const std::string& host,
       SSLSessionPtr session) noexcept override {
     setSSLSessionInternal(host, session.release());
+  }
+
+  bool removeSSLSession(const std::string& identity) noexcept override {
+    return removeSSLSessionInternal(identity);
   }
 };
 

@@ -114,7 +114,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekNonSuccess) {
     .WillOnce(Return(nullptr));
   EXPECT_CALL(mockPeekCallback2_, getHelperInternal(_, _, _, _))
     .WillOnce(Return(nullptr));
-  EXPECT_CALL(callback_, connectionError(_, _, _));
+  EXPECT_CALL(callback_, connectionError_(_, _, _));
   helper_->peekSuccess(buf);
 }
 
@@ -138,7 +138,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
   EXPECT_CALL(*sslSock_, setReadCB(_))
     .WillOnce(SaveArg<0>(&rcb));
   EXPECT_CALL(*sslSock_, setReadCB(nullptr));
-  EXPECT_CALL(callback_, connectionError(_, _, _));
+  EXPECT_CALL(callback_, connectionError_(_, _, _));
   helper_->start(std::move(sockPtr_), &callback_);
   ASSERT_TRUE(rcb);
   rcb->readEOF();
@@ -146,7 +146,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeekErr) {
   helper_->start(std::move(sockPtr_), &callback_);
-  EXPECT_CALL(callback_, connectionError(_, _, _));
+  EXPECT_CALL(callback_, connectionError_(_, _, _));
   helper_->peekError(AsyncSocketException(
         AsyncSocketException::AsyncSocketExceptionType::END_OF_FILE,
           "Unit test"));
@@ -159,7 +159,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestDropDuringPeek) {
     helper_->peekError(AsyncSocketException(
         AsyncSocketException::AsyncSocketExceptionType::UNKNOWN, "unit test"));
   }));
-  EXPECT_CALL(callback_, connectionError(_, _, _));
+  EXPECT_CALL(callback_, connectionError_(_, _, _));
   helper_->dropConnection();
 }
 

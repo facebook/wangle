@@ -34,15 +34,18 @@ class MockHandshakeHelperCallback
       public UniquePtrTranslationPolicy<
           MockHandshakeHelperCallback<UniquePtrTranslationPolicy>> {
  public:
-  GMOCK_METHOD3_(
-      ,
-      noexcept,
-      ,
-      connectionError,
+  MOCK_METHOD3(
+      connectionError_,
       void(
-          folly::AsyncTransportWrapper* transport,
-          folly::exception_wrapper ex,
-          folly::Optional<wangle::SSLErrorEnum> sslErr));
+          folly::AsyncTransportWrapper*,
+          folly::exception_wrapper,
+          folly::Optional<wangle::SSLErrorEnum>));
+  void connectionError(
+      folly::AsyncTransportWrapper* transport,
+      folly::exception_wrapper ex,
+      folly::Optional<wangle::SSLErrorEnum> sslErr) noexcept override {
+    connectionError_(transport, ex, sslErr);
+  }
 
   void connectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,
@@ -76,14 +79,11 @@ class MockHandshakeHelper
 template <template <class> class P>
 struct UseSharedPtrPolicy<MockHandshakeHelper<P>> {
  public:
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD2(
       startInternal,
       void(
-          std::shared_ptr<folly::AsyncSSLSocket> sock,
-          wangle::AcceptorHandshakeHelper::Callback* callback));
+          std::shared_ptr<folly::AsyncSSLSocket>,
+          wangle::AcceptorHandshakeHelper::Callback*));
 
   void dispatchStart(
       folly::AsyncSSLSocket::UniquePtr sock,
@@ -96,14 +96,9 @@ struct UseSharedPtrPolicy<MockHandshakeHelper<P>> {
 template <template <class> class P>
 struct UseOwnedRawPtrPolicy<MockHandshakeHelper<P>> {
  public:
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD2(
       startInternal,
-      void(
-          folly::AsyncSSLSocket* sock,
-          wangle::AcceptorHandshakeHelper::Callback* callback));
+      void(folly::AsyncSSLSocket*, wangle::AcceptorHandshakeHelper::Callback*));
 
   void dispatchStart(
       folly::AsyncSSLSocket::UniquePtr sock,
@@ -114,16 +109,13 @@ struct UseOwnedRawPtrPolicy<MockHandshakeHelper<P>> {
 
 template <template <class> class P>
 struct UseSharedPtrPolicy<MockHandshakeHelperCallback<P>> {
-  GMOCK_METHOD4_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD4(
       connectionReadyInternal,
       void(
-          std::shared_ptr<folly::AsyncTransportWrapper> transport,
-          std::string nextProtocol,
-          SecureTransportType secureTransportType,
-          folly::Optional<wangle::SSLErrorEnum> sslErr));
+          std::shared_ptr<folly::AsyncTransportWrapper>,
+          std::string,
+          SecureTransportType,
+          folly::Optional<wangle::SSLErrorEnum>));
 
   void dispatchConnectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,
@@ -140,16 +132,13 @@ struct UseSharedPtrPolicy<MockHandshakeHelperCallback<P>> {
 
 template <template <class> class P>
 struct UseOwnedRawPtrPolicy<MockHandshakeHelperCallback<P>> {
-  GMOCK_METHOD4_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD4(
       connectionReadyInternalRaw,
       void(
-          folly::AsyncTransportWrapper* transport,
-          std::string nextProtocol,
-          SecureTransportType secureTransportType,
-          folly::Optional<wangle::SSLErrorEnum> sslErr));
+          folly::AsyncTransportWrapper*,
+          std::string,
+          SecureTransportType,
+          folly::Optional<wangle::SSLErrorEnum>));
 
   void dispatchConnectionReady(
       folly::AsyncTransportWrapper::UniquePtr transport,

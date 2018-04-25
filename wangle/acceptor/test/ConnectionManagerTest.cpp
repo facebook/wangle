@@ -50,7 +50,10 @@ class MockConnection : public ManagedConnection {
           }));
   }
 
-  GMOCK_METHOD0_(, noexcept,, timeoutExpired, void());
+  MOCK_METHOD0(timeoutExpired_, void());
+  void timeoutExpired() noexcept override {
+    timeoutExpired_();
+  }
 
   MOCK_CONST_METHOD1(describe, void(std::ostream& os));
 

@@ -115,7 +115,7 @@ TEST_F(EvbHandshakeHelperTest, TestFailPath) {
   folly::Baton<> barrier;
 
   EXPECT_NE(nullptr, sockPtr_->getEventBase());
-  EXPECT_CALL(mockCb_, connectionError(_, _, _))
+  EXPECT_CALL(mockCb_, connectionError_(_, _, _))
       .WillOnce(Invoke([&](auto sock, auto&&, auto&&) {
         EXPECT_EQ(original_.getEventBase(), sock->getEventBase());
         EXPECT_EQ(originalThreadId_, std::this_thread::get_id());
@@ -152,8 +152,8 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
   }));
 
   AsyncTransportWrapper* transport;
-  EXPECT_CALL(mockCb_, connectionError(_, _, _))
-    .WillOnce(SaveArg<0>(&transport));
+  EXPECT_CALL(mockCb_, connectionError_(_, _, _))
+      .WillOnce(SaveArg<0>(&transport));
 
   EXPECT_CALL(*mockHelper_, startInternal(_, _))
       .WillOnce(Invoke([&](auto sock, auto&&) {
@@ -192,9 +192,9 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnectionTricky) {
   // One of these two methods will be called depending on the race, but
   // not both of them.
   bool called = false;
-  EXPECT_CALL(mockCb_, connectionError(_, _, _))
+  EXPECT_CALL(mockCb_, connectionError_(_, _, _))
       .Times(AtMost(1))
-      .WillOnce(Invoke([&](auto, auto, auto){
+      .WillOnce(Invoke([&](auto, auto, auto) {
         EXPECT_FALSE(called);
         called = true;
         barrier.post();
