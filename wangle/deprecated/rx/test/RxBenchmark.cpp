@@ -26,8 +26,8 @@ static std::unique_ptr<Observer<int>> makeObserver() {
   return Observer<int>::create([&] (int) {});
 }
 
-void subscribeImpl(uint iters, int N, bool countUnsubscribe) {
-  for (uint iter = 0; iter < iters; iter++) {
+void subscribeImpl(uint32_t iters, int N, bool countUnsubscribe) {
+  for (uint32_t iter = 0; iter < iters; iter++) {
     BenchmarkSuspender bs;
     Subject<int> subject;
     std::vector<std::unique_ptr<Observer<int>>> observers;
@@ -47,16 +47,16 @@ void subscribeImpl(uint iters, int N, bool countUnsubscribe) {
   }
 }
 
-void subscribeAndUnsubscribe(uint iters, int N) {
+void subscribeAndUnsubscribe(uint32_t iters, int N) {
   subscribeImpl(iters, N, true);
 }
 
-void subscribe(uint iters, int N) {
+void subscribe(uint32_t iters, int N) {
   subscribeImpl(iters, N, false);
 }
 
-void observe(uint iters, int N) {
-  for (uint iter = 0; iter < iters; iter++) {
+void observe(uint32_t iters, int N) {
+  for (uint32_t iter = 0; iter < iters; iter++) {
     BenchmarkSuspender bs;
     Subject<int> subject;
     std::vector<std::unique_ptr<Observer<int>>> observers;
@@ -71,8 +71,8 @@ void observe(uint iters, int N) {
   }
 }
 
-void inlineObserve(uint iters, int N) {
-  for (uint iter = 0; iter < iters; iter++) {
+void inlineObserve(uint32_t iters, int N) {
+  for (uint32_t iter = 0; iter < iters; iter++) {
     BenchmarkSuspender bs;
     Subject<int> subject;
     std::vector<Observer<int>*> observers;
@@ -90,8 +90,8 @@ void inlineObserve(uint iters, int N) {
   }
 }
 
-void notifySubscribers(uint iters, int N) {
-  for (uint iter = 0; iter < iters; iter++) {
+void notifySubscribers(uint32_t iters, int N) {
+  for (uint32_t iter = 0; iter < iters; iter++) {
     BenchmarkSuspender bs;
     Subject<int> subject;
     std::vector<std::unique_ptr<Observer<int>>> observers;
@@ -109,8 +109,8 @@ void notifySubscribers(uint iters, int N) {
   }
 }
 
-void notifyInlineObservers(uint iters, int N) {
-  for (uint iter = 0; iter < iters; iter++) {
+void notifyInlineObservers(uint32_t iters, int N) {
+  for (uint32_t iter = 0; iter < iters; iter++) {
     BenchmarkSuspender bs;
     Subject<int> subject;
     std::vector<Observer<int>*> observers;
