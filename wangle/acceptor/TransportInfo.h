@@ -95,6 +95,11 @@ struct TransportInfo {
   int64_t cwnd{-1};
 
   /*
+   * The congestion window size in bytes
+   */
+  int64_t cwndBytes{-1};
+
+  /*
    * MSS
    */
   int64_t mss{-1};

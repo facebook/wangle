@@ -32,17 +32,24 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
     return false;
   }
 #ifdef __APPLE__
-  rtt = microseconds(tcpinfo.tcpi_srtt);
+  rtt = microseconds(tcpinfo.tcpi_srtt * 1000);
+  rtt_var = tcpinfo.tcpi_rttvar * 1000;
+  rto = tcpinfo.tcpi_rto * 1000;
   rtx_tm = -1;
-  mss = -1;
+  mss = tcpinfo.tcpi_maxseg;
+  cwndBytes = tcpinfo.tcpi_snd_cwnd;
+  if (mss > 0) {
+    cwnd = (cwndBytes + mss - 1) / mss;
+  }
 #else
   rtt = microseconds(tcpinfo.tcpi_rtt);
-  rtx_tm = tcpinfo.tcpi_retransmits;
-  mss = tcpinfo.tcpi_snd_mss;
-#endif
   rtt_var = tcpinfo.tcpi_rttvar;
   rto = tcpinfo.tcpi_rto;
+  rtx_tm = tcpinfo.tcpi_retransmits;
+  mss = tcpinfo.tcpi_snd_mss;
   cwnd = tcpinfo.tcpi_snd_cwnd;
+  cwndBytes = cwnd * mss;
+#endif // __APPLE__
   ssthresh = tcpinfo.tcpi_snd_ssthresh;
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
   rtx = tcpinfo.tcpi_total_retrans;
