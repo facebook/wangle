@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project("wangle" VERSION 1.0.0 LANGUAGES CXX C)
 
 add_compile_options(-std=c++1y)
-add_compile_options(-fPIC)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
 # When installing Folly & Wangle in a non-default prefix, this will let
