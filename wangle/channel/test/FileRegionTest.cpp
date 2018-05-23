@@ -71,7 +71,7 @@ TEST_F(FileRegionTest, Basic) {
 
   // Let the reads run to completion
   socket->shutdownWrite();
-  evb.loop();
+  evb.loopIgnoreKeepAlive();
 
   ASSERT_EQ(rcb.state, STATE_SUCCEEDED);
 
@@ -100,7 +100,7 @@ TEST_F(FileRegionTest, Repeated) {
 
   // Let the reads run to completion
   socket->shutdownWrite();
-  evb.loop();
+  evb.loopIgnoreKeepAlive();
 
   ASSERT_EQ(rcb.state, STATE_SUCCEEDED);
 
