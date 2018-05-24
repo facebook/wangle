@@ -204,7 +204,9 @@ bool Acceptor::canAccept(const SocketAddress& address) {
   if (!activeConnExceeded && !totalConnExceeded) {
     return true;
   }
-
+  LOG_EVERY_N(ERROR, 1000) << "shedding connection because activeConnExceeded="
+                           << activeConnExceeded << "totalConnExceeded="
+                           << totalConnExceeded;
   VLOG(4) << address.describe() << " not whitelisted";
   return false;
 }
