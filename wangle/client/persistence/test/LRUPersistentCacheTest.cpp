@@ -83,13 +83,12 @@ TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
   // make sure things sync even without a persistence layer
   auto cache = createCache<TypeParam>(10, 1, nullptr);
   cache->put("k0", "v0");
-  makeFuture().delayed(std::chrono::milliseconds(20))
-    .then([cache]{
-        auto val = cache->get("k0");
-        EXPECT_TRUE(val);
-        EXPECT_EQ(*val, "v0");
-        EXPECT_FALSE(cache->hasPendingUpdates());
-        });
+  makeFuture().delayedUnsafe(std::chrono::milliseconds(20)).then([cache] {
+    auto val = cache->get("k0");
+    EXPECT_TRUE(val);
+    EXPECT_EQ(*val, "v0");
+    EXPECT_FALSE(cache->hasPendingUpdates());
+  });
 }
 
 MATCHER_P(DynSize, n, "") {
@@ -147,7 +146,7 @@ TYPED_TEST(LRUPersistentCacheTest, SetPersistenceMidPersist) {
     .WillOnce(Invoke(func));
 
   cache->setPersistence(std::move(this->persistence));
-  makeFuture().delayed(std::chrono::milliseconds(100)).get();
+  makeFuture().delayedUnsafe(std::chrono::milliseconds(100)).get();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {

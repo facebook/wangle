@@ -46,9 +46,10 @@ class MultiFilePollerTest : public testing::Test {
     // The delay makes sure mtime (in granularity of sec) of the modified
     // file is increased by at least 1. Otherwise wangle::FilePoller may not
     // detect the change.
-    folly::makeFuture().delayed(kWriteWaitMs).then([&]() {
-      ASSERT_TRUE(folly::writeFile(data, path.c_str()));
-    }).wait();
+    folly::makeFuture()
+        .delayedUnsafe(kWriteWaitMs)
+        .then([&]() { ASSERT_TRUE(folly::writeFile(data, path.c_str())); })
+        .wait();
   }
 
  protected:
