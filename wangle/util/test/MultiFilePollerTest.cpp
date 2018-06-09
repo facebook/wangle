@@ -47,7 +47,7 @@ class MultiFilePollerTest : public testing::Test {
     // file is increased by at least 1. Otherwise wangle::FilePoller may not
     // detect the change.
     folly::makeFuture()
-        .delayedUnsafe(kWriteWaitMs)
+        .delayed(kWriteWaitMs)
         .then([&]() { ASSERT_TRUE(folly::writeFile(data, path.c_str())); })
         .wait();
   }
