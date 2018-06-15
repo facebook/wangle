@@ -327,7 +327,7 @@ TEST(ServiceFilter, NoIdleDuringRequests) {
 
   auto f = (*expiringService)("2000");
   EXPECT_EQ(2, timekeeper.promises_.size());
-  f.get();
+  std::move(f).get();
   EXPECT_EQ("2000", (*expiringService)("2000").get());
   EXPECT_EQ(3, timekeeper.promises_.size());
 }
