@@ -268,9 +268,6 @@ class ConnectionManager: public folly::DelayedDestruction,
   folly::CountedIntrusiveList<
     ManagedConnection,&ManagedConnection::listHook_> conns_;
 
-  /** Connections that currently are registered for timeouts */
-  folly::HHWheelTimer::UniquePtr connTimeouts_;
-
   /** Optional callback to notify of state changes */
   Callback* callback_;
 

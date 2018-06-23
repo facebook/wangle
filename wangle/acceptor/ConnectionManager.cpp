@@ -26,8 +26,7 @@ namespace wangle {
 
 ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
     milliseconds timeout, Callback* callback)
-  : connTimeouts_(HHWheelTimer::newTimer(eventBase)),
-    callback_(callback),
+  : callback_(callback),
     eventBase_(eventBase),
     drainIterator_(conns_.end()),
     idleIterator_(conns_.end()),
@@ -92,14 +91,14 @@ void
 ConnectionManager::scheduleTimeout(ManagedConnection* const connection,
     std::chrono::milliseconds timeout) {
   if (timeout > std::chrono::milliseconds(0)) {
-    connTimeouts_->scheduleTimeout(connection, timeout);
+    eventBase_->timer().scheduleTimeout(connection, timeout);
   }
 }
 
 void ConnectionManager::scheduleTimeout(
   folly::HHWheelTimer::Callback* callback,
   std::chrono::milliseconds timeout) {
-  connTimeouts_->scheduleTimeout(callback, timeout);
+  eventBase_->timer().scheduleTimeout(callback, timeout);
 }
 
 void
