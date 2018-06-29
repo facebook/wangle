@@ -147,6 +147,11 @@ class FilePoller {
 
   uint64_t pollerId_{0};
 
+  // The poller hangs on to a scheduler that is initially created by a
+  // singleton.  There should not be one per poller as that will create
+  // one thread per poller.
+  std::shared_ptr<folly::FunctionScheduler> scheduler_;
+
   // Used to disallow locking calls from callbacks.
   class ThreadProtector {
    public:

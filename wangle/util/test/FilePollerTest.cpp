@@ -24,6 +24,7 @@
 #include <folly/FileUtil.h>
 #include <folly/experimental/TestUtil.h>
 #include <wangle/util/FilePoller.h>
+#include <folly/Singleton.h>
 
 using namespace testing;
 using namespace folly;
@@ -227,4 +228,15 @@ TEST_F(FilePollerTest, TestMultiplePollers) {
   testFile.update(true, 3);
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
   ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate(false));
+}
+
+TEST(FilePoller, TestFork) {
+  TestFile testFile(true, 1);
+  PollerWithState p1(testFile);
+  testFile.update(true, 2);
+  ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
+  // nuke singleton
+  folly::SingletonVault::singleton()->destroyInstances();
+  testFile.update(true, 3);
+  ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
 }

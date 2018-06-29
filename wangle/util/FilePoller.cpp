@@ -27,14 +27,18 @@ using namespace folly;
 namespace wangle {
 
 namespace {
+// Class that manages poller Ids and a function scheduler.  The function
+// scheduler will keep running if a FilePoller is hanging on to it, even
+// if this context is destroyed.
 class PollerContext {
  public:
   PollerContext() : nextPollerId(1) {
-    scheduler.setThreadName("file-poller");
-    scheduler.start();
+    scheduler = std::make_shared<folly::FunctionScheduler>();
+    scheduler->setThreadName("file-poller");
+    scheduler->start();
   }
 
-  folly::FunctionScheduler& getScheduler() {
+  const std::shared_ptr<folly::FunctionScheduler>& getScheduler() {
     return scheduler;
   }
 
@@ -43,7 +47,7 @@ class PollerContext {
   }
 
  private:
-  folly::FunctionScheduler scheduler;
+  std::shared_ptr<folly::FunctionScheduler> scheduler;
   std::atomic<uint64_t> nextPollerId;
 };
 
@@ -71,20 +75,18 @@ void FilePoller::init(std::chrono::milliseconds pollInterval) {
     return;
   }
   pollerId_ = context->getNextId();
-  context->getScheduler().addFunction(
+  scheduler_ = context->getScheduler();
+  scheduler_->addFunction(
       [this] { this->checkFiles(); },
       pollInterval,
       folly::to<std::string>(pollerId_));
 }
 
 void FilePoller::stop() {
-  auto context = contextSingleton.try_get();
-  if (!context) {
-    // already destroyed/stopped;
-    return;
+  if (scheduler_) {
+    scheduler_->cancelFunctionAndWait(
+        folly::to<std::string>(pollerId_));
   }
-  context->getScheduler().cancelFunctionAndWait(
-      folly::to<std::string>(pollerId_));
 }
 
 void FilePoller::checkFiles() noexcept {
