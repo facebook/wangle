@@ -397,7 +397,7 @@ TEST(Bootstrap, UnixServer) {
   server.stop();
   server.join();
 
-  EXPECT_TRUE(pipelineFuture.get() != nullptr);
+  EXPECT_TRUE(std::move(pipelineFuture).get() != nullptr);
   EXPECT_EQ(factory->pipelines, 1);
 }
 
