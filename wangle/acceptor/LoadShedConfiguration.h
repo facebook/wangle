@@ -108,6 +108,8 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the maximum memory usage.
+   * Regarded as a soft limit; variable amount of new conn shedding should
+   * occur when above this limit.
    */
   void setMaxMemUsage(double max) {
     CHECK(max >= 0);
@@ -118,6 +120,8 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the maximum cpu usage.
+   * Regarded as a soft limit; variable amount of new conn shedding should
+   * occur when above this limit.
    */
   void setMaxCpuUsage(double max) {
     CHECK(max >= 0);
@@ -128,6 +132,8 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the minimum cpu idle.
+   * Regarded as a hard limit; every new conn should shed when above this limit
+   * when normalized.
    */
   void setMinCpuIdle(double min) {
     CHECK(min >= 0);
@@ -149,6 +155,8 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the minium actual free memory on the system.
+   * Regarded as a hard limit; every new conn should shed when above this limit
+   * when normalized.
    */
   void setMinFreeMem(uint64_t min) {
     minFreeMem_ = min;
