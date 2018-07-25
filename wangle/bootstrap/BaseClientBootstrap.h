@@ -24,6 +24,17 @@
 
 namespace wangle {
 
+
+class SSLSessionEstablishedCallback {
+ public:
+  virtual ~SSLSessionEstablishedCallback() = default;
+  // notified when a non-reused SSL_SESSION is established.
+  virtual void onEstablished(SSL_SESSION* session) = 0;
+};
+
+using SSLSessionEstablishedCallbackUniquePtr =
+    std::unique_ptr<SSLSessionEstablishedCallback>;
+
 /*
  * A wrapper template around Pipeline and AsyncSocket or SPDY/HTTP/2 session to
  * match ServerBootstrap so BroadcastPool can work with either option
@@ -48,7 +59,8 @@ class BaseClientBootstrap {
 
   virtual folly::Future<P*> connect(
       const folly::SocketAddress& address,
-      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) = 0;
+      std::chrono::milliseconds timeout =
+          std::chrono::milliseconds(0)) = 0;
 
   BaseClientBootstrap* sslContext(folly::SSLContextPtr sslContext) {
     sslContext_ = sslContext;
@@ -57,6 +69,12 @@ class BaseClientBootstrap {
 
   BaseClientBootstrap* sslSession(SSL_SESSION* sslSession) {
     sslSession_ = sslSession;
+    return this;
+  }
+
+  BaseClientBootstrap* sslSessionEstablishedCallback(
+      SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback) {
+    sslSessionEstablishedCallback_ = std::move(sslSessionEstablishedCallback);
     return this;
   }
 
@@ -79,6 +97,7 @@ class BaseClientBootstrap {
   folly::SSLContextPtr sslContext_;
   SSL_SESSION* sslSession_{nullptr};
   bool deferSecurityNegotiation_{false};
+  SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback_;
 };
 
 template <typename ClientBootstrap = BaseClientBootstrap<>>

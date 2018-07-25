@@ -23,6 +23,8 @@
 #include <wangle/channel/Pipeline.h>
 #include <folly/executors/IOThreadPoolExecutor.h>
 
+using folly::AsyncSSLSocket;
+
 namespace wangle {
 
 /*
@@ -37,14 +39,26 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
     ConnectCallback(
         folly::Promise<Pipeline*> promise,
         ClientBootstrap* bootstrap,
-        std::shared_ptr<folly::AsyncSocket> socket)
+        std::shared_ptr<folly::AsyncSocket> socket,
+        SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback)
         : promise_(std::move(promise)),
           bootstrap_(bootstrap),
           socket_(socket),
-          safety_(*bootstrap) {}
+          safety_(*bootstrap),
+          sslSessionEstablishedCallback_(
+              std::move(sslSessionEstablishedCallback)) {}
 
     void connectSuccess() noexcept override {
       if (!safety_.destroyed()) {
+
+        if (sslSessionEstablishedCallback_) {
+          AsyncSSLSocket* sslSocket =
+            dynamic_cast<AsyncSSLSocket*>(socket_.get());
+          if (sslSocket && !sslSocket->getSSLSessionReused()) {
+            sslSessionEstablishedCallback_->onEstablished(
+              sslSocket->getSSLSession());
+          }
+        }
         bootstrap_->makePipeline(std::move(socket_));
         if (bootstrap_->getPipeline()) {
           bootstrap_->getPipeline()->transportActive();
@@ -64,6 +78,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
     ClientBootstrap* bootstrap_;
     std::shared_ptr<folly::AsyncSocket> socket_;
     folly::DestructorCheck::Safety safety_;
+    SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback_;
   };
 
  public:
@@ -104,7 +119,11 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
       socket->connect(
-          new ConnectCallback(std::move(promise), this, socket),
+          new ConnectCallback(
+              std::move(promise),
+              this,
+              socket,
+              std::move(this->sslSessionEstablishedCallback_)),
           address,
           timeout.count());
     });
