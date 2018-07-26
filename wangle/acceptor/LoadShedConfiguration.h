@@ -179,6 +179,16 @@ class LoadShedConfiguration {
 
   bool isWhitelisted(const folly::SocketAddress& addr) const;
 
+  /**
+   * Performs a series of CHECKs to ensure the underlying configuration is
+   * sane.
+   * For example the following must be true: (1.0 - minCpuIdle_) >= maxCpuUsage_
+   * Note: totalMemBytes represents the total system memory to be used when
+   * normalizing minFreeMem_ and killMinFreeMemBytes_ in order for the
+   * associated comparisons.
+   */
+  void checkIsSane(uint64_t totalMemBytes) const;
+
  private:
 
   AddressSet whitelistAddrs_;

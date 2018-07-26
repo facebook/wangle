@@ -16,7 +16,7 @@
 #include <wangle/acceptor/LoadShedConfiguration.h>
 
 #include <folly/Conv.h>
-#include <openssl/ssl.h>
+#include <folly/portability/OpenSSL.h>
 
 using std::string;
 using folly::SocketAddress;
@@ -45,6 +45,37 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
     }
   }
   return false;
+}
+
+void LoadShedConfiguration::checkIsSane(uint64_t totalMemBytes) const {
+  if (loadSheddingEnabled_) {
+    // Period must be greater than or equal to 0.
+    CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());
+
+    // CPU exceed window must be of size at least equal to 1.
+    CHECK_GE(cpuUsageExceedWindowSize_, 1);
+
+    // Min cpu idle and max cpu ratios must have values in the range of [0-1]
+    // inclusive and min cpu idle, normalized, must be greater than or equal to
+    // max cpu ratio.
+    CHECK_GE(minCpuIdle_, 0.0);
+    CHECK_LE(minCpuIdle_, 1.0);
+    CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
+    CHECK_GE(maxCpuUsage_, 0.0);
+    CHECK_LE(maxCpuUsage_, 1.0);
+
+    // Max mem usage must be less than or equal to min free mem, normalized.
+    // We also must verify that min free mem is less than or equal to total
+    // mem bytes.
+    CHECK_GE(maxMemUsage_, 0.0);
+    CHECK_LE(maxMemUsage_, 1.0);
+    CHECK_GE(1.0 - ((double)minFreeMem_ / totalMemBytes), maxMemUsage_);
+    CHECK_LE(minFreeMem_, totalMemBytes);
+
+    // Active connetions obviously must be less than or equal to max
+    // connections.
+    CHECK(maxActiveConnections_ <= maxConnections_);
+  }
 }
 
 } // namespace wangle
