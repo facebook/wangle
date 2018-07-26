@@ -154,7 +154,7 @@ class MockObservingPipelineFactory
       : ObservingPipelineFactory(serverPool, broadcastPipelineFactory) {}
 
   ObservingPipeline<int>::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket>,
+      std::shared_ptr<folly::AsyncTransportWrapper>,
       const std::string& routingData,
       RoutingDataHandler<std::string>*,
       std::shared_ptr<TransportInfo>) override {

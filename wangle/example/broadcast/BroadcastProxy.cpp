@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 #include <folly/init/Init.h>
 #include <wangle/bootstrap/AcceptRoutingHandler.h>
@@ -191,7 +191,7 @@ class SimpleObservingPipelineFactory
             serverPool, broadcastPipelineFactory) {}
 
   SimpleObservingPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncSocket> socket,
+      std::shared_ptr<AsyncTransportWrapper> socket,
       const std::string& routingData,
       RoutingDataHandler<std::string>*,
       std::shared_ptr<TransportInfo> transportInfo) override {

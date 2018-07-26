@@ -81,7 +81,7 @@ class ObservingPipelineFactory
         broadcastPipelineFactory_(broadcastPipelineFactory) {}
 
   typename ObservingPipeline<T>::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket,
+      std::shared_ptr<folly::AsyncTransportWrapper> socket,
       const R& routingData,
       RoutingDataHandler<R>*,
       std::shared_ptr<TransportInfo> transportInfo) override {

@@ -65,7 +65,7 @@ class CustomPipelineFactory
   }
 
   TestObsPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncSocket> socket,
+      std::shared_ptr<folly::AsyncTransportWrapper> socket,
       const TestRoutingData& routingData,
       RoutingDataHandler<TestRoutingData>* /* unused */,
       std::shared_ptr<TransportInfo> /* unused */) override {
@@ -100,7 +100,8 @@ class CustomPipelineMakerTestClient : public TestClient {
         factory_(factory) {
   }
 
-  void makePipeline(std::shared_ptr<folly::AsyncSocket> socket) override {
+  void makePipeline(
+      std::shared_ptr<folly::AsyncTransportWrapper> socket) override {
     setPipeline(factory_->newPipeline(
       socket, routingData_, nullptr, nullptr));
   }
