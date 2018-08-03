@@ -225,7 +225,7 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
   // Socket exception after routing pipeline had been created
   barrierConnect.wait();
   boost::barrier barrierException(2);
-  futureClientPipeline.then([](DefaultPipeline* clientPipeline) {
+  std::move(futureClientPipeline).then([](DefaultPipeline* clientPipeline) {
     clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
         [clientPipeline]() {
           clientPipeline->writeException(

@@ -130,10 +130,9 @@ TEST(Wangle, ClientServerTest) {
   auto service = serviceFactory(client).value();
   auto rep = (*service)("test");
 
-  rep.then([&](std::string value) {
+  std::move(rep).then([&](std::string value) {
     EXPECT_EQ("test", value);
     EventBaseManager::get()->getEventBase()->terminateLoopSoon();
-
   });
   EventBaseManager::get()->getEventBase()->loopForever();
   server.stop();
