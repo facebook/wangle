@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <folly/futures/Future.h>
+#include <wangle/channel/Handler.h>
+
 namespace wangle {
 
 class EventBaseHandler : public OutboundBytesToBytesHandler {
