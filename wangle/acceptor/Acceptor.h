@@ -399,8 +399,8 @@ class Acceptor :
 
   // ConnectionManager::Callback methods
   void onEmpty(const wangle::ConnectionManager& cm) override;
-  void onConnectionAdded(const wangle::ConnectionManager& /*cm*/) override {}
-  void onConnectionRemoved(const wangle::ConnectionManager& /*cm*/) override {}
+  void onConnectionAdded(const ManagedConnection*) override {}
+  void onConnectionRemoved(const ManagedConnection*) override {}
 
   const LoadShedConfiguration& getLoadShedConfiguration() const {
     return loadShedConfig_;

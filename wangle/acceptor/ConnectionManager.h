@@ -52,12 +52,12 @@ class ConnectionManager: public folly::DelayedDestruction,
     /**
      * Invoked when a connection is added to the ConnectionManager.
      */
-    virtual void onConnectionAdded(const ConnectionManager& cm) = 0;
+    virtual void onConnectionAdded(const ManagedConnection* conn) = 0;
 
     /**
      * Invoked when a connection is removed from the ConnectionManager.
      */
-    virtual void onConnectionRemoved(const ConnectionManager& cm) = 0;
+    virtual void onConnectionRemoved(const ManagedConnection* conn) = 0;
   };
 
   typedef std::unique_ptr<ConnectionManager, Destructor> UniquePtr;

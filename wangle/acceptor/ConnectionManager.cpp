@@ -55,7 +55,7 @@ ConnectionManager::addConnection(ManagedConnection* connection,
 
     connection->setConnectionManager(this);
     if (callback_) {
-      callback_->onConnectionAdded(*this);
+      callback_->onConnectionAdded(connection);
     }
   }
   if (timeout) {
@@ -119,7 +119,7 @@ ConnectionManager::removeConnection(ManagedConnection* connection) {
     conns_.erase(it);
 
     if (callback_) {
-      callback_->onConnectionRemoved(*this);
+      callback_->onConnectionRemoved(connection);
       if (getNumConnections() == 0) {
         callback_->onEmpty(*this);
       }

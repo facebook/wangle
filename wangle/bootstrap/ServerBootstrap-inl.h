@@ -227,11 +227,11 @@ class ServerAcceptor
         AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }
 
-  void onConnectionAdded(const wangle::ConnectionManager&) override {
+  void onConnectionAdded(const ManagedConnection*) override {
     acceptPipeline_->read(ConnEvent::CONN_ADDED);
   }
 
-  void onConnectionRemoved(const wangle::ConnectionManager&) override {
+  void onConnectionRemoved(const ManagedConnection*) override {
     acceptPipeline_->read(ConnEvent::CONN_REMOVED);
   }
 
