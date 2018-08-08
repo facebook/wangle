@@ -255,7 +255,7 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
 
 TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
   // Routing data handler doesn't receive any data
-  EXPECT_CALL(*routingDataHandler_, transportActive(_)).Times(0);
+  EXPECT_CALL(*routingDataHandler_, transportActive(_)).Times(1);
   EXPECT_CALL(*routingDataHandler_, parseRoutingData(_, _)).Times(0);
 
   // Downstream pipeline is not created
@@ -271,7 +271,7 @@ TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
   server_->join();
 
   // Routing pipeline isn't added
-  EXPECT_EQ(0, acceptRoutingHandler_->getRoutingPipelineCount());
+  EXPECT_EQ(1, acceptRoutingHandler_->getRoutingPipelineCount());
 }
 
 TEST_F(AcceptRoutingHandlerTest, RoutingPipelineErasedOnlyOnce) {
