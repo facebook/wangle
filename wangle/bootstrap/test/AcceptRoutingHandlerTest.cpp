@@ -71,10 +71,9 @@ class AcceptRoutingHandlerTest : public Test {
     // deterministic event list.
     auto ioGroup = std::make_shared<IOThreadPoolExecutor>(kNumIOThreads);
 
-    server_
-        ->pipeline(std::make_shared<MockAcceptPipelineFactory>(acceptPipeline_))
-        ->group(ioGroup, ioGroup)
-        ->bind(0);
+    acceptPipelineFactory_ =
+        std::make_shared<MockAcceptPipelineFactory>(acceptPipeline_);
+    server_->pipeline(acceptPipelineFactory_)->group(ioGroup, ioGroup)->bind(0);
     server_->getSockets()[0]->getAddress(&address_);
     VLOG(4) << "Start server at " << address_;
   }
@@ -124,30 +123,33 @@ class AcceptRoutingHandlerTest : public Test {
     return clientPipelinePromise->getFuture();
   }
 
-  Future<DefaultPipeline*> clientConnectWithException() {
+  Future<DefaultPipeline*> justClientConnect() {
     auto clientPipelinePromise =
         std::make_shared<folly::Promise<DefaultPipeline*>>();
-
     getEventBase()->runInEventBaseThread([=]() {
       clientConnect().then([=](DefaultPipeline* clientPipeline) {
-        VLOG(4) << "Client connected. Induce an unclean close.";
-        clientPipeline
-            ->writeException(std::runtime_error(
-                "Client socket exception, right after connect."))
-            .then([=]() { clientPipelinePromise->setValue(clientPipeline); });
+        clientPipelinePromise->setValue(clientPipeline);
       });
     });
 
     return clientPipelinePromise->getFuture();
   }
 
+  void sendClientException(DefaultPipeline* clientPipeline) {
+    getEventBase()->runInEventBaseThread([=]() {
+      clientPipeline->writeException(
+          std::runtime_error("Client socket exception, right after connect."));
+    });
+  }
+
   void TearDown() override {
-    Mock::VerifyAndClear(downstreamHandler_);
     acceptPipeline_.reset();
-    server_.reset();
+    acceptPipelineFactory_->cleanup();
   }
 
  protected:
+  std::unique_ptr<TestServer> server_;
+  std::shared_ptr<MockAcceptPipelineFactory> acceptPipelineFactory_;
   AcceptPipeline::Ptr acceptPipeline_;
   DefaultPipeline::Ptr routingPipeline_;
   std::shared_ptr<MockRoutingDataHandlerFactory> routingDataHandlerFactory_;
@@ -156,7 +158,6 @@ class AcceptRoutingHandlerTest : public Test {
   MockAcceptRoutingHandler* acceptRoutingHandler_;
   MockBytesToBytesHandler* downstreamHandler_;
   std::shared_ptr<MockDownstreamPipelineFactory> downstreamPipelineFactory_;
-  std::unique_ptr<TestServer> server_;
   SocketAddress address_;
   RoutingDataHandler<char>::RoutingData routingData_;
 
@@ -194,13 +195,9 @@ TEST_F(AcceptRoutingHandlerTest, ParseRoutingDataSuccess) {
   EXPECT_CALL(*downstreamHandler_, transportInactive(_));
 
   // Send client request that triggers server processing
-  auto futureClientPipeline = clientConnectAndCleanClose();
-  futureClientPipeline.wait();
+  clientConnectAndCleanClose();
 
   barrier.wait();
-  VLOG(4) << "Stopping server";
-  server_->stop();
-  server_->join();
 
   // Routing pipeline has been erased
   EXPECT_EQ(0, acceptRoutingHandler_->getRoutingPipelineCount());
@@ -245,17 +242,12 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
   EXPECT_CALL(*downstreamHandler_, transportActive(_)).Times(0);
   delete downstreamHandler_;
 
-  VLOG(4) << "Stopping server";
-  server_->stop();
-  server_->join();
-
   // Routing pipeline has been erased
   EXPECT_EQ(0, acceptRoutingHandler_->getRoutingPipelineCount());
 }
 
 TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
   // Routing data handler doesn't receive any data
-  EXPECT_CALL(*routingDataHandler_, transportActive(_)).Times(1);
   EXPECT_CALL(*routingDataHandler_, parseRoutingData(_, _)).Times(0);
 
   // Downstream pipeline is not created
@@ -263,14 +255,25 @@ TEST_F(AcceptRoutingHandlerTest, OnNewConnectionWithBadSocket) {
   delete downstreamHandler_;
 
   // Send client request that triggers server processing
-  auto futureClientPipeline = clientConnectWithException();
+  boost::barrier barrierConnect(2);
+  EXPECT_CALL(*routingDataHandler_, transportActive(_))
+      .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* /*ctx*/) {
+        barrierConnect.wait();
+      }));
+  auto futureClientPipeline = justClientConnect();
+  barrierConnect.wait();
   futureClientPipeline.wait();
 
-  VLOG(4) << "Stopping server";
-  server_->stop();
-  server_->join();
+  // Expect an exception on the routing data handler
+  boost::barrier barrierException(2);
+  EXPECT_CALL(*routingDataHandler_, readException(_, _))
+      .WillOnce(Invoke(
+          [&](MockBytesToBytesHandler::Context* /*ctx*/,
+              folly::exception_wrapper /*ex*/) { barrierException.wait(); }));
+  sendClientException(futureClientPipeline.value());
+  barrierException.wait();
 
-  // Routing pipeline isn't added
+  // Routing pipeline has been added
   EXPECT_EQ(1, acceptRoutingHandler_->getRoutingPipelineCount());
 }
 

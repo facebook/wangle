@@ -42,6 +42,10 @@ class MockAcceptPipelineFactory : public AcceptPipelineFactory {
     return pipeline_;
   }
 
+  void cleanup() {
+    pipeline_.reset();
+  }
+
  protected:
   AcceptPipeline::Ptr pipeline_;
 };
@@ -104,7 +108,7 @@ class MockDownstreamPipelineFactory
     : public RoutingDataPipelineFactory<DefaultPipeline, char> {
  public:
   explicit MockDownstreamPipelineFactory(
-    MockBytesToBytesHandler* downstreamHandler)
+      MockBytesToBytesHandler* downstreamHandler)
       : downstreamHandler_(downstreamHandler) {}
   DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransportWrapper> socket,
@@ -122,4 +126,4 @@ class MockDownstreamPipelineFactory
  protected:
   MockBytesToBytesHandler* downstreamHandler_;
 };
-}
+} // namespace wangle
