@@ -16,7 +16,7 @@
 #include <wangle/ssl/SSLContextManager.h>
 
 #include <wangle/ssl/ClientHelloExtStats.h>
-#include <wangle/ssl/PasswordInFile.h>
+#include <folly/io/async/PasswordInFile.h>
 #include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/ServerSSLContext.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
@@ -277,7 +277,7 @@ void SSLContextManager::addSSLContextConfig(
         // The private key lives in the same process
         // This needs to be called before loadPrivateKey().
         if (!cert.passwordPath.empty()) {
-          auto sslPassword = std::make_shared<PasswordInFile>(
+          auto sslPassword = std::make_shared<folly::PasswordInFile>(
               cert.passwordPath);
           sslCtx->passwordCollector(std::move(sslPassword));
         }

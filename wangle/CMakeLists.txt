@@ -90,7 +90,6 @@ set(WANGLE_SOURCES
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
   deprecated/rx/Dummy.cpp
-  ssl/PasswordInFile.cpp
   ssl/ServerSSLContext.cpp
   ssl/SSLContextManager.cpp
   ssl/SSLSessionCacheManager.cpp
