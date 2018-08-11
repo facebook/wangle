@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <stdint.h>
+
 namespace wangle {
 
 class SSLStats {
