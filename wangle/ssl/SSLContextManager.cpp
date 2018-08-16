@@ -245,13 +245,6 @@ void SSLContextManager::resetSSLContextConfigs(
   contexts_.swap(contexts);
 }
 
-void SSLContextManager::loadCertificate(
-    ServerSSLContext* sslCtx,
-    const SSLContextConfig& /* ctxConfig */,
-    const std::string& certPath) {
-  sslCtx->loadCertificate(certPath.c_str());
-}
-
 void SSLContextManager::addSSLContextConfig(
   const SSLContextConfig& ctxConfig,
   const SSLCacheOptions& cacheOptions,
@@ -272,8 +265,7 @@ void SSLContextManager::addSSLContextConfig(
       std::make_shared<ServerSSLContext>(ctxConfig.sslVersion);
   for (const auto& cert : ctxConfig.certificates) {
     try {
-      if (ctxConfig.isLocalPrivateKey ||
-          ctxConfig.keyOffloadParams.offloadType.empty()) {
+      if (ctxConfig.keyOffloadParams.offloadType.empty()) {
         // The private key lives in the same process
         // This needs to be called before loadPrivateKey().
         if (!cert.passwordPath.empty()) {
@@ -287,8 +279,7 @@ void SSLContextManager::addSSLContextConfig(
           "PEM",
           "PEM");
       } else {
-        loadCertificate(sslCtx.get(), ctxConfig, cert.certPath);
-        enableAsyncCrypto(sslCtx, ctxConfig, cert.certPath);
+        loadCertKeyPairExternal(sslCtx, ctxConfig, cert.certPath);
       }
     } catch (const std::exception& ex) {
         // The exception isn't very useful without the certificate path name,
