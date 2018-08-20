@@ -25,7 +25,7 @@ bool TLSPlaintextPeekingCallback::looksLikeTLS(
   // 1: 0x03 - SSL major version
   // 2: 0x00 to 0x03 - minor version
   // 3-4: Length
-  // 4: 0x01 - Handshake type (Client Hello)
+  // 5: 0x01 - Handshake type (Client Hello)
   if (bytes[0] != 0x16 || bytes[1] != 0x03 || bytes[5] != 0x01) {
     return false;
   }
