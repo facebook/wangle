@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 
 import specs.gmock as gmock
 import specs.folly as folly
+import specs.fizz as fizz
+import specs.sodium as sodium
 
 from shell_quoting import ShellQuoted
 
@@ -21,7 +23,7 @@ def fbcode_builder_spec(builder):
         }
     )
     return {
-        'depends_on': [gmock, folly],
+        'depends_on': [gmock, folly, fizz, sodium],
         'steps': [
             builder.fb_github_cmake_install('wangle/_build', '../wangle'),
             builder.step(

@@ -36,6 +36,7 @@ if (NOT folly_FOUND)
   find_package(Folly MODULE REQUIRED)
 endif()
 
+find_package(fizz REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context)
 find_package(OpenSSL REQUIRED)
 find_package(Glog REQUIRED)
@@ -120,6 +121,7 @@ target_include_directories(
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
+    ${FIZZ_INCLUDE_DIR}
     ${FOLLY_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
     ${OPENSSL_INCLUDE_DIR}
@@ -130,6 +132,7 @@ target_include_directories(
 )
 target_link_libraries(wangle PUBLIC
   ${FOLLY_LIBRARIES}
+  ${FIZZ_LIBRARIES}
   ${Boost_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${GLOG_LIBRARIES}
