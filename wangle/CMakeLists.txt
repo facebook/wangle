@@ -36,7 +36,7 @@ if (NOT folly_FOUND)
   find_package(Folly MODULE REQUIRED)
 endif()
 
-find_package(fizz REQUIRED)
+find_package(Fizz REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context)
 find_package(OpenSSL REQUIRED)
 find_package(Glog REQUIRED)
@@ -141,7 +141,8 @@ target_link_libraries(wangle PUBLIC
   ${LIBEVENT_LIBRARIES}
   ${DOUBLE_CONVERSION_LIBRARIES}
   ${CMAKE_DL_LIBS}
-  ${LIBRT_LIBRARIES})
+  ${LIBRT_LIBRARIES}
+  Threads::Threads)
 
 install(
   TARGETS wangle
