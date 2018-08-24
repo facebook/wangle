@@ -141,7 +141,8 @@ target_link_libraries(wangle PUBLIC
   ${LIBEVENT_LIBRARIES}
   ${DOUBLE_CONVERSION_LIBRARIES}
   ${CMAKE_DL_LIBS}
-  ${LIBRT_LIBRARIES})
+  ${LIBRT_LIBRARIES}
+  Threads::Threads)
 
 install(
   TARGETS wangle
