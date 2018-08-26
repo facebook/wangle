@@ -82,7 +82,8 @@ class PipelinedServerDispatcher : public HandlerAdapter<Req, Resp> {
   std::unordered_map<uint32_t, Resp> responses_;
   uint32_t lastWrittenId_{0};
 };
-
+ 
+ 
 /**
  * Dispatch requests from pipeline as they come in.  Concurrent
  * requests are assumed to have sequence id's that are taken care of
@@ -100,11 +101,21 @@ class MultiplexServerDispatcher : public HandlerAdapter<Req, Resp> {
       : service_(service) {}
 
   void read(Context* ctx, Req in) override {
-    (*service_)(std::move(in)).then([ctx](Resp resp) {
-      ctx->fireWrite(std::move(resp));
+    std::tuple<Context*, std::shared_ptr<PipelineBase> > guard{ctx, ctx->getPipelineShared()};
+    (*service_)(std::move(in)).then([guard = std::move(guard)](Resp resp) {
+	auto ctx = std::get<0>(guard);
+	auto  pipe = std::get<1>(guard);
+	ctx->fireWrite(std::move(resp));	
+	ctx->getTransport()->getEventBase()->runInEventBaseThread([pipe = std::move(pipe)]{/*nothing but free pipeline in io thread*/});
     });
   }
-
+  //there must be some way to free pipeline, otherwise the pipeline never freed
+  virtual void readEOF(Context* ctx) {	
+	ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
+  }
+  virtual void readException(Context* ctx, folly::exception_wrapper e) {
+  	ctx->getPipeline()->getPipelineManager()->deletePipeline(ctx->getPipeline());
+  }
  private:
   Service<Req, Resp>* service_;
 };
