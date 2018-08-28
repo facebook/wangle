@@ -53,17 +53,30 @@ class ByteToMessageDecoder : public InboundHandler<folly::IOBufQueue&, M> {
    */
   virtual bool decode(Context* ctx, folly::IOBufQueue& buf, M& result, size_t&) = 0;
 
+  void transportActive(Context* ctx) override {
+    transportActive_ = true;
+    ctx->fireTransportActive();
+  }
+
+  void transportInactive(Context* ctx) override {
+    transportActive_ = false;
+    ctx->fireTransportInactive();
+  }
+
   void read(Context* ctx, folly::IOBufQueue& q) override {
     bool success = true;
-    do {
+    while (success && transportActive_) {
       M result;
       size_t needed = 0;
       success = decode(ctx, q, result, needed);
       if (success) {
         ctx->fireRead(std::move(result));
       }
-    } while (success);
+    }
   }
+
+ private:
+  bool transportActive_ = true;
 };
 
 typedef ByteToMessageDecoder<std::unique_ptr<folly::IOBuf>> ByteToByteDecoder;
