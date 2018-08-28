@@ -100,7 +100,7 @@ class MultiplexServerDispatcher : public HandlerAdapter<Req, Resp> {
       : service_(service) {}
 
   void read(Context* ctx, Req in) override {
-    (*service_)(std::move(in)).then([ctx](Resp resp) {
+    (*service_)(std::move(in)).thenValue([ctx](Resp resp) {
       ctx->fireWrite(std::move(resp));
     });
   }

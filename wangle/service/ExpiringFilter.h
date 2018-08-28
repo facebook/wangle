@@ -40,7 +40,7 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
 
     if (maxTime_ > std::chrono::milliseconds(0)) {
       maxTimeout_ = folly::futures::sleep(maxTime_, timekeeper_);
-      std::move(maxTimeout_).then([this]() { this->close(); });
+      std::move(maxTimeout_).thenValue([this](auto&&) { this->close(); });
     }
     startIdleTimer();
   }
@@ -60,7 +60,7 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
     }
     if (idleTimeoutTime_ > std::chrono::milliseconds(0)) {
       idleTimeout_ = folly::futures::sleep(idleTimeoutTime_, timekeeper_);
-      std::move(idleTimeout_).then([this]() { this->close(); });
+      std::move(idleTimeout_).thenValue([this](auto&&) { this->close(); });
     }
   }
 

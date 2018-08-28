@@ -35,7 +35,7 @@ class TelnetHandler : public HandlerAdapter<std::string> {
     if (msg.empty()) {
       write(ctx, "Please type something.\r\n");
     } else if (msg == "bye") {
-      write(ctx, "Have a fabulous day!\r\n").then([ctx, this]{
+      write(ctx, "Have a fabulous day!\r\n").thenValue([ctx, this](auto&&) {
         close(ctx);
       });
     } else {

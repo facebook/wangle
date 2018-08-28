@@ -64,9 +64,8 @@ class FileServerHandler : public HandlerAdapter<std::string> {
   }
 
   void readException(Context* ctx, exception_wrapper ew) override {
-    write(ctx, sformat("Error: {}\r\n", exceptionStr(ew))).then([this, ctx]{
-      close(ctx);
-    });
+    write(ctx, sformat("Error: {}\r\n", exceptionStr(ew)))
+        .thenValue([this, ctx](auto&&) { close(ctx); });
   }
 
   void transportActive(Context* ctx) override {

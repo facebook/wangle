@@ -185,7 +185,7 @@ class ChangeTypeFilter
       ServiceFilter<int, std::string, std::string, int>(service) {}
 
   Future<std::string> operator()(int req) override {
-    return (*service_)(folly::to<std::string>(req)).then([](int resp) {
+    return (*service_)(folly::to<std::string>(req)).thenValue([](int resp) {
       return folly::to<std::string>(resp);
     });
   }
