@@ -109,6 +109,9 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
       if (this->sslContext_) {
         auto sslSocket = folly::AsyncSSLSocket::newSocket(
             this->sslContext_, base, this->deferSecurityNegotiation_);
+        if (!this->sni_.empty()) {
+          sslSocket->setServerName(this->sni_);
+        }
         if (this->sslSession_) {
           sslSocket->setSSLSession(this->sslSession_, true);
         }

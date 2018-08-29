@@ -72,6 +72,11 @@ class BaseClientBootstrap {
     return this;
   }
 
+  BaseClientBootstrap* serverName(const std::string& sni) {
+    sni_ = sni;
+    return this;
+  }
+
   BaseClientBootstrap* sslSessionEstablishedCallback(
       SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback) {
     sslSessionEstablishedCallback_ = std::move(sslSessionEstablishedCallback);
@@ -97,6 +102,7 @@ class BaseClientBootstrap {
   typename P::Ptr pipeline_;
   folly::SSLContextPtr sslContext_;
   SSL_SESSION* sslSession_{nullptr};
+  std::string sni_;
   bool deferSecurityNegotiation_{false};
   SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback_;
 };
