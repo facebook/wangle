@@ -36,6 +36,8 @@ if (NOT folly_FOUND)
   find_package(Folly MODULE REQUIRED)
 endif()
 
+
+find_package(Sodium REQUIRED)
 find_package(fizz CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context)
 find_package(OpenSSL REQUIRED)
