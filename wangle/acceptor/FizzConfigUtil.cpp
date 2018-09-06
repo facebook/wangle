@@ -17,26 +17,21 @@
 #include <wangle/acceptor/FizzConfigUtil.h>
 
 #include <fizz/protocol/DefaultCertificateVerifier.h>
-#include <fizz/util/FizzUtil.h>
 #include <folly/Format.h>
 
 using fizz::CertUtils;
 using fizz::DefaultCertificateVerifier;
+using fizz::FizzUtil;
 using fizz::ProtocolVersion;
 using fizz::PskKeyExchangeMode;
 using fizz::VerificationContext;
 using fizz::server::ClientAuthMode;
-using fizz::FizzUtil;
 
 namespace wangle {
 
-std::shared_ptr<fizz::server::FizzServerContext>
-FizzConfigUtil::createFizzContext(
-    const wangle::ServerSocketConfig& config) {
-  if (config.sslContextConfigs.empty()) {
-    return nullptr;
-  }
-
+namespace {
+std::unique_ptr<fizz::server::CertManager> createCertManager(
+    const ServerSocketConfig& config) {
   auto certMgr = std::make_unique<fizz::server::CertManager>();
   auto loadedCert = false;
   for (const auto& sslConfig : config.sslContextConfigs) {
@@ -64,12 +59,30 @@ FizzConfigUtil::createFizzContext(
   if (!loadedCert) {
     return nullptr;
   }
+  return certMgr;
+}
+} // namespace
+
+std::shared_ptr<fizz::server::FizzServerContext>
+FizzConfigUtil::createFizzContext(
+    const ServerSocketConfig& config,
+    std::unique_ptr<fizz::server::CertManager> certMgr) {
+  if (config.sslContextConfigs.empty()) {
+    return nullptr;
+  }
+  if (!certMgr) {
+    certMgr = createCertManager(config);
+    if (!certMgr) {
+      return nullptr;
+    }
+  }
 
   auto ctx = std::make_shared<fizz::server::FizzServerContext>();
   ctx->setSupportedVersions({ProtocolVersion::tls_1_3,
                              ProtocolVersion::tls_1_3_28,
                              ProtocolVersion::tls_1_3_26});
   ctx->setVersionFallbackEnabled(true);
+  ctx->setCertManager(std::move(certMgr));
 
   // Fizz does not yet support randomized next protocols so we use the highest
   // weighted list on the first context.
@@ -77,7 +90,6 @@ FizzConfigUtil::createFizzContext(
   if (!list.empty()) {
     ctx->setSupportedAlpns(FizzUtil::getAlpnsFromNpnList(list));
   }
-  ctx->setCertManager(std::move(certMgr));
 
   auto verify = config.sslContextConfigs.front().clientVerification;
   switch (verify) {
@@ -101,4 +113,4 @@ FizzConfigUtil::createFizzContext(
   return ctx;
 }
 
-}
+} // namespace wangle

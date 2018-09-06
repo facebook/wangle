@@ -17,6 +17,7 @@
 #pragma once
 
 #include <fizz/server/FizzServerContext.h>
+#include <fizz/util/FizzUtil.h>
 
 #include <wangle/acceptor/ServerSocketConfig.h>
 
@@ -25,7 +26,25 @@ namespace wangle {
 class FizzConfigUtil {
  public:
   static std::shared_ptr<fizz::server::FizzServerContext> createFizzContext(
-      const wangle::ServerSocketConfig& config);
+      const wangle::ServerSocketConfig& config,
+      std::unique_ptr<fizz::server::CertManager> certMgr = nullptr);
+
+  // Creates a TicketCipher with given params
+  template <class TicketCipher>
+  static std::shared_ptr<TicketCipher> createTicketCipher(
+      const std::vector<std::string>& oldSecrets,
+      const std::vector<std::string>& currentSecrets,
+      const std::vector<std::string>& newSecrets,
+      std::chrono::seconds validity,
+      std::string pskContext) {
+    if (currentSecrets.empty()) {
+      return fizz::FizzUtil::createTicketCipher<TicketCipher>(
+          oldSecrets, "", newSecrets, validity, pskContext);
+    } else {
+      return fizz::FizzUtil::createTicketCipher<TicketCipher>(
+          oldSecrets, currentSecrets.at(0), newSecrets, validity, pskContext);
+    }
+  }
 };
 
 } // namespace wangle
