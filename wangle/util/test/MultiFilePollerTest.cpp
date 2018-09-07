@@ -48,7 +48,8 @@ class MultiFilePollerTest : public testing::Test {
     // detect the change.
     folly::makeFuture()
         .delayed(kWriteWaitMs)
-        .then([&]() { ASSERT_TRUE(folly::writeFile(data, path.c_str())); })
+        .thenValue(
+            [&](auto&&) { ASSERT_TRUE(folly::writeFile(data, path.c_str())); })
         .wait();
   }
 
