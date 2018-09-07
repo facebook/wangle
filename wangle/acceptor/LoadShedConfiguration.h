@@ -198,8 +198,8 @@ class LoadShedConfiguration {
   uint64_t acceptPauseOnAcceptorQueueSize_{0};
   uint64_t acceptResumeOnAcceptorQueueSize_{0};
   uint64_t minFreeMem_{0};
-  double maxMemUsage_;
-  double maxCpuUsage_;
+  double maxMemUsage_{0.0};
+  double maxCpuUsage_{0.0};
   double minCpuIdle_{0.0};
   uint64_t cpuUsageExceedWindowSize_{0};
   std::chrono::milliseconds period_;

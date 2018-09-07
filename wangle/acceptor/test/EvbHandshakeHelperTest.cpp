@@ -145,7 +145,9 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
 
   EXPECT_CALL(*mockHelper_, dropConnection(_)).WillOnce(Invoke([&](auto) {
     EXPECT_EQ(alternateThreadId_, std::this_thread::get_id());
-    alternate_.getEventBase()->runInEventBaseThread([=]{
+    // Need to wait here else its possible the test destructor may be invoked
+    // before the lamda below actually tries to execute.
+    alternate_.getEventBase()->runInEventBaseThreadAndWait([=]{
         evbHelper_->connectionError(sslSock_, {}, {});
     });
     barrier.post();

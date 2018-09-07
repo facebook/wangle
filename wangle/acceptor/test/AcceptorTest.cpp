@@ -70,7 +70,8 @@ class AcceptorTest : public Test {
 
     SocketAddress address_ { "127.0.0.1", 2000 };
     TestableAcceptor acceptor_ { ServerSocketConfig() };
-    LoadShedConfiguration loadShedConfig_;
+    std::shared_ptr<LoadShedConfiguration> loadShedConfig_ =
+      std::make_shared<LoadShedConfiguration>();
     SimpleConnectionCounterForTest connectionCounter_;
 };
 
@@ -98,7 +99,7 @@ TEST_F(AcceptorTest, TestCanAcceptWithCurrentConnsGreaterThanMax) {
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
   acceptor_.setConnectionCountForLoadShedding(300);
-  loadShedConfig_.setMaxConnections(200);
+  loadShedConfig_->setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   EXPECT_FALSE(acceptor_.canAccept(address_));
 }
@@ -109,7 +110,7 @@ TEST_F(AcceptorTest, TestCanAcceptWhiteListedAddress) {
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
   LoadShedConfiguration::AddressSet addrs = { address_ };
-  loadShedConfig_.setWhitelistAddrs(addrs);
+  loadShedConfig_->setWhitelistAddrs(addrs);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   EXPECT_TRUE(acceptor_.canAccept(address_));
 }
@@ -120,8 +121,8 @@ TEST_F(AcceptorTest, TestCanAcceptWithNoLoadShed) {
   // counts are below the corresponding thresholds
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
-  loadShedConfig_.setMaxActiveConnections(100);
-  loadShedConfig_.setMaxConnections(200);
+  loadShedConfig_->setMaxActiveConnections(100);
+  loadShedConfig_->setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   EXPECT_TRUE(acceptor_.canAccept(address_));
 }
@@ -131,7 +132,7 @@ TEST_F(AcceptorTest, TestCanAcceptWithMaxActiveConnectionsNotSet) {
   // total connections is within the overall max connections limit
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
-  loadShedConfig_.setMaxConnections(400);
+  loadShedConfig_->setMaxConnections(400);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   acceptor_.setActiveConnectionCountForLoadShedding(300);
   acceptor_.setConnectionCountForLoadShedding(300);
@@ -144,8 +145,8 @@ TEST_F(AcceptorTest, TestCanAcceptWithActiveConnectionsBreachingThreshold) {
   // than the threshold
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
-  loadShedConfig_.setMaxActiveConnections(100);
-  loadShedConfig_.setMaxConnections(200);
+  loadShedConfig_->setMaxActiveConnections(100);
+  loadShedConfig_->setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   acceptor_.setActiveConnectionCountForLoadShedding(110);
   EXPECT_FALSE(acceptor_.canAccept(address_));
@@ -157,8 +158,8 @@ TEST_F(AcceptorTest, TestCanAcceptWithTotalConnectionsBreachingThreshold) {
   // than the threshold
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
-  loadShedConfig_.setMaxActiveConnections(100);
-  loadShedConfig_.setMaxConnections(200);
+  loadShedConfig_->setMaxActiveConnections(100);
+  loadShedConfig_->setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   acceptor_.setConnectionCountForLoadShedding(210);
   EXPECT_FALSE(acceptor_.canAccept(address_));
@@ -170,8 +171,8 @@ TEST_F(AcceptorTest, TestCanAcceptWithBothConnectionCountsBreachingThresholds) {
   // connections counts are larger than the corresponding thresholds
   connectionCounter_.setNumConnections(300);
   connectionCounter_.setMaxConnections(200);
-  loadShedConfig_.setMaxActiveConnections(100);
-  loadShedConfig_.setMaxConnections(200);
+  loadShedConfig_->setMaxActiveConnections(100);
+  loadShedConfig_->setMaxConnections(200);
   acceptor_.setLoadShedConfig(loadShedConfig_, &connectionCounter_);
   acceptor_.setActiveConnectionCountForLoadShedding(110);
   acceptor_.setConnectionCountForLoadShedding(210);

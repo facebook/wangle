@@ -402,14 +402,11 @@ class Acceptor :
   void onConnectionAdded(const ManagedConnection*) override {}
   void onConnectionRemoved(const ManagedConnection*) override {}
 
-  const LoadShedConfiguration& getLoadShedConfiguration() const {
-    return loadShedConfig_;
-  }
-
  protected:
   const ServerSocketConfig accConfig_;
-  void setLoadShedConfig(const LoadShedConfiguration& from,
-                         IConnectionCounter* counter);
+  void setLoadShedConfig(
+    std::shared_ptr<const LoadShedConfiguration> loadShedConfig,
+    const IConnectionCounter* counter);
 
   // Helper function to initialize downstreamConnectionManager_
   virtual void initDownstreamConnectionManager(folly::EventBase* eventBase);
@@ -448,8 +445,8 @@ class Acceptor :
   static std::atomic<uint64_t> totalNumPendingSSLConns_;
 
   bool forceShutdownInProgress_{false};
-  LoadShedConfiguration loadShedConfig_;
-  IConnectionCounter* connectionCounter_{nullptr};
+  std::shared_ptr<const LoadShedConfiguration> loadShedConfig_{nullptr};
+  const IConnectionCounter* connectionCounter_{nullptr};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 };
 

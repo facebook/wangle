@@ -159,9 +159,10 @@ Acceptor::drainAllConnections() {
   }
 }
 
-void Acceptor::setLoadShedConfig(const LoadShedConfiguration& from,
-                       IConnectionCounter* counter) {
-  loadShedConfig_ = from;
+void Acceptor::setLoadShedConfig(
+    std::shared_ptr<const LoadShedConfiguration> loadShedConfig,
+    const IConnectionCounter* counter) {
+  loadShedConfig_ = loadShedConfig;
   connectionCounter_ = counter;
 }
 
@@ -170,7 +171,8 @@ bool Acceptor::canAccept(const SocketAddress& address) {
     return true;
   }
 
-  const auto totalConnLimit = loadShedConfig_.getMaxConnections();
+  const auto totalConnLimit =
+    loadShedConfig_ ? loadShedConfig_->getMaxConnections() : 0;
   if (totalConnLimit == 0) {
     return true;
   }
@@ -181,7 +183,7 @@ bool Acceptor::canAccept(const SocketAddress& address) {
     return true;
   }
 
-  if (loadShedConfig_.isWhitelisted(address)) {
+  if (loadShedConfig_ && loadShedConfig_->isWhitelisted(address)) {
     return true;
   }
 
@@ -193,7 +195,8 @@ bool Acceptor::canAccept(const SocketAddress& address) {
   const auto totalConnExceeded =
     totalConnLimit > 0 && getConnectionCountForLoadShedding() >= totalConnLimit;
 
-  const auto activeConnLimit = loadShedConfig_.getMaxActiveConnections();
+  const auto activeConnLimit =
+    loadShedConfig_ ? loadShedConfig_->getMaxActiveConnections() : 0;
   // getActiveConnectionCountForLoadShedding() call can be very expensive,
   // don't call it if you are not going to use the results.
   const auto activeConnExceeded =
