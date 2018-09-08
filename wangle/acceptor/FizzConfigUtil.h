@@ -36,13 +36,17 @@ class FizzConfigUtil {
       const std::vector<std::string>& currentSecrets,
       const std::vector<std::string>& newSecrets,
       std::chrono::seconds validity,
-      std::string pskContext) {
+      folly::Optional<std::string> pskContext) {
     if (currentSecrets.empty()) {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
-          oldSecrets, "", newSecrets, validity, pskContext);
+          oldSecrets, "", newSecrets, validity, std::move(pskContext));
     } else {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
-          oldSecrets, currentSecrets.at(0), newSecrets, validity, pskContext);
+          oldSecrets,
+          currentSecrets.at(0),
+          newSecrets,
+          validity,
+          std::move(pskContext));
     }
   }
 };
