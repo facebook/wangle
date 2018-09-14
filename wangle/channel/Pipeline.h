@@ -246,12 +246,6 @@ class PipelineFactory {
   virtual typename Pipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransportWrapper>) = 0;
 
-  virtual typename Pipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncUDPSocket> /* serverSocket */,
-      const folly::SocketAddress& /* clientAddr */) {
-    return Pipeline::create();
-  }
-
   virtual ~PipelineFactory() = default;
 };
 
