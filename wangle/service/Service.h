@@ -137,14 +137,12 @@ class FactoryToService : public Service<Req, Resp> {
 
   folly::Future<Resp> operator()(Req request) override {
     DCHECK(factory_);
-    return ((*factory_)(nullptr)).then(
-      [=](std::shared_ptr<Service<Req, Resp>> service)
-      {
-        return (*service)(std::move(request)).ensure(
-          [this]() {
+    return ((*factory_)(nullptr))
+        .thenValue([=](std::shared_ptr<Service<Req, Resp>> service) {
+          return (*service)(std::move(request)).ensure([this]() {
             this->close();
           });
-      });
+        });
   }
 
  private:

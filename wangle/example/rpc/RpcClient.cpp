@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
       Bonk request;
       std::cin >> request.message;
       std::cin >> request.type;
-      service(request).then([request](Xtruct response) {
+      service(request).thenValue([request](Xtruct response) {
         CHECK(request.type == response.i32_thing);
         std::cout << response.string_thing << std::endl;
       });

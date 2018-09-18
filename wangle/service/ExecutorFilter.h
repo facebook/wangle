@@ -33,9 +33,10 @@ class ExecutorFilter : public ServiceFilter<Req, Resp> {
       , exe_(exe) {}
 
  folly::Future<Resp> operator()(Req req) override {
-   return via(exe_.get()).then([ req = std::move(req), this ]() mutable {
-     return (*this->service_)(std::move(req));
-   });
+   return via(exe_.get()).thenValue(
+     [req = std::move(req), this](auto&&) mutable {
+       return (*this->service_)(std::move(req));
+     });
   }
 
  private:

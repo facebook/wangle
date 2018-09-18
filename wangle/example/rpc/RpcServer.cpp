@@ -50,7 +50,7 @@ class RpcService : public Service<Bonk, Xtruct> {
      */
     // Wait for a bit
     return futures::sleep(std::chrono::seconds(request.type))
-        .then([request]() {
+        .thenValue([request](auto&&) {
           Xtruct response;
           response.string_thing = "Stop saying " + request.message + "!";
           response.i32_thing = request.type;
