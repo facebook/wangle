@@ -139,12 +139,11 @@ void EvbHandshakeHelper::connectionError(
     return;
   }
 
-  transport->detachEventBase();
+  helper_.reset();
   originalEvb_->runInEventBaseThread(
-      [ this, transport, sslErr, ex = std::move(ex) ]() mutable {
+      [this, sslErr, ex = std::move(ex)]() mutable {
         DCHECK(callback_);
         VLOG(5) << "calling underlying callback connectionError";
-        transport->attachEventBase(originalEvb_);
 
         // If a dropConnection call occured by the time this lambda runs, we
         // don't want to fire the callback. (See Case 2)
@@ -152,7 +151,7 @@ void EvbHandshakeHelper::connectionError(
           dropConnectionGuard_.clear();
           return;
         }
-        callback_->connectionError(transport, std::move(ex), sslErr);
+        callback_->connectionError(nullptr, std::move(ex), sslErr);
       });
 }
 

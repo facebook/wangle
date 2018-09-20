@@ -117,9 +117,8 @@ TEST_F(EvbHandshakeHelperTest, TestFailPath) {
   EXPECT_NE(nullptr, sockPtr_->getEventBase());
   EXPECT_CALL(mockCb_, connectionError_(_, _, _))
       .WillOnce(Invoke([&](auto sock, auto&&, auto&&) {
-        EXPECT_EQ(original_.getEventBase(), sock->getEventBase());
+        EXPECT_EQ(sock, nullptr);
         EXPECT_EQ(originalThreadId_, std::this_thread::get_id());
-        sock->destroy();
         barrier.post();
       }));
 
@@ -128,8 +127,14 @@ TEST_F(EvbHandshakeHelperTest, TestFailPath) {
         EXPECT_EQ(alternate_.getEventBase(), sock->getEventBase());
         EXPECT_EQ(alternateThreadId_, std::this_thread::get_id());
 
-        sock->getEventBase()->runInLoop(
-            [sock, cb] { cb->connectionError(sock, {}, folly::none); });
+        sock->getEventBase()->runInLoop([sock, cb, this] {
+          folly::DelayedDestruction::DestructorGuard dg(mockHelper_);
+          EXPECT_FALSE(mockHelper_->getDestroyPending());
+          cb->connectionError(sock, {}, folly::none);
+          EXPECT_TRUE(mockHelper_->getDestroyPending());
+          EXPECT_EQ(alternate_.getEventBase(), sock->getEventBase());
+          sock->destroy();
+        });
       }));
 
   original_.getEventBase()->runInEventBaseThreadAndWait(
