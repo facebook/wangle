@@ -20,11 +20,11 @@
 constexpr folly::StringPiece validTicketData =
     R"JSON({
     "new": [
-      "123",
-      "234"
+      "0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff",
+      "111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
     ],
     "current": [
-      "123"
+      "0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"
     ]
   })JSON";
 
@@ -32,10 +32,10 @@ constexpr folly::StringPiece validTicketData =
 constexpr folly::StringPiece invalidTicketData =
     R"JSON({
     'new': [
-      "123',
-      "234"
+      "0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff',
+      "111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
     ],
     "current": [
-      "123"
+      "0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"
     ],
   })JSON";

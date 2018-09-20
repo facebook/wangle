@@ -53,8 +53,8 @@ void expectValidData(folly::Optional<wangle::TLSTicketKeySeeds> seeds) {
   ASSERT_EQ(2, seeds->newSeeds.size());
   ASSERT_EQ(1, seeds->currentSeeds.size());
   ASSERT_EQ(0, seeds->oldSeeds.size());
-  ASSERT_EQ("123", seeds->newSeeds[0]);
-  ASSERT_EQ("234", seeds->newSeeds[1]);
+  ASSERT_EQ("0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff", seeds->newSeeds[0]);
+  ASSERT_EQ("111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000", seeds->newSeeds[1]);
 }
 
 TEST_F(ProcessTicketTest, ParseTicketFile) {
