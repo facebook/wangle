@@ -31,7 +31,7 @@ class FizzConfigUtil {
 
   // Creates a TicketCipher with given params
   template <class TicketCipher>
-  static std::shared_ptr<TicketCipher> createTicketCipher(
+  static std::unique_ptr<TicketCipher> createTicketCipher(
       const std::vector<std::string>& oldSecrets,
       const std::vector<std::string>& currentSecrets,
       const std::vector<std::string>& newSecrets,
