@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <cerrno>
 #include <folly/DynamicConverter.h>
 #include <folly/FileUtil.h>
@@ -26,39 +27,81 @@
 
 namespace wangle {
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
-    const std::size_t cacheCapacity,
-    const std::chrono::milliseconds& syncInterval,
-    const int nSyncRetries,
-    std::unique_ptr<CachePersistence<K, V>> persistence):
-  cache_(cacheCapacity),
-  stopSyncer_(false),
-  syncInterval_(syncInterval),
-  nSyncRetries_(nSyncRetries),
-  persistence_(nullptr) {
+    std::size_t cacheCapacity,
+    std::chrono::milliseconds syncInterval,
+    int nSyncRetries,
+    std::unique_ptr<CachePersistence<K, V>> persistence)
+    : LRUPersistentCache(
+          nullptr,
+          cacheCapacity,
+          syncInterval,
+          nSyncRetries,
+          std::move(persistence)) {
+}
 
+template <typename K, typename V, typename MutexT>
+LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
+    std::shared_ptr<folly::Executor> executor,
+    std::size_t cacheCapacity,
+    std::chrono::milliseconds syncInterval,
+    int nSyncRetries,
+    std::unique_ptr<CachePersistence<K, V>> persistence)
+    : cache_(cacheCapacity),
+      syncInterval_(syncInterval),
+      nSyncRetries_(nSyncRetries),
+      executor_(std::move(executor)) {
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
   if (persistence) {
     setPersistenceHelper(std::move(persistence), true);
   }
-  // start the syncer thread. done at the end of construction so that the cache
-  // is fully initialized before being passed to the syncer thread.
-  syncer_ = std::thread(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this);
+  if (!executor_) {
+    // start the syncer thread. done at the end of construction so that the
+    // cache is fully initialized before being passed to the syncer thread.
+    syncer_ =
+        std::thread(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this);
+  }
 }
 
 template<typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
+  if (executor_) {
+    // In executor mode, each task holds a weak_ptr to the cache itself. No need
+    // to notify them the cache is dying. We are done here. Alternatively we may
+    // want to do a final sync upon destruction.
+    return;
+  }
   {
     // tell syncer to wake up and quit
     std::lock_guard<std::mutex> lock(stopSyncerMutex_);
-
     stopSyncer_ = true;
     stopSyncerCV_.notify_all();
   }
-
   syncer_.join();
+}
+
+template <typename K, typename V, typename MutexT>
+void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
+  cache_.put(key, val);
+  if (executor_) {
+    if (!executorScheduled_.test_and_set()) {
+      if (std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
+          syncInterval_) {
+        // Do not schedule more than once during a syncInterval_ period
+        return;
+      }
+      std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
+          this->shared_from_this();
+      lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
+      executor_->add([self = std::move(weakSelf)]() {
+        if (auto sharedSelf = self.lock()) {
+          sharedSelf->oneShotSync();
+        }
+      });
+    }
+  }
 }
 
 template<typename K, typename V, typename MutexT>
@@ -79,12 +122,27 @@ void* LRUPersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
   return nullptr;
 }
 
+template <typename K, typename V, typename MutexT>
+void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
+  executorScheduled_.clear();
+  auto persistence = getPersistence();
+  if (persistence && !syncNow(*persistence)) {
+    // track failures and give up if we tried too many times
+    ++nSyncTries_;
+    if (nSyncTries_ == nSyncRetries_) {
+      persistence->setPersistedVersion(cache_.getVersion());
+      nSyncTries_ = 0;
+    }
+  } else {
+    nSyncTries_ = 0;
+  }
+}
+
 template<typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::sync() {
   // keep running as long the destructor signals to stop or
   // there are pending updates that are not synced yet
   std::unique_lock<std::mutex> stopSyncerLock(stopSyncerMutex_);
-
   int nSyncFailures = 0;
   while (true) {
     auto persistence = getPersistence();

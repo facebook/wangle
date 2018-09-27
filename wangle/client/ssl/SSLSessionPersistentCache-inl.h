@@ -30,14 +30,30 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
   persistentCache_(cache),
   timeUtil_(new TimeUtil()) {}
 
-template<typename K>
+template <typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
-  const std::string& filename,
-  const std::size_t cacheCapacity,
-  const std::chrono::seconds& syncInterval) :
-    SSLSessionPersistentCacheBase(
-      std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
-        filename, cacheCapacity, syncInterval)) {}
+    std::shared_ptr<folly::Executor> executor,
+    const std::string& filename,
+    std::size_t cacheCapacity,
+    std::chrono::seconds syncInterval)
+    : SSLSessionPersistentCacheBase(
+          std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
+              std::move(executor),
+              filename,
+              cacheCapacity,
+              syncInterval,
+              client::persistence::DEFAULT_CACHE_SYNC_RETRIES)) {}
+
+template <typename K>
+SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
+    const std::string& filename,
+    std::size_t cacheCapacity,
+    std::chrono::seconds syncInterval)
+    : SSLSessionPersistentCacheBase(
+          std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
+              filename,
+              cacheCapacity,
+              syncInterval)) {}
 
 template<typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(

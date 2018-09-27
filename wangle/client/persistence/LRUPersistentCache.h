@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <future>
@@ -22,6 +23,7 @@
 #include <thread>
 
 #include <boost/noncopyable.hpp>
+#include <folly/Executor.h>
 #include <folly/dynamic.h>
 #include <wangle/client/persistence/LRUInMemoryCache.h>
 #include <wangle/client/persistence/PersistentCache.h>
@@ -64,7 +66,7 @@ class CachePersistence {
    * Force set a persisted version.  This is primarily for when a persistence
    * layer acts as the initial source of data for some version tracking cache.
    */
-  void setPersistedVersion(CacheDataVersion version) noexcept {
+  virtual void setPersistedVersion(CacheDataVersion version) noexcept {
     persistedVersion_ = version;
   }
 
@@ -89,6 +91,14 @@ class CachePersistence {
   CacheDataVersion persistedVersion_;
 };
 
+namespace client {
+namespace persistence {
+constexpr std::chrono::milliseconds DEFAULT_CACHE_SYNC_INTERVAL =
+    std::chrono::milliseconds(5000);
+constexpr int DEFAULT_CACHE_SYNC_RETRIES = 3;
+} // namespace persistence
+} // namespace client
+
 /**
  * A PersistentCache implementation that used a CachePersistence for
  * storage. In memory structure fronts the persistence and the cache
@@ -105,10 +115,14 @@ class CachePersistence {
  * serialization and deserialization. So It may not suit your need until
  * true support arbitrary types is written.
  */
-template<typename K, typename V, typename MutexT = std::mutex>
-class LRUPersistentCache : public PersistentCache<K, V>,
-                           private boost::noncopyable {
+template <typename K, typename V, typename MutexT = std::mutex>
+class LRUPersistentCache
+    : public PersistentCache<K, V>,
+      public std::enable_shared_from_this<LRUPersistentCache<K, V, MutexT>>,
+      private boost::noncopyable {
  public:
+  using Ptr = std::shared_ptr<LRUPersistentCache<K, V, MutexT>>;
+
   /**
    * LRUPersistentCache constructor
    * @param cacheCapacity max number of elements to hold in the cache.
@@ -128,12 +142,18 @@ class LRUPersistentCache : public PersistentCache<K, V>,
    * On reaching capacity limit, LRU items are evicted.
    */
   explicit LRUPersistentCache(
-    const std::size_t cacheCapacity,
-    const std::chrono::milliseconds& syncInterval =
-    std::chrono::milliseconds(5000),
-    const int nSyncRetries = 3,
-    std::unique_ptr<CachePersistence<K, V>> persistence = nullptr
-  );
+      std::size_t cacheCapacity,
+      std::chrono::milliseconds syncInterval =
+          client::persistence::DEFAULT_CACHE_SYNC_INTERVAL,
+      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
+      std::unique_ptr<CachePersistence<K, V>> persistence = nullptr);
+
+  LRUPersistentCache(
+    std::shared_ptr<folly::Executor> executor,
+    std::size_t cacheCapacity,
+    std::chrono::milliseconds syncInterval,
+    int nSyncRetries,
+    std::unique_ptr<CachePersistence<K, V>> persistence);
 
   /**
    * LRUPersistentCache Destructor
@@ -155,9 +175,7 @@ class LRUPersistentCache : public PersistentCache<K, V>,
     return cache_.get(key);
   }
 
-  void put(const K& key, const V& val) override {
-    cache_.put(key, val);
-  }
+  void put(const K& key, const V& val) override;
 
   bool remove(const K& key) override {
     return cache_.remove(key);
@@ -212,6 +230,7 @@ class LRUPersistentCache : public PersistentCache<K, V>,
    * after every syncInterval_ seconds.
    */
   void sync();
+  void oneShotSync();
   static void* syncThreadMain(void* arg);
 
   /**
@@ -230,21 +249,27 @@ class LRUPersistentCache : public PersistentCache<K, V>,
   std::shared_ptr<CachePersistence<K, V>> getPersistence();
 
  private:
-
   // Our threadsafe in memory cache
   LRUInMemoryCache<K, V, MutexT> cache_;
 
   // used to signal syncer thread
-  bool stopSyncer_;
+  bool stopSyncer_{false};
   // mutex used to synchronize syncer_ on destruction, tied to stopSyncerCV_
   std::mutex stopSyncerMutex_;
   // condvar used to wakeup syncer on exit
   std::condition_variable stopSyncerCV_;
 
+  // We do not schedule the same task more than one to the executor
+  std::atomic_flag executorScheduled_ = ATOMIC_FLAG_INIT;
+
   // sync interval in milliseconds
-  const std::chrono::milliseconds syncInterval_;
+  const std::chrono::milliseconds syncInterval_{
+      client::persistence::DEFAULT_CACHE_SYNC_INTERVAL};
   // limit on no. of sync attempts
-  const int nSyncRetries_;
+  const int nSyncRetries_{client::persistence::DEFAULT_CACHE_SYNC_RETRIES};
+  // Sync try count across executor tasks
+  int nSyncTries_{0};
+  std::chrono::steady_clock::time_point lastExecutorScheduleTime_;
 
   // persistence layer
   // we use a shared pointer since the syncer thread might be operating on
@@ -255,6 +280,9 @@ class LRUPersistentCache : public PersistentCache<K, V>,
 
   // thread for periodic sync
   std::thread syncer_;
+
+  // executor for periodic sync.
+  std::shared_ptr<folly::Executor> executor_;
 };
 
 }

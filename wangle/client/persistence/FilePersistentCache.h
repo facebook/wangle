@@ -40,11 +40,20 @@ template<typename K, typename V, typename M = std::mutex>
 class FilePersistentCache : public PersistentCache<K, V>,
                             private boost::noncopyable {
  public:
-  explicit FilePersistentCache(
-    const std::string& file,
-    const std::size_t cacheCapacity,
-    const std::chrono::seconds& syncInterval = std::chrono::seconds(5),
-    const int nSyncRetries = 3);
+  FilePersistentCache(
+      const std::string& file,
+      std::size_t cacheCapacity,
+      std::chrono::seconds syncInterval =
+          std::chrono::duration_cast<std::chrono::seconds>(
+              client::persistence::DEFAULT_CACHE_SYNC_INTERVAL),
+      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES);
+
+  FilePersistentCache(
+      std::shared_ptr<folly::Executor> executor,
+      const std::string& file,
+      std::size_t cacheCapacity,
+      std::chrono::seconds syncInterval,
+      int nSyncRetries);
 
   ~FilePersistentCache() override {}
 
@@ -52,27 +61,27 @@ class FilePersistentCache : public PersistentCache<K, V>,
    * PersistentCache operations
    */
   folly::Optional<V> get(const K& key) override {
-    return cache_.get(key);
+    return cache_->get(key);
   }
 
   void put(const K& key, const V& val) override {
-    cache_.put(key, val);
+    cache_->put(key, val);
   }
 
   bool remove(const K& key) override {
-    return cache_.remove(key);
+    return cache_->remove(key);
   }
 
   void clear(bool clearPersistence = false) override {
-    cache_.clear(clearPersistence);
+    cache_->clear(clearPersistence);
   }
 
   size_t size() override {
-    return cache_.size();
+    return cache_->size();
   }
 
  private:
-  LRUPersistentCache<K, V, M> cache_;
+  typename LRUPersistentCache<K, V, M>::Ptr cache_;
 };
 
 } // namespace wangle
