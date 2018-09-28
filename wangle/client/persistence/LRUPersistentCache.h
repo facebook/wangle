@@ -195,6 +195,10 @@ class LRUPersistentCache
     return cache_.size();
   }
 
+  void setSyncOnDestroy(bool syncOnDestroy) {
+    syncOnDestroy_ = syncOnDestroy;
+  }
+
   /**
    * Set a new persistence layer on this cache.  This call blocks while the
    * new persistence layer is loaded into the cache.  The load is also
@@ -270,6 +274,9 @@ class LRUPersistentCache
   // Sync try count across executor tasks
   int nSyncTries_{0};
   std::chrono::steady_clock::time_point lastExecutorScheduleTime_;
+
+  // Whether or not to do 1 sync before destruction.
+  bool syncOnDestroy_{false};
 
   // persistence layer
   // we use a shared pointer since the syncer thread might be operating on
