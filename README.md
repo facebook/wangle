@@ -5,8 +5,9 @@
 ## Building and Installing
 
 The main dependencies are:
-* The folly library from https://github.com/facebook/folly/. 
-* Cmake
+* The folly library from https://github.com/facebook/folly
+* The fizz library from https://github.com/facebookincubator/fizz
+* CMake
 * OpenSSL, at least version 1.0.2+, preferably with TLS extension support.
 
 Once folly is installed, run the following inside the wangle directory to build, test, and install wangle:
