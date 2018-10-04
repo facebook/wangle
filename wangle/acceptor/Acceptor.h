@@ -22,6 +22,7 @@
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
+#include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/TLSPlaintextPeekingCallback.h>
 
 #include <wangle/ssl/SSLCacheProvider.h>
@@ -410,7 +411,13 @@ class Acceptor :
 
   // Helper function to initialize downstreamConnectionManager_
   virtual void initDownstreamConnectionManager(folly::EventBase* eventBase);
-
+  virtual DefaultToFizzPeekingCallback* getFizzPeeker() {
+    return &defaultFizzPeeker_;
+  }
+  virtual std::shared_ptr<fizz::server::FizzServerContext> createFizzContext();
+  virtual std::shared_ptr<fizz::server::TicketCipher>
+  createFizzTicketCipher(folly::Optional<std::string> = folly::none);
+  void updateFizzContext(fizz::server::FizzServerContext*);
 
   /**
    * Socket options to apply to the client socket
@@ -426,10 +433,12 @@ class Acceptor :
 
   TLSPlaintextPeekingCallback tlsPlaintextPeekingCallback_;
   DefaultToSSLPeekingCallback defaultPeekingCallback_;
+  DefaultToFizzPeekingCallback defaultFizzPeeker_;
 
   wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
 
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
+  wangle::TLSTicketKeySeeds currentSecrets_;
 
  private:
 

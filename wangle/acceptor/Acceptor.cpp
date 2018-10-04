@@ -18,7 +18,9 @@
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
+#include <wangle/acceptor/FizzConfigUtil.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
+#include <fizz/server/TicketTypes.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
@@ -35,6 +37,7 @@ using folly::AsyncServerSocket;
 using folly::AsyncTransportWrapper;
 using folly::EventBase;
 using folly::SocketAddress;
+using folly::StringPiece;
 using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::filebuf;
@@ -58,10 +61,23 @@ Acceptor::init(AsyncServerSocket* serverSocket,
                EventBase* eventBase,
                SSLStats* stats) {
   if (accConfig_.isSSL()) {
+
     if (accConfig_.allowInsecureConnectionsOnSecureServer) {
       securityProtocolCtxManager_.addPeeker(&tlsPlaintextPeekingCallback_);
     }
-    securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
+
+    if (accConfig_.fizzConfig.enableFizz) {
+      auto fizzCtx = createFizzContext();
+      auto* peeker = getFizzPeeker();
+      peeker->setContext(std::move(fizzCtx));
+      securityProtocolCtxManager_.addPeeker(peeker);
+      setTLSTicketSecrets(
+          accConfig_.initialTicketSeeds.oldSeeds,
+          accConfig_.initialTicketSeeds.currentSeeds,
+          accConfig_.initialTicketSeeds.newSeeds);
+    } else {
+      securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
+    }
 
     if (!sslCtxManager_) {
       sslCtxManager_ = std::make_unique<SSLContextManager>(
@@ -115,7 +131,42 @@ void Acceptor::initDownstreamConnectionManager(EventBase* eventBase) {
     eventBase, accConfig_.connectionIdleTimeout, this);
 }
 
+
+std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
+  return FizzConfigUtil::createFizzContext(accConfig_);
+}
+
+std::shared_ptr<fizz::server::TicketCipher>
+Acceptor::createFizzTicketCipher(folly::Optional<std::string> pskContext) {
+  return FizzConfigUtil::createTicketCipher<fizz::server::AES128TicketCipher>(
+      currentSecrets_.oldSeeds,
+      currentSecrets_.currentSeeds,
+      currentSecrets_.newSeeds,
+      accConfig_.sslCacheOptions.sslCacheTimeout,
+      std::move(pskContext));
+}
+
+void Acceptor::updateFizzContext(fizz::server::FizzServerContext* ctx) {
+  if (ctx) {
+    std::string pskContext;
+    if (!accConfig_.sslContextConfigs.empty()) {
+      pskContext = accConfig_.sslContextConfigs.front().sessionContext.value_or(
+        "");
+    }
+    auto cipher = createFizzTicketCipher(
+        folly::Optional<std::string>(std::move(pskContext)));
+    ctx->setTicketCipher(std::move(cipher));
+  }
+}
+
 void Acceptor::resetSSLContextConfigs() {
+  if (accConfig_.fizzConfig.enableFizz) {
+    auto ctx = createFizzContext();
+    if (ctx) {
+      updateFizzContext(ctx.get());
+      getFizzPeeker()->setContext(std::move(ctx));
+    }
+  }
   try {
     sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
                                            accConfig_.sslCacheOptions,
@@ -145,6 +196,14 @@ void Acceptor::setTLSTicketSecrets(
     const std::vector<std::string>& oldSecrets,
     const std::vector<std::string>& currentSecrets,
     const std::vector<std::string>& newSecrets) {
+  currentSecrets_.oldSeeds = oldSecrets;
+  currentSecrets_.currentSeeds = currentSecrets;
+  currentSecrets_.newSeeds = newSecrets;
+
+  if (accConfig_.fizzConfig.enableFizz) {
+    updateFizzContext(getFizzPeeker()->getContext().get());
+  }
+
   if (sslCtxManager_) {
     sslCtxManager_->reloadTLSTicketKeys(
         oldSecrets, currentSecrets, newSecrets);

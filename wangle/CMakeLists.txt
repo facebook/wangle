@@ -74,6 +74,7 @@ set(WANGLE_SOURCES
   acceptor/AcceptorHandshakeManager.cpp
   acceptor/ConnectionManager.cpp
   acceptor/EvbHandshakeHelper.cpp
+  acceptor/FizzAcceptorHandshakeHelper.cpp
   acceptor/FizzConfigUtil.cpp
   acceptor/LoadShedConfiguration.cpp
   acceptor/ManagedConnection.cpp

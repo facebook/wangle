@@ -15,10 +15,12 @@
  */
 #pragma once
 
+
 #include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextConfig.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
 #include <wangle/ssl/SSLUtil.h>
+#include <wangle/acceptor/FizzConfig.h>
 #include <wangle/acceptor/SocketOptions.h>
 
 #include <boost/optional.hpp>
@@ -154,6 +156,8 @@ struct ServerSocketConfig {
    * Limit on size of queue of TFO requests by clients.
    */
   uint32_t fastOpenQueueSize{100};
+
+  FizzConfig fizzConfig;
 
  private:
   folly::AsyncSocket::OptionMap socketOptions_;

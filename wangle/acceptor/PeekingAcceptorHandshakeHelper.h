@@ -36,7 +36,6 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
    public:
     explicit PeekCallback(size_t bytesRequired):
       bytesRequired_(bytesRequired) {}
-
     virtual ~PeekCallback() = default;
 
     size_t getBytesRequired() const {
