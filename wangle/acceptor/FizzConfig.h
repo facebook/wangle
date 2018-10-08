@@ -21,7 +21,7 @@
 namespace wangle {
 
 struct FizzConfig {
-  bool enableFizz{false};
+  bool enableFizz{true};
   std::vector<fizz::ProtocolVersion> supportedVersions;
   std::vector<std::vector<fizz::CipherSuite>> supportedCiphers;
   std::vector<fizz::SignatureScheme> supportedSigSchemes;
