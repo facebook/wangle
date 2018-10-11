@@ -66,6 +66,12 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
         static_cast<uint8_t>(*extension_->getNegotiatedKeyParam());
   }
 
+  auto* handshakeLogging = transport->getState().handshakeLogging();
+  if (handshakeLogging && handshakeLogging->clientSni) {
+    tinfo_.sslServerName =
+        std::make_shared<std::string>(*handshakeLogging->clientSni);
+  }
+
   auto appProto = transport->getApplicationProtocol();
   callback_->connectionReady(std::move(transport_),
                              std::move(appProto),
