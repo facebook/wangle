@@ -115,10 +115,8 @@ class FizzAcceptorHandshakeHelper
 class DefaultToFizzPeekingCallback
     : public wangle::PeekingAcceptorHandshakeHelper::PeekCallback {
  public:
-  explicit DefaultToFizzPeekingCallback(
-      FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback = nullptr)
-      : wangle::PeekingAcceptorHandshakeHelper::PeekCallback(0),
-        loggingCallback_(loggingCallback) {}
+  DefaultToFizzPeekingCallback()
+      : wangle::PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
 
   std::shared_ptr<fizz::server::FizzServerContext> getContext() const {
     return context_;
@@ -138,6 +136,11 @@ class DefaultToFizzPeekingCallback
     tokenBindingContext_ = std::move(context);
   }
 
+  void setLoggingCallback(
+      FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback) {
+    loggingCallback_ = loggingCallback;
+  }
+
   wangle::AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& /* bytes */,
       const folly::SocketAddress& clientAddr,
@@ -155,6 +158,6 @@ class DefaultToFizzPeekingCallback
  protected:
   std::shared_ptr<fizz::server::FizzServerContext> context_;
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
-  FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback_;
+  FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback_{nullptr};
 };
 }
