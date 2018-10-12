@@ -80,14 +80,14 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
 
   void readEOF(Context* ctx) override {
     LOG(INFO) << "Connection closed by local host";
-    backendPipeline_->close().then([this, ctx](){
+    backendPipeline_->close().thenValue([this, ctx](auto&&){
       this->close(ctx);
     });
   }
 
   void readException(Context* ctx, exception_wrapper e) override {
     LOG(ERROR) << "Local error: " << exceptionStr(e);
-    backendPipeline_->close().then([this, ctx](){
+    backendPipeline_->close().thenValue([this, ctx](auto&&){
       this->close(ctx);
     });
   }
@@ -105,7 +105,7 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
     client_.pipelineFactory(
         std::make_shared<ProxyBackendPipelineFactory>(frontendPipeline));
     client_.connect(remoteAddress_)
-      .then([this, frontendPipeline](DefaultPipeline* pipeline){
+      .thenValue([this, frontendPipeline](DefaultPipeline* pipeline){
         backendPipeline_ = pipeline;
         // Resume read
         frontendPipeline->transportActive();
