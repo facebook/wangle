@@ -75,11 +75,19 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
       remoteAddress_(remoteAddress) {}
 
   void read(Context*, IOBufQueue& q) override {
-    backendPipeline_->write(q.move());
+    buffer_.append(q);
+    if (!backendPipeline_) {
+      return;
+    }
+
+    backendPipeline_->write(buffer_.move());
   }
 
   void readEOF(Context* ctx) override {
     LOG(INFO) << "Connection closed by local host";
+    if (!backendPipeline_) {
+      return;
+    }
     backendPipeline_->close().thenValue([this, ctx](auto&&){
       this->close(ctx);
     });
@@ -87,6 +95,9 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
 
   void readException(Context* ctx, exception_wrapper e) override {
     LOG(ERROR) << "Local error: " << exceptionStr(e);
+    if (!backendPipeline_) {
+      return;
+    }
     backendPipeline_->close().thenValue([this, ctx](auto&&){
       this->close(ctx);
     });
@@ -119,7 +130,8 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
  private:
   SocketAddress remoteAddress_;
   ClientBootstrap<DefaultPipeline> client_;
-  DefaultPipeline* backendPipeline_;
+  DefaultPipeline* backendPipeline_{nullptr};
+  folly::IOBufQueue buffer_{folly::IOBufQueue::cacheChainLength()};
 };
 
 class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
