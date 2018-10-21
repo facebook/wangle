@@ -94,12 +94,12 @@ class AcceptRoutingHandlerTest : public Test {
         std::make_shared<folly::Promise<DefaultPipeline*>>();
 
     getEventBase()->runInEventBaseThread([=]() {
-      clientConnect().then([=](DefaultPipeline* clientPipeline) {
+      clientConnect().thenValue([=](DefaultPipeline* clientPipeline) {
         VLOG(4) << "Client connected. Send data.";
         auto data = IOBuf::create(1);
         data->append(1);
         *(data->writableData()) = 'a';
-        clientPipeline->write(std::move(data)).then([=]() {
+        clientPipeline->write(std::move(data)).thenValue([=](auto&&) {
           clientPipelinePromise->setValue(clientPipeline);
         });
       });
@@ -113,10 +113,10 @@ class AcceptRoutingHandlerTest : public Test {
         std::make_shared<folly::Promise<DefaultPipeline*>>();
 
     getEventBase()->runInEventBaseThread([=]() {
-      clientConnectAndWrite().then([=](DefaultPipeline* clientPipeline) {
+      clientConnectAndWrite().thenValue([=](DefaultPipeline* clientPipeline) {
         VLOG(4) << "Client close";
-        clientPipeline->close().then(
-            [=]() { clientPipelinePromise->setValue(clientPipeline); });
+        clientPipeline->close().thenValue(
+            [=](auto&&) { clientPipelinePromise->setValue(clientPipeline); });
       });
     });
 
@@ -127,7 +127,7 @@ class AcceptRoutingHandlerTest : public Test {
     auto clientPipelinePromise =
         std::make_shared<folly::Promise<DefaultPipeline*>>();
     getEventBase()->runInEventBaseThread([=]() {
-      clientConnect().then([=](DefaultPipeline* clientPipeline) {
+      clientConnect().thenValue([=](DefaultPipeline* clientPipeline) {
         clientPipelinePromise->setValue(clientPipeline);
       });
     });
@@ -222,7 +222,7 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
   // Socket exception after routing pipeline had been created
   barrierConnect.wait();
   boost::barrier barrierException(2);
-  std::move(futureClientPipeline).then([](DefaultPipeline* clientPipeline) {
+  std::move(futureClientPipeline).thenValue([](DefaultPipeline* clientPipeline) {
     clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
         [clientPipeline]() {
           clientPipeline->writeException(
