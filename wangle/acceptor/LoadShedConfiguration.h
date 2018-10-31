@@ -170,9 +170,28 @@ class LoadShedConfiguration {
   }
   std::chrono::milliseconds getLoadUpdatePeriod() const { return period_; }
 
+  void setMaxTcpMemUsage(double max) {
+    CHECK_GE(max, 0.0);
+    CHECK_LE(max, 1.0);
+    maxTcpMemUsage_ = max;
+  }
+  double getMaxTcpMemUsage() const {
+    return maxTcpMemUsage_;
+  }
+
+  void setMinFreeTcpMemPct(double min) {
+    CHECK_GE(min, 0.0);
+    CHECK_LE(min, 1.0);
+    minFreeTcpMemPct_ = min;
+  }
+  double getMinFreeTcpMemPct() const {
+    return minFreeTcpMemPct_;
+  }
+
   void setLoadSheddingEnabled(bool enabled) {
     loadSheddingEnabled_ = enabled;
   }
+
   bool getLoadSheddingEnabled() const {
     return loadSheddingEnabled_;
   }
@@ -198,10 +217,12 @@ class LoadShedConfiguration {
   uint64_t acceptPauseOnAcceptorQueueSize_{0};
   uint64_t acceptResumeOnAcceptorQueueSize_{0};
   uint64_t minFreeMem_{0};
-  double maxMemUsage_{0.0};
-  double maxCpuUsage_{0.0};
+  double maxMemUsage_{1.0};
+  double maxCpuUsage_{1.0};
   double minCpuIdle_{0.0};
   uint64_t cpuUsageExceedWindowSize_{0};
+  double maxTcpMemUsage_{1.0};
+  double minFreeTcpMemPct_{0.0};
   std::chrono::milliseconds period_;
   bool loadSheddingEnabled_{true};
 };

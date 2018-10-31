@@ -56,8 +56,8 @@ void LoadShedConfiguration::checkIsSane(uint64_t totalMemBytes) const {
     CHECK_GE(cpuUsageExceedWindowSize_, 1);
 
     // Min cpu idle and max cpu ratios must have values in the range of [0-1]
-    // inclusive and min cpu idle, normalized, must be greater than or equal to
-    // max cpu ratio.
+    // inclusive and min cpu idle, normalized, must be greater than or equal
+    // to max cpu ratio.
     CHECK_GE(minCpuIdle_, 0.0);
     CHECK_LE(minCpuIdle_, 1.0);
     CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
@@ -71,6 +71,15 @@ void LoadShedConfiguration::checkIsSane(uint64_t totalMemBytes) const {
     CHECK_LE(maxMemUsage_, 1.0);
     CHECK_GE(1.0 - ((double)minFreeMem_ / totalMemBytes), maxMemUsage_);
     CHECK_LE(minFreeMem_, totalMemBytes);
+
+    // Max TCP mem and min free TCP mem ratios must have values in the range
+    // of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater than
+    // or equal to max TCP mem ratio.
+    CHECK_GE(maxTcpMemUsage_, 0.0);
+    CHECK_LE(maxTcpMemUsage_, 1.0);
+    CHECK_GE(1.0 - minFreeTcpMemPct_, maxTcpMemUsage_);
+    CHECK_GE(minFreeTcpMemPct_, 0.0);
+    CHECK_LE(minFreeTcpMemPct_, 1.0);
 
     // Active connetions obviously must be less than or equal to max
     // connections.
