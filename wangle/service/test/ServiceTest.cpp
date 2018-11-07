@@ -130,7 +130,7 @@ TEST(Wangle, ClientServerTest) {
   auto service = serviceFactory(client).value();
   auto rep = (*service)("test");
 
-  std::move(rep).then([&](std::string value) {
+  std::move(rep).thenValue([&](std::string value) {
     EXPECT_EQ("test", value);
     EventBaseManager::get()->getEventBase()->terminateLoopSoon();
   });
@@ -157,9 +157,8 @@ class IntToStringFilter
       ServiceFilter<int, int, std::string, std::string>(service) {}
 
   Future<int> operator()(int req) override {
-    return (*service_)(folly::to<std::string>(req)).then([](std::string resp) {
-      return folly::to<int>(resp);
-    });
+    return (*service_)(folly::to<std::string>(req))
+        .thenValue([](std::string resp) { return folly::to<int>(resp); });
   }
 };
 

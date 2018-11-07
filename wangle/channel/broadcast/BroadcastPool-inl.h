@@ -38,7 +38,7 @@ BroadcastPool<T, R, P>::BroadcastManager::getHandler() {
   connectStarted_ = true;
 
   broadcastPool_->serverPool_->connect(client_.get(), routingData_)
-      .then([this](DefaultPipeline* pipeline) {
+      .thenValue([this](DefaultPipeline* pipeline) {
         DestructorGuard dg(this);
         pipeline->setPipelineManager(this);
 

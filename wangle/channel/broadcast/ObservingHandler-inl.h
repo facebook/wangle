@@ -51,19 +51,19 @@ void ObservingHandler<T, R, P>::transportActive(Context* ctx) {
 
   auto deleted = deleted_;
   broadcastPool_->getHandler(routingData_)
-      .then(
-           [this, pipeline, deleted](BroadcastHandler<T, R>* broadcastHandler) {
-             if (*deleted) {
-               return;
-             }
+      .thenValue(
+          [this, pipeline, deleted](BroadcastHandler<T, R>* broadcastHandler) {
+            if (*deleted) {
+              return;
+            }
 
-             broadcastHandler_ = broadcastHandler;
-             subscriptionId_ = broadcastHandler_->subscribe(this);
-             VLOG(10) << "Subscribed to a broadcast";
+            broadcastHandler_ = broadcastHandler;
+            subscriptionId_ = broadcastHandler_->subscribe(this);
+            VLOG(10) << "Subscribed to a broadcast";
 
-             // Resume ingress
-             pipeline->transportActive();
-           })
+            // Resume ingress
+            pipeline->transportActive();
+          })
       .onError([this, ctx, deleted](const std::exception& ex) {
         if (*deleted) {
           return;

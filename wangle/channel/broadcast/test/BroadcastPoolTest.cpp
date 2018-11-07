@@ -99,7 +99,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // is established and handler created.
   EXPECT_FALSE(pool->isBroadcasting(routingData1));
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1Id = handler1->getArbitraryIdentifier();
         handler1->subscribe(&subscriber);
@@ -114,7 +114,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // Broadcast available for routingData1. Test that the same handler
   // is returned.
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         EXPECT_EQ(handler1Id, h->getArbitraryIdentifier());
         EXPECT_TRUE(h == handler1);
       })
@@ -129,7 +129,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // new connection is established again and handler created.
   handler1 = nullptr;
   pool->getHandler(routingData1)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1Id = handler1->getArbitraryIdentifier();
         handler1->subscribe(&subscriber);
@@ -147,7 +147,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   // a new handler created
   EXPECT_FALSE(pool->isBroadcasting(routingData2));
   pool->getHandler(routingData2)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
         handler2Id = handler2->getArbitraryIdentifier();
         handler2->subscribe(&subscriber);
@@ -176,7 +176,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -186,7 +186,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // Invoke getHandler() for the same routing data when a connect request
   // is outstanding
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler2 = h;
         handler2->subscribe(&subscriber);
       });
@@ -207,7 +207,7 @@ TEST_F(BroadcastPoolTest, OutstandingConnect) {
   // Invoke getHandler() again to test if the same handler is returned
   // from the existing connection
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         EXPECT_TRUE(h == handler1);
       })
       .wait();
@@ -233,10 +233,8 @@ TEST_F(BroadcastPoolTest, ConnectError) {
 
   // No broadcast available for routingData. Kick off a connect request.
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
-        handler1 = h;
-      })
-      .onError([&] (const std::exception&) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) { handler1 = h; })
+      .onError([&](const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -246,10 +244,8 @@ TEST_F(BroadcastPoolTest, ConnectError) {
 
   // Invoke getHandler() again while the connect request is in flight
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
-        handler2 = h;
-      })
-      .onError([&] (const std::exception&) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) { handler2 = h; })
+      .onError([&](const std::exception&) {
         handler2Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -271,7 +267,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   // Start the server now. Connect requests should succeed.
   startServer();
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler1 = h;
         handler1->subscribe(&subscriber);
       });
@@ -300,10 +296,8 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
   // Inject a ServerPool error
   serverPool->failConnect();
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
-        handler1 = h;
-      })
-      .onError([&] (const std::exception&) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) { handler1 = h; })
+      .onError([&](const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -324,10 +318,8 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
 
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
-        handler = h;
-      })
-      .onError([&] (const std::exception&) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) { handler = h; })
+      .onError([&](const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -352,10 +344,8 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
 
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
-        handler = h;
-      })
-      .onError([&] (const std::exception&) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) { handler = h; })
+      .onError([&](const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -383,7 +373,7 @@ TEST_F(BroadcastPoolTest, HandlerEOFPoolDeletion) {
 
   // Dispatch a connect request and create a handler
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler = h;
         handler->subscribe(&subscriber);
         pipeline = dynamic_cast<DefaultPipeline*>(
@@ -416,7 +406,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // No broadcast available for routingData. Kick off a connect request.
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>*) {
+      .thenValue([&](BroadcastHandler<int, std::string>*) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.
@@ -427,7 +417,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   // Invoke getHandler() for the same routing data when a connect request
   // is outstanding
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>*) {
+      .thenValue([&](BroadcastHandler<int, std::string>*) {
         handler2Connected = true;
         // Do not subscribe to the handler.
       });
@@ -449,7 +439,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   handler1Connected = false;
   handler2Connected = false;
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>*) {
+      .thenValue([&](BroadcastHandler<int, std::string>*) {
         handler1Connected = true;
         // Do not subscribe to the handler. This will simulate
         // the caller going away before we get here.
@@ -458,7 +448,7 @@ TEST_F(BroadcastPoolTest, SubscriberDeletionBeforeConnect) {
   EXPECT_TRUE(pool->isBroadcasting(routingData));
 
   pool->getHandler(routingData)
-      .then([&](BroadcastHandler<int, std::string>* h) {
+      .thenValue([&](BroadcastHandler<int, std::string>* h) {
         handler2Connected = true;
         // Subscriber to the handler. The handler should stick around now.
         handler = h;
