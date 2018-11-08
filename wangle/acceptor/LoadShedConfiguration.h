@@ -143,6 +143,21 @@ class LoadShedConfiguration {
   double getMinCpuIdle() const { return minCpuIdle_; }
 
   /**
+   * Set/get the number of most utilized cpu cores to use when comparing
+   * against cpu limits; a value of 0 or a value that equals the total number
+   * of cores on the executing system implies that mean CPU should be used.
+   * This field exists to more meaningfully handle uneven load distributions
+   * that can occur if for example network card interrupt affinity is set
+   * such that only X of Y cores are utilized for network packet processing.
+   */
+  void setLogicalCpuCoreQuorum(uint64_t quorum) {
+    logicalCpuCoreQuorum_ = quorum;
+  }
+  uint64_t getLogicalCpuCoreQuorum() const {
+    return logicalCpuCoreQuorum_;
+  }
+
+  /**
    * Set/get the CPU usage exceed window size
    */
   void setCpuUsageExceedWindowSize(const uint64_t size) {
@@ -206,7 +221,11 @@ class LoadShedConfiguration {
    * normalizing minFreeMem_ and killMinFreeMemBytes_ in order for the
    * associated comparisons.
    */
-  void checkIsSane(uint64_t totalMemBytes) const;
+  struct SysParams {
+    uint64_t numLogicalCpuCores{0};
+    uint64_t totalMemBytes{0};
+  };
+  void checkIsSane(const SysParams& sysParams) const;
 
  private:
 
@@ -220,6 +239,7 @@ class LoadShedConfiguration {
   double maxMemUsage_{1.0};
   double maxCpuUsage_{1.0};
   double minCpuIdle_{0.0};
+  uint64_t logicalCpuCoreQuorum_{0};
   uint64_t cpuUsageExceedWindowSize_{0};
   double maxTcpMemUsage_{1.0};
   double minFreeTcpMemPct_{0.0};

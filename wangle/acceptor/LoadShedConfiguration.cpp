@@ -18,8 +18,8 @@
 #include <folly/Conv.h>
 #include <folly/portability/OpenSSL.h>
 
-using std::string;
 using folly::SocketAddress;
+using std::string;
 
 namespace wangle {
 
@@ -31,7 +31,8 @@ void LoadShedConfiguration::addWhitelistAddr(folly::StringPiece input) {
   } else {
     unsigned prefixLen = folly::to<unsigned>(addr.substr(separator + 1));
     addr.erase(separator);
-    whitelistNetworks_.insert(NetworkAddress(SocketAddress(addr, 0), prefixLen));
+    whitelistNetworks_.insert(
+        NetworkAddress(SocketAddress(addr, 0), prefixLen));
   }
 }
 
@@ -47,7 +48,7 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
   return false;
 }
 
-void LoadShedConfiguration::checkIsSane(uint64_t totalMemBytes) const {
+void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
   if (loadSheddingEnabled_) {
     // Period must be greater than or equal to 0.
     CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());
@@ -63,14 +64,17 @@ void LoadShedConfiguration::checkIsSane(uint64_t totalMemBytes) const {
     CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
     CHECK_GE(maxCpuUsage_, 0.0);
     CHECK_LE(maxCpuUsage_, 1.0);
+    CHECK_GE(logicalCpuCoreQuorum_, 0);
+    CHECK_LE(logicalCpuCoreQuorum_, sysParams.numLogicalCpuCores);
 
     // Max mem usage must be less than or equal to min free mem, normalized.
     // We also must verify that min free mem is less than or equal to total
     // mem bytes.
     CHECK_GE(maxMemUsage_, 0.0);
     CHECK_LE(maxMemUsage_, 1.0);
-    CHECK_GE(1.0 - ((double)minFreeMem_ / totalMemBytes), maxMemUsage_);
-    CHECK_LE(minFreeMem_, totalMemBytes);
+    CHECK_GE(
+        1.0 - ((double)minFreeMem_ / sysParams.totalMemBytes), maxMemUsage_);
+    CHECK_LE(minFreeMem_, sysParams.totalMemBytes);
 
     // Max TCP mem and min free TCP mem ratios must have values in the range
     // of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater than
