@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 
 namespace wangle {
@@ -69,6 +70,14 @@ public:
   virtual bool getAsync(const std::string& sessionId,
                         CacheContext* context) = 0;
 
+  /**
+   * Retrieve a session from the external cache. Returns a future that will
+   * hold the result of the request.
+   * @param sessionId   Session ID to fetch
+   * @return MultiFuture referring to the result of this request.
+   */
+  virtual folly::Future<folly::ssl::SSLSessionUniquePtr> getFuture(
+      const std::string& sessionId) = 0;
 };
 
 } // namespace wangle

@@ -19,8 +19,10 @@
 #include <wangle/ssl/SSLStats.h>
 #include <wangle/ssl/SSLUtil.h>
 
+#include <folly/fibers/Fiber.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GFlags.h>
+#include <folly/portability/OpenSSL.h>
 
 using folly::SSLContext;
 using folly::EventBase;
@@ -273,9 +275,9 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
     int id_len,
     int* copyflag) {
   VLOG(7) << "SSL get session callback";
-  SSL_SESSION* session = nullptr;
+  folly::ssl::SSLSessionUniquePtr session;
   bool foreign = false;
-  char const* missReason = nullptr;
+  std::string missReason;
 
   if (id_len < MIN_SESSION_ID_LENGTH) {
     // We didn't generate this session so it's going to be a miss.
@@ -289,7 +291,7 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
   assert(sslSocket != nullptr);
 
   // look it up in the local cache first
-  session = localCache_->lookupSession(sessionId);
+  session.reset(localCache_->lookupSession(sessionId));
 #ifdef SSL_SESSION_CB_WOULD_BLOCK
   if (session == nullptr && externalCache_) {
     // external cache might have the session
@@ -325,11 +327,28 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
           return nullptr;
         }
         // request is complete
-        session = pit->second.session; // nullptr if our friend didn't have it
-        if (session != nullptr) {
-          SSL_SESSION_up_ref(session);
+        session.reset(
+            pit->second.session); // nullptr if our friend didn't have it
+        if (session) {
+          SSL_SESSION_up_ref(session.get());
         }
       }
+    }
+  }
+#elif FOLLY_OPENSSL_IS_110
+  if (session == nullptr && externalCache_) {
+    foreign = true;
+    DCHECK(folly::fibers::onFiber());
+
+    try {
+      session = externalCache_->getFuture(sessionId).get();
+    } catch (const std::exception& e) {
+      missReason = folly::to<std::string>("reason: ", e.what(), ";");
+    }
+
+    if (session) {
+      localCache_->storeSession(sessionId, session.get(), stats_);
+      SSL_SESSION_up_ref(session.get());
     }
   }
 #endif
@@ -342,16 +361,15 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
     sslSocket->setSessionIDResumed(true);
   }
 
-  VLOG(4) << "Get SSL session [" <<
-    ((hit) ? "Hit" : "Miss") << "]: " <<
-    ((foreign) ? "external" : "local") << " cache; " <<
-    ((missReason != nullptr) ? missReason : "") << "fd=" <<
-    sslSocket->getFd() << " id=" << SSLUtil::hexlify(sessionId);
+  VLOG(4) << "Get SSL session [" << ((hit) ? "Hit" : "Miss")
+          << "]: " << ((foreign) ? "external" : "local") << " cache; "
+          << missReason << "fd=" << sslSocket->getFd()
+          << " id=" << SSLUtil::hexlify(sessionId);
 
   // We already bumped the refcount
   *copyflag = 0;
 
-  return session;
+  return session.release();
 }
 
 bool SSLSessionCacheManager::storeCacheRecord(const string& sessionId,
