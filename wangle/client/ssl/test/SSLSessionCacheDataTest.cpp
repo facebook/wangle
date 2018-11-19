@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <folly/DynamicConverter.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <wangle/client/ssl/SSLSession.h>
 #include <wangle/client/ssl/SSLSessionCacheData.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>

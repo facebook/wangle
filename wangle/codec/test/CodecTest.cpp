@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <wangle/codec/FixedLengthFrameDecoder.h>
 #include <wangle/codec/LengthFieldBasedFrameDecoder.h>

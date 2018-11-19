@@ -15,7 +15,7 @@
  */
 #include <wangle/acceptor/LoadShedConfiguration.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace wangle;
 using namespace testing;

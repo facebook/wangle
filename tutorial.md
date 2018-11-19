@@ -72,7 +72,7 @@ It is **very** important to be strict in the order of insertion as they are orde
 Now that all needs to be done is plug the pipeline factory into a ServerBootstrap and that’s pretty much it. Bind a port and wait for it to stop.
 
 ```cpp
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -171,7 +171,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 What does it looks like when it is all put together for the client?
 
 ```cpp
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 #include <iostream>
 
 #include <wangle/bootstrap/ClientBootstrap.h>

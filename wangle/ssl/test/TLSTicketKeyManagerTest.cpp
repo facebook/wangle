@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <folly/portability/GMock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <wangle/ssl/SSLStats.h>
 #include <wangle/ssl/TLSTicketKeyManager.h>
 

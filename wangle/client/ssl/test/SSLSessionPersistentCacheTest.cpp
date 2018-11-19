@@ -17,9 +17,9 @@
 #include <folly/DynamicConverter.h>
 #include <folly/Memory.h>
 
-#include <gmock/gmock.h>
+#include <folly/portability/GMock.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <vector>
 

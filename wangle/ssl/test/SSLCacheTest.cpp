@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <folly/io/async/EventBase.h>
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 #include <iostream>
 #include <thread>
 #include <folly/io/async/AsyncSSLSocket.h>

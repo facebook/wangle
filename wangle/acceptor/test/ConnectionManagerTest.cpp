@@ -15,9 +15,9 @@
  */
 #include <wangle/acceptor/ConnectionManager.h>
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include <gflags/gflags.h>
+#include <folly/portability/GTest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GFlags.h>
 
 using namespace folly;
 using namespace testing;

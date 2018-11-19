@@ -21,7 +21,7 @@
 
 #include <folly/Memory.h>
 #include <folly/portability/Unistd.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 
 namespace wangle {

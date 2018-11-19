@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/Pipeline.h>
 #include <wangle/channel/test/MockHandler.h>

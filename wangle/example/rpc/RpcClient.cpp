@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 #include <folly/init/Init.h>
 #include <wangle/service/Service.h>

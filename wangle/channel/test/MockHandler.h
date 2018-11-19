@@ -17,7 +17,7 @@
 #pragma once
 
 #include <folly/MoveWrapper.h>
-#include <gmock/gmock.h>
+#include <folly/portability/GMock.h>
 #include <wangle/channel/Handler.h>
 
 namespace wangle {

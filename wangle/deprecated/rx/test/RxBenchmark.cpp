@@ -17,7 +17,7 @@
 #include <folly/Benchmark.h>
 #include <wangle/deprecated/rx/Observer.h>
 #include <wangle/deprecated/rx/Subject.h>
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 using namespace wangle;
 using folly::BenchmarkSuspender;

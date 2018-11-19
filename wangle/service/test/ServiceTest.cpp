@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <wangle/codec/StringCodec.h>
 #include <wangle/codec/ByteToMessageDecoder.h>

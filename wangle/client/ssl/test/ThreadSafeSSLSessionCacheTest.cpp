@@ -19,8 +19,8 @@
 #include <folly/Memory.h>
 
 #include <thread>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include <folly/portability/GTest.h>
+#include <folly/portability/GMock.h>
 
 using namespace testing;
 using namespace wangle;

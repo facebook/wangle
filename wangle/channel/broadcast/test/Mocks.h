@@ -16,8 +16,8 @@
 #pragma once
 
 #include <folly/MoveWrapper.h>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 #include <wangle/channel/broadcast/BroadcastHandler.h>
 #include <wangle/channel/broadcast/BroadcastPool.h>
 #include <wangle/channel/broadcast/ObservingHandler.h>

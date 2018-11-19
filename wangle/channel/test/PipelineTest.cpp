@@ -20,8 +20,8 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/OutputBufferingHandler.h>
 #include <wangle/channel/test/MockHandler.h>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 #include <boost/thread/barrier.hpp>
 
 using namespace folly;

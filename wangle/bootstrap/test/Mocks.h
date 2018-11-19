@@ -24,8 +24,8 @@
 #include <wangle/channel/test/MockHandler.h>
 
 #include <boost/thread.hpp>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
 namespace wangle {
 

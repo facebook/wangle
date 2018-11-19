@@ -16,8 +16,8 @@
 #include <wangle/acceptor/SocketPeeker.h>
 
 #include <thread>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
 #include <folly/io/async/test/MockAsyncSocket.h>
 

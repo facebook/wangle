@@ -16,7 +16,7 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/SSLContext.h>
 #include <glog/logging.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
