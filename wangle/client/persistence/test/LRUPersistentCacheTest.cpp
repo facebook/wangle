@@ -113,6 +113,7 @@ class LRUPersistentCacheTest : public Test {
 TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
   // make sure things sync even without a persistence layer
   auto cache = createCache<TypeParam>(10, 1, nullptr);
+  cache->init();
   cache->put("k0", "v0");
   makeFuture().delayed(std::chrono::milliseconds(20)).thenValue(
     [cache](auto&&) {
@@ -129,6 +130,7 @@ MATCHER_P(DynSize, n, "") {
 
 TYPED_TEST(LRUPersistentCacheTest, SettingPersistence) {
   auto cache = createCache<TypeParam>(10, 10, nullptr);
+  cache->init();
   cache->put("k0", "v0");
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
   InSequence seq;
@@ -143,6 +145,7 @@ TYPED_TEST(LRUPersistentCacheTest, SettingPersistence) {
 
 TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   auto cache = createCache<TypeParam>(10, 10000, nullptr);
+  cache->init();
   cache->setSyncOnDestroy(true);
   auto persistence = this->persistence.get();
   cache->setPersistence(std::move(this->persistence));
@@ -160,6 +163,7 @@ TYPED_TEST(LRUPersistentCacheTest, SetPersistenceMidPersist) {
   // to set a new persistence layer on the cache
   // Ensure that the new layer is called with the data
   auto cache = createCache<TypeParam>(10, 10, nullptr);
+  cache->init();
   cache->put("k0", "v0");
   cache->put("k1", "v1");
 
@@ -202,6 +206,7 @@ TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {
     .Times(0)
     .WillOnce(Return(false));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->init();
   EXPECT_EQ(cache->size(), 1);
 }
 
@@ -213,17 +218,20 @@ TYPED_TEST(LRUPersistentCacheTest, PersistentSetBeforeSyncer) {
           this->persistence.get(),
           &MockPersistenceLayer::getLastPersistedVersionConcrete));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->init();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, ClearKeepPersist) {
   EXPECT_CALL(*this->persistence, clear()).Times(0);
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->init();
   cache->clear();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, ClearDontKeepPersist) {
   EXPECT_CALL(*this->persistence, clear()).Times(1);
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache->init();
   cache->clear(true);
 }
 
@@ -249,6 +257,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTask) {
       std::move(this->persistence),
       std::chrono::milliseconds::zero(),
       1);
+  cache->init();
+  this->manualExecutor->run();
   cache->put("k0", "v0");
   EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
       .Times(1)
@@ -273,6 +283,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTaskInline) {
       std::move(this->persistence),
       std::chrono::milliseconds::zero(),
       1);
+  cache->init();
+  this->manualExecutor->run();
   EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
       .Times(1)
       .WillOnce(Invoke(
@@ -305,6 +317,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRetries) {
       std::move(this->persistence),
       std::chrono::milliseconds::zero(),
       2);
+  cache->init();
+  this->manualExecutor->run();
   EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
       .WillRepeatedly(Invoke(
           rawPersistence,
@@ -340,6 +354,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheSchduledAndDealloc) {
       std::move(this->persistence),
       std::chrono::milliseconds::zero(),
       1);
+  cache->init();
+  this->manualExecutor->run();
   cache->put("k0", "v0");
   cache->put("k2", "v2");
 
@@ -359,6 +375,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
       std::move(this->persistence),
       std::chrono::milliseconds(60 * 60 * 1000),
       1);
+  cache->init();
+  this->manualExecutor->run();
   EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
       .WillRepeatedly(Invoke(
           rawPersistence,
@@ -378,3 +396,18 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
   cache.reset();
   this->manualExecutor->drain();
 }
+
+TYPED_TEST(LRUPersistentCacheTest, InitCache) {
+  folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
+  EXPECT_CALL(*this->persistence, load_())
+    .Times(1)
+    .WillOnce(Return(data));
+  auto cache = createCacheWithExecutor<TypeParam>(
+      this->inlineExecutor,
+      std::move(this->persistence),
+      std::chrono::milliseconds::zero(),
+      1);
+  cache->init();
+  EXPECT_FALSE(cache->hasPendingUpdates());
+}
+
