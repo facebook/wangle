@@ -52,9 +52,16 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
       syncInterval_(syncInterval),
       nSyncRetries_(nSyncRetries),
       executor_(std::move(executor)) {
+  // load the cache. be silent if load fails, we just drop the cache
+  // and start from scratch.
   if (persistence) {
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
-    persistence_ = std::move(persistence);
+    setPersistenceHelper(std::move(persistence), true);
+  }
+  if (!executor_) {
+    // start the syncer thread. done at the end of construction so that the
+    // cache is fully initialized before being passed to the syncer thread.
+    syncer_ =
+        std::thread(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this);
   }
 }
 
@@ -80,29 +87,8 @@ LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
 }
 
 template <typename K, typename V, typename MutexT>
-void LRUPersistentCache<K, V, MutexT>::init() {
-  // load the cache. be silent if load fails, we just drop the cache
-  // and start from scratch.
-  if (!executor_) {
-    // start the syncer thread. done at the end of construction so that the
-    // cache is fully initialized before being passed to the syncer thread.
-    syncer_ =
-        std::thread(&LRUPersistentCache<K, V, MutexT>::syncThreadMain, this);
-    return;
-  }
-
-  std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
-      this->shared_from_this();
-  executor_->add([self = std::move(weakSelf)]() {
-      if (auto sharedSelf = self.lock()) {
-        sharedSelf->setPersistenceHelper(true);
-      }
-  });
-}
-
-template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
-  blockingAccessInMemCache().put(key, val);
+  cache_.put(key, val);
   if (executor_) {
     if (!executorScheduled_.test_and_set()) {
       if (std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
@@ -110,9 +96,9 @@ void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
         // Do not schedule more than once during a syncInterval_ period
         return;
       }
-      lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
       std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
           this->shared_from_this();
+      lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
       executor_->add([self = std::move(weakSelf)]() {
         if (auto sharedSelf = self.lock()) {
           sharedSelf->oneShotSync();
@@ -128,8 +114,7 @@ bool LRUPersistentCache<K, V, MutexT>::hasPendingUpdates() {
   if (!persistence_) {
     return false;
   }
-  return blockingAccessInMemCache().hasChangedSince(
-      persistence_->getLastPersistedVersion());
+  return cache_.hasChangedSince(persistence_->getLastPersistedVersion());
 }
 
 template<typename K, typename V, typename MutexT>
@@ -144,9 +129,6 @@ void* LRUPersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
 template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
   executorScheduled_.clear();
-  // load the cache. be silent if load fails, we just drop the cache
-  // and start from scratch.
-  setPersistenceHelper(true);
   auto persistence = getPersistence();
   if (persistence && !syncNow(*persistence)) {
     // track failures and give up if we tried too many times
@@ -162,9 +144,6 @@ void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
 
 template<typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::sync() {
-  // load the cache. be silent if load fails, we just drop the cache
-  // and start from scratch.
-  setPersistenceHelper(true);
   // keep running as long the destructor signals to stop or
   // there are pending updates that are not synced yet
   std::unique_lock<std::mutex> stopSyncerLock(stopSyncerMutex_);
@@ -197,7 +176,7 @@ void LRUPersistentCache<K, V, MutexT>::sync() {
 
 template<typename K, typename V, typename MutexT>
 bool LRUPersistentCache<K, V, MutexT>::syncNow(
-    CachePersistence<K, V>& persistence) {
+    CachePersistence<K, V>& persistence ) {
   // check if we need to sync.  There is a chance that someone can
   // update cache_ between this check and the convert below, but that
   // is ok.  The persistence layer would have needed to update anyway
@@ -231,13 +210,10 @@ LRUPersistentCache<K, V, MutexT>::getPersistence() {
 
 template<typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::setPersistenceHelper(
+    std::unique_ptr<CachePersistence<K, V>> persistence,
     bool syncVersion) noexcept {
   typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
-  std::unique_lock<std::mutex> lk(persistenceLoadedMutex_);
-  if (persistenceLoaded_) {
-    lk.unlock();
-    return;
-  }
+  persistence_ = std::move(persistence);
   // load the persistence data into memory
   if (persistence_) {
     auto version = load(*persistence_);
@@ -245,17 +221,6 @@ void LRUPersistentCache<K, V, MutexT>::setPersistenceHelper(
       persistence_->setPersistedVersion(version);
     }
   }
-  persistenceLoaded_ = true;
-  lk.unlock();
-  persistenceLoadedCV_.notify_all();
-}
-
-template <typename K, typename V, typename MutexT>
-LRUInMemoryCache<K, V, MutexT>&
-LRUPersistentCache<K, V, MutexT>::blockingAccessInMemCache() {
-  std::unique_lock<std::mutex> lk(persistenceLoadedMutex_);
-  persistenceLoadedCV_.wait(lk, [this] { return this->persistenceLoaded_; });
-  return cache_;
 }
 
 template<typename K ,typename V, typename MutexT>
@@ -264,15 +229,7 @@ void LRUPersistentCache<K, V, MutexT>::setPersistence(
   // note that we don't set the persisted version on the persistence like we
   // do in the constructor since we want any deltas that were in memory but
   // not in the persistence layer to sync back.
-  {
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
-    persistence_ = std::move(persistence);
-  }
-  {
-    std::lock_guard<std::mutex> lk(persistenceLoadedMutex_);
-    persistenceLoaded_ = false;
-  }
-  setPersistenceHelper(false);
+  setPersistenceHelper(std::move(persistence), false);
 }
 
 template<typename K, typename V, typename MutexT>

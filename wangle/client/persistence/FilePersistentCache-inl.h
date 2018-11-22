@@ -120,9 +120,7 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
           cacheCapacity,
           std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
           nSyncRetries,
-          std::make_unique<FilePersistenceLayer<K, V>>(file))) {
-  cache_->init();
-}
+          std::make_unique<FilePersistenceLayer<K, V>>(file))) {}
 
 template <typename K, typename V, typename M>
 FilePersistentCache<K, V, M>::FilePersistentCache(
@@ -136,7 +134,5 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
           cacheCapacity,
           std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
           nSyncRetries,
-          std::make_unique<FilePersistenceLayer<K, V>>(file))) {
-  cache_->init();
-}
+          std::make_unique<FilePersistenceLayer<K, V>>(file))) {}
 } // namespace wangle
