@@ -100,7 +100,6 @@ struct SSLContextConfig {
     folly::SSLContext::TLSv1};
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
-  bool clientHelloParsingEnabled{true};
   std::string sslCiphers{getDefaultCiphers()};
   std::string eccCurveName{"prime256v1"};
 
