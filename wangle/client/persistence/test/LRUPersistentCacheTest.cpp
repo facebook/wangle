@@ -143,13 +143,12 @@ TYPED_TEST(LRUPersistentCacheTest, SettingPersistence) {
 
 TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   auto cache = createCache<TypeParam>(10, 10000, nullptr);
-  cache->setSyncOnDestroy(true);
   auto persistence = this->persistence.get();
   cache->setPersistence(std::move(this->persistence));
   cache->put("k0", "v0");
   EXPECT_CALL(*persistence, persist_(_))
-    .Times(1)
-    .WillOnce(Return(true));
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(true));
   cache.reset();
 }
 

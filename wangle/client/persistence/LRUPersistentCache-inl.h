@@ -77,10 +77,6 @@ LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
     // tell syncer to wake up and quit
     std::lock_guard<std::mutex> lock(stopSyncerMutex_);
     stopSyncer_ = true;
-    if (syncOnDestroy_) {
-      // Sync on the thread of the destroyer.
-      oneShotSync();
-    }
     stopSyncerCV_.notify_all();
   }
   syncer_.join();

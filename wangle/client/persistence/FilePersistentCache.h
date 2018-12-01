@@ -80,10 +80,6 @@ class FilePersistentCache : public PersistentCache<K, V>,
     return cache_->size();
   }
 
-  void setSyncOnDestroy(bool syncOnDestroy) {
-    cache_->setSyncOnDestroy(syncOnDestroy);
-  }
-
  private:
   typename LRUPersistentCache<K, V, M>::Ptr cache_;
 };
