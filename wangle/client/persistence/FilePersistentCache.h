@@ -46,14 +46,16 @@ class FilePersistentCache : public PersistentCache<K, V>,
       std::chrono::seconds syncInterval =
           std::chrono::duration_cast<std::chrono::seconds>(
               client::persistence::DEFAULT_CACHE_SYNC_INTERVAL),
-      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES);
+      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
+      bool inlinePersistenceLoading = true);
 
   FilePersistentCache(
       std::shared_ptr<folly::Executor> executor,
       const std::string& file,
       std::size_t cacheCapacity,
       std::chrono::seconds syncInterval,
-      int nSyncRetries);
+      int nSyncRetries,
+      bool inlinePersistenceLoading);
 
   ~FilePersistentCache() override {}
 

@@ -115,12 +115,16 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
     const std::string& file,
     std::size_t cacheCapacity,
     std::chrono::seconds syncInterval,
-    int nSyncRetries)
+    int nSyncRetries,
+    bool inlinePersistenceLoading)
     : cache_(std::make_shared<LRUPersistentCache<K, V, M>>(
           cacheCapacity,
           std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
           nSyncRetries,
-          std::make_unique<FilePersistenceLayer<K, V>>(file))) {}
+          std::make_unique<FilePersistenceLayer<K, V>>(file),
+          inlinePersistenceLoading)) {
+  cache_->init();
+}
 
 template <typename K, typename V, typename M>
 FilePersistentCache<K, V, M>::FilePersistentCache(
@@ -128,11 +132,15 @@ FilePersistentCache<K, V, M>::FilePersistentCache(
     const std::string& file,
     std::size_t cacheCapacity,
     std::chrono::seconds syncInterval,
-    int nSyncRetries)
+    int nSyncRetries,
+    bool inlinePersistenceLoading)
     : cache_(std::make_shared<LRUPersistentCache<K, V, M>>(
           std::move(executor),
           cacheCapacity,
           std::chrono::duration_cast<std::chrono::milliseconds>(syncInterval),
           nSyncRetries,
-          std::make_unique<FilePersistenceLayer<K, V>>(file))) {}
+          std::make_unique<FilePersistenceLayer<K, V>>(file),
+          inlinePersistenceLoading)) {
+  cache_->init();
+}
 } // namespace wangle

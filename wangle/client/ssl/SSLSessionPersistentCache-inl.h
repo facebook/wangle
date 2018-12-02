@@ -42,7 +42,8 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
               filename,
               cacheCapacity,
               syncInterval,
-              client::persistence::DEFAULT_CACHE_SYNC_RETRIES)) {}
+              client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
+              true)) {}
 
 template <typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
