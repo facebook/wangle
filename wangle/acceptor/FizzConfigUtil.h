@@ -25,26 +25,26 @@ namespace wangle {
 
 class FizzConfigUtil {
  public:
+  static std::unique_ptr<fizz::server::CertManager>
+    createCertManager(const ServerSocketConfig& config);
+
   static std::shared_ptr<fizz::server::FizzServerContext> createFizzContext(
-      const wangle::ServerSocketConfig& config,
-      std::unique_ptr<fizz::server::CertManager> certMgr = nullptr);
+      const wangle::ServerSocketConfig& config);
 
   // Creates a TicketCipher with given params
   template <class TicketCipher>
   static std::unique_ptr<TicketCipher> createTicketCipher(
-      const std::vector<std::string>& oldSecrets,
-      const std::vector<std::string>& currentSecrets,
-      const std::vector<std::string>& newSecrets,
+      const TLSTicketKeySeeds& seeds,
       std::chrono::seconds validity,
       folly::Optional<std::string> pskContext) {
-    if (currentSecrets.empty()) {
+    if (seeds.currentSeeds.empty()) {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
-          oldSecrets, "", newSecrets, validity, std::move(pskContext));
+          seeds.oldSeeds, "", seeds.newSeeds, validity, std::move(pskContext));
     } else {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
-          oldSecrets,
-          currentSecrets.at(0),
-          newSecrets,
+          seeds.oldSeeds,
+          seeds.currentSeeds.at(0),
+          seeds.newSeeds,
           validity,
           std::move(pskContext));
     }

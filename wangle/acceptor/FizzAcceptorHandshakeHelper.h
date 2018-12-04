@@ -43,7 +43,7 @@ class FizzAcceptorHandshakeHelper
   };
 
   FizzAcceptorHandshakeHelper(
-      std::shared_ptr<fizz::server::FizzServerContext> context,
+      std::shared_ptr<const fizz::server::FizzServerContext> context,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo,
@@ -77,7 +77,7 @@ class FizzAcceptorHandshakeHelper
  protected:
   virtual fizz::server::AsyncFizzServer::UniquePtr createFizzServer(
       folly::AsyncSSLSocket::UniquePtr sslSock,
-      const std::shared_ptr<fizz::server::FizzServerContext>& fizzContext,
+      const std::shared_ptr<const fizz::server::FizzServerContext>& fizzContext,
       const std::shared_ptr<fizz::ServerExtensions>& extensions);
 
   virtual folly::AsyncSSLSocket::UniquePtr createSSLSocket(
@@ -98,7 +98,7 @@ class FizzAcceptorHandshakeHelper
   void handshakeErr(folly::AsyncSSLSocket* sock,
                     const folly::AsyncSocketException& ex) noexcept override;
 
-  std::shared_ptr<fizz::server::FizzServerContext> context_;
+  std::shared_ptr<const fizz::server::FizzServerContext> context_;
   std::shared_ptr<folly::SSLContext> sslContext_;
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
   std::shared_ptr<fizz::extensions::TokenBindingServerExtension> extension_;
@@ -118,11 +118,11 @@ class DefaultToFizzPeekingCallback
   DefaultToFizzPeekingCallback()
       : wangle::PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
 
-  std::shared_ptr<fizz::server::FizzServerContext> getContext() const {
+  std::shared_ptr<const fizz::server::FizzServerContext> getContext() const {
     return context_;
   }
 
-  void setContext(std::shared_ptr<fizz::server::FizzServerContext> context) {
+  void setContext(std::shared_ptr<const fizz::server::FizzServerContext> context) {
     context_ = std::move(context);
   }
 
@@ -156,7 +156,7 @@ class DefaultToFizzPeekingCallback
   }
 
  protected:
-  std::shared_ptr<fizz::server::FizzServerContext> context_;
+  std::shared_ptr<const fizz::server::FizzServerContext> context_;
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
   FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback_{nullptr};
 };

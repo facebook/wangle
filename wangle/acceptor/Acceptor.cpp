@@ -67,14 +67,19 @@ Acceptor::init(AsyncServerSocket* serverSocket,
     }
 
     if (accConfig_.fizzConfig.enableFizz) {
-      auto fizzCtx = createFizzContext();
+      TLSTicketKeySeeds seeds{
+        accConfig_.initialTicketSeeds.oldSeeds,
+        accConfig_.initialTicketSeeds.currentSeeds,
+        accConfig_.initialTicketSeeds.newSeeds};
+
+      fizzTicketCipher_ = createFizzTicketCipher(
+        seeds, getPskContext());
+      fizzCertManager_ = createFizzCertManager();
+
       auto* peeker = getFizzPeeker();
-      peeker->setContext(std::move(fizzCtx));
+      peeker->setContext(recreateFizzContext());
+
       securityProtocolCtxManager_.addPeeker(peeker);
-      setTLSTicketSecrets(
-          accConfig_.initialTicketSeeds.oldSeeds,
-          accConfig_.initialTicketSeeds.currentSeeds,
-          accConfig_.initialTicketSeeds.newSeeds);
     } else {
       securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
     }
@@ -136,43 +141,57 @@ std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
   return FizzConfigUtil::createFizzContext(accConfig_);
 }
 
+std::shared_ptr<const fizz::server::FizzServerContext> Acceptor::recreateFizzContext() {
+  auto ctx = createFizzContext();
+  if (ctx && fizzCertManager_) {
+    ctx->setTicketCipher(fizzTicketCipher_);
+    ctx->setCertManager(fizzCertManager_);
+  } else if (fizzCertManager_ == nullptr) {
+    return nullptr;
+  }
+  return ctx;
+}
+
 std::shared_ptr<fizz::server::TicketCipher>
-Acceptor::createFizzTicketCipher(folly::Optional<std::string> pskContext) {
+Acceptor::createFizzTicketCipher(
+    const TLSTicketKeySeeds& seeds,
+    folly::Optional<std::string> pskContext) {
   return FizzConfigUtil::createTicketCipher<fizz::server::AES128TicketCipher>(
-      currentSecrets_.oldSeeds,
-      currentSecrets_.currentSeeds,
-      currentSecrets_.newSeeds,
+      seeds,
       accConfig_.sslCacheOptions.sslCacheTimeout,
       std::move(pskContext));
 }
 
-void Acceptor::updateFizzContext(fizz::server::FizzServerContext* ctx) {
-  if (ctx) {
-    std::string pskContext;
-    if (!accConfig_.sslContextConfigs.empty()) {
-      pskContext = accConfig_.sslContextConfigs.front().sessionContext.value_or(
-        "");
-    }
-    auto cipher = createFizzTicketCipher(
-        folly::Optional<std::string>(std::move(pskContext)));
-    ctx->setTicketCipher(std::move(cipher));
+std::unique_ptr<fizz::server::CertManager> Acceptor::createFizzCertManager() {
+  return FizzConfigUtil::createCertManager(accConfig_);
+}
+
+
+std::string Acceptor::getPskContext() {
+  std::string pskContext;
+  if (!accConfig_.sslContextConfigs.empty()) {
+    pskContext = accConfig_.sslContextConfigs.front().sessionContext.value_or(
+      "");
   }
+  return pskContext;
 }
 
 void Acceptor::resetSSLContextConfigs() {
-  if (accConfig_.fizzConfig.enableFizz) {
-    auto ctx = createFizzContext();
-    if (ctx) {
-      updateFizzContext(ctx.get());
-      getFizzPeeker()->setContext(std::move(ctx));
+  if (getFizzPeeker()->getContext() != nullptr) {
+    auto manager = createFizzCertManager();
+    if (manager) {
+      fizzCertManager_ = std::move(manager);
+      getFizzPeeker()->setContext(recreateFizzContext());
     }
   }
   try {
-    sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
+    if (sslCtxManager_) {
+      sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
                                            accConfig_.sslCacheOptions,
                                            nullptr,
                                            accConfig_.bindAddress,
                                            cacheProvider_);
+    }
   } catch (const std::runtime_error& ex) {
     LOG(ERROR) << "Failed to re-configure TLS: "
                << ex.what()
@@ -185,23 +204,30 @@ Acceptor::~Acceptor(void) {
 }
 
 void Acceptor::addSSLContextConfig(const SSLContextConfig& sslCtxConfig) {
-  sslCtxManager_->addSSLContextConfig(sslCtxConfig,
-                                      accConfig_.sslCacheOptions,
-                                      &accConfig_.initialTicketSeeds,
-                                      accConfig_.bindAddress,
-                                      cacheProvider_);
+  if (sslCtxManager_) {
+    sslCtxManager_->addSSLContextConfig(sslCtxConfig,
+                                        accConfig_.sslCacheOptions,
+                                        &accConfig_.initialTicketSeeds,
+                                        accConfig_.bindAddress,
+                                        cacheProvider_);
+  }
 }
 
 void Acceptor::setTLSTicketSecrets(
     const std::vector<std::string>& oldSecrets,
     const std::vector<std::string>& currentSecrets,
     const std::vector<std::string>& newSecrets) {
-  currentSecrets_.oldSeeds = oldSecrets;
-  currentSecrets_.currentSeeds = currentSecrets;
-  currentSecrets_.newSeeds = newSecrets;
 
-  if (accConfig_.fizzConfig.enableFizz) {
-    updateFizzContext(getFizzPeeker()->getContext().get());
+  if (getFizzPeeker()->getContext()) {
+    TLSTicketKeySeeds seeds{
+      oldSecrets,
+      currentSecrets,
+      newSecrets};
+
+    fizzTicketCipher_ = createFizzTicketCipher(
+      seeds,
+      getPskContext());
+    getFizzPeeker()->setContext(recreateFizzContext());
   }
 
   if (sslCtxManager_) {

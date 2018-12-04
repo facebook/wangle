@@ -39,7 +39,7 @@ void FizzAcceptorHandshakeHelper::start(
 
 AsyncFizzServer::UniquePtr FizzAcceptorHandshakeHelper::createFizzServer(
     folly::AsyncSSLSocket::UniquePtr sslSock,
-    const std::shared_ptr<FizzServerContext>& fizzContext,
+    const std::shared_ptr<const FizzServerContext>& fizzContext,
     const std::shared_ptr<fizz::ServerExtensions>& extensions) {
   folly::AsyncSocket::UniquePtr asyncSock(
       new folly::AsyncSocket(std::move(sslSock)));

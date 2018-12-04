@@ -29,9 +29,8 @@ using fizz::server::ClientAuthMode;
 
 namespace wangle {
 
-namespace {
-std::unique_ptr<fizz::server::CertManager> createCertManager(
-    const ServerSocketConfig& config) {
+std::unique_ptr<fizz::server::CertManager>
+FizzConfigUtil::createCertManager(const ServerSocketConfig& config) {
   auto certMgr = std::make_unique<fizz::server::CertManager>();
   auto loadedCert = false;
   for (const auto& sslConfig : config.sslContextConfigs) {
@@ -61,28 +60,17 @@ std::unique_ptr<fizz::server::CertManager> createCertManager(
   }
   return certMgr;
 }
-} // namespace
 
 std::shared_ptr<fizz::server::FizzServerContext>
-FizzConfigUtil::createFizzContext(
-    const ServerSocketConfig& config,
-    std::unique_ptr<fizz::server::CertManager> certMgr) {
+FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
   if (config.sslContextConfigs.empty()) {
     return nullptr;
   }
-  if (!certMgr) {
-    certMgr = createCertManager(config);
-    if (!certMgr) {
-      return nullptr;
-    }
-  }
-
   auto ctx = std::make_shared<fizz::server::FizzServerContext>();
   ctx->setSupportedVersions({ProtocolVersion::tls_1_3,
                              ProtocolVersion::tls_1_3_28,
                              ProtocolVersion::tls_1_3_26});
   ctx->setVersionFallbackEnabled(true);
-  ctx->setCertManager(std::move(certMgr));
 
   // Fizz does not yet support randomized next protocols so we use the highest
   // weighted list on the first context.
