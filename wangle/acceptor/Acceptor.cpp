@@ -177,20 +177,21 @@ std::string Acceptor::getPskContext() {
 }
 
 void Acceptor::resetSSLContextConfigs() {
-  if (getFizzPeeker()->getContext() != nullptr) {
-    auto manager = createFizzCertManager();
-    if (manager) {
-      fizzCertManager_ = std::move(manager);
-      getFizzPeeker()->setContext(recreateFizzContext());
-    }
-  }
   try {
+    if (getFizzPeeker()->getContext() != nullptr) {
+      auto manager = createFizzCertManager();
+      if (manager) {
+        fizzCertManager_ = std::move(manager);
+        getFizzPeeker()->setContext(recreateFizzContext());
+      }
+    }
+
     if (sslCtxManager_) {
       sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
-                                           accConfig_.sslCacheOptions,
-                                           nullptr,
-                                           accConfig_.bindAddress,
-                                           cacheProvider_);
+                                             accConfig_.sslCacheOptions,
+                                             nullptr,
+                                             accConfig_.bindAddress,
+                                             cacheProvider_);
     }
   } catch (const std::runtime_error& ex) {
     LOG(ERROR) << "Failed to re-configure TLS: "
