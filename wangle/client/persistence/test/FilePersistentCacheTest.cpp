@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <folly/executors/ManualExecutor.h>
 #include <folly/futures/Barrier.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 #include <wangle/client/persistence/SharedMutexCacheLockGuard.h>
@@ -103,7 +104,12 @@ void testEmptyFile() {
           );
   EXPECT_TRUE(fd != -1);
   using CacheType = FilePersistentCache<K, V, MutexT>;
-  CacheType cache(filename, cacheCapacity, chrono::seconds(1));
+  CacheType cache(
+      filename,
+      PersistentCacheConfig::Builder()
+          .setCapacity(cacheCapacity)
+          .setSyncInterval(chrono::seconds(1))
+          .build());
   EXPECT_EQ(cache.size(), 0);
   EXPECT_TRUE(folly::closeNoInt(fd) != -1);
   EXPECT_TRUE(unlink(filename.c_str()) != -1);
@@ -137,7 +143,12 @@ void testInvalidFile(const std::string& content) {
     content.size()
   );
   using CacheType = FilePersistentCache<K, V, MutexT>;
-  CacheType cache(filename, cacheCapacity, chrono::seconds(1));
+  CacheType cache(
+      filename,
+      PersistentCacheConfig::Builder()
+          .setCapacity(cacheCapacity)
+          .setSyncInterval(chrono::seconds(1))
+          .build());
   EXPECT_EQ(cache.size(), 0);
   EXPECT_TRUE(folly::closeNoInt(fd) != -1);
   EXPECT_TRUE(unlink(filename.c_str()) != -1);
@@ -175,7 +186,12 @@ void testValidFile(
     content.size()
   );
   using CacheType = FilePersistentCache<K, V, MutexT>;
-  CacheType cache(filename, cacheCapacity, chrono::seconds(1));
+  CacheType cache(
+      filename,
+      PersistentCacheConfig::Builder()
+          .setCapacity(cacheCapacity)
+          .setSyncInterval(chrono::seconds(1))
+          .build());
   EXPECT_EQ(cache.size(), keys.size());
   for (size_t i = 0; i < keys.size(); ++i) {
     EXPECT_EQ(cache.get(keys[i]).value(), values[i]);
@@ -197,8 +213,12 @@ TYPED_TEST(FilePersistentCacheTest, basicEvictionTest) {
   string filename = getPersistentCacheFilename();
   {
     size_t cacheCapacity = 10;
-    FilePersistentCache<int, int, TypeParam> cache(filename,
-        cacheCapacity, chrono::seconds(1));
+    FilePersistentCache<int, int, TypeParam> cache(
+        filename,
+        PersistentCacheConfig::Builder()
+            .setCapacity(cacheCapacity)
+            .setSyncInterval(chrono::seconds(1))
+            .build());
     for (int i = 0; i < 10; ++i) {
         cache.put(i, i);
     }
@@ -245,7 +265,12 @@ TYPED_TEST(FilePersistentCacheTest, backwardCompatiblityTest) {
 
   {
     // it should fail to load
-    CacheType cache(filename, cacheCapacity, chrono::seconds(1));
+    CacheType cache(
+        filename,
+        PersistentCacheConfig::Builder()
+            .setCapacity(cacheCapacity)
+            .setSyncInterval(chrono::seconds(1))
+            .build());
     EXPECT_EQ(cache.size(), 0);
 
     // .. but new entries should work
@@ -257,7 +282,12 @@ TYPED_TEST(FilePersistentCacheTest, backwardCompatiblityTest) {
   }
   {
     // new format persists
-    CacheType cache(filename, cacheCapacity, chrono::seconds(1));
+    CacheType cache(
+        filename,
+        PersistentCacheConfig::Builder()
+            .setCapacity(cacheCapacity)
+            .setSyncInterval(chrono::seconds(1))
+            .build());
     EXPECT_EQ(cache.size(), 2);
     EXPECT_EQ(cache.get("key1").value(), "value1");
     EXPECT_EQ(cache.get("key2").value(), "value2");
@@ -265,15 +295,33 @@ TYPED_TEST(FilePersistentCacheTest, backwardCompatiblityTest) {
   EXPECT_TRUE(unlink(filename.c_str()) != -1);
 }
 
-TYPED_TEST(FilePersistentCacheTest, destroy) {
+TYPED_TEST(FilePersistentCacheTest, destroyBeforeLoaded) {
   using CacheType = FilePersistentCache<int, int, TypeParam>;
   std::string cacheFile = getPersistentCacheFilename();
-
-  auto cache1 = std::make_unique<CacheType>(
-    cacheFile, 10, std::chrono::seconds(3));
+  auto config = PersistentCacheConfig::Builder()
+                    .setCapacity(10)
+                    .setSyncInterval(std::chrono::seconds(3))
+                    .setInlinePersistenceLoading(false)
+                    .setExecutor(std::make_shared<folly::ManualExecutor>())
+                    .build();
+  auto cache1 = std::make_unique<CacheType>(cacheFile, config);
   cache1.reset();
-  auto cache2 = std::make_unique<CacheType>(
-    cacheFile, 10, std::chrono::seconds(3));
+  auto cache2 = std::make_unique<CacheType>(cacheFile, config);
+  cache2.reset();
+}
+
+TYPED_TEST(FilePersistentCacheTest, destroyAfterLoaded) {
+  using CacheType = FilePersistentCache<int, int, TypeParam>;
+  std::string cacheFile = getPersistentCacheFilename();
+  auto config = PersistentCacheConfig::Builder()
+                    .setCapacity(10)
+                    .setSyncInterval(std::chrono::seconds(3))
+                    .build();
+  auto cache1 =
+      std::make_unique<CacheType>(cacheFile, config);
+  cache1.reset();
+  auto cache2 =
+      std::make_unique<CacheType>(cacheFile, config);
   cache2.reset();
 }
 
@@ -286,7 +334,11 @@ TYPED_TEST(FilePersistentCacheTest, threadstress) {
   using CacheType = FilePersistentCache<string, int, TypeParam>;
   auto cacheFile = getPersistentCacheFilename();
   auto sharedCache = std::make_unique<CacheType>(
-    cacheFile, 10, std::chrono::seconds(10));
+      cacheFile,
+      PersistentCacheConfig::Builder()
+          .setCapacity(10)
+          .setSyncInterval(std::chrono::seconds(10))
+          .build());
 
   int numThreads = 3;
   Barrier b(numThreads);

@@ -32,29 +32,12 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
 
 template <typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
-    std::shared_ptr<folly::Executor> executor,
     const std::string& filename,
-    std::size_t cacheCapacity,
-    std::chrono::seconds syncInterval)
-    : SSLSessionPersistentCacheBase(
-          std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
-              std::move(executor),
-              filename,
-              cacheCapacity,
-              syncInterval,
-              client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
-              true)) {}
-
-template <typename K>
-SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
-    const std::string& filename,
-    std::size_t cacheCapacity,
-    std::chrono::seconds syncInterval)
+    PersistentCacheConfig config)
     : SSLSessionPersistentCacheBase(
           std::make_shared<FilePersistentCache<K, SSLSessionCacheData>>(
               filename,
-              cacheCapacity,
-              syncInterval)) {}
+              std::move(config))) {}
 
 template<typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(

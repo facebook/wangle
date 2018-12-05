@@ -18,8 +18,9 @@
 #include <folly/Executor.h>
 #include <folly/Memory.h>
 #include <wangle/client/persistence/PersistentCache.h>
-#include <wangle/client/ssl/SSLSessionCacheData.h>
+#include <wangle/client/persistence/PersistentCacheCommon.h>
 #include <wangle/client/ssl/SSLSession.h>
+#include <wangle/client/ssl/SSLSessionCacheData.h>
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
 #include <atomic>
@@ -51,15 +52,8 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
     std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache);
 
   SSLSessionPersistentCacheBase(
-    std::shared_ptr<folly::Executor> executor,
-    const std::string& filename,
-    std::size_t cacheCapacity,
-    std::chrono::seconds syncInterval);
-
-  SSLSessionPersistentCacheBase(
-    const std::string& filename,
-    std::size_t cacheCapacity,
-    std::chrono::seconds syncInterval);
+      const std::string& filename,
+      PersistentCacheConfig config);
 
   // Store the session data of the specified identity in cache. Note that the
   // implementation must make it's own memory copy of the session data to put
@@ -103,21 +97,9 @@ class SSLSessionPersistentCache :
       public SSLSessionPersistentCacheBase<std::string> {
  public:
   SSLSessionPersistentCache(
-      std::shared_ptr<folly::Executor> executor,
       const std::string& filename,
-      std::size_t cacheCapacity,
-      std::chrono::seconds syncInterval)
-      : SSLSessionPersistentCacheBase(
-            std::move(executor),
-            filename,
-            cacheCapacity,
-            syncInterval) {}
-
-  SSLSessionPersistentCache(
-      const std::string& filename,
-      std::size_t cacheCapacity,
-      std::chrono::seconds syncInterval)
-      : SSLSessionPersistentCacheBase(filename, cacheCapacity, syncInterval) {}
+      PersistentCacheConfig config)
+      : SSLSessionPersistentCacheBase(filename, std::move(config)) {}
 
  protected:
   std::string getKey(const std::string& identity) const override {

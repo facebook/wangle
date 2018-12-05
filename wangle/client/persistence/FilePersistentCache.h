@@ -40,22 +40,7 @@ template<typename K, typename V, typename M = std::mutex>
 class FilePersistentCache : public PersistentCache<K, V>,
                             private boost::noncopyable {
  public:
-  FilePersistentCache(
-      const std::string& file,
-      std::size_t cacheCapacity,
-      std::chrono::seconds syncInterval =
-          std::chrono::duration_cast<std::chrono::seconds>(
-              client::persistence::DEFAULT_CACHE_SYNC_INTERVAL),
-      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
-      bool inlinePersistenceLoading = true);
-
-  FilePersistentCache(
-      std::shared_ptr<folly::Executor> executor,
-      const std::string& file,
-      std::size_t cacheCapacity,
-      std::chrono::seconds syncInterval,
-      int nSyncRetries,
-      bool inlinePersistenceLoading);
+  FilePersistentCache(const std::string& file, PersistentCacheConfig config);
 
   ~FilePersistentCache() override {}
 

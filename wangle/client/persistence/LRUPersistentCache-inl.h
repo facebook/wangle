@@ -29,32 +29,13 @@ namespace wangle {
 
 template <typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
-    std::size_t cacheCapacity,
-    std::chrono::milliseconds syncInterval,
-    int nSyncRetries,
-    std::unique_ptr<CachePersistence<K, V>> persistence,
-    bool inlinePersistenceLoading)
-    : LRUPersistentCache(
-          nullptr,
-          cacheCapacity,
-          syncInterval,
-          nSyncRetries,
-          std::move(persistence),
-          inlinePersistenceLoading) {
-}
-
-template <typename K, typename V, typename MutexT>
-LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
-    std::shared_ptr<folly::Executor> executor,
-    std::size_t cacheCapacity,
-    std::chrono::milliseconds syncInterval,
-    int nSyncRetries,
-    std::unique_ptr<CachePersistence<K, V>> persistence,
-    bool inlinePersistenceLoading)
-    : cache_(cacheCapacity),
-      syncInterval_(syncInterval),
-      nSyncRetries_(nSyncRetries),
-      executor_(std::move(executor)) {
+    PersistentCacheConfig config,
+    std::unique_ptr<CachePersistence<K, V>> persistence)
+    : cache_(config.capacity),
+      syncInterval_(config.syncInterval),
+      nSyncRetries_(config.nSyncRetries),
+      executor_(std::move(config.executor)),
+      inlinePersistenceLoading_(config.inlinePersistenceLoading) {
   if (persistence) {
     std::shared_ptr<CachePersistence<K, V>> sharedPersistence(
         std::move(persistence));
@@ -62,9 +43,6 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
       typename wangle::CacheLockGuard<MutexT>::Write writeLock(
           persistenceLock_);
       std::swap(persistence_, sharedPersistence);
-    }
-    if (inlinePersistenceLoading) {
-      setPersistenceHelper(true);
     }
   }
 }
@@ -83,13 +61,18 @@ LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
     stopSyncer_ = true;
     stopSyncerCV_.notify_all();
   }
-  syncer_.join();
+  if (syncer_.joinable()) {
+    syncer_.join();
+  }
 }
 
 template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::init() {
-  // load the cache. be silent if load fails, we just drop the cache
-  // and start from scratch.
+  if (inlinePersistenceLoading_) {
+    // load the cache. be silent if load fails, we just drop the cache
+    // and start from scratch.
+    setPersistenceHelper(true);
+  }
   if (!executor_) {
     // start the syncer thread. done at the end of construction so that the
     // cache is fully initialized before being passed to the syncer thread.

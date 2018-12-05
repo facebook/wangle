@@ -130,7 +130,11 @@ int main(int argc, char** argv) {
   std::shared_ptr<SSLSessionPersistentCache> cache;
   if (!FLAGS_cache_file.empty()) {
     cache = std::make_shared<SSLSessionPersistentCache>(
-      FLAGS_cache_file, 100, std::chrono::seconds(60));
+        FLAGS_cache_file,
+        wangle::PersistentCacheConfig::Builder()
+            .setCapacity(100)
+            .setSyncInterval(std::chrono::seconds(60))
+            .build());
   }
 
   EchoClientBootstrap client;

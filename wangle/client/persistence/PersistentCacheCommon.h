@@ -16,8 +16,21 @@
 #pragma once
 
 #include <mutex>
+#include <memory>
+
+#include <folly/Executor.h>
+#include <folly/Optional.h>
 
 namespace wangle {
+
+namespace client {
+namespace persistence {
+constexpr std::chrono::milliseconds DEFAULT_CACHE_SYNC_INTERVAL =
+    std::chrono::milliseconds(5000);
+constexpr int DEFAULT_CACHE_SYNC_RETRIES = 3;
+constexpr std::size_t DEFAULT_CACHE_CAPACITY = 100;
+} // namespace persistence
+} // namespace client
 
 /**
  * A guard that provides write and read access to a mutex type.
@@ -39,4 +52,51 @@ struct CacheLockGuard<std::mutex> {
  */
 using CacheDataVersion = uint64_t;
 
-}
+struct PersistentCacheConfig {
+  // Max number of elements to hold in the cache.
+  std::size_t capacity{client::persistence::DEFAULT_CACHE_CAPACITY};
+  // How often to sync to the persistence (in ms).
+  std::chrono::milliseconds syncInterval{
+        client::persistence::DEFAULT_CACHE_SYNC_INTERVAL};
+  // How many times to retry to sync on failure.
+  int nSyncRetries{client::persistence::DEFAULT_CACHE_SYNC_RETRIES};
+  // An executor to run sync operations, if not provided, a std::thread
+  // dedicated to this cache will be used.
+  std::shared_ptr<folly::Executor> executor;
+  // Whether the persistence will be loaded inline on constructor thread
+  bool inlinePersistenceLoading{true};
+
+  PersistentCacheConfig() = default;
+
+  struct Builder {
+    Builder&& setCapacity(std::size_t cacheCapacity) &&;
+    Builder&& setSyncInterval(std::chrono::milliseconds interval) &&;
+    Builder&& setExecutor(std::shared_ptr<folly::Executor> executor) &&;
+    Builder&& setInlinePersistenceLoading(bool loadInline) &&;
+    Builder&& setSyncRetries(int retries) &&;
+
+    PersistentCacheConfig build() &&;
+
+   private:
+    folly::Optional<std::size_t> capacity;
+    std::chrono::milliseconds syncInterval{
+        client::persistence::DEFAULT_CACHE_SYNC_INTERVAL};
+    int nSyncRetries{client::persistence::DEFAULT_CACHE_SYNC_RETRIES};
+    std::shared_ptr<folly::Executor> executor;
+    bool inlinePersistenceLoading{true};
+  };
+
+ private:
+  PersistentCacheConfig(
+      std::size_t capacityIn,
+      std::chrono::milliseconds syncIntervalIn,
+      int nSyncRetriesIn,
+      std::shared_ptr<folly::Executor> executorIn,
+      bool inlinePersistenceLoadingIn)
+      : capacity(capacityIn),
+        syncInterval(syncIntervalIn),
+        nSyncRetries(nSyncRetriesIn),
+        executor(std::move(executorIn)),
+        inlinePersistenceLoading(inlinePersistenceLoadingIn) {}
+};
+} // namespace wangle

@@ -92,14 +92,6 @@ class CachePersistence {
   CacheDataVersion persistedVersion_;
 };
 
-namespace client {
-namespace persistence {
-constexpr std::chrono::milliseconds DEFAULT_CACHE_SYNC_INTERVAL =
-    std::chrono::milliseconds(5000);
-constexpr int DEFAULT_CACHE_SYNC_RETRIES = 3;
-} // namespace persistence
-} // namespace client
-
 /**
  * A PersistentCache implementation that used a CachePersistence for
  * storage. In memory structure fronts the persistence and the cache
@@ -126,15 +118,6 @@ class LRUPersistentCache
 
   /**
    * LRUPersistentCache constructor
-   * @param cacheCapacity max number of elements to hold in the cache.
-   * @param syncInterval how often to sync to the persistence (in ms).
-   * @param nSyncRetries how many times to retry to sync on failure.
-   *
-   * Loads the cache and starts of the syncer thread that periodically
-   * syncs the cache to persistence.
-   *
-   * If persistence is specified, the cache is initially loaded with the
-   * contents from it. If load fails, then cache starts empty.
    *
    * On write failures, the sync will happen again up to nSyncRetries times.
    * Once failed nSyncRetries amount of time, then it will give up and not
@@ -143,20 +126,8 @@ class LRUPersistentCache
    * On reaching capacity limit, LRU items are evicted.
    */
   explicit LRUPersistentCache(
-      std::size_t cacheCapacity,
-      std::chrono::milliseconds syncInterval =
-          client::persistence::DEFAULT_CACHE_SYNC_INTERVAL,
-      int nSyncRetries = client::persistence::DEFAULT_CACHE_SYNC_RETRIES,
-      std::unique_ptr<CachePersistence<K, V>> persistence = nullptr,
-      bool inlinePersistenceLoading = true);
-
-  LRUPersistentCache(
-    std::shared_ptr<folly::Executor> executor,
-    std::size_t cacheCapacity,
-    std::chrono::milliseconds syncInterval,
-    int nSyncRetries,
-    std::unique_ptr<CachePersistence<K, V>> persistence,
-    bool inlinePersistenceLoading);
+      PersistentCacheConfig config,
+      std::unique_ptr<CachePersistence<K, V>> persistence = nullptr);
 
   /**
    * LRUPersistentCache Destructor
@@ -167,8 +138,12 @@ class LRUPersistentCache
   ~LRUPersistentCache() override;
 
   /**
-   * Load the persistence into memory and start the syncThread if the cche is
-   * running in thread mode.
+   * Loads the cache inline on the calling thread, and starts of the syncer
+   * thread that periodically syncs the cache to persistence if the cache is
+   * running thread mode.
+   *
+   * If persistence is specified from constructor, the cache is initially loaded
+   * with the contents from it. If load fails, then cache starts empty.
    */
   void init();
 
@@ -299,6 +274,9 @@ class LRUPersistentCache
 
   // Semaphore to synchronize persistence loading and operations on the cache.
   folly::SaturatingSemaphore<true /* MayBlock */> persistenceLoadedSemaphore_;
+
+  // Whether the persistence will be loaded inline.
+  const bool inlinePersistenceLoading_;
 };
 
 }

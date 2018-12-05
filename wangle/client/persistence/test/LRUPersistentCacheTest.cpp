@@ -44,11 +44,13 @@ static shared_ptr<LRUPersistentCache<string, string, T>> createCache(
     bool loadPersistenceInline = true) {
   using TestCache = LRUPersistentCache<string, string, T>;
   return std::make_shared<TestCache>(
-      capacity,
-      std::chrono::milliseconds(syncMillis),
-      3,
-      std::move(persistence),
-      loadPersistenceInline);
+      PersistentCacheConfig::Builder()
+          .setCapacity(capacity)
+          .setSyncInterval(std::chrono::milliseconds(syncMillis))
+          .setSyncRetries(3)
+          .setInlinePersistenceLoading(loadPersistenceInline)
+          .build(),
+      std::move(persistence));
 }
 
 template <typename T>
@@ -60,12 +62,14 @@ createCacheWithExecutor(
     int retryLimit,
     bool loadPersistenceInline = true) {
   return std::make_shared<LRUPersistentCache<string, string, T>>(
-      std::move(executor),
-      10,
-      syncInterval,
-      retryLimit,
-      std::move(persistence),
-      loadPersistenceInline);
+      PersistentCacheConfig::Builder()
+          .setCapacity(10)
+          .setExecutor(std::move(executor))
+          .setSyncInterval(syncInterval)
+          .setSyncRetries(retryLimit)
+          .setInlinePersistenceLoading(loadPersistenceInline)
+          .build(),
+      std::move(persistence));
 }
 
 class MockPersistenceLayer : public TestPersistenceLayer {
@@ -465,7 +469,6 @@ TYPED_TEST(
       std::move(this->persistence),
       std::chrono::milliseconds::zero(),
       1);
-  EXPECT_CALL(*persistence, load_()).Times(0);
   cache->init();
 }
 
@@ -476,6 +479,19 @@ TYPED_TEST(
   auto persistence = this->persistence.get();
   EXPECT_CALL(*persistence, load_()).Times(1).WillOnce(Return(data));
   auto cache = createCache<TypeParam>(10, 1, std::move(this->persistence));
-  EXPECT_CALL(*persistence, load_()).Times(0);
   cache->init();
+}
+
+TYPED_TEST(LRUPersistentCacheTest, DestroyWithoutInitThreadMode) {
+  auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
+  cache.reset();
+}
+
+TYPED_TEST(LRUPersistentCacheTest, DestroyWithoutInitExecutorMode) {
+  auto cache = createCacheWithExecutor<TypeParam>(
+      this->inlineExecutor,
+      std::move(this->persistence),
+      std::chrono::milliseconds::zero(),
+      1);
+  cache.reset();
 }

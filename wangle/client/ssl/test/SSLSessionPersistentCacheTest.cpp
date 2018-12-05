@@ -61,8 +61,12 @@ class SSLSessionPersistentCacheTest : public Test {
 
     // Create the cache fresh for each test
     mockTimeUtil_ = new MockTimeUtil();
-    cache_.reset(new SSLSessionPersistentCache(filename_,
-                                      50, std::chrono::seconds(150)));
+    cache_.reset(new SSLSessionPersistentCache(
+        filename_,
+        PersistentCacheConfig::Builder()
+            .setCapacity(50)
+            .setSyncInterval(std::chrono::seconds(150))
+            .build()));
     cache_->setTimeUtil(
         std::unique_ptr<SSLSessionPersistentCache::TimeUtil>(mockTimeUtil_));
   }
