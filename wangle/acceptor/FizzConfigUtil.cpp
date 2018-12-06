@@ -93,9 +93,19 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
 
   auto caFile = config.sslContextConfigs.front().clientCAFile;
   if (!caFile.empty()) {
-    auto verifier = DefaultCertificateVerifier::createFromCAFile(
-        VerificationContext::Server, caFile);
-    ctx->setClientCertVerifier(std::move(verifier));
+    try {
+      auto verifier = DefaultCertificateVerifier::createFromCAFile(
+          VerificationContext::Server, caFile);
+      ctx->setClientCertVerifier(std::move(verifier));
+    } catch (const std::runtime_error& ex) {
+      auto msg = folly::sformat(" Failed to load ca file at {}", caFile);
+      if (config.strictSSL) {
+        throw std::runtime_error(ex.what() + msg);
+      } else {
+        LOG(ERROR) << msg << ex.what();
+        return nullptr;
+      }
+    }
   }
 
   return ctx;
