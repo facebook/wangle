@@ -109,6 +109,16 @@ struct TransportInfo {
    */
   int64_t ssthresh{-1};
 
+  /*
+   * Congestion avoidance algorithm
+   */
+  std::string caAlgo;
+
+  /*
+   * Socket max pacing rate
+   */
+  int32_t maxPacingRate{-1};
+
 #ifdef __APPLE__
   typedef tcp_connection_info tcp_info;
 #endif
@@ -405,6 +415,20 @@ struct TransportInfo {
    * initialize the fields related with tcp_info
    */
   bool initWithSocket(const folly::AsyncSocket* sock);
+
+#if defined(__linux__) || defined(__FreeBSD__)
+  /*
+   * Perform the getsockopt(2) syscall to fetch TCP congestion control algorithm
+   * for a given socket.
+   */
+  bool readTcpCongestionControl(const folly::AsyncSocket* sock);
+
+  /*
+   * Perform the getsockopt(2) syscall to fetch max pacing rate for a given
+   * socket.
+   */
+  bool readMaxPacingRate(const folly::AsyncSocket* sock);
+#endif // defined(__linux__) || defined(__FreeBSD__)
 
   /*
    * Get the kernel's estimate of round-trip time (RTT) to the transport's peer

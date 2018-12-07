@@ -16,6 +16,8 @@
 #include <wangle/acceptor/TransportInfo.h>
 
 #include <sys/types.h>
+
+#include <folly/String.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/portability/Sockets.h>
 
@@ -71,6 +73,47 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
   return true;
 }
 
+#if defined(__linux__) || defined(__FreeBSD__)
+bool TransportInfo::readTcpCongestionControl(const folly::AsyncSocket* sock) {
+  if (!sock) {
+    return false;
+  }
+#ifdef TCP_CONGESTION
+  // TCP_CA_NAME_MAX from <net/tcp.h> (Linux) or <netinet/tcp.h> (FreeBSD)
+  constexpr unsigned int kTcpCaNameMax = 16;
+  std::array<char, kTcpCaNameMax> tcpCongestion{{0}};
+  socklen_t optlen = tcpCongestion.size();
+  if (getsockopt(sock->getFd(), IPPROTO_TCP, TCP_CONGESTION,
+                 tcpCongestion.data(), &optlen) < 0) {
+    VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
+    return false;
+  }
+
+  caAlgo = std::string(tcpCongestion.data());
+  return true;
+#else // TCP_CONGESTION
+  return false;
+#endif // TCP_CONGESTION
+}
+
+bool TransportInfo::readMaxPacingRate(const folly::AsyncSocket* sock) {
+  if (!sock) {
+    return false;
+  }
+#ifdef SO_MAX_PACING_RATE
+  socklen_t optlen = sizeof(maxPacingRate);
+  if (getsockopt(sock->getFd(), SOL_SOCKET, SO_MAX_PACING_RATE,
+                 &maxPacingRate, &optlen) < 0) {
+    VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
+    return false;
+  }
+  return true;
+#else // SO_MAX_PACING_RATE
+  return false;
+#endif // SO_MAX_PACING_RATE
+}
+#endif // defined(__linux__) || defined(__FreeBSD__)
+
 int64_t TransportInfo::readRTT(const folly::AsyncSocket* sock) {
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   tcp_info tcpinfo;
@@ -100,7 +143,7 @@ bool TransportInfo::readTcpInfo(tcp_info* tcpinfo,
   }
   if (getsockopt(sock->getFd(), IPPROTO_TCP,
                  TCP_INFO, (void*) tcpinfo, &len) < 0) {
-    VLOG(4) << "Error calling getsockopt(): " << strerror(errno);
+    VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
     return false;
   }
   return true;
