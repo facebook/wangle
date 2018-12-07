@@ -50,9 +50,7 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
 template<typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
   if (executor_) {
-    // In executor mode, each task holds a weak_ptr to the cache itself. No need
-    // to notify them the cache is dying. We are done here. Alternatively we may
-    // want to do a final sync upon destruction.
+    oneShotSync();
     return;
   }
   {

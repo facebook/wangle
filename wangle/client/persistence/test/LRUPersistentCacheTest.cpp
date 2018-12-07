@@ -163,6 +163,21 @@ TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   cache.reset();
 }
 
+TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroyWithExecutor) {
+  auto persistence = this->persistence.get();
+  auto cache = createCacheWithExecutor<TypeParam>(
+      this->manualExecutor,
+      std::move(this->persistence),
+      std::chrono::milliseconds::zero(),
+      1);
+  cache->init();
+  cache->put("k0", "v0");
+  EXPECT_CALL(*persistence, persist_(_))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(true));
+  cache.reset();
+}
+
 TYPED_TEST(LRUPersistentCacheTest, SetPersistenceMidPersist) {
   // Setup a cache with no persistence layer
   // Add some items
@@ -276,6 +291,12 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTask) {
       .Times(1)
       .WillOnce(Return(true));
   this->manualExecutor->run();
+
+  EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
+      .Times(1)
+      .WillOnce(Invoke(
+          rawPersistence,
+          &MockPersistenceLayer::getLastPersistedVersionConcrete));
   cache.reset();
 }
 
@@ -311,6 +332,12 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTaskInline) {
       .Times(1)
       .WillOnce(Return(true));
   cache->put("k2", "v2");
+
+  EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
+      .Times(1)
+      .WillOnce(Invoke(
+          rawPersistence,
+          &MockPersistenceLayer::getLastPersistedVersionConcrete));
   cache.reset();
 }
 
@@ -395,12 +422,18 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
       .WillOnce(Return(false));
   this->manualExecutor->run();
 
-  // None of the following will trigger a run
+  // The following put won't trigger a run due to the interval
   EXPECT_CALL(*rawPersistence, persist_(DynSize(2))).Times(0);
   EXPECT_CALL(*rawPersistence, setPersistedVersion(_)).Times(0);
   cache->put("k1", "v1");
   this->manualExecutor->run();
+
+  // But we will sync again upon destroy
+  EXPECT_CALL(*rawPersistence, persist_(DynSize(2)))
+      .Times(1)
+      .WillOnce(Return(true));
   cache.reset();
+  // Nothing more should happen after this
   this->manualExecutor->drain();
 }
 
