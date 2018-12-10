@@ -158,8 +158,8 @@ TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   cache->setPersistence(std::move(this->persistence));
   cache->put("k0", "v0");
   EXPECT_CALL(*persistence, persist_(_))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(true));
+    .Times(1)
+    .WillOnce(Return(true));
   cache.reset();
 }
 
@@ -527,4 +527,22 @@ TYPED_TEST(LRUPersistentCacheTest, DestroyWithoutInitExecutorMode) {
       std::chrono::milliseconds::zero(),
       1);
   cache.reset();
+}
+
+TYPED_TEST(LRUPersistentCacheTest, EmptyPersistenceMatchesEmptyCache) {
+  auto persistence = this->persistence.get();
+  EXPECT_CALL(*persistence, load_()).Times(1).WillOnce(Return(folly::none));
+  auto cache = createCacheWithExecutor<TypeParam>(
+      this->manualExecutor,
+      std::move(this->persistence),
+      std::chrono::milliseconds::zero(),
+      1);
+  cache->init();
+  EXPECT_FALSE(cache->hasPendingUpdates());
+  EXPECT_EQ(
+      kDefaultInitCacheDataVersion, persistence->getLastPersistedVersion());
+  this->manualExecutor->drain();
+
+  cache->put("k0", "v0");
+  EXPECT_TRUE(cache->hasPendingUpdates());
 }

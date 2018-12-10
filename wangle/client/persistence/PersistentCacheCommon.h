@@ -52,6 +52,8 @@ struct CacheLockGuard<std::mutex> {
  */
 using CacheDataVersion = uint64_t;
 
+constexpr CacheDataVersion kDefaultInitCacheDataVersion = 1;
+
 struct PersistentCacheConfig {
   // Max number of elements to hold in the cache.
   std::size_t capacity{client::persistence::DEFAULT_CACHE_CAPACITY};

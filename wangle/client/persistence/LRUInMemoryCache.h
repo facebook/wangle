@@ -75,7 +75,7 @@ class LRUInMemoryCache {
 
   folly::EvictingCacheMap<K, V> cache_;
   // Version always starts at 1
-  CacheDataVersion version_{1};
+  CacheDataVersion version_{kDefaultInitCacheDataVersion};
   // mutable so we can take read locks in const methods
   mutable MutexT cacheLock_;
 

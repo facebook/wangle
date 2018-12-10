@@ -39,8 +39,6 @@ namespace wangle {
 template<typename K, typename V>
 class CachePersistence {
  public:
-  CachePersistence() : persistedVersion_(0) {}
-
   virtual ~CachePersistence() = default;
 
   /**
@@ -89,7 +87,7 @@ class CachePersistence {
   virtual void clear() = 0;
 
  private:
-  CacheDataVersion persistedVersion_;
+  CacheDataVersion persistedVersion_{kDefaultInitCacheDataVersion};
 };
 
 /**
@@ -205,7 +203,8 @@ class LRUPersistentCache
    *
    * @returns the in memory cache's new version
    */
-  CacheDataVersion load(CachePersistence<K, V>& persistence) noexcept;
+  folly::Optional<CacheDataVersion> load(
+      CachePersistence<K, V>& persistence) noexcept;
 
   /**
    * The syncer thread's function. Syncs to the persistence, if necessary,

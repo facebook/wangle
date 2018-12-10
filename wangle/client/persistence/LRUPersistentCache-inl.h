@@ -225,8 +225,8 @@ void LRUPersistentCache<K, V, MutexT>::setPersistenceHelper(
     // load the persistence data into memory
     if (persistence_) {
       auto version = load(*persistence_);
-      if (syncVersion) {
-        persistence_->setPersistedVersion(version);
+      if (version && syncVersion) {
+        persistence_->setPersistedVersion(*version);
       }
     }
   }
@@ -256,14 +256,13 @@ void LRUPersistentCache<K, V, MutexT>::setPersistence(
   setPersistenceHelper(false);
 }
 
-template<typename K, typename V, typename MutexT>
-CacheDataVersion LRUPersistentCache<K, V, MutexT>::load(
+template <typename K, typename V, typename MutexT>
+folly::Optional<CacheDataVersion> LRUPersistentCache<K, V, MutexT>::load(
     CachePersistence<K, V>& persistence) noexcept {
   auto kvPairs = persistence.load();
   if (!kvPairs) {
-    return false;
+    return folly::none;
   }
   return cache_.loadData(kvPairs.value());
 }
-
 }
