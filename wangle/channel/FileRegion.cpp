@@ -166,7 +166,7 @@ FileRegion::FileWriteRequest::FileReadHandler::FileReadHandler(
     FileWriteRequest* req, int pipe_in, size_t bytesToRead)
   : req_(req), pipe_in_(pipe_in), bytesToRead_(bytesToRead) {
   CHECK(req_->readBase_->isInEventBaseThread());
-  initHandler(req_->readBase_, pipe_in);
+  initHandler(req_->readBase_, folly::NetworkSocket::fromFd(pipe_in));
   if (!registerHandler(EventFlags::WRITE | EventFlags::PERSIST)) {
     req_->fail(__func__, AsyncSocketException(
         AsyncSocketException::INTERNAL_ERROR,
