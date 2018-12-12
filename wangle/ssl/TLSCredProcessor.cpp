@@ -19,6 +19,7 @@
 #include <folly/json.h>
 #include <folly/FileUtil.h>
 #include <folly/Memory.h>
+#include <wangle/ssl/SSLUtil.h>
 
 using namespace folly;
 
@@ -56,7 +57,7 @@ TLSCredProcessor::~TLSCredProcessor() { stop(); }
 void TLSCredProcessor::setPollInterval(std::chrono::milliseconds pollInterval) {
   poller_->stop();
   poller_ = std::make_unique<FilePoller>(pollInterval);
-  setTicketPathToWatch(ticketFile_);
+  setTicketPathToWatch(ticketFile_, password_);
   setCertPathsToWatch(certFiles_);
 }
 
@@ -70,13 +71,18 @@ void TLSCredProcessor::addCertCallback(
   certCallbacks_.push_back(std::move(callback));
 }
 
-void TLSCredProcessor::setTicketPathToWatch(const std::string& ticketFile) {
+void TLSCredProcessor::setTicketPathToWatch(
+    const std::string& ticketFile,
+    const folly::Optional<std::string>& password) {
   if (!ticketFile_.empty()) {
     poller_->removeFileToTrack(ticketFile_);
   }
   ticketFile_ = ticketFile;
+  password_ = password;
   if (!ticketFile_.empty()) {
-    auto ticketsChangedCob = [=]() { ticketFileUpdated(ticketFile); };
+    auto ticketsChangedCob = [=]() {
+      ticketFileUpdated(ticketFile_, password_);
+    };
     poller_->addFileToTrack(ticketFile_, ticketsChangedCob);
   }
 }
@@ -95,8 +101,9 @@ void TLSCredProcessor::setCertPathsToWatch(std::set<std::string> certFiles) {
 }
 
 void TLSCredProcessor::ticketFileUpdated(
-    const std::string& ticketFile) noexcept {
-  auto seeds = processTLSTickets(ticketFile);
+    const std::string& ticketFile,
+    const folly::Optional<std::string>& password) noexcept {
+  auto seeds = processTLSTickets(ticketFile, password);
   if (seeds) {
     for (auto& callback : ticketCallbacks_) {
       callback(*seeds);
@@ -111,14 +118,32 @@ void TLSCredProcessor::certFileUpdated() noexcept {
 }
 
 /* static */ Optional<TLSTicketKeySeeds> TLSCredProcessor::processTLSTickets(
-    const std::string& fileName) {
+    const std::string& fileName,
+    const folly::Optional<std::string>& password) {
   try {
     std::string jsonData;
-    if (!folly::readFile(fileName.c_str(), jsonData)) {
-      LOG(WARNING) << "Failed to read " << fileName
-                   << "; Ticket seeds are unavailable.";
-      return folly::none;
+    if (password.hasValue()) {
+      auto wrappedData = SSLUtil::decryptOpenSSLEncFilePassString(
+          fileName,
+          password.value(),
+          EVP_aes_256_cbc(),
+          EVP_sha256());
+      if (wrappedData.hasValue()) {
+        jsonData = wrappedData.value();
+      } else {
+        LOG(WARNING) << "Failed to read " << fileName
+                     << " using supplied password "
+                     << "; Ticket seeds are unavailable.";
+        return folly::none;
+      }
+    } else {
+      if (!folly::readFile(fileName.c_str(), jsonData)) {
+        LOG(WARNING) << "Failed to read " << fileName
+                     << "; Ticket seeds are unavailable.";
+        return folly::none;
+      }
     }
+
     folly::dynamic conf = folly::parseJson(jsonData);
     if (conf.type() != dynamic::Type::OBJECT) {
       LOG(WARNING) << "Error parsing " << fileName << " expected object";
@@ -136,7 +161,8 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     }
     return seedData;
   } catch (const std::exception& ex) {
-    LOG(WARNING) << "Parsing " << fileName << " failed: " << ex.what();
+    // Don't log ex.what() since it may contain contents of the key file.
+    LOG(WARNING) << "Parsing " << fileName << " failed.";
     return folly::none;
   }
 }

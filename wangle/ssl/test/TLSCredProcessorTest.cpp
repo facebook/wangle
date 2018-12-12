@@ -66,6 +66,13 @@ TEST_F(ProcessTicketTest, ParseTicketFile) {
   expectValidData(seeds);
 }
 
+TEST_F(ProcessTicketTest, ParseTicketFileWithPassword) {
+  CHECK(writeFile(encryptedTicketString, ticketFile.c_str()));
+  auto seeds =
+      TLSCredProcessor::processTLSTickets(ticketFile, ticketPasswordString);
+  expectValidData(seeds);
+}
+
 TEST_F(ProcessTicketTest, ParseInvalidFile) {
   CHECK(writeFile(invalidTicketData, ticketFile.c_str()));
   auto seeds = TLSCredProcessor::processTLSTickets(ticketFile);
@@ -112,6 +119,22 @@ TEST_F(ProcessTicketTest, TestUpdateTicketFile) {
   EXPECT_TRUE(certBaton.try_wait_for(std::chrono::seconds(30)));
   ASSERT_TRUE(certUpdated);
   ASSERT_FALSE(ticketUpdated);
+}
+
+TEST_F(ProcessTicketTest, TestUpdateTicketFileWithPassword) {
+  Baton<> ticketBaton;
+  TLSCredProcessor processor;
+  processor.setTicketPathToWatch(ticketFile, ticketPasswordString);
+  bool ticketUpdated = false;
+  processor.addTicketCallback([&](TLSTicketKeySeeds) {
+    ticketUpdated = true;
+    ticketBaton.post();
+  });
+
+  CHECK(writeFile(encryptedTicketString, ticketFile.c_str()));
+  updateModifiedTime(ticketFile, 10);
+  EXPECT_TRUE(ticketBaton.try_wait_for(std::chrono::seconds(30)));
+  ASSERT_TRUE(ticketUpdated);
 }
 
 TEST_F(ProcessTicketTest, TestMultipleCerts) {

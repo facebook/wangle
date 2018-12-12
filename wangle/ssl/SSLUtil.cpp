@@ -15,18 +15,13 @@
  */
 #include <wangle/ssl/SSLUtil.h>
 
+#include <folly/FileUtil.h>
 #include <folly/Format.h>
 #include <folly/Memory.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 
-#if OPENSSL_VERSION_NUMBER >= 0x1000105fL
-#define OPENSSL_GE_101 1
-#include <openssl/asn1.h>
-#include <openssl/x509v3.h>
-#include <openssl/bio.h>
-#else
-#undef OPENSSL_GE_101
-#endif
+#include <folly/portability/OpenSSL.h>
 
 namespace wangle {
 
@@ -69,7 +64,6 @@ std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
 
 std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
     const X509* cert) {
-#ifdef OPENSSL_GE_101
   auto nameList = std::make_unique<std::list<std::string>>();
   GENERAL_NAMES* names = (GENERAL_NAMES*)X509_get_ext_d2i(
       (X509*)cert, NID_subject_alt_name, nullptr, nullptr);
@@ -96,9 +90,6 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
     }
   }
   return nameList;
-#else
-  return nullptr;
-#endif
 }
 
 folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
@@ -117,6 +108,112 @@ folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
     throw std::runtime_error("Cannot read X509 from PEM bio");
   }
   return x509;
+}
+
+std::string SSLUtil::decrypt(
+    folly::ByteRange ciphertext,
+    folly::ByteRange key,
+    folly::ByteRange iv,
+    const EVP_CIPHER* cipher) {
+  auto ctx = folly::ssl::EvpCipherCtxUniquePtr(EVP_CIPHER_CTX_new());
+  // Plaintext will be at most the same length as ciphertext
+  std::unique_ptr<unsigned char[]> plaintext(
+      new unsigned char[ciphertext.size() + EVP_CIPHER_block_size(cipher)]());
+  int offset1, offset2;
+
+  /* Initialize the decryption operation. IMPORTANT - ensure you use a key
+   * and IV size appropriate for your cipher. The IV size for *most* modes is
+   * the same as the block size. */
+  if (EVP_DecryptInit_ex(ctx.get(), cipher, nullptr, key.data(), iv.data()) !=
+      1) {
+    throw std::runtime_error("Failure when initializing file decryption.");
+  }
+
+  /* Provide the message to be decrypted, and obtain the plaintext output.
+   * EVP_DecryptUpdate can be called multiple times if necessary. */
+  if (EVP_DecryptUpdate(
+          ctx.get(),
+          plaintext.get(),
+          &offset1,
+          const_cast<unsigned char*>(ciphertext.data()),
+          ciphertext.size()) != 1) {
+    throw std::runtime_error("Failure when decrypting file.");
+  }
+
+  /* Finalize the decryption. Further plaintext bytes may be written at
+   * this stage. */
+  if (EVP_DecryptFinal_ex(ctx.get(), plaintext.get() + offset1, &offset2) !=
+      1) {
+    throw std::runtime_error("Failure when finalizing decryption operation.");
+  }
+  return std::string(
+      reinterpret_cast<char*>(plaintext.get()), offset1 + offset2);
+}
+
+folly::Optional<std::string> SSLUtil::decryptOpenSSLEncFilePassString(
+    const std::string& filename,
+    const std::string& password,
+    const EVP_CIPHER* cipher,
+    const EVP_MD* digest) {
+  // Most of this code adapted from openssl/apps/enc.c
+  const std::string magic = "Salted__";
+  std::array<unsigned char, EVP_MAX_KEY_LENGTH> key;
+  std::array<unsigned char, EVP_MAX_IV_LENGTH> iv;
+
+  // Read encrypted file into string
+  std::string fileData;
+  if (!folly::readFile(filename.c_str(), fileData)) {
+    LOG(ERROR) << "Error reading file: " << filename;
+    return folly::none;
+  }
+  if (fileData.size() < magic.size() + PKCS5_SALT_LEN) {
+    LOG(ERROR) << "Not a valid encrypted file.";
+    return folly::none;
+  }
+
+  // Parse file contents into magic number, salt, and encrypted content
+  auto fileMagic = fileData.substr(0, magic.size());
+  if (fileMagic.compare(magic) != 0) {
+    LOG(ERROR) << "Incorrect magic number in file.";
+    return folly::none;
+  }
+  auto salt = fileData.substr(magic.size(), PKCS5_SALT_LEN);
+  auto ciphertext =
+      fileData.substr(magic.size() + PKCS5_SALT_LEN);
+
+  // Construct key and iv from password
+  EVP_BytesToKey(
+      cipher,
+      digest,
+      reinterpret_cast<const unsigned char*>(salt.data()),
+      reinterpret_cast<const unsigned char*>(password.data()),
+      password.size(),
+      1 /* one round */,
+      key.data(),
+      iv.data());
+
+  // Decrypt content using key and iv
+  return decrypt(
+      folly::range(folly::StringPiece(ciphertext)),
+      folly::range(key),
+      folly::range(iv),
+      cipher);
+}
+
+folly::Optional<std::string> SSLUtil::decryptOpenSSLEncFilePassFile(
+    const std::string& filename,
+    const folly::PasswordCollector& pwdCollector,
+    const EVP_CIPHER* cipher,
+    const EVP_MD* digest) {
+  // Get password as a string and call decryptFilePasswordString()
+  std::string password;
+  pwdCollector.getPassword(password, 0);
+  if (password.empty()) {
+    LOG(ERROR) << "Error getting encryption password from collector "
+               << pwdCollector;
+    return folly::none;
+  }
+  return decryptOpenSSLEncFilePassString(filename, password, cipher, digest);
 }
 
 } // namespace wangle

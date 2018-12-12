@@ -19,6 +19,7 @@
 #include <mutex>
 
 #include <folly/String.h>
+#include <folly/io/async/SSLContext.h>
 #include <folly/ssl/OpenSSLPtrTypes.h>
 
 namespace folly {
@@ -65,6 +66,16 @@ class SSLException : public std::runtime_error {
 class SSLUtil {
  private:
   static std::mutex sIndexLock_;
+
+  /*
+   * This helper function was taken and modified from:
+   * https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption
+   */
+  static std::string decrypt(
+      folly::ByteRange ciphertext,
+      folly::ByteRange key,
+      folly::ByteRange iv,
+      const EVP_CIPHER* cipher);
 
  public:
   /**
@@ -191,6 +202,27 @@ class SSLUtil {
    */
   static folly::ssl::X509UniquePtr getX509FromCertificate(
       const std::string& certificateData);
+
+  /**
+   * Same as decryptOpenSSLEncFilePassFile except the password is a string
+   * instead of being stored in a file.
+   */
+  static folly::Optional<std::string> decryptOpenSSLEncFilePassString(
+      const std::string& filename,
+      const std::string& password,
+      const EVP_CIPHER* cipher,
+      const EVP_MD* digest);
+
+  /**
+   * Function for decrypting files encrypted with openssl enc as:
+   *
+   * openssl enc -e -md sha256 -aes-256-cbc -pass file:<passwordFile>
+   */
+  static folly::Optional<std::string> decryptOpenSSLEncFilePassFile(
+      const std::string& filename,
+      const folly::PasswordCollector& pwdCollector,
+      const EVP_CIPHER* cipher,
+      const EVP_MD* digest);
 };
 
 } // namespace wangle

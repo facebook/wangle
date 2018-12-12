@@ -19,6 +19,7 @@
 #include <set>
 
 #include <folly/Optional.h>
+#include <folly/io/async/PasswordInFile.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
 #include <wangle/util/FilePoller.h>
 
@@ -36,10 +37,12 @@ class TLSCredProcessor {
   ~TLSCredProcessor();
 
   /**
-   * Set the ticket path to watch.  Any previous ticket path will stop being
-   * watched.  This is not thread safe.
+   * Set the ticket path to watch for file (optionally) encrypted with password.
+   * Any previous ticket path will stop being watched.  This is not thread safe.
    */
-  void setTicketPathToWatch(const std::string& ticketFile);
+  void setTicketPathToWatch(
+      const std::string& ticketFile,
+      const folly::Optional<std::string>& password = folly::none);
 
   /**
    * Set cert related files to watch.  This would include paths like
@@ -76,14 +79,19 @@ class TLSCredProcessor {
    * ticket encryption keys.
    */
   static folly::Optional<wangle::TLSTicketKeySeeds> processTLSTickets(
-      const std::string& fileName);
+      const std::string& fileName,
+      const folly::Optional<std::string>& password = folly::none);
 
  private:
-  void ticketFileUpdated(const std::string& ticketFile) noexcept;
+  void ticketFileUpdated(
+      const std::string& ticketFile,
+      const folly::Optional<std::string>& password) noexcept;
+
   void certFileUpdated() noexcept;
 
   std::unique_ptr<FilePoller> poller_;
   std::string ticketFile_;
+  folly::Optional<std::string> password_;
   std::set<std::string> certFiles_;
   std::vector<std::function<void(wangle::TLSTicketKeySeeds)>> ticketCallbacks_;
   std::vector<std::function<void()>> certCallbacks_;
