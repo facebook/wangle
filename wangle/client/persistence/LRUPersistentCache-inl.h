@@ -217,17 +217,15 @@ LRUPersistentCache<K, V, MutexT>::getPersistence() {
 template<typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::setPersistenceHelper(
     bool syncVersion) noexcept {
+  typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
   if (persistenceLoadedSemaphore_.ready()) {
     return;
   }
-  {
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
-    // load the persistence data into memory
-    if (persistence_) {
-      auto version = load(*persistence_);
-      if (version && syncVersion) {
-        persistence_->setPersistedVersion(*version);
-      }
+  // load the persistence data into memory
+  if (persistence_) {
+    auto version = load(*persistence_);
+    if (version && syncVersion) {
+      persistence_->setPersistedVersion(*version);
     }
   }
   persistenceLoadedSemaphore_.post();
