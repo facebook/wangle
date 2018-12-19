@@ -122,7 +122,7 @@ Acceptor::init(AsyncServerSocket* serverSocket,
         continue;
       }
       for (const auto& opt: socketOptions_) {
-        opt.first.apply(fd, opt.second);
+        opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
       }
     }
   }
@@ -313,7 +313,7 @@ Acceptor::connectionAccepted(
   }
   auto acceptTime = std::chrono::steady_clock::now();
   for (const auto& opt: socketOptions_) {
-    opt.first.apply(fd, opt.second);
+    opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
   }
 
   onDoneAcceptingConnection(fd, clientAddr, acceptTime);
