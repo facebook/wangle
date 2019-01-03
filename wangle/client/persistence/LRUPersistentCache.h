@@ -177,14 +177,6 @@ class LRUPersistentCache
     return blockingAccessInMemCache().size();
   }
 
-  /**
-   * Set a new persistence layer on this cache.  This call blocks while the
-   * new persistence layer is loaded into the cache.  The load is also
-   * done under a lock so multiple calls to this will not stomp on each
-   * other.
-   */
-  void setPersistence(std::unique_ptr<CachePersistence<K, V>> persistence);
-
  private:
   /**
    * Helper to set persistence that will load the persistence data

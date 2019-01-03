@@ -238,22 +238,6 @@ LRUPersistentCache<K, V, MutexT>::blockingAccessInMemCache() {
   return cache_;
 }
 
-template<typename K ,typename V, typename MutexT>
-void LRUPersistentCache<K, V, MutexT>::setPersistence(
-    std::unique_ptr<CachePersistence<K, V>> persistence) {
-  std::shared_ptr<CachePersistence<K, V>> sharedPersistence(
-      std::move(persistence));
-  // note that we don't set the persisted version on the persistence like we
-  // do in the constructor since we want any deltas that were in memory but
-  // not in the persistence layer to sync back.
-  {
-    typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
-    std::swap(persistence_, sharedPersistence);
-  }
-  persistenceLoadedSemaphore_.reset();
-  setPersistenceHelper(false);
-}
-
 template <typename K, typename V, typename MutexT>
 folly::Optional<CacheDataVersion> LRUPersistentCache<K, V, MutexT>::load(
     CachePersistence<K, V>& persistence) noexcept {
