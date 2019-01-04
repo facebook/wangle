@@ -82,6 +82,15 @@ struct ServerSocketConfig {
   }
 
   /**
+   * This should only be called from the evb thread.
+   */
+  void updateSSLContextConfigs(
+    std::vector<SSLContextConfig> newConfigs) const {
+    sslContextConfigs = newConfigs;
+  }
+
+
+  /**
    * The name of this acceptor; used for stats/reporting purposes.
    */
   std::string name;
@@ -131,7 +140,7 @@ struct ServerSocketConfig {
   /**
    * The configs for all the SSL_CTX for use by this Acceptor.
    */
-  std::vector<SSLContextConfig> sslContextConfigs;
+  mutable std::vector<SSLContextConfig> sslContextConfigs;
 
   /**
    * Determines if the Acceptor does strict checking when loading the SSL
