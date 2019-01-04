@@ -473,44 +473,38 @@ SSLContextManager::serverNameCallback(SSL* ssl) {
   }
 
   DNString dnstr(sn, snLen);
-  uint32_t count = 0;
-  do {
-    // First look for a context with the exact crypto needed. Weaker crypto will
-    // be in the map as best available if it is the best we have for that
-    // subject name.
-    SSLContextKey key(dnstr, certCryptoReq);
-    ctx = getSSLCtx(key);
+  // First look for a context with the exact crypto needed. Weaker crypto will
+  // be in the map as best available if it is the best we have for that
+  // subject name.
+  SSLContextKey key(dnstr, certCryptoReq);
+  ctx = getSSLCtx(key);
+  if (ctx) {
+    sslSocket->switchServerSSLContext(ctx);
+    if (clientHelloTLSExtStats_) {
+      if (reqHasServerName) {
+        clientHelloTLSExtStats_->recordMatch();
+      }
+      clientHelloTLSExtStats_->recordCertCrypto(certCryptoReq, certCryptoReq);
+    }
+    return SSLContext::SERVER_NAME_FOUND;
+  }
+
+  // If we didn't find an exact match, look for a cert with upgraded crypto.
+  if (certCryptoReq != CertCrypto::BEST_AVAILABLE) {
+    SSLContextKey fallbackKey(dnstr, CertCrypto::BEST_AVAILABLE);
+    ctx = getSSLCtx(fallbackKey);
     if (ctx) {
       sslSocket->switchServerSSLContext(ctx);
       if (clientHelloTLSExtStats_) {
         if (reqHasServerName) {
           clientHelloTLSExtStats_->recordMatch();
         }
-        clientHelloTLSExtStats_->recordCertCrypto(certCryptoReq, certCryptoReq);
+        clientHelloTLSExtStats_->recordCertCrypto(
+            certCryptoReq, CertCrypto::BEST_AVAILABLE);
       }
       return SSLContext::SERVER_NAME_FOUND;
     }
-
-    // If we didn't find an exact match, look for a cert with upgraded crypto.
-    if (certCryptoReq != CertCrypto::BEST_AVAILABLE) {
-      SSLContextKey fallbackKey(dnstr, CertCrypto::BEST_AVAILABLE);
-      ctx = getSSLCtx(fallbackKey);
-      if (ctx) {
-        sslSocket->switchServerSSLContext(ctx);
-        if (clientHelloTLSExtStats_) {
-          if (reqHasServerName) {
-            clientHelloTLSExtStats_->recordMatch();
-          }
-          clientHelloTLSExtStats_->recordCertCrypto(
-              certCryptoReq, CertCrypto::BEST_AVAILABLE);
-        }
-        return SSLContext::SERVER_NAME_FOUND;
-      }
-    }
-
-    // Give the noMatchFn one chance to add the correct cert
   }
-  while (count++ == 0 && noMatchFn_ && noMatchFn_(sn));
 
   VLOG(6) << folly::stringPrintf("Cannot find a SSL_CTX for \"%s\"", sn);
 
@@ -565,7 +559,6 @@ SSLContextManager::ctxSetupByOpensslFeature(
 
   // SNI
 #ifdef PROXYGEN_HAVE_SERVERNAMECALLBACK
-  noMatchFn_ = ctxConfig.sniNoMatchFn;
   if (ctxConfig.isDefault) {
     if (contexts.defaultCtx) {
       throw std::runtime_error(">1 X509 is set as default");

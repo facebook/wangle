@@ -96,11 +96,6 @@ class Acceptor :
    */
   virtual void resetSSLContextConfigs();
 
-  /**
-   * Dynamically add a new SSLContextConfig
-   */
-  void addSSLContextConfig(const SSLContextConfig& sslCtxConfig);
-
   SSLContextManager* getSSLContextManager() const {
     return sslCtxManager_.get();
   }

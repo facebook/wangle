@@ -109,9 +109,6 @@ struct SSLContextConfig {
   bool isLocalPrivateKey{true};
   // Should this SSLContextConfig be the default for SNI purposes
   bool isDefault{false};
-  // Callback function to invoke when there are no matching certificates
-  // (will only be invoked once)
-  SNINoMatchFn sniNoMatchFn;
   // File containing trusted CA's to validate client certificates
   std::string clientCAFile;
   // Verification method to use for client certificates.

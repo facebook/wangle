@@ -262,7 +262,6 @@ class SSLContextManager {
   SslContexts contexts_;
   folly::EventBase* eventBase_;
   ClientHelloExtStats* clientHelloTLSExtStats_{nullptr};
-  SSLContextConfig::SNINoMatchFn noMatchFn_;
   bool strict_{true};
   std::unique_ptr<ClientCertVerifyCallback> clientCertVerifyCallback_{nullptr};
 };

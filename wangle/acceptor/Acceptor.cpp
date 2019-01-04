@@ -204,16 +204,6 @@ void Acceptor::resetSSLContextConfigs() {
 Acceptor::~Acceptor(void) {
 }
 
-void Acceptor::addSSLContextConfig(const SSLContextConfig& sslCtxConfig) {
-  if (sslCtxManager_) {
-    sslCtxManager_->addSSLContextConfig(sslCtxConfig,
-                                        accConfig_.sslCacheOptions,
-                                        &accConfig_.initialTicketSeeds,
-                                        accConfig_.bindAddress,
-                                        cacheProvider_);
-  }
-}
-
 void Acceptor::setTLSTicketSecrets(
     const std::vector<std::string>& oldSecrets,
     const std::vector<std::string>& currentSecrets,
