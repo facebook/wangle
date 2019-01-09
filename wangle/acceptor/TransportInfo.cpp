@@ -83,8 +83,12 @@ bool TransportInfo::readTcpCongestionControl(const folly::AsyncSocket* sock) {
   constexpr unsigned int kTcpCaNameMax = 16;
   std::array<char, kTcpCaNameMax> tcpCongestion{{0}};
   socklen_t optlen = tcpCongestion.size();
-  if (getsockopt(sock->getFd(), IPPROTO_TCP, TCP_CONGESTION,
-                 tcpCongestion.data(), &optlen) < 0) {
+  if (getsockopt(
+          sock->getNetworkSocket().toFd(),
+          IPPROTO_TCP,
+          TCP_CONGESTION,
+          tcpCongestion.data(),
+          &optlen) < 0) {
     VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
     return false;
   }
@@ -102,8 +106,12 @@ bool TransportInfo::readMaxPacingRate(const folly::AsyncSocket* sock) {
   }
 #ifdef SO_MAX_PACING_RATE
   socklen_t optlen = sizeof(maxPacingRate);
-  if (getsockopt(sock->getFd(), SOL_SOCKET, SO_MAX_PACING_RATE,
-                 &maxPacingRate, &optlen) < 0) {
+  if (getsockopt(
+          sock->getNetworkSocket().toFd(),
+          SOL_SOCKET,
+          SO_MAX_PACING_RATE,
+          &maxPacingRate,
+          &optlen) < 0) {
     VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
     return false;
   }
@@ -141,8 +149,12 @@ bool TransportInfo::readTcpInfo(tcp_info* tcpinfo,
   if (!sock) {
     return false;
   }
-  if (getsockopt(sock->getFd(), IPPROTO_TCP,
-                 TCP_INFO, (void*) tcpinfo, &len) < 0) {
+  if (getsockopt(
+          sock->getNetworkSocket().toFd(),
+          IPPROTO_TCP,
+          TCP_INFO,
+          (void*)tcpinfo,
+          &len) < 0) {
     VLOG(4) << "Error calling getsockopt(): " << folly::errnoStr(errno);
     return false;
   }

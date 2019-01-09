@@ -54,9 +54,13 @@ AsyncSocket::WriteResult FileRegion::FileWriteRequest::performWrite() {
   }
 
   int flags = SPLICE_F_NONBLOCK | SPLICE_F_MORE;
-  ssize_t spliced = ::splice(pipe_out_, nullptr,
-                             socket_->getFd(), nullptr,
-                             bytesInPipe_, flags);
+  ssize_t spliced = ::splice(
+      pipe_out_,
+      nullptr,
+      socket_->getNetworkSocket().toFd(),
+      nullptr,
+      bytesInPipe_,
+      flags);
   if (spliced == -1) {
     if (errno == EAGAIN) {
       return AsyncSocket::WriteResult(0);

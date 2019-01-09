@@ -303,8 +303,9 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
       if (pit == pendingLookups_.end()) {
         auto result = pendingLookups_.emplace(sessionId, PendingLookup());
         // initiate fetch
-        VLOG(4) << "Get SSL session [Pending]: Initiate Fetch; fd=" <<
-          sslSocket->getFd() << " id=" << SSLUtil::hexlify(sessionId);
+        VLOG(4) << "Get SSL session [Pending]: Initiate Fetch; fd="
+                << sslSocket->getNetworkSocket().toFd()
+                << " id=" << SSLUtil::hexlify(sessionId);
         if (lookupCacheRecord(sessionId, sslSocket)) {
           // response is pending
           *copyflag = SSL_SESSION_CB_WOULD_BLOCK;
@@ -318,8 +319,9 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
         if (pit->second.request_in_progress) {
           // Someone else initiated the request, attach
           VLOG(4) << "Get SSL session [Pending]: Request in progess: attach; "
-            "fd=" << sslSocket->getFd() << " id=" <<
-            SSLUtil::hexlify(sessionId);
+                     "fd="
+                  << sslSocket->getNetworkSocket().toFd()
+                  << " id=" << SSLUtil::hexlify(sessionId);
           std::unique_ptr<DelayedDestruction::DestructorGuard> dg(
             new DelayedDestruction::DestructorGuard(sslSocket));
           pit->second.waiters.emplace_back(sslSocket, std::move(dg));
@@ -363,7 +365,7 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
 
   VLOG(4) << "Get SSL session [" << ((hit) ? "Hit" : "Miss")
           << "]: " << ((foreign) ? "external" : "local") << " cache; "
-          << missReason << "fd=" << sslSocket->getFd()
+          << missReason << "fd=" << sslSocket->getNetworkSocket().toFd()
           << " id=" << SSLUtil::hexlify(sessionId);
 
   // We already bumped the refcount
@@ -410,8 +412,8 @@ void SSLSessionCacheManager::restartSSLAccept(
   cacheCtx->sslSocket->restartSSLAccept();
   for (const auto& attachedLookup: pit->second.waiters) {
     // Wake up anyone else who was waiting for this session
-    VLOG(4) << "Restart SSL accept (waiters) for fd=" <<
-      attachedLookup.first->getFd();
+    VLOG(4) << "Restart SSL accept (waiters) for fd="
+            << attachedLookup.first->getNetworkSocket().toFd();
     attachedLookup.first->restartSSLAccept();
   }
   pendingLookups_.erase(pit);
