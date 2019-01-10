@@ -86,8 +86,9 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 
   // Fetch the socket from the pipeline and pause reading from the
   // socket
-  auto socket = std::dynamic_pointer_cast<folly::AsyncSocket>(
+  auto socket = std::dynamic_pointer_cast<folly::AsyncTransportWrapper>(
       routingPipeline->getTransport());
+  CHECK(socket);
   routingPipeline->transportInactive();
   socket->detachEventBase();
 
