@@ -123,7 +123,7 @@ struct ServerSocketConfig {
   /**
    * Options for controlling the SSL cache.
    */
-  SSLCacheOptions sslCacheOptions{std::chrono::seconds(0), 20480, 200};
+  SSLCacheOptions sslCacheOptions{std::chrono::hours(1), 20480, 200};
 
   /**
    * Determines whether or not to allow insecure connections over a secure
