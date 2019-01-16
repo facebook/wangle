@@ -145,11 +145,15 @@ void FilePoller::removeFileToTrack(const std::string& fileName) {
 
 FilePoller::FileModificationData FilePoller::getFileModData(
     const std::string& path) noexcept {
-  struct stat info;
-  int ret = stat(path.c_str(), &info);
+  struct stat64 info;
+  int ret = stat64(path.c_str(), &info);
   if (ret != 0) {
-    return FileModificationData{false, 0};
+    return FileModificationData{false, std::chrono::system_clock::time_point()};
   }
-  return FileModificationData{true, info.st_mtime};
+  return FileModificationData{
+      true,
+      std::chrono::system_clock::time_point(
+          std::chrono::seconds(info.st_mtim.tv_sec) +
+          std::chrono::nanoseconds(info.st_mtim.tv_nsec))};
 }
 }
