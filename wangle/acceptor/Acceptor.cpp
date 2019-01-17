@@ -178,14 +178,13 @@ std::string Acceptor::getPskContext() {
 
 void Acceptor::resetSSLContextConfigs() {
   try {
-    if (getFizzPeeker()->getContext() != nullptr) {
+    if (accConfig_.fizzConfig.enableFizz) {
       auto manager = createFizzCertManager();
       if (manager) {
         fizzCertManager_ = std::move(manager);
         getFizzPeeker()->setContext(recreateFizzContext());
       }
     }
-
     if (sslCtxManager_) {
       sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
                                              accConfig_.sslCacheOptions,
@@ -209,7 +208,7 @@ void Acceptor::setTLSTicketSecrets(
     const std::vector<std::string>& currentSecrets,
     const std::vector<std::string>& newSecrets) {
 
-  if (getFizzPeeker()->getContext()) {
+  if (accConfig_.fizzConfig.enableFizz) {
     TLSTicketKeySeeds seeds{
       oldSecrets,
       currentSecrets,
