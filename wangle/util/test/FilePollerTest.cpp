@@ -44,7 +44,7 @@ class FilePollerTest : public testing::Test {
 void updateModifiedTime(
     const std::string& path,
     bool forward = true,
-    system_clock::time_point timeDiff = system_clock::time_point(seconds(10))) {
+    nanoseconds timeDiffNano = seconds(10)) {
   struct stat64 currentFileStat;
   std::array<struct timespec, 2> newTimes;
 
@@ -54,16 +54,19 @@ void updateModifiedTime(
 
   newTimes[0] = currentFileStat.st_atim;
   newTimes[1] = currentFileStat.st_mtim;
-  auto secVal = time_point_cast<seconds>(timeDiff).time_since_epoch().count();
-  auto nsecVal =
-      (time_point_cast<nanoseconds>(timeDiff).time_since_epoch() % (long)1e9)
-          .count();
+  auto secVal = duration_cast<seconds>(timeDiffNano).count();
+  auto nsecVal = timeDiffNano.count();
   if (forward) {
     newTimes[1].tv_sec += secVal;
     newTimes[1].tv_nsec += nsecVal;
   } else {
     newTimes[1].tv_sec -= secVal;
     newTimes[1].tv_nsec -= nsecVal;
+  }
+  // 0 <= tv_nsec < 1e9
+  newTimes[1].tv_nsec %= (long)1e9;
+  if (newTimes[1].tv_nsec < 0) {
+    newTimes[1].tv_nsec *= -1;
   }
 
   if (utimensat(AT_FDCWD, path.c_str(), newTimes.data(), 0) < 0) {
@@ -94,7 +97,7 @@ TEST_F(FilePollerTest, TestUpdateFileSubSecond) {
     updated = true;
     baton.post();
   });
-  updateModifiedTime(tmpFile, true, system_clock::time_point(milliseconds(10)));
+  updateModifiedTime(tmpFile, true, milliseconds(10));
   ASSERT_TRUE(baton.try_wait_for(seconds(5)));
   ASSERT_TRUE(updated);
 }
@@ -155,7 +158,7 @@ struct UpdateSyncState {
 
   void waitForUpdate(bool expect = true) {
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, milliseconds(100), [&] { return updated; });
+    cv.wait_for(lk, seconds(1), [&] { return updated; });
     ASSERT_EQ(updated, expect);
     updated = false;
   }
