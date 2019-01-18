@@ -134,6 +134,15 @@ void ShardedLocalSSLSessionCache::storeSession(
 void ShardedLocalSSLSessionCache::removeSession(const std::string& sessionId) {
   size_t bucket = hash(sessionId);
   std::lock_guard<std::mutex> g(caches_[bucket]->lock);
+
+  auto itr = caches_[bucket]->sessionCache.find(sessionId);
+  if (itr == caches_[bucket]->sessionCache.end()) {
+    VLOG(4) << "session ID " << sessionId << " not in cache";
+    return;
+  }
+
+  // LRUCacheMap doesn't free on erase either
+  SSL_SESSION_free(itr->second);
   caches_[bucket]->sessionCache.erase(sessionId);
 }
 
