@@ -574,6 +574,10 @@ SSLContextManager::ctxSetupByOpensslFeature(
     OPENSSL_MISSING_FEATURE(SNI);
   }
 #endif
+#ifdef SSL_OP_NO_RENEGOTIATION
+  // Disable renegotiation at the OpenSSL layer
+  sslCtx->setOptions(SSL_OP_NO_RENEGOTIATION);
+#endif
 }
 
 void
