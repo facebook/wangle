@@ -341,16 +341,19 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
   if (session == nullptr && externalCache_) {
     foreign = true;
     DCHECK(folly::fibers::onFiber());
+    if (folly::fibers::onFiber()) {
+      try {
+        session = externalCache_->getFuture(sessionId).get();
+      } catch (const std::exception& e) {
+        missReason = folly::to<std::string>("reason: ", e.what(), ";");
+      }
 
-    try {
-      session = externalCache_->getFuture(sessionId).get();
-    } catch (const std::exception& e) {
-      missReason = folly::to<std::string>("reason: ", e.what(), ";");
-    }
-
-    if (session) {
-      SSL_SESSION_up_ref(session.get());
-      localCache_->storeSession(sessionId, session.get(), stats_);
+      if (session) {
+        SSL_SESSION_up_ref(session.get());
+        localCache_->storeSession(sessionId, session.get(), stats_);
+      }
+    } else {
+      missReason = "reason: request not running on fiber;";
     }
   }
 #endif
