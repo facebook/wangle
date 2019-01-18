@@ -349,8 +349,8 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
     }
 
     if (session) {
-      localCache_->storeSession(sessionId, session.get(), stats_);
       SSL_SESSION_up_ref(session.get());
+      localCache_->storeSession(sessionId, session.get(), stats_);
     }
   }
 #endif
