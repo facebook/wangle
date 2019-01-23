@@ -88,23 +88,30 @@ void LRUPersistentCache<K, V, MutexT>::init() {
 template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
   blockingAccessInMemCache().put(key, val);
-  if (executor_) {
-    if (!executorScheduled_.test_and_set()) {
-      if (std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
-          syncInterval_) {
-        // Do not schedule more than once during a syncInterval_ period
-        return;
-      }
-      lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
-      std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
-          this->shared_from_this();
-      executor_->add([self = std::move(weakSelf)]() {
-        if (auto sharedSelf = self.lock()) {
-          sharedSelf->oneShotSync();
-        }
-      });
-    }
+
+  if (!executor_) {
+    return;
   }
+
+  // Within the same time interval as the last sync
+  if (std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
+      syncInterval_) {
+    return;
+  }
+
+  // Sync already scheduled
+  if (executorScheduled_.test_and_set()) {
+    return;
+  }
+
+  lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
+  std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
+  this->shared_from_this();
+  executor_->add([self = std::move(weakSelf)]() {
+    if (auto sharedSelf = self.lock()) {
+      sharedSelf->oneShotSync();
+    }
+  });
 }
 
 template<typename K, typename V, typename MutexT>
@@ -128,7 +135,6 @@ void* LRUPersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
 
 template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
-  executorScheduled_.clear();
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
   setPersistenceHelper(true);
@@ -143,6 +149,8 @@ void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
   } else {
     nSyncTries_ = 0;
   }
+
+  executorScheduled_.clear();
 }
 
 template<typename K, typename V, typename MutexT>
