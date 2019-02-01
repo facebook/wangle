@@ -108,7 +108,9 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
       std::shared_ptr<folly::AsyncSocket> socket;
       if (this->sslContext_) {
         auto sslSocket = folly::AsyncSSLSocket::newSocket(
-            this->sslContext_, base, this->deferSecurityNegotiation_);
+            this->sslContext_,
+            base,
+            this->deferSecurityNegotiation_);
         if (!this->sni_.empty()) {
           sslSocket->setServerName(this->sni_);
         }
