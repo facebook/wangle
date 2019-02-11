@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <boost/noncopyable.hpp>
+
 #include <folly/io/async/SSLContext.h>
 #include <folly/io/async/EventBase.h>
 
