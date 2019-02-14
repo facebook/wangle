@@ -112,8 +112,9 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeAttemptFallback(
   VLOG(3) << "Fallback to OpenSSL";
 
   auto evb = transport_->getEventBase();
-  auto fd =
-      transport_->getUnderlyingTransport<folly::AsyncSocket>()->detachFd();
+  auto fd = transport_->getUnderlyingTransport<folly::AsyncSocket>()
+                ->detachNetworkSocket()
+                .toFd();
   transport_.reset();
 
   sslSocket_ = createSSLSocket(sslContext_, evb, fd);
