@@ -50,22 +50,32 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
 
 void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
   if (loadSheddingEnabled_) {
-    // Period must be greater than or equal to 0.
-    CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());
-
-    // CPU exceed window must be of size at least equal to 1.
-    CHECK_GE(cpuUsageExceedWindowSize_, 1);
+    // Active connetions obviously must be less than or equal to max
+    // connections.
+    CHECK_LE(maxActiveConnections_, maxConnections_);
 
     // Min cpu idle and max cpu ratios must have values in the range of [0-1]
     // inclusive and min cpu idle, normalized, must be greater than or equal
     // to max cpu ratio.
     CHECK_GE(minCpuIdle_, 0.0);
     CHECK_LE(minCpuIdle_, 1.0);
-    CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
     CHECK_GE(maxCpuUsage_, 0.0);
     CHECK_LE(maxCpuUsage_, 1.0);
-    CHECK_GE(logicalCpuCoreQuorum_, 0);
-    CHECK_LE(logicalCpuCoreQuorum_, sysParams.numLogicalCpuCores);
+    CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
+
+    // CPU exceed window must be of size at least equal to 1.
+    CHECK_GE(cpuUsageExceedWindowSize_, 1);
+
+    // Soft and hard soft cpu core utilization limits must have values in the
+    // range of [0-1] inclusive and that hard limit must be greater than or
+    // equal to the soft limit.
+    CHECK_GE(softIrqLogicalCpuCoreQuorum_, 0);
+    CHECK_LE(softIrqLogicalCpuCoreQuorum_, sysParams.numLogicalCpuCores);
+    CHECK_GE(softIrqCpuSoftLimitRatio_, 0.0);
+    CHECK_LE(softIrqCpuSoftLimitRatio_, 1.0);
+    CHECK_GE(softIrqCpuHardLimitRatio_, 0.0);
+    CHECK_LE(softIrqCpuHardLimitRatio_, 1.0);
+    CHECK_GE(softIrqCpuHardLimitRatio_, softIrqCpuSoftLimitRatio_);
 
     // Max mem usage must be less than or equal to min free mem, normalized.
     // We also must verify that min free mem is less than or equal to total
@@ -85,9 +95,8 @@ void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
     CHECK_GE(minFreeTcpMemPct_, 0.0);
     CHECK_LE(minFreeTcpMemPct_, 1.0);
 
-    // Active connetions obviously must be less than or equal to max
-    // connections.
-    CHECK(maxActiveConnections_ <= maxConnections_);
+    // Period must be greater than or equal to 0.
+    CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());
   }
 }
 

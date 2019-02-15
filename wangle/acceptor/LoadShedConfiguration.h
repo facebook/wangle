@@ -15,10 +15,10 @@
  */
 #pragma once
 
-#include <chrono>
 #include <folly/Range.h>
 #include <folly/SocketAddress.h>
 #include <glog/logging.h>
+#include <chrono>
 #include <list>
 #include <set>
 #include <string>
@@ -32,12 +32,11 @@ namespace wangle {
  */
 class LoadShedConfiguration {
  public:
-
   // Comparison function for SocketAddress that disregards the port
   struct AddressOnlyCompare {
     bool operator()(
-     const folly::SocketAddress& addr1,
-     const folly::SocketAddress& addr2) const {
+        const folly::SocketAddress& addr1,
+        const folly::SocketAddress& addr2) const {
       return addr1.getIPAddress() < addr2.getIPAddress();
     }
   };
@@ -55,8 +54,12 @@ class LoadShedConfiguration {
    * Set/get the set of IPs that should be whitelisted through even when we're
    * trying to shed load.
    */
-  void setWhitelistAddrs(const AddressSet& addrs) { whitelistAddrs_ = addrs; }
-  const AddressSet& getWhitelistAddrs() const { return whitelistAddrs_; }
+  void setWhitelistAddrs(const AddressSet& addrs) {
+    whitelistAddrs_ = addrs;
+  }
+  const AddressSet& getWhitelistAddrs() const {
+    return whitelistAddrs_;
+  }
 
   /**
    * Set/get the set of networks that should be whitelisted through even
@@ -65,13 +68,19 @@ class LoadShedConfiguration {
   void setWhitelistNetworks(const NetworkSet& networks) {
     whitelistNetworks_ = networks;
   }
-  const NetworkSet& getWhitelistNetworks() const { return whitelistNetworks_; }
+  const NetworkSet& getWhitelistNetworks() const {
+    return whitelistNetworks_;
+  }
 
   /**
    * Set/get the maximum number of downstream connections across all VIPs.
    */
-  void setMaxConnections(uint64_t maxConns) { maxConnections_ = maxConns; }
-  uint64_t getMaxConnections() const { return maxConnections_; }
+  void setMaxConnections(uint64_t maxConns) {
+    maxConnections_ = maxConns;
+  }
+  uint64_t getMaxConnections() const {
+    return maxConnections_;
+  }
 
   /**
    * Set/get the maximum number of active downstream connections
@@ -80,7 +89,9 @@ class LoadShedConfiguration {
   void setMaxActiveConnections(uint64_t maxActiveConns) {
     maxActiveConnections_ = maxActiveConns;
   }
-  uint64_t getMaxActiveConnections() const { return maxActiveConnections_; }
+  uint64_t getMaxActiveConnections() const {
+    return maxActiveConnections_;
+  }
 
   /**
    * Set/get the acceptor queue size which can be used to pause accepting new
@@ -107,18 +118,6 @@ class LoadShedConfiguration {
   }
 
   /**
-   * Set/get the maximum memory usage.
-   * Regarded as a soft limit; variable amount of new conn shedding should
-   * occur when above this limit.
-   */
-  void setMaxMemUsage(double max) {
-    CHECK(max >= 0);
-    CHECK(max <= 1);
-    maxMemUsage_ = max;
-  }
-  double getMaxMemUsage() const { return maxMemUsage_; }
-
-  /**
    * Set/get the maximum cpu usage.
    * Regarded as a soft limit; variable amount of new conn shedding should
    * occur when above this limit.
@@ -128,7 +127,9 @@ class LoadShedConfiguration {
     CHECK(max <= 1);
     maxCpuUsage_ = max;
   }
-  double getMaxCpuUsage() const { return maxCpuUsage_; }
+  double getMaxCpuUsage() const {
+    return maxCpuUsage_;
+  }
 
   /**
    * Set/get the minimum cpu idle.
@@ -140,21 +141,8 @@ class LoadShedConfiguration {
     CHECK(min <= 1);
     minCpuIdle_ = min;
   }
-  double getMinCpuIdle() const { return minCpuIdle_; }
-
-  /**
-   * Set/get the number of most utilized cpu cores to use when comparing
-   * against cpu limits; a value of 0 or a value that equals the total number
-   * of cores on the executing system implies that mean CPU should be used.
-   * This field exists to more meaningfully handle uneven load distributions
-   * that can occur if for example network card interrupt affinity is set
-   * such that only X of Y cores are utilized for network packet processing.
-   */
-  void setLogicalCpuCoreQuorum(uint64_t quorum) {
-    logicalCpuCoreQuorum_ = quorum;
-  }
-  uint64_t getLogicalCpuCoreQuorum() const {
-    return logicalCpuCoreQuorum_;
+  double getMinCpuIdle() const {
+    return minCpuIdle_;
   }
 
   /**
@@ -163,9 +151,51 @@ class LoadShedConfiguration {
   void setCpuUsageExceedWindowSize(const uint64_t size) {
     cpuUsageExceedWindowSize_ = size;
   }
-
   uint64_t getCpuUsageExceedWindowSize() const {
     return cpuUsageExceedWindowSize_;
+  }
+
+  /**
+   * Set/get the number of most soft utilized cpu cores to use when comparing
+   * against soft cpu limits; a value of 0 or a value that equals the total
+   * number of cores on the executing system implies that mean CPU should be
+   * used.  This field exists to more meaningfully handle uneven load
+   * distributions that can occur if for example network card interrupt
+   * affinity is set such that only X of Y cores are utilized for network
+   * packet processing.
+   */
+  void setSoftIrqLogicalCpuCoreQuorum(uint64_t quorum) {
+    softIrqLogicalCpuCoreQuorum_ = quorum;
+  }
+  uint64_t getSoftIrqLogicalCpuCoreQuorum() const {
+    return softIrqLogicalCpuCoreQuorum_;
+  }
+
+  /**
+   * Set/get the soft cpu usage soft limit ratio.
+   * Variable amount of new conn shedding should occur when soft cpu
+   * utilization rises above this limit.
+   */
+  void setSoftIrqCpuSoftLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    softIrqCpuSoftLimitRatio_ = limit;
+  }
+  double getSoftIrqCpuSoftLimitRatio() const {
+    return softIrqCpuSoftLimitRatio_;
+  }
+
+  /**
+   * Set/get the soft cpu usage hard limit ratio.
+   * Every new conn should shed when soft cpu usage rises above this limit.
+   */
+  void setSoftIrqCpuHardLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    softIrqCpuHardLimitRatio_ = limit;
+  }
+  double getSoftIrqCpuHardLimitRatio() const {
+    return softIrqCpuHardLimitRatio_;
   }
 
   /**
@@ -180,10 +210,19 @@ class LoadShedConfiguration {
     return minFreeMem_;
   }
 
-  void setLoadUpdatePeriod(std::chrono::milliseconds period) {
-    period_ = period;
+  /**
+   * Set/get the maximum memory usage.
+   * Regarded as a soft limit; variable amount of new conn shedding should
+   * occur when above this limit.
+   */
+  void setMaxMemUsage(double max) {
+    CHECK_GE(max, 0.0);
+    CHECK_LE(max, 1.0);
+    maxMemUsage_ = max;
   }
-  std::chrono::milliseconds getLoadUpdatePeriod() const { return period_; }
+  double getMaxMemUsage() const {
+    return maxMemUsage_;
+  }
 
   void setMaxTcpMemUsage(double max) {
     CHECK_GE(max, 0.0);
@@ -201,6 +240,13 @@ class LoadShedConfiguration {
   }
   double getMinFreeTcpMemPct() const {
     return minFreeTcpMemPct_;
+  }
+
+  void setLoadUpdatePeriod(std::chrono::milliseconds period) {
+    period_ = period;
+  }
+  std::chrono::milliseconds getLoadUpdatePeriod() const {
+    return period_;
   }
 
   void setLoadSheddingEnabled(bool enabled) {
@@ -228,22 +274,31 @@ class LoadShedConfiguration {
   void checkIsSane(const SysParams& sysParams) const;
 
  private:
-
   AddressSet whitelistAddrs_;
   NetworkSet whitelistNetworks_;
+
   uint64_t maxConnections_{0};
   uint64_t maxActiveConnections_{0};
+
   uint64_t acceptPauseOnAcceptorQueueSize_{0};
   uint64_t acceptResumeOnAcceptorQueueSize_{0};
-  uint64_t minFreeMem_{0};
-  double maxMemUsage_{1.0};
+
   double maxCpuUsage_{1.0};
   double minCpuIdle_{0.0};
-  uint64_t logicalCpuCoreQuorum_{0};
   uint64_t cpuUsageExceedWindowSize_{0};
+
+  uint64_t softIrqLogicalCpuCoreQuorum_{0};
+  double softIrqCpuSoftLimitRatio_{1.0};
+  double softIrqCpuHardLimitRatio_{1.0};
+
+  uint64_t minFreeMem_{0};
+  double maxMemUsage_{1.0};
+
   double maxTcpMemUsage_{1.0};
   double minFreeTcpMemPct_{0.0};
+
   std::chrono::milliseconds period_;
+
   bool loadSheddingEnabled_{true};
 };
 
