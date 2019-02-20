@@ -44,7 +44,7 @@ public:
   /**
    * Store a session in the external cache.
    * @param sessionId   Identifier that can be used later to fetch the
-   *                      session with getAsync()
+   *                      session with getFuture()
    * @param value       Serialized session to store
    * @param expiration  Relative expiration time: seconds from now
    * @return true if the storing of the session is initiated successfully
@@ -55,20 +55,6 @@ public:
   virtual bool setAsync(const std::string& sessionId,
                         const std::string& value,
                         std::chrono::seconds expiration) = 0;
-
-  /**
-   * Retrieve a session from the external cache. When done, call
-   * the cache manager's onGetSuccess() or onGetFailure() callback.
-   * @param sessionId   Session ID to fetch
-   * @param context     Data to pass back to the SSLSessionCacheManager
-   *                      in the completion callback
-   * @return true if the lookup of the session is initiated successfully
-   *         (though not necessarily completed; the completion may
-   *         happen either before or after this method returns), or
-   *         false if the lookup cannot be initiated due to an error.
-   */
-  virtual bool getAsync(const std::string& sessionId,
-                        CacheContext* context) = 0;
 
   /**
    * Retrieve a session from the external cache. Returns a future that will

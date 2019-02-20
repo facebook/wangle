@@ -79,31 +79,6 @@ class ShardedLocalSSLSessionCache : private boost::noncopyable {
   std::vector< std::unique_ptr<LocalSSLSessionCache> > caches_;
 };
 
-/* A socket/DestructorGuard pair */
-typedef std::pair<folly::AsyncSSLSocket *,
-                  std::unique_ptr<folly::DelayedDestruction::DestructorGuard>>
-  AttachedLookup;
-
-/**
- * PendingLookup structure
- *
- * Keeps track of clients waiting for an SSL session to be retrieved from
- * the external cache provider.
- */
-struct PendingLookup {
-  bool request_in_progress;
-  SSL_SESSION* session;
-  std::list<AttachedLookup> waiters;
-
-  PendingLookup() {
-    request_in_progress = true;
-    session = nullptr;
-  }
-};
-
-/* Maps SSL session id to a PendingLookup structure */
-typedef std::map<std::string, PendingLookup> PendingLookupMap;
-
 /**
  * SSLSessionCacheManager handles all stateful session caching.  There is an
  * instance of this object per SSL VIP per thread, with a 1:1 correlation with
@@ -124,13 +99,6 @@ typedef std::map<std::string, PendingLookup> PendingLookupMap;
  * request for this session is dispatched to the external cache.  When the
  * external cache query returns, the LRU cache is updated if the session was
  * found, and the SSL_accept call is resumed.
- *
- * If additional resume requests for the same session ID arrive in the same
- * thread while the request is pending, the 2nd - Nth callers attach to the
- * original external cache requests and are resumed when it comes back.  No
- * attempt is made to coalesce external cache requests for the same session
- * ID in different worker threads.  Previous work did this, but the
- * complexity was deemed to outweigh the potential savings.
  *
  */
 class SSLSessionCacheManager : private boost::noncopyable {
@@ -157,36 +125,10 @@ class SSLSessionCacheManager : private boost::noncopyable {
    */
   static void shutdown();
 
-  /**
-   * Callback for ExternalCache to call when an async get succeeds
-   * @param context  The context that was passed to the async get request
-   * @param value    Serialized session
-   */
-  void onGetSuccess(SSLCacheProvider::CacheContext* cacheCtx,
-                    const std::string& value);
-
-  /**
-   * Callback for ExternalCache to call when an async get succeeds
-   * @param context  The context that was passed to the async get request
-   * @param valueBuf Serialized session stored in folly::IOBuf, this should
-   *                 NOT be called with valueBuf == nullptr.
-   */
-  void onGetSuccess(SSLCacheProvider::CacheContext* cacheCtx,
-                    std::unique_ptr<folly::IOBuf> valueBuf);
-
-  /**
-   * Callback for ExternalCache to call when an async get fails, either
-   * because the requested session is not in the external cache or because
-   * of an error.
-   * @param context  The context that was passed to the async get request
-   */
-  void onGetFailure(SSLCacheProvider::CacheContext* cacheCtx);
-
  private:
 
   folly::SSLContext* ctx_;
   std::shared_ptr<ShardedLocalSSLSessionCache> localCache_;
-  PendingLookupMap pendingLookups_;
   SSLStats* stats_{nullptr};
   std::shared_ptr<SSLCacheProvider> externalCache_;
 
@@ -211,30 +153,9 @@ class SSLSessionCacheManager : private boost::noncopyable {
                           int id_len, int* copyflag);
 
   /**
-   * Invoked by onGetSuccess callback, to restore session from cache.
-   * @param context  The context that was passed to the async get request
-   * @param data     Buffer that stores serialized session
-   * @param length   Buffer size
-   */
-  void restoreSession(SSLCacheProvider::CacheContext* cacheCtx,
-                      const uint8_t* data,
-                      size_t length);
-
-  /**
    * Store a new session record in the external cache
    */
   bool storeCacheRecord(const std::string& sessionId, SSL_SESSION* session);
-
-  /**
-   * Lookup a session in the external cache for the specified SSL socket.
-   */
-  bool lookupCacheRecord(const std::string& sessionId,
-                         folly::AsyncSSLSocket* sslSock);
-
-  /**
-   * Restart all clients waiting for the answer to an external cache query
-   */
-  void restartSSLAccept(const SSLCacheProvider::CacheContext* cacheCtx);
 
   /**
    * Get or create the LRU cache for the given VIP ID

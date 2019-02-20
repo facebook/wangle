@@ -301,52 +301,7 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
 
   // look it up in the local cache first
   session.reset(localCache_->lookupSession(sessionId));
-#ifdef SSL_SESSION_CB_WOULD_BLOCK
-  if (session == nullptr && externalCache_) {
-    // external cache might have the session
-    foreign = true;
-    if (!SSL_want_sess_cache_lookup(ssl)) {
-      missReason = "reason: No async cache support;";
-    } else {
-      PendingLookupMap::iterator pit = pendingLookups_.find(sessionId);
-      if (pit == pendingLookups_.end()) {
-        auto result = pendingLookups_.emplace(sessionId, PendingLookup());
-        // initiate fetch
-        VLOG(4) << "Get SSL session [Pending]: Initiate Fetch; fd="
-                << sslSocket->getNetworkSocket().toFd()
-                << " id=" << SSLUtil::hexlify(sessionId);
-        if (lookupCacheRecord(sessionId, sslSocket)) {
-          // response is pending
-          *copyflag = SSL_SESSION_CB_WOULD_BLOCK;
-          return nullptr;
-        } else {
-          missReason = "reason: failed to send lookup request;";
-          pendingLookups_.erase(result.first);
-        }
-      } else {
-        // A lookup was already initiated from this thread
-        if (pit->second.request_in_progress) {
-          // Someone else initiated the request, attach
-          VLOG(4) << "Get SSL session [Pending]: Request in progess: attach; "
-                     "fd="
-                  << sslSocket->getNetworkSocket().toFd()
-                  << " id=" << SSLUtil::hexlify(sessionId);
-          std::unique_ptr<DelayedDestruction::DestructorGuard> dg(
-            new DelayedDestruction::DestructorGuard(sslSocket));
-          pit->second.waiters.emplace_back(sslSocket, std::move(dg));
-          *copyflag = SSL_SESSION_CB_WOULD_BLOCK;
-          return nullptr;
-        }
-        // request is complete
-        session.reset(
-            pit->second.session); // nullptr if our friend didn't have it
-        if (session) {
-          SSL_SESSION_up_ref(session.get());
-        }
-      }
-    }
-  }
-#elif FOLLY_OPENSSL_IS_110
+#if FOLLY_OPENSSL_IS_110
   if (session == nullptr && externalCache_) {
     foreign = true;
     DCHECK(folly::fibers::onFiber());
@@ -398,73 +353,5 @@ bool SSLSessionCacheManager::storeCacheRecord(const string& sessionId,
                                   std::chrono::seconds(expiration));
 }
 
-bool SSLSessionCacheManager::lookupCacheRecord(const string& sessionId,
-                                               AsyncSSLSocket* sslSocket) {
-  auto cacheCtx = new SSLCacheProvider::CacheContext();
-  cacheCtx->sessionId = sessionId;
-  cacheCtx->session = nullptr;
-  cacheCtx->sslSocket = sslSocket;
-  cacheCtx->guard.reset(
-      new DelayedDestruction::DestructorGuard(cacheCtx->sslSocket));
-  cacheCtx->manager = this;
-  bool res = externalCache_->getAsync(sessionId, cacheCtx);
-  if (!res) {
-    delete cacheCtx;
-  }
-  return res;
-}
-
-void SSLSessionCacheManager::restartSSLAccept(
-    const SSLCacheProvider::CacheContext* cacheCtx) {
-  PendingLookupMap::iterator pit = pendingLookups_.find(cacheCtx->sessionId);
-  CHECK(pit != pendingLookups_.end());
-  pit->second.request_in_progress = false;
-  pit->second.session = cacheCtx->session;
-  VLOG(7) << "Restart SSL accept";
-  cacheCtx->sslSocket->restartSSLAccept();
-  for (const auto& attachedLookup: pit->second.waiters) {
-    // Wake up anyone else who was waiting for this session
-    VLOG(4) << "Restart SSL accept (waiters) for fd="
-            << attachedLookup.first->getNetworkSocket().toFd();
-    attachedLookup.first->restartSSLAccept();
-  }
-  pendingLookups_.erase(pit);
-}
-
-void SSLSessionCacheManager::restoreSession(
-    SSLCacheProvider::CacheContext* cacheCtx,
-    const uint8_t* data,
-    size_t length) {
-  cacheCtx->session = d2i_SSL_SESSION(nullptr, &data, length);
-  restartSSLAccept(cacheCtx);
-
-  /* Insert in the LRU after restarting all clients.  The stats logic
-   * in getSession would treat this as a local hit otherwise.
-   */
-  localCache_->storeSession(cacheCtx->sessionId, cacheCtx->session, stats_);
-  delete cacheCtx;
-}
-
-void SSLSessionCacheManager::onGetSuccess(
-    SSLCacheProvider::CacheContext* cacheCtx,
-    const std::string& value) {
-  restoreSession(cacheCtx, (uint8_t*)value.data(), value.length());
-}
-
-void SSLSessionCacheManager::onGetSuccess(
-    SSLCacheProvider::CacheContext* cacheCtx,
-    std::unique_ptr<folly::IOBuf> valueBuf) {
-  if (!valueBuf) {
-    return;
-  }
-  valueBuf->coalesce();
-  restoreSession(cacheCtx, valueBuf->data(), valueBuf->length());
-}
-
-void SSLSessionCacheManager::onGetFailure(
-    SSLCacheProvider::CacheContext* cacheCtx) {
-  restartSSLAccept(cacheCtx);
-  delete cacheCtx;
-}
 
 } // namespace wangle
