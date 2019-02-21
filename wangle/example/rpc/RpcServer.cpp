@@ -49,7 +49,7 @@ class RpcService : public Service<Bonk, Xtruct> {
      * useful for testing dispatcher behavior by hand
      */
     // Wait for a bit
-    return futures::sleep(std::chrono::seconds(request.type))
+    return futures::sleepUnsafe(std::chrono::seconds(request.type))
         .thenValue([request](auto&&) {
           Xtruct response;
           response.string_thing = "Stop saying " + request.message + "!";
