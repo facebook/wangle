@@ -366,13 +366,12 @@ class Acceptor :
 
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
     const std::shared_ptr<folly::SSLContext>& ctx, folly::EventBase* base, int fd) {
-    return folly::AsyncSSLSocket::UniquePtr(
-        new folly::AsyncSSLSocket(
-          ctx,
-          base,
-          fd,
-          true, /* set server */
-          true /* defer the security negotiation until sslAccept */));
+    return folly::AsyncSSLSocket::UniquePtr(new folly::AsyncSSLSocket(
+        ctx,
+        base,
+        folly::NetworkSocket::fromFd(fd),
+        true, /* set server */
+        true /* defer the security negotiation until sslAccept */));
   }
 
  protected:

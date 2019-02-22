@@ -104,7 +104,7 @@ folly::AsyncSSLSocket::UniquePtr FizzAcceptorHandshakeHelper::createSSLSocket(
     folly::EventBase* evb,
     int fd) {
   return folly::AsyncSSLSocket::UniquePtr(new folly::AsyncSSLSocket(
-      context, evb, fd));
+      context, evb, folly::NetworkSocket::fromFd(fd)));
 }
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeAttemptFallback(
