@@ -117,12 +117,12 @@ Acceptor::init(AsyncServerSocket* serverSocket,
   if (serverSocket) {
     serverSocket->addAcceptCallback(this, eventBase);
 
-    for (auto& fd : serverSocket->getSockets()) {
-      if (fd < 0) {
+    for (auto& fd : serverSocket->getNetworkSockets()) {
+      if (fd == folly::NetworkSocket()) {
         continue;
       }
       for (const auto& opt: socketOptions_) {
-        opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
+        opt.first.apply(fd, opt.second);
       }
     }
   }
