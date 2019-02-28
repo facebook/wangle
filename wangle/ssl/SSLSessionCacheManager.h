@@ -35,7 +35,7 @@ typedef folly::EvictingCacheMap<std::string, SSL_SESSION*> SSLSessionCacheMap;
 /**
  * Holds an SSLSessionCacheMap and associated lock
  */
-class LocalSSLSessionCache: private boost::noncopyable {
+class LocalSSLSessionCache{
  public:
   LocalSSLSessionCache(uint32_t maxCacheSize, uint32_t cacheCullSize);
 
@@ -50,6 +50,8 @@ class LocalSSLSessionCache: private boost::noncopyable {
   uint32_t removedSessions_{0};
 
  private:
+  LocalSSLSessionCache(const LocalSSLSessionCache&) = delete;
+  LocalSSLSessionCache& operator=(const LocalSSLSessionCache&) = delete;
 
   void pruneSessionCallback(const std::string& sessionId,
                             SSL_SESSION* session);
@@ -60,7 +62,7 @@ class LocalSSLSessionCache: private boost::noncopyable {
  * contention for the LRU locks.  Assuming uniform distribution, two workers
  * will contend for the same lock with probability 1 / n_buckets^2.
  */
-class ShardedLocalSSLSessionCache : private boost::noncopyable {
+class ShardedLocalSSLSessionCache {
  public:
   ShardedLocalSSLSessionCache(uint32_t n_buckets, uint32_t maxCacheSize,
                               uint32_t cacheCullSize);
@@ -77,6 +79,11 @@ class ShardedLocalSSLSessionCache : private boost::noncopyable {
   }
 
   std::vector< std::unique_ptr<LocalSSLSessionCache> > caches_;
+
+ private:
+  ShardedLocalSSLSessionCache(const ShardedLocalSSLSessionCache&) = delete;
+  ShardedLocalSSLSessionCache& operator=(const ShardedLocalSSLSessionCache&) =
+      delete;
 };
 
 /**
@@ -101,7 +108,7 @@ class ShardedLocalSSLSessionCache : private boost::noncopyable {
  * found, and the SSL_accept call is resumed.
  *
  */
-class SSLSessionCacheManager : private boost::noncopyable {
+class SSLSessionCacheManager {
  public:
   /**
    * Constructor.  SSL session related callbacks will be set on the underlying
@@ -124,6 +131,10 @@ class SSLSessionCacheManager : private boost::noncopyable {
    * ShardedLocalSSLSessionCache.
    */
   static void shutdown();
+
+ private:
+  SSLSessionCacheManager(const SSLSessionCacheManager&) = delete;
+  SSLSessionCacheManager& operator=(const SSLSessionCacheManager&) = delete;
 
  private:
 

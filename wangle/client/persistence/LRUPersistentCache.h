@@ -22,7 +22,6 @@
 #include <map>
 #include <thread>
 
-#include <boost/noncopyable.hpp>
 #include <folly/Executor.h>
 #include <folly/dynamic.h>
 #include <folly/synchronization/SaturatingSemaphore.h>
@@ -109,8 +108,7 @@ class CachePersistence {
 template <typename K, typename V, typename MutexT = std::mutex>
 class LRUPersistentCache
     : public PersistentCache<K, V>,
-      public std::enable_shared_from_this<LRUPersistentCache<K, V, MutexT>>,
-      private boost::noncopyable {
+      public std::enable_shared_from_this<LRUPersistentCache<K, V, MutexT>> {
  public:
   using Ptr = std::shared_ptr<LRUPersistentCache<K, V, MutexT>>;
 
@@ -178,6 +176,9 @@ class LRUPersistentCache
   }
 
  private:
+  LRUPersistentCache(const LRUPersistentCache&) = delete;
+  LRUPersistentCache& operator=(const LRUPersistentCache&) = delete;
+
   /**
    * Helper to set persistence that will load the persistence data
    * into memory and optionally sync versions

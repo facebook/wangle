@@ -37,8 +37,7 @@ namespace wangle {
  * true support arbitrary types is written.
  */
 template<typename K, typename V, typename M = std::mutex>
-class FilePersistentCache : public PersistentCache<K, V>,
-                            private boost::noncopyable {
+class FilePersistentCache : public PersistentCache<K, V> {
  public:
   FilePersistentCache(const std::string& file, PersistentCacheConfig config);
 
@@ -66,6 +65,10 @@ class FilePersistentCache : public PersistentCache<K, V>,
   size_t size() override {
     return cache_->size();
   }
+
+ private:
+  FilePersistentCache(const FilePersistentCache&) = delete;
+  FilePersistentCache& operator=(const FilePersistentCache&) = delete;
 
  private:
   typename LRUPersistentCache<K, V, M>::Ptr cache_;
