@@ -361,7 +361,7 @@ class Acceptor :
       folly::EventBase* base,
       int fd) {
     return folly::AsyncSocket::UniquePtr(
-        new folly::AsyncSocket(base, fd));
+        new folly::AsyncSocket(base, folly::NetworkSocket::fromFd(fd)));
   }
 
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
