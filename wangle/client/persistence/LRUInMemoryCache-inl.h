@@ -15,8 +15,6 @@
  */
 #pragma once
 
-#include <glog/logging.h>
-
 #include <folly/DynamicConverter.h>
 #include <folly/Likely.h>
 
