@@ -222,7 +222,7 @@ void
 SSLCacheClient::connectSuccess() noexcept
 {
   sslSocket_ = new AsyncSSLSocket(
-      ctx_, eventBase_, socket_->detachNetworkSocket().toFd(), false);
+      ctx_, eventBase_, socket_->detachNetworkSocket(), false);
 
   if (!FLAGS_handshakes) {
     if (session_ != nullptr)
