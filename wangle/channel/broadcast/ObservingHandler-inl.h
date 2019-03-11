@@ -64,14 +64,16 @@ void ObservingHandler<T, R, P>::transportActive(Context* ctx) {
             // Resume ingress
             pipeline->transportActive();
           })
-      .onError([this, ctx, deleted](const std::exception& ex) {
-        if (*deleted) {
-          return;
-        }
+      .thenError(
+          folly::tag_t<std::exception>{},
+          [this, ctx, deleted](const std::exception& ex) {
+            if (*deleted) {
+              return;
+            }
 
-        LOG(ERROR) << "Error subscribing to a broadcast: " << ex.what();
-        this->close(ctx);
-      });
+            LOG(ERROR) << "Error subscribing to a broadcast: " << ex.what();
+            this->close(ctx);
+          });
 }
 
 template <typename T, typename R, typename P>
@@ -91,8 +93,9 @@ template <typename T, typename R, typename P>
 void ObservingHandler<T, R, P>::onNext(const T& data) {
   auto ctx = this->getContext();
   auto deleted = deleted_;
-  this->write(ctx, data)
-      .onError([this, ctx, deleted](const std::exception& ex) {
+  this->write(ctx, data).thenError(
+      folly::tag_t<std::exception>{},
+      [this, ctx, deleted](const std::exception& ex) {
         if (*deleted) {
           return;
         }

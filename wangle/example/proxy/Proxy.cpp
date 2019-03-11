@@ -116,15 +116,17 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
     client_.pipelineFactory(
         std::make_shared<ProxyBackendPipelineFactory>(frontendPipeline));
     client_.connect(remoteAddress_)
-      .thenValue([this, frontendPipeline](DefaultPipeline* pipeline){
-        backendPipeline_ = pipeline;
-        // Resume read
-        frontendPipeline->transportActive();
-      })
-      .onError([this, ctx](const std::exception& e){
-        LOG(ERROR) << "Connect error: " << exceptionStr(e);
-        this->close(ctx);
-      });
+        .thenValue([this, frontendPipeline](DefaultPipeline* pipeline) {
+          backendPipeline_ = pipeline;
+          // Resume read
+          frontendPipeline->transportActive();
+        })
+        .thenError(
+            folly::tag_t<std::exception>{},
+            [this, ctx](const std::exception& e) {
+              LOG(ERROR) << "Connect error: " << exceptionStr(e);
+              this->close(ctx);
+            });
   }
 
  private:

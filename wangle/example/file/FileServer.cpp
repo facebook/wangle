@@ -56,11 +56,16 @@ class FileServerHandler : public HandlerAdapter<std::string> {
     FileRegion fileRegion(fd, 0, buf.st_size);
     auto guard = ctx->getPipelineShared();
     fileRegion.transferTo(ctx->getTransport())
-      .onError([this, guard, ctx, filename](const std::exception& e){
-        write(ctx, sformat("Error sending file {}: {}\r\n",
-                           filename,
-                           exceptionStr(e)));
-      });
+        .thenError(
+            folly::tag_t<std::exception>{},
+            [this, guard, ctx, filename](const std::exception& e) {
+              write(
+                  ctx,
+                  sformat(
+                      "Error sending file {}: {}\r\n",
+                      filename,
+                      exceptionStr(e)));
+            });
   }
 
   void readException(Context* ctx, exception_wrapper ew) override {

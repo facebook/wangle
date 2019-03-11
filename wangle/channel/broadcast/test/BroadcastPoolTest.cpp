@@ -234,7 +234,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   // No broadcast available for routingData. Kick off a connect request.
   pool->getHandler(routingData)
       .thenValue([&](BroadcastHandler<int, std::string>* h) { handler1 = h; })
-      .onError([&](const std::exception&) {
+      .thenError(folly::tag_t<std::exception>{}, [&](const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -245,7 +245,7 @@ TEST_F(BroadcastPoolTest, ConnectError) {
   // Invoke getHandler() again while the connect request is in flight
   pool->getHandler(routingData)
       .thenValue([&](BroadcastHandler<int, std::string>* h) { handler2 = h; })
-      .onError([&](const std::exception&) {
+      .thenError(folly::tag_t<std::exception>{}, [&](const std::exception&) {
         handler2Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -297,7 +297,7 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
   serverPool->failConnect();
   pool->getHandler(routingData)
       .thenValue([&](BroadcastHandler<int, std::string>* h) { handler1 = h; })
-      .onError([&](const std::exception&) {
+      .thenError(folly::tag_t<std::exception>{}, [&](const std::exception&) {
         handler1Error = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -319,7 +319,7 @@ TEST_F(BroadcastPoolTest, RoutingDataException) {
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
       .thenValue([&](BroadcastHandler<int, std::string>* h) { handler = h; })
-      .onError([&](const std::exception&) {
+      .thenError(folly::tag_t<std::exception>{}, [&](const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });
@@ -345,7 +345,7 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
   EXPECT_FALSE(pool->isBroadcasting(routingData));
   pool->getHandler(routingData)
       .thenValue([&](BroadcastHandler<int, std::string>* h) { handler = h; })
-      .onError([&](const std::exception&) {
+      .thenError(folly::tag_t<std::exception>{}, [&](const std::exception&) {
         handlerError = true;
         EXPECT_FALSE(pool->isBroadcasting(routingData));
       });

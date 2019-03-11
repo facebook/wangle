@@ -68,7 +68,9 @@ BroadcastPool<T, R, P>::BroadcastManager::getHandler() {
         // connections are not leaked.
         handler->closeIfIdle();
       })
-      .onError([this](const std::exception& ex) { handleConnectError(ex); });
+      .thenError(
+          folly::tag_t<std::exception>{},
+          [this](const std::exception& ex) { handleConnectError(ex); });
 
   return future;
 }
