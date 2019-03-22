@@ -11,7 +11,13 @@ project("wangle" VERSION 1.0.0 LANGUAGES CXX C)
 
 add_compile_options(-std=c++1y)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
+set(CMAKE_MODULE_PATH
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/"
+  # for in-fbsource builds
+  "${CMAKE_CURRENT_SOURCE_DIR}/../opensource/fbcode_builder/CMake"
+  # For shipit-transformed builds
+  "${CMAKE_CURRENT_SOURCE_DIR}/../build/fbcode_builder/CMake"
+  ${CMAKE_MODULE_PATH})
 
 # When installing Folly & Wangle in a non-default prefix, this will let
 # projects linking against libwangle.so to find libfolly.so automatically.
