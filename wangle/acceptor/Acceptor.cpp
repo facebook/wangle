@@ -289,9 +289,11 @@ bool Acceptor::canAccept(const SocketAddress& address) {
   return false;
 }
 
-void
-Acceptor::connectionAccepted(
-    int fd, const SocketAddress& clientAddr) noexcept {
+void Acceptor::connectionAccepted(
+    folly::NetworkSocket fdNetworkSocket,
+    const SocketAddress& clientAddr) noexcept {
+  int fd = fdNetworkSocket.toFd();
+
   namespace fsp = folly::portability::sockets;
   if (!canAccept(clientAddr)) {
     // Send a RST to free kernel memory faster
