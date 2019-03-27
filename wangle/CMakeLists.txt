@@ -69,6 +69,7 @@ set(WANGLE_HEADER_DIRS
   client
   codec
   deprecated
+  portability
   service
   ssl
   util

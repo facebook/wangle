@@ -24,6 +24,7 @@
 #include <folly/experimental/FunctionScheduler.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
+#include <wangle/portability/Filesystem.h>
 
 namespace wangle {
 
@@ -40,14 +41,18 @@ namespace wangle {
  */
 class FilePoller {
  public:
+#if WANGLE_USE_STD_FILESYSTEM
+  using FileTime = std::filesystem::file_time_type;
+#else
+  using FileTime = std::chrono::system_clock::time_point;
+#endif
+
   struct FileModificationData {
     FileModificationData() {}
-    FileModificationData(
-        bool fileExists,
-        std::chrono::system_clock::time_point modificationTime)
+    FileModificationData(bool fileExists, FileTime modificationTime)
         : exists(fileExists), modTime(modificationTime) {}
     bool exists{false};
-    std::chrono::system_clock::time_point modTime;
+    FileTime modTime{};
   };
   using Cob = std::function<void()>;
   // First arg is info about previous modification of a file,
@@ -120,7 +125,7 @@ class FilePoller {
       std::chrono::seconds expireTime) {
     return fModData.exists &&
         std::chrono::time_point_cast<std::chrono::seconds>(
-            std::chrono::system_clock::now()) < fModData.modTime + expireTime;
+            FileTime::clock::now()) < fModData.modTime + expireTime;
   }
 
   static bool doAlwaysCondInternal(

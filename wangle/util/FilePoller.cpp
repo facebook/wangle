@@ -16,11 +16,19 @@
 #include <wangle/util/FilePoller.h>
 
 #include <atomic>
-#include <sys/stat.h>
 
 #include <folly/Conv.h>
 #include <folly/Memory.h>
 #include <folly/Singleton.h>
+#include <wangle/portability/Filesystem.h>
+
+#if WANGLE_USE_STD_FILESYSTEM
+#include <system_error>
+#endif
+
+#if !WANGLE_USE_STD_FILESYSTEM
+#include <sys/stat.h>
+#endif
 
 using namespace folly;
 
@@ -145,6 +153,15 @@ void FilePoller::removeFileToTrack(const std::string& fileName) {
 
 FilePoller::FileModificationData FilePoller::getFileModData(
     const std::string& path) noexcept {
+#if WANGLE_USE_STD_FILESYSTEM
+  std::error_code error;
+  auto lastWriteTime =
+      std::filesystem::last_write_time(std::filesystem::path{path}, error);
+  if (error) {
+    return FileModificationData{false, std::filesystem::file_time_type()};
+  }
+  return FileModificationData{true, lastWriteTime};
+#else
   struct stat info;
   int ret = stat(path.c_str(), &info);
   if (ret != 0) {
@@ -165,5 +182,6 @@ FilePoller::FileModificationData FilePoller::getFileModData(
                          std::chrono::nanoseconds(mtim.tv_nsec));
 
   return FileModificationData{true, system_time};
+#endif
 }
 }

@@ -24,6 +24,7 @@
 #include <folly/portability/GTest.h>
 #include <folly/portability/SysStat.h>
 #include <folly/synchronization/Baton.h>
+#include <wangle/portability/Filesystem.h>
 #include <wangle/util/FilePoller.h>
 
 using namespace testing;
@@ -31,6 +32,8 @@ using namespace folly;
 using namespace wangle;
 using namespace folly::test;
 using namespace std::chrono;
+
+using FileTime = FilePoller::FileTime;
 
 class FilePollerTest : public testing::Test {
  public:
@@ -45,6 +48,16 @@ void updateModifiedTime(
     const std::string& path,
     bool forward = true,
     nanoseconds timeDiffNano = seconds(10)) {
+#if WANGLE_USE_STD_FILESYSTEM
+  auto filesystemPath = std::filesystem::path{path};
+  auto lastWriteTime = std::filesystem::last_write_time(filesystemPath);
+  auto timeDiff =
+      std::chrono::duration_cast<std::filesystem::file_time_type::duration>(
+          timeDiffNano);
+  auto newLastWriteTime =
+      forward ? lastWriteTime + timeDiff : lastWriteTime - timeDiff;
+  std::filesystem::last_write_time(filesystemPath, newLastWriteTime);
+#else
   struct stat64 currentFileStat;
   std::array<struct timespec, 2> newTimes;
 
@@ -72,6 +85,7 @@ void updateModifiedTime(
   if (utimensat(AT_FDCWD, path.c_str(), newTimes.data(), 0) < 0) {
     throw std::runtime_error("Failed to set time for file: " + path);
   }
+#endif
 }
 
 TEST_F(FilePollerTest, TestUpdateFile) {
@@ -166,10 +180,10 @@ struct UpdateSyncState {
 
 class TestFile {
  public:
-  TestFile(bool exists, system_clock::time_point modTime)
+  TestFile(bool exists, FileTime modTime)
       : exists_(exists), modTime_(modTime) {}
 
-  void update(bool e, system_clock::time_point t) {
+  void update(bool e, FileTime t) {
     std::unique_lock<std::mutex> lk(m);
     exists_ = e;
     modTime_ = t;
@@ -183,7 +197,7 @@ class TestFile {
   const std::string name{"fakeFile"};
  private:
   bool exists_{false};
-  system_clock::time_point modTime_;
+  FileTime modTime_;
   std::mutex m;
 
 };
@@ -221,58 +235,57 @@ struct PollerWithState {
 };
 
 TEST_F(FilePollerTest, TestTwoUpdatesAndDelete) {
-  TestFile testFile(true, system_clock::time_point(seconds(1)));
+  TestFile testFile(true, FileTime(seconds(1)));
   PollerWithState poller(testFile);
 
-  testFile.update(true, system_clock::time_point(seconds(2)));
+  testFile.update(true, FileTime(seconds(2)));
   ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
 
-  testFile.update(true, system_clock::time_point(seconds(3)));
+  testFile.update(true, FileTime(seconds(3)));
   ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
 
-  testFile.update(false, system_clock::time_point(seconds(0)));
+  testFile.update(false, FileTime(seconds(0)));
   ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate(false));
 }
 
 TEST_F(FilePollerTest, TestFileCreatedLate) {
-  TestFile testFile(
-      false,
-      system_clock::time_point(seconds(0))); // not created yet
+  TestFile testFile(false,
+                    FileTime(seconds(0))); // not created yet
   PollerWithState poller(testFile);
   ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate(false));
 
-  testFile.update(true, system_clock::time_point(seconds(1)));
+  testFile.update(true, FileTime(seconds(1)));
   ASSERT_NO_FATAL_FAILURE(poller.waitForUpdate());
 }
 
 TEST_F(FilePollerTest, TestMultiplePollers) {
-  TestFile testFile(true, system_clock::time_point(seconds(1)));
+  TestFile testFile(true, FileTime(seconds(1)));
   PollerWithState p1(testFile);
   PollerWithState p2(testFile);
 
-  testFile.update(true, system_clock::time_point(seconds(2)));
+  testFile.update(true, FileTime(seconds(2)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
   ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate());
 
-  testFile.update(true, system_clock::time_point(seconds(1)));
+  testFile.update(true, FileTime(seconds(1)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
   ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate());
 
   // clear one of the pollers and make sure the other is still
   // getting them
   p2.poller.reset();
-  testFile.update(true, system_clock::time_point(seconds(3)));
+  testFile.update(true, FileTime(seconds(3)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
   ASSERT_NO_FATAL_FAILURE(p2.waitForUpdate(false));
 }
 
 TEST(FilePoller, TestFork) {
-  TestFile testFile(true, system_clock::time_point(seconds(1)));
+  TestFile testFile(true, FileTime(seconds(1)));
   PollerWithState p1(testFile);
-  testFile.update(true, system_clock::time_point(seconds(2)));
+  testFile.update(true, FileTime(seconds(2)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
   // nuke singleton
   folly::SingletonVault::singleton()->destroyInstances();
-  testFile.update(true, system_clock::time_point(seconds(3)));
+  testFile.update(true, FileTime(seconds(3)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
 }
