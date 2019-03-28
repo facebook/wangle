@@ -20,6 +20,7 @@
 #include <wangle/ssl/SSLUtil.h>
 
 #include <folly/fibers/Fiber.h>
+#include <folly/fibers/FiberManager.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GFlags.h>
 #include <folly/portability/OpenSSL.h>
