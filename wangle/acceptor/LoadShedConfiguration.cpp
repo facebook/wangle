@@ -79,12 +79,14 @@ void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
 
     // Max mem usage must be less than or equal to min free mem, normalized.
     // We also must verify that min free mem is less than or equal to total
-    // mem bytes.
+    // mem bytes.  We allow the mem kill limit ratio to be any valid value.
     CHECK_GE(maxMemUsage_, 0.0);
     CHECK_LE(maxMemUsage_, 1.0);
     CHECK_GE(
         1.0 - ((double)minFreeMem_ / sysParams.totalMemBytes), maxMemUsage_);
     CHECK_LE(minFreeMem_, sysParams.totalMemBytes);
+    CHECK_GE(memKillLimitRatio_, 0.0);
+    CHECK_LE(memKillLimitRatio_, 1.0);
 
     // Max TCP mem and min free TCP mem ratios must have values in the range
     // of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater than

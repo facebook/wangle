@@ -224,6 +224,15 @@ class LoadShedConfiguration {
     return maxMemUsage_;
   }
 
+  void setMemKillLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    memKillLimitRatio_ = limit;
+  }
+  double getMemKillLimitRatio() const {
+    return memKillLimitRatio_;
+  }
+
   void setMaxTcpMemUsage(double max) {
     CHECK_GE(max, 0.0);
     CHECK_LE(max, 1.0);
@@ -293,6 +302,7 @@ class LoadShedConfiguration {
 
   uint64_t minFreeMem_{0};
   double maxMemUsage_{1.0};
+  double memKillLimitRatio_{1.0};
 
   double maxTcpMemUsage_{1.0};
   double minFreeTcpMemPct_{0.0};
