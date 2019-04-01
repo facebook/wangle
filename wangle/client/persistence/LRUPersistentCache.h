@@ -35,7 +35,6 @@ namespace wangle {
  * The underlying persistence layer interface.  Implementations may
  * write to file, db, /dev/null, etc.
  */
-template<typename K, typename V>
 class CachePersistence {
  public:
   virtual ~CachePersistence() = default;
@@ -123,7 +122,7 @@ class LRUPersistentCache
    */
   explicit LRUPersistentCache(
       PersistentCacheConfig config,
-      std::unique_ptr<CachePersistence<K, V>> persistence = nullptr);
+      std::unique_ptr<CachePersistence> persistence = nullptr);
 
   /**
    * LRUPersistentCache Destructor
@@ -197,7 +196,7 @@ class LRUPersistentCache
    * @returns the in memory cache's new version
    */
   folly::Optional<CacheDataVersion> load(
-      CachePersistence<K, V>& persistence) noexcept;
+      CachePersistence& persistence) noexcept;
 
   /**
    * The syncer thread's function. Syncs to the persistence, if necessary,
@@ -214,13 +213,13 @@ class LRUPersistentCache
    * @returns boolean, true on successful serialization and write to
    *                    persistence, false otherwise
    */
-  bool syncNow(CachePersistence<K, V>& persistence);
+  bool syncNow(CachePersistence& persistence);
 
   /**
    * Helper to get the persistence layer under lock since it will be called
    * by syncer thread and setters call from any thread.
    */
-  std::shared_ptr<CachePersistence<K, V>> getPersistence();
+  std::shared_ptr<CachePersistence> getPersistence();
 
   /**
    * Block the caller thread until persistence has been loaded into the
@@ -254,7 +253,7 @@ class LRUPersistentCache
   // persistence layer
   // we use a shared pointer since the syncer thread might be operating on
   // it when the client decides to set a new one
-  std::shared_ptr<CachePersistence<K, V>> persistence_;
+  std::shared_ptr<CachePersistence> persistence_;
   // for locking access to persistence set/get
   MutexT persistenceLock_;
 

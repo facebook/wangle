@@ -13,33 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
-
 
 #include <folly/FileUtil.h>
 #include <folly/portability/Unistd.h>
 #include <folly/json.h>
+#include <wangle/client/persistence/FilePersistenceLayer.h>
 
 namespace wangle {
 
-template<typename K, typename V>
-class FilePersistenceLayer : public CachePersistence<K, V> {
- public:
-  explicit FilePersistenceLayer(const std::string& file) : file_(file) {}
-  ~FilePersistenceLayer() override {}
-
-  bool persist(const folly::dynamic& arrayOfKvPairs) noexcept override;
-
-  folly::Optional<folly::dynamic> load() noexcept override;
-
-  void clear() override;
-
- private:
-  std::string file_;
-};
-
-template<typename K, typename V>
-bool FilePersistenceLayer<K, V>::persist(
+bool FilePersistenceLayer::persist(
   const folly::dynamic& dynObj) noexcept {
   std::string serializedCache;
   try {
@@ -83,8 +65,7 @@ bool FilePersistenceLayer<K, V>::persist(
   return persisted;
 }
 
-template<typename K, typename V>
-folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
+folly::Optional<folly::dynamic> FilePersistenceLayer::load() noexcept {
   std::string serializedCache;
   // not being able to read the backing storage means we just
   // start with an empty cache. Failing to deserialize, or write,
@@ -104,20 +85,10 @@ folly::Optional<folly::dynamic> FilePersistenceLayer<K, V>::load() noexcept {
   return folly::none;
 }
 
-template<typename K, typename V>
-void FilePersistenceLayer<K, V>::clear() {
+void FilePersistenceLayer::clear() {
   // This may fail but it's ok
   ::unlink(file_.c_str());
 }
 
-template <typename K, typename V, typename M>
-FilePersistentCache<K, V, M>::FilePersistentCache(
-    const std::string& file,
-    PersistentCacheConfig config)
-    : cache_(std::make_shared<LRUPersistentCache<K, V, M>>(
-          std::move(config),
-          std::make_unique<FilePersistenceLayer<K, V>>(file))) {
-  cache_->init();
-}
 
 } // namespace wangle

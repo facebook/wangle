@@ -30,14 +30,14 @@ namespace wangle {
 template <typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
     PersistentCacheConfig config,
-    std::unique_ptr<CachePersistence<K, V>> persistence)
+    std::unique_ptr<CachePersistence> persistence)
     : cache_(config.capacity),
       syncInterval_(config.syncInterval),
       nSyncRetries_(config.nSyncRetries),
       executor_(std::move(config.executor)),
       inlinePersistenceLoading_(config.inlinePersistenceLoading) {
   if (persistence) {
-    std::shared_ptr<CachePersistence<K, V>> sharedPersistence(
+    std::shared_ptr<CachePersistence> sharedPersistence(
         std::move(persistence));
     {
       typename wangle::CacheLockGuard<MutexT>::Write writeLock(
@@ -190,7 +190,7 @@ void LRUPersistentCache<K, V, MutexT>::sync() {
 
 template<typename K, typename V, typename MutexT>
 bool LRUPersistentCache<K, V, MutexT>::syncNow(
-    CachePersistence<K, V>& persistence) {
+    CachePersistence& persistence) {
   // check if we need to sync.  There is a chance that someone can
   // update cache_ between this check and the convert below, but that
   // is ok.  The persistence layer would have needed to update anyway
@@ -216,7 +216,7 @@ bool LRUPersistentCache<K, V, MutexT>::syncNow(
 }
 
 template<typename K, typename V, typename MutexT>
-std::shared_ptr<CachePersistence<K, V>>
+std::shared_ptr<CachePersistence>
 LRUPersistentCache<K, V, MutexT>::getPersistence() {
   typename wangle::CacheLockGuard<MutexT>::Read readLock(persistenceLock_);
   return persistence_;
@@ -248,7 +248,7 @@ LRUPersistentCache<K, V, MutexT>::blockingAccessInMemCache() {
 
 template <typename K, typename V, typename MutexT>
 folly::Optional<CacheDataVersion> LRUPersistentCache<K, V, MutexT>::load(
-    CachePersistence<K, V>& persistence) noexcept {
+    CachePersistence& persistence) noexcept {
   auto kvPairs = persistence.load();
   if (!kvPairs) {
     return folly::none;

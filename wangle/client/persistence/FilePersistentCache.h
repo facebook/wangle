@@ -19,6 +19,7 @@
 #include <folly/Memory.h>
 #include <folly/ScopeGuard.h>
 #include <folly/json.h>
+#include <wangle/client/persistence/FilePersistenceLayer.h>
 #include <wangle/client/persistence/LRUPersistentCache.h>
 
 namespace wangle {
@@ -39,7 +40,11 @@ namespace wangle {
 template<typename K, typename V, typename M = std::mutex>
 class FilePersistentCache : public PersistentCache<K, V> {
  public:
-  FilePersistentCache(const std::string& file, PersistentCacheConfig config);
+  FilePersistentCache(const std::string& file, PersistentCacheConfig config)
+    : cache_(std::make_shared<LRUPersistentCache<K, V, M>>(std::move(config),
+          std::make_unique<FilePersistenceLayer>(file))) {
+    cache_->init();
+  }
 
   ~FilePersistentCache() override {}
 
@@ -75,5 +80,3 @@ class FilePersistentCache : public PersistentCache<K, V> {
 };
 
 } // namespace wangle
-
-#include <wangle/client/persistence/FilePersistentCache-inl.h>

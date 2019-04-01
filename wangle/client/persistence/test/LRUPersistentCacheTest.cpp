@@ -31,7 +31,7 @@ using namespace std;
 using namespace testing;
 using namespace wangle;
 
-using TestPersistenceLayer = CachePersistence<string, string>;
+using TestPersistenceLayer = CachePersistence;
 
 using MutexTypes = ::testing::Types<std::mutex, folly::SharedMutex>;
 TYPED_TEST_CASE(LRUPersistentCacheTest, MutexTypes);
