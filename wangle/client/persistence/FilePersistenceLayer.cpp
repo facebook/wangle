@@ -36,7 +36,7 @@ bool FilePersistenceLayer::persist(
   const auto fd = folly::openNoInt(
     file_.c_str(),
     O_WRONLY | O_CREAT | O_TRUNC,
-    S_IRUSR | S_IWUSR
+    0600
   );
   if (fd == -1) {
     return false;
