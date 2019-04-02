@@ -99,6 +99,7 @@ set(WANGLE_SOURCES
   bootstrap/ServerBootstrap.cpp
   channel/FileRegion.cpp
   channel/Pipeline.cpp
+  client/persistence/FilePersistenceLayer.cpp
   client/persistence/PersistentCacheCommon.cpp
   client/ssl/SSLSessionCacheData.cpp
   client/ssl/SSLSessionCacheUtils.cpp
