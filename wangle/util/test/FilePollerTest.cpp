@@ -27,6 +27,8 @@
 #include <wangle/portability/Filesystem.h>
 #include <wangle/util/FilePoller.h>
 
+#if !defined(_WIN32) || defined(WANGLE_USE_STD_FILESYSTEM)
+
 using namespace testing;
 using namespace folly;
 using namespace wangle;
@@ -58,15 +60,24 @@ void updateModifiedTime(
       forward ? lastWriteTime + timeDiff : lastWriteTime - timeDiff;
   std::filesystem::last_write_time(filesystemPath, newLastWriteTime);
 #else
-  struct stat64 currentFileStat;
+  struct stat currentFileStat;
   std::array<struct timespec, 2> newTimes;
 
-  if (stat64(path.c_str(), &currentFileStat) < 0) {
+  if (stat(path.c_str(), &currentFileStat) < 0) {
     throw std::runtime_error("Failed to stat file: " + path);
   }
 
+#ifdef _WIN32
+  throw std::runtime_error("don't know how to set mtime on win32");
+#elif defined(__APPLE__) || defined(__FreeBSD__) \
+ || (defined(__NetBSD__) && (__NetBSD_Version__ < 6099000000))
+  newTimes[0] = currentFileStat.st_atimespec;
+  newTimes[1] = currentFileStat.st_mtimespec;
+#else
   newTimes[0] = currentFileStat.st_atim;
   newTimes[1] = currentFileStat.st_mtim;
+#endif
+
   auto secVal = duration_cast<seconds>(timeDiffNano).count();
   auto nsecVal = timeDiffNano.count();
   if (forward) {
@@ -289,3 +300,4 @@ TEST(FilePoller, TestFork) {
   testFile.update(true, FileTime(seconds(3)));
   ASSERT_NO_FATAL_FAILURE(p1.waitForUpdate());
 }
+#endif
