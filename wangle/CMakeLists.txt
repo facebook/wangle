@@ -53,7 +53,7 @@ if (gflags_FOUND)
 else()
   find_package(Gflags REQUIRED)
 endif()
-find_package(Libevent REQUIRED)
+find_package(LibEvent MODULE REQUIRED)
 find_package(DoubleConversion REQUIRED)
 find_package(Threads REQUIRED)
 if (UNIX AND NOT APPLE)
@@ -144,7 +144,7 @@ target_include_directories(
     ${OPENSSL_INCLUDE_DIR}
     ${GLOG_INCLUDE_DIRS}
     ${GFLAGS_INCLUDE_DIRS}
-    ${LIBEVENT_INCLUDE_DIRS}
+    ${LIBEVENT_INCLUDE_DIR}
     ${DOUBLE_CONVERSION_INCLUDE_DIRS}
 )
 target_link_libraries(wangle PUBLIC
@@ -154,7 +154,7 @@ target_link_libraries(wangle PUBLIC
   ${OPENSSL_LIBRARIES}
   ${GLOG_LIBRARIES}
   ${GFLAGS_LIBRARIES}
-  ${LIBEVENT_LIBRARIES}
+  ${LIBEVENT_LIB}
   ${DOUBLE_CONVERSION_LIBRARIES}
   ${CMAKE_DL_LIBS}
   ${LIBRT_LIBRARIES}
@@ -245,8 +245,14 @@ if(BUILD_TESTS)
   macro(add_gtest test_source test_name)
   add_executable(${test_name} ${test_source} test/TestMain.cpp)
   target_include_directories(
-    ${test_name} PUBLIC ${LIBGMOCK_INCLUDE_DIR} ${LIBGTEST_INCLUDE_DIR})
-  target_link_libraries(${test_name} wangle ${LIBGMOCK_LIBRARIES})
+    ${test_name} PUBLIC ${LIBGMOCK_INCLUDE_DIR} ${LIBGTEST_INCLUDE_DIR}
+  )
+  target_link_libraries(
+    ${test_name}
+    wangle
+    ${LIBGMOCK_LIBRARIES}
+    ${LIBEVENT_LIB}
+  )
   add_test(${test_name} bin/${test_name})
   endmacro(add_gtest)
 
