@@ -24,6 +24,7 @@
 #include <folly/portability/GTest.h>
 #include <folly/portability/SysStat.h>
 #include <folly/synchronization/Baton.h>
+#include <glog/logging.h>
 #include <wangle/portability/Filesystem.h>
 #include <wangle/util/FilePoller.h>
 
@@ -145,7 +146,7 @@ TEST_F(FilePollerTest, TestCreateFile) {
   Baton<> baton;
   bool updated = false;
   createFile();
-  remove(tmpFile.c_str());
+  PCHECK(remove(tmpFile.c_str()) == 0);
   FilePoller poller(milliseconds(1));
   poller.addFileToTrack(tmpFile, [&]() {
     updated = true;
@@ -165,7 +166,7 @@ TEST_F(FilePollerTest, TestDeleteFile) {
     updated = true;
     baton.post();
   });
-  remove(tmpFile.c_str());
+  PCHECK(remove(tmpFile.c_str()) == 0);
   ASSERT_FALSE(baton.try_wait_for(seconds(1)));
   ASSERT_FALSE(updated);
 }
