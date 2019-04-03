@@ -24,7 +24,6 @@
 #include <folly/experimental/FunctionScheduler.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
-#include <wangle/portability/Filesystem.h>
 
 namespace wangle {
 
@@ -41,11 +40,7 @@ namespace wangle {
  */
 class FilePoller {
  public:
-#if WANGLE_USE_STD_FILESYSTEM
-  using FileTime = std::filesystem::file_time_type;
-#else
   using FileTime = std::chrono::system_clock::time_point;
-#endif
 
   struct FileModificationData {
     FileModificationData() {}

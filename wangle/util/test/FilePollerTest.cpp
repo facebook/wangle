@@ -25,10 +25,9 @@
 #include <folly/portability/SysStat.h>
 #include <folly/synchronization/Baton.h>
 #include <glog/logging.h>
-#include <wangle/portability/Filesystem.h>
 #include <wangle/util/FilePoller.h>
 
-#if !defined(_WIN32) || defined(WANGLE_USE_STD_FILESYSTEM)
+#if !defined(_WIN32)
 
 using namespace testing;
 using namespace folly;
@@ -51,16 +50,6 @@ void updateModifiedTime(
     const std::string& path,
     bool forward = true,
     nanoseconds timeDiffNano = seconds(10)) {
-#if WANGLE_USE_STD_FILESYSTEM
-  auto filesystemPath = std::filesystem::path{path};
-  auto lastWriteTime = std::filesystem::last_write_time(filesystemPath);
-  auto timeDiff =
-      std::chrono::duration_cast<std::filesystem::file_time_type::duration>(
-          timeDiffNano);
-  auto newLastWriteTime =
-      forward ? lastWriteTime + timeDiff : lastWriteTime - timeDiff;
-  std::filesystem::last_write_time(filesystemPath, newLastWriteTime);
-#else
   struct stat currentFileStat;
   std::array<struct timespec, 2> newTimes;
 
@@ -97,7 +86,6 @@ void updateModifiedTime(
   if (utimensat(AT_FDCWD, path.c_str(), newTimes.data(), 0) < 0) {
     throw std::runtime_error("Failed to set time for file: " + path);
   }
-#endif
 }
 
 TEST_F(FilePollerTest, TestUpdateFile) {
