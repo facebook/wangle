@@ -21,6 +21,7 @@
 #include <chrono>
 #include <string>
 
+#include <folly/Optional.h>
 #include <folly/SocketAddress.h>
 #include <folly/portability/Sockets.h>
 
@@ -315,6 +316,28 @@ struct TransportInfo {
    * body bytes written
    */
   uint32_t egressBodySize{0};
+
+  /*
+   * session offset of first body byte.
+   *
+   * Protocols that support preemption and multiplexing (e.g., HTTP/2) may write
+   * multiple response body in parallel to the transport. Capturing the first
+   * and last body byte offsets enables examination of this multiplexing.
+   *
+   * The difference between these two offsets is also useful for measuring
+   * throughput as it provides the total number of bytes transferred via
+   * transport between the time the first byte of the response was flushed
+   * (timeToFirstByte) and when the ack was received for the last byte in the
+   * response (timeToLastBodyByteAck).
+   */
+  folly::Optional<uint64_t> maybeFirstBodyByteOffset;
+
+  /*
+   * session offset of last body byte.
+   *
+   * see maybeFirstBodyByteOffset
+   */
+  folly::Optional<uint64_t> maybeLastBodyByteOffset;
 
   /*
    * value of errno in case of getsockopt() error
