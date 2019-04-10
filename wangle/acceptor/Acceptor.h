@@ -387,7 +387,7 @@ class Acceptor :
 
   // AsyncServerSocket::AcceptCallback methods
   void connectionAccepted(
-      int fd,
+      folly::NetworkSocket fdNetworkSocket,
       const folly::SocketAddress& clientAddr) noexcept override;
   void acceptError(const std::exception& ex) noexcept override;
   void acceptStopped() noexcept override;
