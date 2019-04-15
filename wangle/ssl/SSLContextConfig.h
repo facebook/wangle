@@ -60,8 +60,6 @@ struct SSLContextConfig {
     // Currently supported values: "rsa", "ec" (can also be empty)
     // Note that the corresponding thrift IDL has a list instead
     std::set<std::string> offloadType;
-    // Whether this set of keys need local fallback
-    bool localFallback{false};
     // An identifier for the service to which we are offloading.
     std::string serviceId{"default"};
     // Whether we want to offload certificates
@@ -116,10 +114,16 @@ struct SSLContextConfig {
     folly::SSLContext::SSLVerifyPeerEnum::VERIFY_REQ_CLIENT_CERT};
   // Key offload configuration
   KeyOffloadParams keyOffloadParams;
+
+  // If true, read cert-key files locally. Otherwise, fetch them from cryptossl
+  bool offloadDisabled{true};
+
+  // Load cert-key pairs corresponding to these domains
+  std::vector<std::string> domains;
+
   // A namespace to use for sessions generated from this context so that
   // they will not be shared between other sessions generated from the
-  // same context. If not specified the common name for the certificates set
-  // in the context will be used by default.
+  // same context. If not specified the vip name will be used by default
   folly::Optional<std::string> sessionContext;
 };
 

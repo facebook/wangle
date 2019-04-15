@@ -171,11 +171,16 @@ class SSLContextManager {
   }
 
  protected:
-  virtual void loadCertKeyPairExternal(
+  virtual void loadCertKeyPairsInSSLContext(
     const std::shared_ptr<folly::SSLContext>&,
     const SSLContextConfig&,
-    const std::string& /* certificateFile */) {
-    LOG(FATAL) << "Unsupported in base SSLContextManager";
+    std::string& commonName);
+
+  virtual void loadCertKeyPairsInSSLContextExternal(
+    const std::shared_ptr<folly::SSLContext>&,
+    const SSLContextConfig&,
+    std::string& /* commonName */) {
+      LOG(FATAL) << "Unsupported in base SSLContextManager";
   }
 
   virtual void overrideConfiguration(

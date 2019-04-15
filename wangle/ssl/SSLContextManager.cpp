@@ -257,30 +257,123 @@ void SSLContextManager::addSSLContextConfig(
     contexts = &contexts_;
   }
 
-  unsigned numCerts = 0;
-  std::string commonName;
-  std::string lastCertPath;
-  std::unique_ptr<std::list<std::string>> subjectAltName;
   auto sslCtx =
       std::make_shared<ServerSSLContext>(ctxConfig.sslVersion);
+
+  std::string commonName;
+  if (ctxConfig.offloadDisabled) {
+    loadCertKeyPairsInSSLContext(sslCtx, ctxConfig, commonName);
+  } else {
+    loadCertKeyPairsInSSLContextExternal(sslCtx, ctxConfig, commonName);
+  }
+  overrideConfiguration(sslCtx, ctxConfig);
+
+  // Let the server pick the highest performing cipher from among the client's
+  // choices.
+  //
+  // Let's use a unique private key for all DH key exchanges.
+  //
+  // Because some old implementations choke on empty fragments, most SSL
+  // applications disable them (it's part of SSL_OP_ALL).  This
+  // will improve performance and decrease write buffer fragmentation.
+  sslCtx->setOptions(SSL_OP_CIPHER_SERVER_PREFERENCE |
+    SSL_OP_SINGLE_DH_USE |
+    SSL_OP_SINGLE_ECDH_USE |
+    SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
+
+  // Important that we do this *after* checking the TLS1.1 ciphers above,
+  // since we test their validity by actually setting them.
+  sslCtx->ciphers(ctxConfig.sslCiphers);
+
+  // Use a fix DH param
+  DH* dh = get_dh2048();
+  SSL_CTX_set_tmp_dh(sslCtx->getSSLCtx(), dh);
+  DH_free(dh);
+
+  const string& curve = ctxConfig.eccCurveName;
+  if (!curve.empty()) {
+    set_key_from_curve(sslCtx->getSSLCtx(), curve);
+  }
+
+  if (!ctxConfig.clientCAFile.empty()) {
+    try {
+      sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
+      sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
+
+      // Only allow over-riding of verification callback if one
+      // isn't explicitly set on the context
+      if (clientCertVerifyCallback_ == nullptr) {
+        sslCtx->setVerificationOption(ctxConfig.clientVerification);
+      } else {
+        clientCertVerifyCallback_->attachSSLContext(sslCtx);
+      }
+
+    } catch (const std::exception& ex) {
+      string msg = folly::to<string>("error loading client CA",
+                                     ctxConfig.clientCAFile, ": ",
+                                     folly::exceptionStr(ex));
+      LOG(ERROR) << msg;
+      throw std::runtime_error(msg);
+    }
+  }
+
+  // we always want to setup the session id context
+  // to make session resumption work (tickets or session cache)
+  std::string sessionIdContext = commonName;
+  if (ctxConfig.sessionContext && !ctxConfig.sessionContext->empty()) {
+    sessionIdContext = *ctxConfig.sessionContext;
+  }
+  VLOG(2) << "For vip " << vipName_
+          << ", setting sid_ctx " << sessionIdContext;
+  sslCtx->setSessionCacheContext(sessionIdContext);
+
+  sslCtx->setupSessionCache(
+      ctxConfig,
+      cacheOptions,
+      externalCache,
+      sessionIdContext,
+      stats_);
+  sslCtx->setupTicketManager(ticketSeeds, ctxConfig, stats_);
+  VLOG(2) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
+
+  // finalize sslCtx setup by the individual features supported by openssl
+  ctxSetupByOpensslFeature(sslCtx, ctxConfig, *contexts);
+
+  try {
+    insert(sslCtx,
+           ctxConfig.isDefault,
+           *contexts);
+  } catch (const std::exception& ex) {
+    string msg = folly::to<string>("Error adding certificate : ",
+                                   folly::exceptionStr(ex));
+    LOG(ERROR) << msg;
+    throw std::runtime_error(msg);
+  }
+
+}
+
+void SSLContextManager::loadCertKeyPairsInSSLContext(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const SSLContextConfig& ctxConfig,
+    std::string& commonName) {
+  unsigned numCerts = 0;
+  std::string lastCertPath;
+  std::unique_ptr<std::list<std::string>> subjectAltName;
+
   for (const auto& cert : ctxConfig.certificates) {
     try {
-      if (ctxConfig.keyOffloadParams.offloadType.empty()) {
-        // The private key lives in the same process
-        // This needs to be called before loadPrivateKey().
-        if (!cert.passwordPath.empty()) {
-          auto sslPassword = std::make_shared<folly::PasswordInFile>(
-              cert.passwordPath);
-          sslCtx->passwordCollector(std::move(sslPassword));
-        }
-        sslCtx->loadCertKeyPairFromFiles(
-          cert.certPath.c_str(),
-          cert.keyPath.c_str(),
-          "PEM",
-          "PEM");
-      } else {
-        loadCertKeyPairExternal(sslCtx, ctxConfig, cert.certPath);
+      // The private key lives in the same process
+      // This needs to be called before loadPrivateKey().
+      if (!cert.passwordPath.empty()) {
+        auto sslPassword = std::make_shared<folly::PasswordInFile>(
+            cert.passwordPath);
+        sslCtx->passwordCollector(std::move(sslPassword));
       }
+      sslCtx->loadCertKeyPairFromFiles(
+        cert.certPath.c_str(),
+        cert.keyPath.c_str(),
+        "PEM",
+        "PEM");
     } catch (const std::exception& ex) {
         // The exception isn't very useful without the certificate path name,
         // so throw a new exception that includes the path to the certificate.
@@ -339,92 +432,8 @@ void SSLContextManager::addSSLContextConfig(
     }
     lastCertPath = cert.certPath;
   }
-
-  overrideConfiguration(sslCtx, ctxConfig);
-
-  // Let the server pick the highest performing cipher from among the client's
-  // choices.
-  //
-  // Let's use a unique private key for all DH key exchanges.
-  //
-  // Because some old implementations choke on empty fragments, most SSL
-  // applications disable them (it's part of SSL_OP_ALL).  This
-  // will improve performance and decrease write buffer fragmentation.
-  sslCtx->setOptions(SSL_OP_CIPHER_SERVER_PREFERENCE |
-    SSL_OP_SINGLE_DH_USE |
-    SSL_OP_SINGLE_ECDH_USE |
-    SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
-
-  // Important that we do this *after* checking the TLS1.1 ciphers above,
-  // since we test their validity by actually setting them.
-  sslCtx->ciphers(ctxConfig.sslCiphers);
-
-  // Use a fix DH param
-  DH* dh = get_dh2048();
-  SSL_CTX_set_tmp_dh(sslCtx->getSSLCtx(), dh);
-  DH_free(dh);
-
-  const string& curve = ctxConfig.eccCurveName;
-  if (!curve.empty()) {
-    set_key_from_curve(sslCtx->getSSLCtx(), curve);
-  }
-
-  if (!ctxConfig.clientCAFile.empty()) {
-    try {
-      sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
-      sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
-
-      // Only allow over-riding of verification callback if one
-      // isn't explicitly set on the context
-      if (clientCertVerifyCallback_ == nullptr) {
-        sslCtx->setVerificationOption(ctxConfig.clientVerification);
-      } else {
-        clientCertVerifyCallback_->attachSSLContext(sslCtx);
-      }
-
-    } catch (const std::exception& ex) {
-      string msg = folly::to<string>("error loading client CA",
-                                     ctxConfig.clientCAFile, ": ",
-                                     folly::exceptionStr(ex));
-      LOG(ERROR) << msg;
-      throw std::runtime_error(msg);
-    }
-  }
-
-  // we always want to setup the session id context
-  // to make session resumption work (tickets or session cache)
-  std::string sessionIdContext = commonName;
-  if (ctxConfig.sessionContext && !ctxConfig.sessionContext->empty()) {
-    sessionIdContext = *ctxConfig.sessionContext;
-  }
-  VLOG(2) << "For vip " << vipName_ << ", CN " << commonName
-          << ", setting sid_ctx " << sessionIdContext;
-  sslCtx->setSessionCacheContext(sessionIdContext);
-
-  sslCtx->setupSessionCache(
-      ctxConfig,
-      cacheOptions,
-      externalCache,
-      sessionIdContext,
-      stats_);
-  sslCtx->setupTicketManager(ticketSeeds, ctxConfig, stats_);
-  VLOG(2) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
-
-  // finalize sslCtx setup by the individual features supported by openssl
-  ctxSetupByOpensslFeature(sslCtx, ctxConfig, *contexts);
-
-  try {
-    insert(sslCtx,
-           ctxConfig.isDefault,
-           *contexts);
-  } catch (const std::exception& ex) {
-    string msg = folly::to<string>("Error adding certificate : ",
-                                   folly::exceptionStr(ex));
-    LOG(ERROR) << msg;
-    throw std::runtime_error(msg);
-  }
-
 }
+
 
 #ifdef PROXYGEN_HAVE_SERVERNAMECALLBACK
 SSLContext::ServerNameCallbackResult
