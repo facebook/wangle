@@ -97,8 +97,9 @@ int64_t LineBasedFrameDecoder::findEndOfLine(IOBufQueue& buf) {
     auto b = c.read<char>();
     if (b == '\n' && terminatorType_ != TerminatorType::CARRIAGENEWLINE) {
       return i;
-    } else if (terminatorType_ != TerminatorType::NEWLINE &&
-               b == '\r' && !c.isAtEnd() && c.read<char>() == '\n') {
+    } else if (
+        terminatorType_ != TerminatorType::NEWLINE && b == '\r' &&
+        !c.isAtEnd() && *c.peekBytes().data() == '\n') {
       return i;
     }
   }
