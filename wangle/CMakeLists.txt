@@ -201,7 +201,7 @@ ENDIF(CMAKE_CROSSCOMPILING)
 if(BUILD_TESTS)
   enable_testing()
 
-  find_package(GMock MODULE REQUIRED)
+  find_package(GMock MODULE)
   if(NOT LIBGMOCK_FOUND)
     include(ExternalProject)
 
