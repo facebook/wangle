@@ -49,6 +49,14 @@ struct HTTPHeaderSize {
    * compression or after decompression, in plain-text format.
    */
   size_t uncompressed{0};
+
+  /**
+   * The number of bytes encoded as a compressed header block.
+   * Header compression algorithms generate a header block plus some control
+   * information. The `compressed` field accounts for both. So the control
+   * information size can be computed as `compressed` - `compressedBlock`
+   */
+  size_t compressedBlock{0};
 };
 
 /**
