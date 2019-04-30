@@ -289,6 +289,16 @@ struct TransportInfo {
   int32_t timeToLastByte{-1};
 
   /*
+   * time to first body byte written by the kernel to the NIC
+   */
+  int32_t timeToFirstByteTx{-1};
+
+  /*
+   * time to last body byte written by the kernel to the NIC
+   */
+  int32_t timeToLastByteTx{-1};
+
+  /*
    * time to TCP Ack received for the last written body byte
    */
   int32_t timeToLastBodyByteAck{-1};
