@@ -51,7 +51,7 @@ struct SSLContextConfig {
 
   static const std::string& getDefaultCiphers() {
     static const std::string& defaultCiphers =
-        folly::join(':', folly::ssl::SSLServerOptions::kCipherList);
+        folly::join(':', folly::ssl::SSLServerOptions::ciphers());
     return defaultCiphers;
   }
 
