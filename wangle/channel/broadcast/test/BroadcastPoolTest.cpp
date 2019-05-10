@@ -107,7 +107,7 @@ TEST_F(BroadcastPoolTest, BasicConnect) {
   EXPECT_TRUE(handler1 == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url1")).Times(1);
   base->loopOnce(); // Do async connect
-  EXPECT_TRUE(handler1 != nullptr);
+  ASSERT_TRUE(handler1 != nullptr);
   EXPECT_NE(0, handler1Id);
   EXPECT_TRUE(pool->isBroadcasting(routingData1));
 
