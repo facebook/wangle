@@ -80,8 +80,13 @@ setSessionServiceIdentity(SSL_SESSION* session, const std::string& str) {
     return false;
   }
   auto serviceExData = new std::string(str);
-  return SSL_SESSION_set_ex_data(
-    session, getSessionServiceIdentityIdx(), serviceExData) > 0;
+  if(SSL_SESSION_set_ex_data(
+    session, getSessionServiceIdentityIdx(), serviceExData) > 0) {
+    return true;
+  }
+
+  delete serviceExData;
+  return false;
 }
 
 folly::Optional<std::string>
