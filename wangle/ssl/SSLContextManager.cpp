@@ -361,76 +361,96 @@ void SSLContextManager::loadCertKeyPairsInSSLContext(
   std::unique_ptr<std::list<std::string>> subjectAltName;
 
   for (const auto& cert : ctxConfig.certificates) {
-    try {
-      // The private key lives in the same process
-      // This needs to be called before loadPrivateKey().
-      if (!cert.passwordPath.empty()) {
-        auto sslPassword = std::make_shared<folly::PasswordInFile>(
-            cert.passwordPath);
-        sslCtx->passwordCollector(std::move(sslPassword));
-      }
-      sslCtx->loadCertKeyPairFromFiles(
-        cert.certPath.c_str(),
-        cert.keyPath.c_str(),
-        "PEM",
-        "PEM");
-    } catch (const std::exception& ex) {
-        // The exception isn't very useful without the certificate path name,
-        // so throw a new exception that includes the path to the certificate.
-        string msg = folly::to<string>("error loading SSL certificate ",
-                                       cert.certPath, ": ",
-                                       folly::exceptionStr(ex));
-        LOG(ERROR) << msg;
-        throw std::runtime_error(msg);
-    }
-
+    loadCertsFromFiles(sslCtx, cert);
     // Verify that the Common Name and (if present) Subject Alternative Names
     // are the same for all the certs specified for the SSL context.
-    numCerts++;
-    X509* x509 = getX509(sslCtx->getSSLCtx());
-    if (!x509) {
-      throw std::runtime_error(
-          folly::to<std::string>(
-              "Certificate: ", cert.certPath, " is invalid"));
+    ++numCerts;
+    verifyCertNames(sslCtx,
+                    cert.certPath,
+                    commonName,
+                    subjectAltName,
+                    lastCertPath,
+                    (numCerts == 1));
+    lastCertPath = cert.certPath;
+  }
+}
+
+void SSLContextManager::loadCertsFromFiles(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const SSLContextConfig::CertificateInfo& cert) {
+  try {
+    // The private key lives in the same process
+    // This needs to be called before loadPrivateKey().
+    if (!cert.passwordPath.empty()) {
+      auto sslPassword = std::make_shared<folly::PasswordInFile>(
+          cert.passwordPath);
+      sslCtx->passwordCollector(std::move(sslPassword));
     }
-    auto guard = folly::makeGuard([x509] { X509_free(x509); });
-    auto cn = SSLUtil::getCommonName(x509);
-    if (!cn) {
-      throw std::runtime_error(folly::to<string>("Cannot get CN for X509 ",
-                                                 cert.certPath));
+    sslCtx->loadCertKeyPairFromFiles(
+      cert.certPath.c_str(),
+      cert.keyPath.c_str(),
+      "PEM",
+      "PEM");
+  } catch (const std::exception& ex) {
+    // The exception isn't very useful without the certificate path name,
+    // so throw a new exception that includes the path to the certificate.
+    string msg = folly::to<string>("error loading SSL certificate ",
+                                   cert.certPath, ": ",
+                                   folly::exceptionStr(ex));
+    LOG(ERROR) << msg;
+    throw std::runtime_error(msg);
+  }
+}
+
+void SSLContextManager::verifyCertNames(
+  const std::shared_ptr<folly::SSLContext>& sslCtx,
+  const std::string& description,
+  std::string& commonName,
+  std::unique_ptr<std::list<std::string>>& subjectAltName,
+  const std::string& lastCertPath,
+  bool firstCert) {
+  X509* x509 = getX509(sslCtx->getSSLCtx());
+  if (!x509) {
+    throw std::runtime_error(
+        folly::to<std::string>(
+            "Certificate: ", description, " is invalid"));
+  }
+  auto guard = folly::makeGuard([x509] { X509_free(x509); });
+  auto cn = SSLUtil::getCommonName(x509);
+  if (!cn) {
+    throw std::runtime_error(folly::to<string>("Cannot get CN for X509 ",
+                                               description));
+  }
+  auto altName = SSLUtil::getSubjectAltName(x509);
+  VLOG(2) << "cert " << description << " CN: " << *cn;
+  if (altName) {
+    altName->sort();
+    VLOG(2) << "cert " << description << " SAN: " << flattenList(*altName);
+  } else {
+    VLOG(2) << "cert " << description << " SAN: " << "{none}";
+  }
+  if (firstCert) {
+    commonName = *cn;
+    subjectAltName = std::move(altName);
+  } else {
+    if (commonName != *cn) {
+      throw std::runtime_error(folly::to<string>("X509 ", description,
+                                        " does not have same CN as ",
+                                        lastCertPath));
     }
-    auto altName = SSLUtil::getSubjectAltName(x509);
-    VLOG(2) << "cert " << cert.certPath << " CN: " << *cn;
-    if (altName) {
-      altName->sort();
-      VLOG(2) << "cert " << cert.certPath << " SAN: " << flattenList(*altName);
-    } else {
-      VLOG(2) << "cert " << cert.certPath << " SAN: " << "{none}";
-    }
-    if (numCerts == 1) {
-      commonName = *cn;
-      subjectAltName = std::move(altName);
-    } else {
-      if (commonName != *cn) {
-        throw std::runtime_error(folly::to<string>("X509 ", cert.certPath,
-                                          " does not have same CN as ",
+    if (altName == nullptr) {
+      if (subjectAltName != nullptr) {
+        throw std::runtime_error(folly::to<string>("X509 ", description,
+                                          " does not have same SAN as ",
                                           lastCertPath));
       }
-      if (altName == nullptr) {
-        if (subjectAltName != nullptr) {
-          throw std::runtime_error(folly::to<string>("X509 ", cert.certPath,
-                                            " does not have same SAN as ",
-                                            lastCertPath));
-        }
-      } else {
-        if ((subjectAltName == nullptr) || (*altName != *subjectAltName)) {
-          throw std::runtime_error(folly::to<string>("X509 ", cert.certPath,
-                                            " does not have same SAN as ",
-                                            lastCertPath));
-        }
+    } else {
+      if ((subjectAltName == nullptr) || (*altName != *subjectAltName)) {
+        throw std::runtime_error(folly::to<string>("X509 ", description,
+                                          " does not have same SAN as ",
+                                          lastCertPath));
       }
     }
-    lastCertPath = cert.certPath;
   }
 }
 

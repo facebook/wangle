@@ -208,6 +208,18 @@ class SSLContextManager {
     insertSSLCtxByDomainName(dn, len, sslCtx, contexts_, certCrypto);
   }
 
+  void loadCertsFromFiles(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const SSLContextConfig::CertificateInfo& cert);
+
+  void verifyCertNames(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const std::string& description,
+    std::string& commonName,
+    std::unique_ptr<std::list<std::string>>& subjectAltName,
+    const std::string& lastCertPath,
+    bool firstCert);
+
  private:
   SSLContextManager(const SSLContextManager&) = delete;
 
