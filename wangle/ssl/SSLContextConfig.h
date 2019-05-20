@@ -37,7 +37,7 @@ namespace wangle {
 
 struct SSLContextConfig {
   SSLContextConfig() = default;
-  ~SSLContextConfig() = default;
+  virtual ~SSLContextConfig() = default;
 
   struct CertificateInfo {
     CertificateInfo(const std::string& crtPath,
@@ -69,9 +69,9 @@ struct SSLContextConfig {
   /**
    * Helpers to set/add a certificate
    */
-  void setCertificate(const std::string& certPath,
-                      const std::string& keyPath,
-                      const std::string& passwordPath) {
+  virtual void setCertificate(const std::string& certPath,
+                              const std::string& keyPath,
+                              const std::string& passwordPath) {
     certificates.clear();
     addCertificate(certPath, keyPath, passwordPath);
   }
