@@ -88,14 +88,19 @@ void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
     CHECK_GE(memKillLimitRatio_, 0.0);
     CHECK_LE(memKillLimitRatio_, 1.0);
 
-    // Max TCP mem and min free TCP mem ratios must have values in the range
-    // of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater than
-    // or equal to max TCP mem ratio.
+    // Max TCP/UDP mem and min free TCP/UDP mem ratios must have values in the
+    // range of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater
+    // than or equal to max TCP mem ratio.
     CHECK_GE(maxTcpMemUsage_, 0.0);
     CHECK_LE(maxTcpMemUsage_, 1.0);
     CHECK_GE(1.0 - minFreeTcpMemPct_, maxTcpMemUsage_);
     CHECK_GE(minFreeTcpMemPct_, 0.0);
     CHECK_LE(minFreeTcpMemPct_, 1.0);
+    CHECK_GE(maxUdpMemUsage_, 0.0);
+    CHECK_LE(maxUdpMemUsage_, 1.0);
+    CHECK_GE(1.0 - minFreeUdpMemPct_, maxUdpMemUsage_);
+    CHECK_GE(minFreeUdpMemPct_, 0.0);
+    CHECK_LE(minFreeUdpMemPct_, 1.0);
 
     // Period must be greater than or equal to 0.
     CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());

@@ -251,6 +251,24 @@ class LoadShedConfiguration {
     return minFreeTcpMemPct_;
   }
 
+  void setMaxUdpMemUsage(double max) {
+    CHECK_GE(max, 0.0);
+    CHECK_LE(max, 1.0);
+    maxUdpMemUsage_ = max;
+  }
+  double getMaxUdpMemUsage() const {
+    return maxUdpMemUsage_;
+  }
+
+  void setMinFreeUdpMemPct(double min) {
+    CHECK_GE(min, 0.0);
+    CHECK_LE(min, 1.0);
+    minFreeUdpMemPct_ = min;
+  }
+  double getMinFreeUdpMemPct() const {
+    return minFreeUdpMemPct_;
+  }
+
   void setLoadUpdatePeriod(std::chrono::milliseconds period) {
     period_ = period;
   }
@@ -306,6 +324,9 @@ class LoadShedConfiguration {
 
   double maxTcpMemUsage_{1.0};
   double minFreeTcpMemPct_{0.0};
+
+  double maxUdpMemUsage_{1.0};
+  double minFreeUdpMemPct_{0.0};
 
   std::chrono::milliseconds period_;
 
