@@ -24,6 +24,7 @@ struct SSLCacheOptions {
   std::chrono::seconds sslCacheTimeout;
   uint64_t maxSSLCacheSize;
   uint64_t sslCacheFlushSize;
+  std::chrono::seconds handshakeValidity;
 };
 
 } // namespace wangle

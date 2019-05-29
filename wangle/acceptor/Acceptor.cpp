@@ -159,6 +159,7 @@ Acceptor::createFizzTicketCipher(
   return FizzConfigUtil::createTicketCipher<fizz::server::AES128TicketCipher>(
       seeds,
       accConfig_.sslCacheOptions.sslCacheTimeout,
+      accConfig_.sslCacheOptions.handshakeValidity,
       std::move(pskContext));
 }
 

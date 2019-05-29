@@ -36,16 +36,23 @@ class FizzConfigUtil {
   static std::unique_ptr<TicketCipher> createTicketCipher(
       const TLSTicketKeySeeds& seeds,
       std::chrono::seconds validity,
+      std::chrono::seconds handshakeValidity,
       folly::Optional<std::string> pskContext) {
     if (seeds.currentSeeds.empty()) {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
-          seeds.oldSeeds, "", seeds.newSeeds, validity, std::move(pskContext));
+          seeds.oldSeeds,
+          "",
+          seeds.newSeeds,
+          validity,
+          handshakeValidity,
+          std::move(pskContext));
     } else {
       return fizz::FizzUtil::createTicketCipher<TicketCipher>(
           seeds.oldSeeds,
           seeds.currentSeeds.at(0),
           seeds.newSeeds,
           validity,
+          handshakeValidity,
           std::move(pskContext));
     }
   }
