@@ -361,7 +361,11 @@ void SSLContextManager::loadCertKeyPairsInSSLContext(
   std::unique_ptr<std::list<std::string>> subjectAltName;
 
   for (const auto& cert : ctxConfig.certificates) {
-    loadCertsFromFiles(sslCtx, cert);
+    if (cert.isBuffer) {
+      sslCtx->loadCertKeyPairFromBufferPEM(cert.certPath, cert.keyPath);
+    } else {
+      loadCertsFromFiles(sslCtx, cert);
+    }
     // Verify that the Common Name and (if present) Subject Alternative Names
     // are the same for all the certs specified for the SSL context.
     ++numCerts;

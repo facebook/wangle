@@ -36,10 +36,15 @@ FizzConfigUtil::createCertManager(const ServerSocketConfig& config) {
   for (const auto& sslConfig : config.sslContextConfigs) {
     for (const auto& cert : sslConfig.certificates) {
       try {
-        auto x509Chain = FizzUtil::readChainFile(cert.certPath);
-        auto pkey = FizzUtil::readPrivateKey(cert.keyPath, cert.passwordPath);
-        auto selfCert =
+        std::unique_ptr<fizz::SelfCert> selfCert;
+        if (cert.isBuffer) {
+          selfCert = CertUtils::makeSelfCert(cert.certPath, cert.keyPath);
+        } else {
+          auto x509Chain = FizzUtil::readChainFile(cert.certPath);
+          auto pkey = FizzUtil::readPrivateKey(cert.keyPath, cert.passwordPath);
+          selfCert =
             CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
+        }
         certMgr->addCert(std::move(selfCert), sslConfig.isDefault);
         loadedCert = true;
       } catch (const std::runtime_error& ex) {

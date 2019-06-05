@@ -44,9 +44,17 @@ struct SSLContextConfig {
                     const std::string& kyPath,
                     const std::string& passwdPath)
         : certPath(crtPath), keyPath(kyPath), passwordPath(passwdPath) {}
+
+    CertificateInfo(const std::string& crtBuf,
+                    const std::string& kyBuf)
+        : certPath(crtBuf),
+          keyPath(kyBuf),
+          isBuffer(true) {}
+
     std::string certPath;
     std::string keyPath;
     std::string passwordPath;
+    bool isBuffer{false};
   };
 
   static const std::string& getDefaultCiphers() {
@@ -76,10 +84,21 @@ struct SSLContextConfig {
     addCertificate(certPath, keyPath, passwordPath);
   }
 
+  void setCertificateBuf(const std::string& cert,
+                         const std::string& key) {
+    certificates.clear();
+    addCertificateBuf(cert, key);
+  }
+
   void addCertificate(const std::string& certPath,
                       const std::string& keyPath,
                       const std::string& passwordPath) {
     certificates.emplace_back(certPath, keyPath, passwordPath);
+  }
+
+  void addCertificateBuf(const std::string& cert,
+                         const std::string& key) {
+    certificates.emplace_back(cert, key);
   }
 
   /**
