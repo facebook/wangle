@@ -433,6 +433,12 @@ struct TransportInfo {
   std::shared_ptr<std::string> tcpSignature{nullptr};
 
   /*
+   * Hash of some of TCP/IP headers fields (especially tcp_options) values,
+   * sometimes concatenated with raw fingerprint (that gives the hash).
+   */
+  std::shared_ptr<std::string> tcpFingerprint{nullptr};
+
+  /*
    * Whether or not TCP fast open succeded on this connection. Failure can occur
    * due to several reasons, including cookies not matching or TFO not being
    * advertised by the client.
