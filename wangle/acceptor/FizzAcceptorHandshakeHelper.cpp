@@ -50,9 +50,6 @@ AsyncFizzServer::UniquePtr FizzAcceptorHandshakeHelper::createFizzServer(
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
     AsyncFizzServer* transport) noexcept {
-  if (loggingCallback_) {
-    loggingCallback_->logFizzHandshakeSuccess(*transport);
-  }
 
   VLOG(3) << "Fizz handshake success";
 
@@ -73,6 +70,11 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   }
 
   auto appProto = transport->getApplicationProtocol();
+
+  if (loggingCallback_) {
+    loggingCallback_->logFizzHandshakeSuccess(*transport, &tinfo_);
+  }
+
   callback_->connectionReady(std::move(transport_),
                              std::move(appProto),
                              SecureTransportType::TLS,

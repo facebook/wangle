@@ -37,7 +37,8 @@ class FizzAcceptorHandshakeHelper
    public:
     virtual ~LoggingCallback() = default;
     virtual void logFizzHandshakeSuccess(
-        const fizz::server::AsyncFizzServer&) = 0;
+        const fizz::server::AsyncFizzServer&,
+        const wangle::TransportInfo* tinfo) = 0;
     virtual void logFizzHandshakeError(const fizz::server::AsyncFizzServer&,
                                        const folly::exception_wrapper&) = 0;
   };
