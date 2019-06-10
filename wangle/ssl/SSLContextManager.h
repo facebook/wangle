@@ -194,18 +194,16 @@ class SSLContextManager {
    * Insert a SSLContext by domain name.
    */
   void insertSSLCtxByDomainName(
-    const char* dn,
-    size_t len,
+    const std::string& dn,
     std::shared_ptr<folly::SSLContext> sslCtx,
     SslContexts& contexts,
     CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
 
   void insertSSLCtxByDomainName(
-    const char* dn,
-    size_t len,
+    const std::string& dn,
     std::shared_ptr<folly::SSLContext> sslCtx,
     CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE) {
-    insertSSLCtxByDomainName(dn, len, sslCtx, contexts_, certCrypto);
+    insertSSLCtxByDomainName(dn, sslCtx, contexts_, certCrypto);
   }
 
   void loadCertsFromFiles(
@@ -265,8 +263,7 @@ class SSLContextManager {
     SslContexts& contexts);
 
   void insertSSLCtxByDomainNameImpl(
-    const char* dn,
-    size_t len,
+    const std::string& dn,
     std::shared_ptr<folly::SSLContext> sslCtx,
     SslContexts& contexts,
     CertCrypto certCrypto);

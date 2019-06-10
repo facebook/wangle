@@ -667,8 +667,7 @@ SSLContextManager::insert(shared_ptr<ServerSSLContext> sslCtx,
   }
 
   // Insert by CN
-  insertSSLCtxByDomainName(cn->c_str(),
-                           cn->length(),
+  insertSSLCtxByDomainName(*cn,
                            sslCtx,
                            contexts,
                            certCrypto);
@@ -677,8 +676,7 @@ SSLContextManager::insert(shared_ptr<ServerSSLContext> sslCtx,
   auto altNames = SSLUtil::getSubjectAltName(x509);
   if (altNames) {
     for (auto& name : *altNames) {
-      insertSSLCtxByDomainName(name.c_str(),
-                               name.length(),
+      insertSSLCtxByDomainName(name,
                                sslCtx,
                                contexts,
                                certCrypto);
@@ -693,13 +691,12 @@ SSLContextManager::insert(shared_ptr<ServerSSLContext> sslCtx,
 }
 
 void
-SSLContextManager::insertSSLCtxByDomainName(const char* dn,
-                                            size_t len,
+SSLContextManager::insertSSLCtxByDomainName(const std::string& dn,
                                             shared_ptr<SSLContext> sslCtx,
                                             SslContexts& contexts,
                                             CertCrypto certCrypto) {
   try {
-    insertSSLCtxByDomainNameImpl(dn, len, sslCtx, contexts, certCrypto);
+    insertSSLCtxByDomainNameImpl(dn, sslCtx, contexts, certCrypto);
   } catch (const std::runtime_error& ex) {
     if (strict_) {
       throw ex;
@@ -709,42 +706,44 @@ SSLContextManager::insertSSLCtxByDomainName(const char* dn,
   }
 }
 void
-SSLContextManager::insertSSLCtxByDomainNameImpl(const char* dn,
-                                                size_t len,
+SSLContextManager::insertSSLCtxByDomainNameImpl(const std::string& dn,
                                                 shared_ptr<SSLContext> sslCtx,
                                                 SslContexts& contexts,
                                                 CertCrypto certCrypto)
 {
+  const char* dn_ptr = dn.c_str();
+  size_t len = dn.length();
+
   VLOG(4) <<
     folly::stringPrintf("Adding CN/Subject-alternative-name \"%s\" for "
-                        "SNI search", dn);
+                        "SNI search", dn_ptr);
 
   // Only support wildcard domains which are prefixed exactly by "*." .
   // "*" appearing at other locations is not accepted.
 
-  if (len > 2 && dn[0] == '*') {
-    if (dn[1] == '.') {
+  if (len > 2 && dn_ptr[0] == '*') {
+    if (dn_ptr[1] == '.') {
       // skip the first '*'
-      dn++;
+      dn_ptr++;
       len--;
     } else {
       throw std::runtime_error(
-        "Invalid wildcard CN/subject-alternative-name \"" + std::string(dn) + "\" "
+        "Invalid wildcard CN/subject-alternative-name \"" + dn + "\" "
         "(only allow character \".\" after \"*\"");
     }
   }
 
-  if (len == 1 && *dn == '.') {
+  if (len == 1 && *dn_ptr == '.') {
     throw std::runtime_error("X509 has only '.' in the CN or subject alternative name "
                     "(after removing any preceding '*')");
   }
 
-  if (strchr(dn, '*')) {
+  if (strchr(dn_ptr, '*')) {
     throw std::runtime_error("X509 has '*' in the the CN or subject alternative name "
                     "(after removing any preceding '*')");
   }
 
-  DNString dnstr(dn, len);
+  DNString dnstr(dn_ptr, len);
   insertIntoDnMap(SSLContextKey(dnstr, certCrypto), sslCtx, true, contexts);
   if (certCrypto != CertCrypto::BEST_AVAILABLE) {
     // Note: there's no partial ordering here (you either get what you request,

@@ -48,33 +48,26 @@ TEST(SSLContextManagerTest, Test1)
 
   sslCtxMgr.insertSSLCtxByDomainName(
     "*.facebook.com",
-    strlen("*.facebook.com"),
     start_facebook_com_ctx_sha1,
     CertCrypto::SHA1_SIGNATURE);
   sslCtxMgr.insertSSLCtxByDomainName(
     "www.facebook.com",
-    strlen("www.facebook.com"),
     www_facebook_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
     "www.facebook.com",
-    strlen("www.facebook.com"),
     www_facebook_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
     "*.facebook.com",
-    strlen("*.facebook.com"),
     start_facebook_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
     "*.abc.facebook.com",
-    strlen("*.abc.facebook.com"),
     start_abc_facebook_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
     "www.facebook.com",
-    strlen("www.facebook.com"),
     www_facebook_com_ctx_sha1,
     CertCrypto::SHA1_SIGNATURE);
   sslCtxMgr.insertSSLCtxByDomainName(
     "www.bookface.com",
-    strlen("www.bookface.com"),
     www_bookface_com_ctx_sha1,
     CertCrypto::SHA1_SIGNATURE);
 
