@@ -17,8 +17,10 @@
 #include <folly/io/async/SSLContext.h>
 #include <glog/logging.h>
 #include <folly/portability/GTest.h>
+#include <wangle/ssl/ServerSSLContext.h>
 #include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextManager.h>
+#include <wangle/ssl/TLSTicketKeyManager.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
 
 using std::shared_ptr;
@@ -30,6 +32,8 @@ class SSLContextManagerForTest : public SSLContextManager {
  public:
   using SSLContextManager::SSLContextManager;
   using SSLContextManager::insertSSLCtxByDomainName;
+  using SSLContextManager::setDefaultCtxDomainName;
+  using SSLContextManager::addServerContext;
 };
 
 TEST(SSLContextManagerTest, Test1)
@@ -112,7 +116,6 @@ TEST(SSLContextManagerTest, Test1)
   retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.org"));
   EXPECT_EQ(retCtx, www_example_org_ctx_sha1);
 
-
   eventBase.loop(); // Clean up events before SSLContextManager is destructed
 }
 
@@ -181,5 +184,58 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
   eventBase.loop();
 }
 #endif
+
+TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
+{
+  EventBase eventBase;
+  SSLContextManagerForTest sslCtxMgr(&eventBase,
+                                     "vip_ssl_context_manager_test_",
+                                     true,
+                                     nullptr);
+  auto www_example_com_ctx = std::make_shared<ServerSSLContext>();
+  auto start_example_com_ctx = std::make_shared<ServerSSLContext>();
+  auto start_abc_example_com_ctx = std::make_shared<ServerSSLContext>();
+
+  sslCtxMgr.insertSSLCtxByDomainName(
+    "www.example.com",
+    www_example_com_ctx);
+  sslCtxMgr.addServerContext(www_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName(
+    "*.example.com",
+    start_example_com_ctx);
+  sslCtxMgr.addServerContext(start_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName(
+    "*.abc.example.com",
+    start_abc_example_com_ctx);
+  sslCtxMgr.addServerContext(start_abc_example_com_ctx);
+
+  shared_ptr<SSLContext> retCtx;
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
+  EXPECT_EQ(retCtx, www_example_com_ctx);
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("www.abc.example.com"));
+  EXPECT_EQ(retCtx, start_abc_example_com_ctx);
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("xyz.example.com"));
+  EXPECT_EQ(retCtx, start_example_com_ctx);
+
+  // Removing one of the contexts
+  sslCtxMgr.removeSSLContextConfig(SSLContextKey("www.example.com"));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
+  EXPECT_FALSE(retCtx);
+
+  sslCtxMgr.removeSSLContextConfig(SSLContextKey("*.example.com"));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
+  EXPECT_FALSE(retCtx);
+
+  // Try to remove the context which does not exist - must be NOOP
+  sslCtxMgr.removeSSLContextConfig(SSLContextKey("xyz.example.com"));
+
+  // Setting a default context
+  sslCtxMgr.setDefaultCtxDomainName("www.abc.example.com");
+
+  // Context Manager must throw on attempt to remove the default context
+  EXPECT_THROW(
+      sslCtxMgr.removeSSLContextConfig(SSLContextKey("www.abc.example.com")),
+      std::invalid_argument);
+}
 
 } // namespace wangle

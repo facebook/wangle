@@ -245,6 +245,30 @@ void SSLContextManager::resetSSLContextConfigs(
   contexts_.swap(contexts);
 }
 
+void SSLContextManager::removeSSLContextConfig(const SSLContextKey& key) {
+  // The default context can't be dropped.
+  DNString defaultName(contexts_.defaultCtxDomainName.data(),
+                       contexts_.defaultCtxDomainName.length());
+
+  if (key.dnString == defaultName) {
+    string msg = folly::to<string>("Cert for the default domain ",
+                                   key.dnString.c_str(),
+                                   " can not be removed");
+    LOG(ERROR) << msg;
+    throw std::invalid_argument(msg);
+  }
+
+  auto mapIt = contexts_.dnMap.find(key);
+  if (mapIt != contexts_.dnMap.end()) {
+    auto vIt = std::find(contexts_.ctxs.begin(),
+                         contexts_.ctxs.end(),
+                         mapIt->second);
+    CHECK(vIt != contexts_.ctxs.end());
+    contexts_.ctxs.erase(vIt);
+    contexts_.dnMap.erase(mapIt);
+  }
+}
+
 void SSLContextManager::addSSLContextConfig(
   const SSLContextConfig& ctxConfig,
   const SSLCacheOptions& cacheOptions,
@@ -456,6 +480,20 @@ void SSLContextManager::verifyCertNames(
       }
     }
   }
+}
+
+void SSLContextManager::setDefaultCtxDomainName(
+    const std::string& name,
+    SslContexts* contexts) {
+  contexts = contexts ? contexts : &contexts_;
+  contexts->defaultCtxDomainName = name;
+}
+
+void SSLContextManager::addServerContext(
+    std::shared_ptr<ServerSSLContext> sslCtx,
+    SslContexts* contexts) {
+  contexts = contexts ? contexts : &contexts_;
+  contexts->ctxs.emplace_back(sslCtx);
 }
 
 
@@ -684,10 +722,10 @@ SSLContextManager::insert(shared_ptr<ServerSSLContext> sslCtx,
   }
 
   if (defaultFallback) {
-    contexts.defaultCtxDomainName = *cn;
+    setDefaultCtxDomainName(*cn, &contexts);
   }
 
-  contexts.ctxs.emplace_back(sslCtx);
+  addServerContext(sslCtx, &contexts);
 }
 
 void

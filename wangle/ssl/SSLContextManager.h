@@ -122,6 +122,12 @@ class SSLContextManager {
     const folly::SocketAddress& vipAddress,
     const std::shared_ptr<SSLCacheProvider> &externalCache);
 
+
+  /**
+   * Remove ssl context exactly matching given key.
+   */
+  void removeSSLContextConfig(const SSLContextKey& key);
+
   /**
    * Clears all ssl contexts
    */
@@ -217,6 +223,12 @@ class SSLContextManager {
     std::unique_ptr<std::list<std::string>>& subjectAltName,
     const std::string& lastCertPath,
     bool firstCert);
+
+  void setDefaultCtxDomainName(const std::string& name,
+                               SslContexts* contexts = nullptr);
+
+  void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx,
+                        SslContexts* contexts = nullptr);
 
  private:
   SSLContextManager(const SSLContextManager&) = delete;
