@@ -35,7 +35,11 @@ void AcceptorHandshakeManager::connectionReady(
     acceptor_->updateSSLStats(
         transport.get(),
         timeSinceAcceptMs(),
-        sslErr.value());
+        sslErr.value(),
+        folly::make_exception_wrapper<SSLException>(
+            sslErr.value(),
+            timeSinceAcceptMs(),
+            transport->getRawBytesReceived()));
   }
   acceptor_->getConnectionManager()->removeConnection(this);
   // We pass TransportInfo by reference even though we're about to destroy it,
@@ -55,7 +59,7 @@ void AcceptorHandshakeManager::connectionError(
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
   if (sslErr) {
     acceptor_->updateSSLStats(
-        transport, timeSinceAcceptMs(), sslErr.value());
+        transport, timeSinceAcceptMs(), sslErr.value(), ex);
   }
   acceptor_->getConnectionManager()->removeConnection(this);
   acceptor_->sslConnectionError(std::move(ex));

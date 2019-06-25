@@ -25,7 +25,22 @@ namespace wangle {
 
 class FizzHandshakeException : public wangle::SSLException {
  public:
+  FizzHandshakeException(
+      SSLErrorEnum error,
+      const std::chrono::milliseconds& latency,
+      uint64_t bytesRead,
+      folly::exception_wrapper ex)
+      : wangle::SSLException(error, latency, bytesRead),
+        originalException_(std::move(ex)) {}
+
+  const folly::exception_wrapper& getOriginalException() const {
+    return originalException_;
+  }
+
   using wangle::SSLException::SSLException;
+
+ private:
+  folly::exception_wrapper originalException_;
 };
 
 class FizzAcceptorHandshakeHelper

@@ -300,7 +300,8 @@ class Acceptor :
   virtual void updateSSLStats(
       const folly::AsyncTransportWrapper* /*sock*/,
       std::chrono::milliseconds /*acceptLatency*/,
-      SSLErrorEnum /*error*/) noexcept {}
+      SSLErrorEnum /*error*/,
+      const folly::exception_wrapper& /*ex*/) noexcept {}
 
  protected:
 

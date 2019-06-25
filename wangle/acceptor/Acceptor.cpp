@@ -341,9 +341,9 @@ Acceptor::processEstablishedConnection(
         " too many handshakes in progress";
       auto error = SSLErrorEnum::DROPPED;
       auto latency = std::chrono::milliseconds(0);
-      updateSSLStats(sslSock.get(), latency, error);
       auto ex = folly::make_exception_wrapper<SSLException>(
           error, latency, sslSock->getRawBytesReceived());
+      updateSSLStats(sslSock.get(), latency, error, ex);
       sslConnectionError(ex);
       return;
     }

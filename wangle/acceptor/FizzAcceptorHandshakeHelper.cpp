@@ -95,7 +95,10 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeError(
 
   auto handshakeException =
       folly::make_exception_wrapper<FizzHandshakeException>(
-          sslError_, elapsedTime, transport->getRawBytesReceived());
+          sslError_,
+          elapsedTime,
+          transport->getRawBytesReceived(),
+          std::move(ex));
 
   callback_->connectionError(
       transport_.get(), std::move(handshakeException), sslError_);
