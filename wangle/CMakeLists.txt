@@ -68,7 +68,6 @@ set(WANGLE_HEADER_DIRS
   channel
   client
   codec
-  deprecated
   portability
   service
   ssl
@@ -107,7 +106,6 @@ set(WANGLE_SOURCES
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
-  deprecated/rx/Dummy.cpp
   ssl/ServerSSLContext.cpp
   ssl/SSLContextManager.cpp
   ssl/SSLSessionCacheManager.cpp
@@ -269,7 +267,6 @@ if(BUILD_TESTS)
   add_gtest(channel/test/OutputBufferingHandlerTest.cpp OutputBufferingHandlerTest)
   add_gtest(channel/test/PipelineTest.cpp PipelineTest)
   add_gtest(codec/test/CodecTest.cpp CodecTest)
-  add_gtest(deprecated/rx/test/RxTest.cpp RxTest)
   # this test fails with an exception
   #  add_gtest(service/test/ServiceTest.cpp ServiceTest)
   # this test requires arguments?
