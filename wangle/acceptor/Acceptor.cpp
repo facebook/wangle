@@ -391,7 +391,7 @@ Acceptor::connectionReady(
   // both to keep memory usage under control and to prevent one fast-
   // writing client from starving other connections.
   auto asyncSocket = sock->getUnderlyingTransport<AsyncSocket>();
-  asyncSocket->setMaxReadsPerEvent(16);
+  asyncSocket->setMaxReadsPerEvent(accConfig_.socketMaxReadsPerEvent);
   tinfo.initWithSocket(asyncSocket);
   tinfo.appProtocol = std::make_shared<std::string>(nextProtocolName);
   if (state_ < State::kDraining) {

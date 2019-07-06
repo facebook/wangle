@@ -169,6 +169,11 @@ struct ServerSocketConfig {
    */
   uint32_t fastOpenQueueSize{100};
 
+  /**
+   * Configures the initial setting for maxReadsPerEvent on accepted sockets.
+   */
+  uint32_t socketMaxReadsPerEvent{16};
+
   FizzConfig fizzConfig;
 
  private:
