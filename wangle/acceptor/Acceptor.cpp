@@ -15,65 +15,60 @@
  */
 #include <wangle/acceptor/Acceptor.h>
 
-#include <wangle/acceptor/ManagedConnection.h>
-#include <wangle/ssl/SSLContextManager.h>
-#include <wangle/acceptor/AcceptorHandshakeManager.h>
-#include <wangle/acceptor/FizzConfigUtil.h>
-#include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <fizz/server/TicketTypes.h>
-#include <folly/io/async/EventBase.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/EventBase.h>
 #include <folly/portability/GFlags.h>
 #include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
+#include <wangle/acceptor/AcceptorHandshakeManager.h>
+#include <wangle/acceptor/FizzConfigUtil.h>
+#include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/SecurityProtocolContextManager.h>
+#include <wangle/ssl/SSLContextManager.h>
 
 #include <fstream>
 
-using folly::AsyncSocket;
-using folly::AsyncSSLSocket;
-using folly::AsyncSocketException;
 using folly::AsyncServerSocket;
+using folly::AsyncSocket;
+using folly::AsyncSocketException;
+using folly::AsyncSSLSocket;
 using folly::AsyncTransportWrapper;
 using folly::EventBase;
 using folly::SocketAddress;
 using folly::StringPiece;
-using std::chrono::microseconds;
-using std::chrono::milliseconds;
 using std::filebuf;
 using std::ifstream;
 using std::ios;
 using std::shared_ptr;
 using std::string;
+using std::chrono::microseconds;
+using std::chrono::milliseconds;
 
 namespace wangle {
 
 static const std::string empty_string;
 std::atomic<uint64_t> Acceptor::totalNumPendingSSLConns_{0};
 
-Acceptor::Acceptor(const ServerSocketConfig& accConfig) :
-  accConfig_(accConfig),
-  socketOptions_(accConfig.getSocketOptions()) {
-}
+Acceptor::Acceptor(const ServerSocketConfig& accConfig)
+    : accConfig_(accConfig), socketOptions_(accConfig.getSocketOptions()) {}
 
-void
-Acceptor::init(AsyncServerSocket* serverSocket,
-               EventBase* eventBase,
-               SSLStats* stats) {
+void Acceptor::init(
+    AsyncServerSocket* serverSocket,
+    EventBase* eventBase,
+    SSLStats* stats) {
   if (accConfig_.isSSL()) {
-
     if (accConfig_.allowInsecureConnectionsOnSecureServer) {
       securityProtocolCtxManager_.addPeeker(&tlsPlaintextPeekingCallback_);
     }
 
     if (accConfig_.fizzConfig.enableFizz) {
-      TLSTicketKeySeeds seeds{
-        accConfig_.initialTicketSeeds.oldSeeds,
-        accConfig_.initialTicketSeeds.currentSeeds,
-        accConfig_.initialTicketSeeds.newSeeds};
+      TLSTicketKeySeeds seeds{accConfig_.initialTicketSeeds.oldSeeds,
+                              accConfig_.initialTicketSeeds.currentSeeds,
+                              accConfig_.initialTicketSeeds.newSeeds};
 
-      fizzTicketCipher_ = createFizzTicketCipher(
-        seeds, getPskContext());
+      fizzTicketCipher_ = createFizzTicketCipher(seeds, getPskContext());
       fizzCertManager_ = createFizzCertManager();
 
       auto* peeker = getFizzPeeker();
@@ -86,18 +81,16 @@ Acceptor::init(AsyncServerSocket* serverSocket,
 
     if (!sslCtxManager_) {
       sslCtxManager_ = std::make_unique<SSLContextManager>(
-        eventBase,
-        "vip_" + getName(),
-        accConfig_.strictSSL, stats);
+          eventBase, "vip_" + getName(), accConfig_.strictSSL, stats);
     }
     try {
       for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
         sslCtxManager_->addSSLContextConfig(
-          sslCtxConfig,
-          accConfig_.sslCacheOptions,
-          &accConfig_.initialTicketSeeds,
-          accConfig_.bindAddress,
-          cacheProvider_);
+            sslCtxConfig,
+            accConfig_.sslCacheOptions,
+            &accConfig_.initialTicketSeeds,
+            accConfig_.bindAddress,
+            cacheProvider_);
       }
 
       CHECK(sslCtxManager_->getDefaultSSLCtx());
@@ -121,7 +114,7 @@ Acceptor::init(AsyncServerSocket* serverSocket,
       if (fd == folly::NetworkSocket()) {
         continue;
       }
-      for (const auto& opt: socketOptions_) {
+      for (const auto& opt : socketOptions_) {
         opt.first.apply(fd, opt.second);
       }
     }
@@ -133,15 +126,15 @@ void Acceptor::initDownstreamConnectionManager(EventBase* eventBase) {
   base_ = eventBase;
   state_ = State::kRunning;
   downstreamConnectionManager_ = ConnectionManager::makeUnique(
-    eventBase, accConfig_.connectionIdleTimeout, this);
+      eventBase, accConfig_.connectionIdleTimeout, this);
 }
-
 
 std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
   return FizzConfigUtil::createFizzContext(accConfig_);
 }
 
-std::shared_ptr<const fizz::server::FizzServerContext> Acceptor::recreateFizzContext() {
+std::shared_ptr<const fizz::server::FizzServerContext>
+Acceptor::recreateFizzContext() {
   auto ctx = createFizzContext();
   if (ctx && fizzCertManager_) {
     ctx->setTicketCipher(fizzTicketCipher_);
@@ -152,8 +145,7 @@ std::shared_ptr<const fizz::server::FizzServerContext> Acceptor::recreateFizzCon
   return ctx;
 }
 
-std::shared_ptr<fizz::server::TicketCipher>
-Acceptor::createFizzTicketCipher(
+std::shared_ptr<fizz::server::TicketCipher> Acceptor::createFizzTicketCipher(
     const TLSTicketKeySeeds& seeds,
     folly::Optional<std::string> pskContext) {
   return FizzConfigUtil::createTicketCipher<fizz::server::AES128TicketCipher>(
@@ -167,12 +159,11 @@ std::unique_ptr<fizz::server::CertManager> Acceptor::createFizzCertManager() {
   return FizzConfigUtil::createCertManager(accConfig_);
 }
 
-
 std::string Acceptor::getPskContext() {
   std::string pskContext;
   if (!accConfig_.sslContextConfigs.empty()) {
-    pskContext = accConfig_.sslContextConfigs.front().sessionContext.value_or(
-      "");
+    pskContext =
+        accConfig_.sslContextConfigs.front().sessionContext.value_or("");
   }
   return pskContext;
 }
@@ -187,51 +178,41 @@ void Acceptor::resetSSLContextConfigs() {
       }
     }
     if (sslCtxManager_) {
-      sslCtxManager_->resetSSLContextConfigs(accConfig_.sslContextConfigs,
-                                             accConfig_.sslCacheOptions,
-                                             nullptr,
-                                             accConfig_.bindAddress,
-                                             cacheProvider_);
+      sslCtxManager_->resetSSLContextConfigs(
+          accConfig_.sslContextConfigs,
+          accConfig_.sslCacheOptions,
+          nullptr,
+          accConfig_.bindAddress,
+          cacheProvider_);
     }
   } catch (const std::runtime_error& ex) {
-    LOG(ERROR) << "Failed to re-configure TLS: "
-               << ex.what()
+    LOG(ERROR) << "Failed to re-configure TLS: " << ex.what()
                << "will keep old config";
   }
-
 }
 
-Acceptor::~Acceptor(void) {
-}
+Acceptor::~Acceptor(void) {}
 
 void Acceptor::setTLSTicketSecrets(
     const std::vector<std::string>& oldSecrets,
     const std::vector<std::string>& currentSecrets,
     const std::vector<std::string>& newSecrets) {
-
   if (accConfig_.fizzConfig.enableFizz) {
-    TLSTicketKeySeeds seeds{
-      oldSecrets,
-      currentSecrets,
-      newSecrets};
+    TLSTicketKeySeeds seeds{oldSecrets, currentSecrets, newSecrets};
 
-    fizzTicketCipher_ = createFizzTicketCipher(
-      seeds,
-      getPskContext());
+    fizzTicketCipher_ = createFizzTicketCipher(seeds, getPskContext());
     getFizzPeeker()->setContext(recreateFizzContext());
   }
 
   if (sslCtxManager_) {
-    sslCtxManager_->reloadTLSTicketKeys(
-        oldSecrets, currentSecrets, newSecrets);
+    sslCtxManager_->reloadTLSTicketKeys(oldSecrets, currentSecrets, newSecrets);
   }
 }
 
-void
-Acceptor::drainAllConnections() {
+void Acceptor::drainAllConnections() {
   if (downstreamConnectionManager_) {
     downstreamConnectionManager_->initiateGracefulShutdown(
-      gracefulShutdownTimeout_);
+        gracefulShutdownTimeout_);
   }
 }
 
@@ -248,7 +229,7 @@ bool Acceptor::canAccept(const SocketAddress& address) {
   }
 
   const auto totalConnLimit =
-    loadShedConfig_ ? loadShedConfig_->getMaxConnections() : 0;
+      loadShedConfig_ ? loadShedConfig_->getMaxConnections() : 0;
   if (totalConnLimit == 0) {
     return true;
   }
@@ -268,24 +249,22 @@ bool Acceptor::canAccept(const SocketAddress& address) {
 
   // getConnectionCountForLoadShedding() call can be very expensive,
   // don't call it if you are not going to use the results.
-  const auto totalConnExceeded =
-    totalConnLimit > 0 && getConnectionCountForLoadShedding() >= totalConnLimit;
+  const auto totalConnExceeded = totalConnLimit > 0 &&
+      getConnectionCountForLoadShedding() >= totalConnLimit;
 
   const auto activeConnLimit =
-    loadShedConfig_ ? loadShedConfig_->getMaxActiveConnections() : 0;
+      loadShedConfig_ ? loadShedConfig_->getMaxActiveConnections() : 0;
   // getActiveConnectionCountForLoadShedding() call can be very expensive,
   // don't call it if you are not going to use the results.
-  const auto activeConnExceeded =
-    !totalConnExceeded &&
-    activeConnLimit > 0 &&
-    getActiveConnectionCountForLoadShedding() >= activeConnLimit;
+  const auto activeConnExceeded = !totalConnExceeded && activeConnLimit > 0 &&
+      getActiveConnectionCountForLoadShedding() >= activeConnLimit;
 
   if (!activeConnExceeded && !totalConnExceeded) {
     return true;
   }
   LOG_EVERY_N(ERROR, 1000) << "shedding connection because activeConnExceeded="
-                           << activeConnExceeded << "totalConnExceeded="
-                           << totalConnExceeded;
+                           << activeConnExceeded
+                           << "totalConnExceeded=" << totalConnExceeded;
   VLOG(4) << address.describe() << " not whitelisted";
   return false;
 }
@@ -304,7 +283,7 @@ void Acceptor::connectionAccepted(
     return;
   }
   auto acceptTime = std::chrono::steady_clock::now();
-  for (const auto& opt: socketOptions_) {
+  for (const auto& opt : socketOptions_) {
     opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
   }
 
@@ -319,8 +298,7 @@ void Acceptor::onDoneAcceptingConnection(
   processEstablishedConnection(fd, clientAddr, acceptTime, tinfo);
 }
 
-void
-Acceptor::processEstablishedConnection(
+void Acceptor::processEstablishedConnection(
     int fd,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
@@ -332,13 +310,12 @@ Acceptor::processEstablishedConnection(
   }
   if (shouldDoSSL) {
     AsyncSSLSocket::UniquePtr sslSock(
-      makeNewAsyncSSLSocket(
-        sslCtxManager_->getDefaultSSLCtx(), base_, fd));
+        makeNewAsyncSSLSocket(sslCtxManager_->getDefaultSSLCtx(), base_, fd));
     ++numPendingSSLConns_;
     ++totalNumPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
-      VLOG(2) << "dropped SSL handshake on " << accConfig_.name <<
-        " too many handshakes in progress";
+      VLOG(2) << "dropped SSL handshake on " << accConfig_.name
+              << " too many handshakes in progress";
       auto error = SSLErrorEnum::DROPPED;
       auto latency = std::chrono::milliseconds(0);
       auto ex = folly::make_exception_wrapper<SSLException>(
@@ -350,11 +327,7 @@ Acceptor::processEstablishedConnection(
 
     tinfo.tfoSucceded = sslSock->getTFOSucceded();
     startHandshakeManager(
-        std::move(sslSock),
-        this,
-        clientAddr,
-        acceptTime,
-        tinfo);
+        std::move(sslSock), this, clientAddr, acceptTime, tinfo);
   } else {
     tinfo.secure = false;
     tinfo.acceptTime = acceptTime;
@@ -380,8 +353,7 @@ void Acceptor::startHandshakeManager(
   manager->start(std::move(sslSock));
 }
 
-void
-Acceptor::connectionReady(
+void Acceptor::connectionReady(
     AsyncTransportWrapper::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocolName,
@@ -396,11 +368,11 @@ Acceptor::connectionReady(
   tinfo.appProtocol = std::make_shared<std::string>(nextProtocolName);
   if (state_ < State::kDraining) {
     onNewConnection(
-      std::move(sock),
-      &clientAddr,
-      nextProtocolName,
-      secureTransportType,
-      tinfo);
+        std::move(sock),
+        &clientAddr,
+        nextProtocolName,
+        secureTransportType,
+        tinfo);
   }
 }
 
@@ -418,21 +390,17 @@ void Acceptor::plaintextConnectionReady(
       tinfo);
 }
 
-void
-Acceptor::sslConnectionReady(AsyncTransportWrapper::UniquePtr sock,
-                             const SocketAddress& clientAddr,
-                             const string& nextProtocol,
-                             SecureTransportType secureTransportType,
-                             TransportInfo& tinfo) {
+void Acceptor::sslConnectionReady(
+    AsyncTransportWrapper::UniquePtr sock,
+    const SocketAddress& clientAddr,
+    const string& nextProtocol,
+    SecureTransportType secureTransportType,
+    TransportInfo& tinfo) {
   CHECK(numPendingSSLConns_ > 0);
   --numPendingSSLConns_;
   --totalNumPendingSSLConns_;
   connectionReady(
-      std::move(sock),
-      clientAddr,
-      nextProtocol,
-      secureTransportType,
-      tinfo);
+      std::move(sock), clientAddr, nextProtocol, secureTransportType, tinfo);
   if (state_ == State::kDraining) {
     checkDrained();
   }
@@ -447,8 +415,7 @@ void Acceptor::sslConnectionError(const folly::exception_wrapper&) {
   }
 }
 
-void
-Acceptor::acceptError(const std::exception& ex) noexcept {
+void Acceptor::acceptError(const std::exception& ex) noexcept {
   // An error occurred.
   // The most likely error is out of FDs.  AsyncServerSocket will back off
   // briefly if we are out of FDs, then continue accepting later.
@@ -456,8 +423,7 @@ Acceptor::acceptError(const std::exception& ex) noexcept {
   LOG(ERROR) << "error accepting on acceptor socket: " << ex.what();
 }
 
-void
-Acceptor::acceptStopped() noexcept {
+void Acceptor::acceptStopped() noexcept {
   VLOG(3) << "Acceptor " << this << " acceptStopped()";
   // Drain the open client connections
   drainAllConnections();
@@ -473,16 +439,14 @@ Acceptor::acceptStopped() noexcept {
   }
 }
 
-void
-Acceptor::onEmpty(const ConnectionManager&) {
+void Acceptor::onEmpty(const ConnectionManager&) {
   VLOG(3) << "Acceptor=" << this << " onEmpty()";
   if (state_ == State::kDraining) {
     checkDrained();
   }
 }
 
-void
-Acceptor::checkDrained() {
+void Acceptor::checkDrained() {
   CHECK(state_ == State::kDraining);
   if (forceShutdownInProgress_ ||
       (downstreamConnectionManager_->getNumConnections() != 0) ||
@@ -500,20 +464,18 @@ Acceptor::checkDrained() {
   onConnectionsDrained();
 }
 
-void
-Acceptor::drainConnections(double pctToDrain) {
+void Acceptor::drainConnections(double pctToDrain) {
   if (downstreamConnectionManager_) {
     LOG(INFO) << "Draining " << pctToDrain * 100 << "% of "
               << getNumConnections() << " connections from Acceptor=" << this
               << " in thread " << base_;
     assert(base_->isInEventBaseThread());
-    downstreamConnectionManager_->
-      drainConnections(pctToDrain, gracefulShutdownTimeout_);
+    downstreamConnectionManager_->drainConnections(
+        pctToDrain, gracefulShutdownTimeout_);
   }
 }
 
-milliseconds
-Acceptor::getConnTimeout() const {
+milliseconds Acceptor::getConnTimeout() const {
   return accConfig_.connectionIdleTimeout;
 }
 
@@ -523,13 +485,11 @@ void Acceptor::addConnection(ManagedConnection* conn) {
   downstreamConnectionManager_->addConnection(conn, true);
 }
 
-void
-Acceptor::forceStop() {
+void Acceptor::forceStop() {
   base_->runInEventBaseThread([&] { dropAllConnections(); });
 }
 
-void
-Acceptor::dropAllConnections() {
+void Acceptor::dropAllConnections() {
   if (downstreamConnectionManager_) {
     LOG(INFO) << "Dropping all connections from Acceptor=" << this
               << " in thread " << base_;
@@ -545,8 +505,7 @@ Acceptor::dropAllConnections() {
   onConnectionsDrained();
 }
 
-void
-Acceptor::dropConnections(double pctToDrop) {
+void Acceptor::dropConnections(double pctToDrop) {
   base_->runInEventBaseThread([&, pctToDrop] {
     if (downstreamConnectionManager_) {
       LOG(INFO) << "Dropping " << pctToDrop * 100 << "% of "
