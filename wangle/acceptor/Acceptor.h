@@ -79,6 +79,15 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   }
 
   /**
+   * Supply a fizz cert manager for use.
+   * If not set before init(), one will be created.
+   */
+  virtual void setFizzCertManager(
+      std::shared_ptr<fizz::server::CertManager> fizzCertManager) {
+    fizzCertManager_ = fizzCertManager;
+  }
+
+  /**
    * Initialize the Acceptor to run in the specified EventBase
    * thread, receiving connections from the specified AsyncServerSocket.
    *
@@ -93,7 +102,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   /**
    * Recreates ssl configs, re-reads certs
    */
-  virtual void resetSSLContextConfigs();
+  virtual void resetSSLContextConfigs(
+      std::shared_ptr<fizz::server::CertManager> certManager = nullptr);
 
   SSLContextManager* getSSLContextManager() const {
     return sslCtxManager_.get();

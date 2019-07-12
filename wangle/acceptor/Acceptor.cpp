@@ -69,7 +69,9 @@ void Acceptor::init(
                               accConfig_.initialTicketSeeds.newSeeds};
 
       fizzTicketCipher_ = createFizzTicketCipher(seeds, getPskContext());
-      fizzCertManager_ = createFizzCertManager();
+      if (!fizzCertManager_) {
+        fizzCertManager_ = createFizzCertManager();
+      }
 
       auto* peeker = getFizzPeeker();
       peeker->setContext(recreateFizzContext());
@@ -168,10 +170,11 @@ std::string Acceptor::getPskContext() {
   return pskContext;
 }
 
-void Acceptor::resetSSLContextConfigs() {
+void Acceptor::resetSSLContextConfigs(
+    std::shared_ptr<fizz::server::CertManager> certManager) {
   try {
     if (accConfig_.fizzConfig.enableFizz) {
-      auto manager = createFizzCertManager();
+      auto manager = certManager ? certManager : createFizzCertManager();
       if (manager) {
         fizzCertManager_ = std::move(manager);
         getFizzPeeker()->setContext(recreateFizzContext());
