@@ -299,9 +299,32 @@ struct TransportInfo {
   int32_t timeToLastByteTx{-1};
 
   /*
+   * time to NIC TX of the 2nd to last packet containing body bytes
+   *  - if fewer than three packets are sent this timestamp is unavailable
+   *  - useful in understanding impact of client-side delayed ACK on TTLBA
+   */
+  int32_t timeToSecondToLastBodyPacketTx{-1};
+
+  /*
+   * time to TCP Ack received for the first written body byte
+   *  - can be used to analyze buffer bloat, estimate application-level latency
+   *    with accounting for retransmissions (unlike TCP's RTT), and jitter
+   */
+  int32_t timeToFirstBodyByteAck{-1};
+
+  /*
    * time to TCP Ack received for the last written body byte
    */
   int32_t timeToLastBodyByteAck{-1};
+
+  /*
+   * time to TCP Ack received for 2nd to last packet containing body bytes
+   *  - if fewer than three packets are sent this timestamp is unavailable
+   *  - useful in understanding impact of client-side ACK delay on TTLBA
+   *  - can be used as an alternative to TTLBA when you want to avoid possible
+   *    impact of client-side delayed ACK
+   */
+  int32_t timeToSecondToLastBodyPacketAck{-1};
 
   /*
    * time it took the client to ACK the last byte, from the moment when the
@@ -356,6 +379,14 @@ struct TransportInfo {
    * see maybeFirstBodyByteOffset
    */
   folly::Optional<uint64_t> maybeLastBodyByteOffset;
+
+  /*
+   * session offset of the last byte in the 2nd to last packet with body bytes
+   *  - see maybeFirstBodyByteOffset and timeToSecondToLastBodyPacketAck
+   *  - if fewer than three packets are sent this offset is unavailable
+   *  - useful in understanding impact of client-side ACK delay on TTLBA
+   */
+  folly::Optional<uint64_t> maybeSecondToLastPacketByteOffset;
 
   /*
    * value of errno in case of getsockopt() error
