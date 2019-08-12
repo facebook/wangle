@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.0.2)
 
 project("wangle" VERSION 1.0.0 LANGUAGES CXX C)
 
-add_compile_options(-std=c++1z)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/"
