@@ -54,8 +54,9 @@ class FizzAcceptorHandshakeHelper
     virtual void logFizzHandshakeSuccess(
         const fizz::server::AsyncFizzServer&,
         const wangle::TransportInfo* tinfo) = 0;
-    virtual void logFizzHandshakeError(const fizz::server::AsyncFizzServer&,
-                                       const folly::exception_wrapper&) = 0;
+    virtual void logFizzHandshakeError(
+        const fizz::server::AsyncFizzServer&,
+        const folly::exception_wrapper&) = 0;
   };
 
   FizzAcceptorHandshakeHelper(
@@ -104,15 +105,17 @@ class FizzAcceptorHandshakeHelper
   // AsyncFizzServer::HandshakeCallback API
   void fizzHandshakeSuccess(
       fizz::server::AsyncFizzServer* transport) noexcept override;
-  void fizzHandshakeError(fizz::server::AsyncFizzServer* transport,
-                          folly::exception_wrapper ex) noexcept override;
+  void fizzHandshakeError(
+      fizz::server::AsyncFizzServer* transport,
+      folly::exception_wrapper ex) noexcept override;
   void fizzHandshakeAttemptFallback(
       std::unique_ptr<folly::IOBuf> clientHello) override;
 
   // AsyncSSLSocket::HandshakeCallback API
   void handshakeSuc(folly::AsyncSSLSocket* sock) noexcept override;
-  void handshakeErr(folly::AsyncSSLSocket* sock,
-                    const folly::AsyncSocketException& ex) noexcept override;
+  void handshakeErr(
+      folly::AsyncSSLSocket* sock,
+      const folly::AsyncSocketException& ex) noexcept override;
 
   std::shared_ptr<const fizz::server::FizzServerContext> context_;
   std::shared_ptr<folly::SSLContext> sslContext_;
@@ -138,7 +141,8 @@ class DefaultToFizzPeekingCallback
     return context_;
   }
 
-  void setContext(std::shared_ptr<const fizz::server::FizzServerContext> context) {
+  void setContext(
+      std::shared_ptr<const fizz::server::FizzServerContext> context) {
     context_ = std::move(context);
   }
 
@@ -163,12 +167,13 @@ class DefaultToFizzPeekingCallback
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo) override {
     return wangle::AcceptorHandshakeHelper::UniquePtr(
-        new FizzAcceptorHandshakeHelper(context_,
-                                        clientAddr,
-                                        acceptTime,
-                                        tinfo,
-                                        loggingCallback_,
-                                        tokenBindingContext_));
+        new FizzAcceptorHandshakeHelper(
+            context_,
+            clientAddr,
+            acceptTime,
+            tinfo,
+            loggingCallback_,
+            tokenBindingContext_));
   }
 
  protected:
@@ -176,4 +181,4 @@ class DefaultToFizzPeekingCallback
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
   FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback_{nullptr};
 };
-}
+} // namespace wangle

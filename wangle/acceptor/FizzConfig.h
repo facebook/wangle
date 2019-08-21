@@ -31,7 +31,8 @@ struct FizzConfig {
   bool earlyDataFbOnly{false};
 
   folly::Optional<uint16_t> maxRecord;
-  std::vector<fizz::CertificateCompressionAlgorithm> supportedCompressionAlgorithms;
+  std::vector<fizz::CertificateCompressionAlgorithm>
+      supportedCompressionAlgorithms;
 };
 
 struct FizzClientConfig {

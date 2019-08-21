@@ -15,26 +15,25 @@
  */
 #pragma once
 
-
-#include <wangle/ssl/SSLCacheOptions.h>
-#include <wangle/ssl/SSLContextConfig.h>
-#include <wangle/ssl/TLSTicketKeySeeds.h>
-#include <wangle/ssl/SSLUtil.h>
 #include <wangle/acceptor/FizzConfig.h>
 #include <wangle/acceptor/SocketOptions.h>
+#include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLContextConfig.h>
+#include <wangle/ssl/SSLUtil.h>
+#include <wangle/ssl/TLSTicketKeySeeds.h>
 
 #include <boost/optional.hpp>
-#include <chrono>
 #include <fcntl.h>
 #include <folly/Random.h>
 #include <folly/SocketAddress.h>
 #include <folly/String.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/SSLContext.h>
-#include <list>
-#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <chrono>
+#include <list>
+#include <string>
 
 namespace wangle {
 
@@ -51,24 +50,23 @@ struct ServerSocketConfig {
     uint8_t seed[32];
     folly::Random::secureRandom(seed, sizeof(seed));
     initialTicketSeeds.currentSeeds.push_back(
-      SSLUtil::hexlify(std::string((char *)seed, sizeof(seed))));
+        SSLUtil::hexlify(std::string((char*)seed, sizeof(seed))));
   }
 
-  bool isSSL() const { return !(sslContextConfigs.empty()); }
+  bool isSSL() const {
+    return !(sslContextConfigs.empty());
+  }
 
   /**
    * Set/get the socket options to apply on all downstream connections.
    */
-  void setSocketOptions(
-    const folly::AsyncSocket::OptionMap& opts) {
+  void setSocketOptions(const folly::AsyncSocket::OptionMap& opts) {
     socketOptions_ = filterIPSocketOptions(opts, bindAddress.getFamily());
   }
-  folly::AsyncSocket::OptionMap&
-  getSocketOptions() {
+  folly::AsyncSocket::OptionMap& getSocketOptions() {
     return socketOptions_;
   }
-  const folly::AsyncSocket::OptionMap&
-  getSocketOptions() const {
+  const folly::AsyncSocket::OptionMap& getSocketOptions() const {
     return socketOptions_;
   }
 
@@ -84,11 +82,9 @@ struct ServerSocketConfig {
   /**
    * This should only be called from the evb thread.
    */
-  void updateSSLContextConfigs(
-    std::vector<SSLContextConfig> newConfigs) const {
+  void updateSSLContextConfigs(std::vector<SSLContextConfig> newConfigs) const {
     sslContextConfigs = newConfigs;
   }
-
 
   /**
    * The name of this acceptor; used for stats/reporting purposes.

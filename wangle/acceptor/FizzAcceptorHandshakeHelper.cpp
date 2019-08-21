@@ -50,7 +50,6 @@ AsyncFizzServer::UniquePtr FizzAcceptorHandshakeHelper::createFizzServer(
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
     AsyncFizzServer* transport) noexcept {
-
   VLOG(3) << "Fizz handshake success";
 
   tinfo_.acceptTime = acceptTime_;
@@ -75,14 +74,16 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
     loggingCallback_->logFizzHandshakeSuccess(*transport, &tinfo_);
   }
 
-  callback_->connectionReady(std::move(transport_),
-                             std::move(appProto),
-                             SecureTransportType::TLS,
-                             SSLErrorEnum::NO_ERROR);
+  callback_->connectionReady(
+      std::move(transport_),
+      std::move(appProto),
+      SecureTransportType::TLS,
+      SSLErrorEnum::NO_ERROR);
 }
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeError(
-    AsyncFizzServer* transport, folly::exception_wrapper ex) noexcept {
+    AsyncFizzServer* transport,
+    folly::exception_wrapper ex) noexcept {
   if (loggingCallback_) {
     loggingCallback_->logFizzHandshakeError(*transport, ex);
   }
@@ -146,10 +147,11 @@ void FizzAcceptorHandshakeHelper::handshakeSuc(
   wangle::SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(sock, tinfo_);
 
   // The callback will delete this.
-  callback_->connectionReady(std::move(sslSocket_),
-                             std::move(appProto),
-                             SecureTransportType::TLS,
-                             SSLErrorEnum::NO_ERROR);
+  callback_->connectionReady(
+      std::move(sslSocket_),
+      std::move(appProto),
+      SecureTransportType::TLS,
+      SSLErrorEnum::NO_ERROR);
 }
 
 void FizzAcceptorHandshakeHelper::handshakeErr(
@@ -167,4 +169,4 @@ void FizzAcceptorHandshakeHelper::handshakeErr(
   // The callback will delete this.
   callback_->connectionError(sslSocket_.get(), sslEx, sslError_);
 }
-}
+} // namespace wangle
