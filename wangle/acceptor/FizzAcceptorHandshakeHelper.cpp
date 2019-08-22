@@ -54,6 +54,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
 
   tinfo_.acceptTime = acceptTime_;
   tinfo_.secure = true;
+  tinfo_.sslVersion = 0x0304;
   tinfo_.securityType = transport->getSecurityProtocol();
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - acceptTime_);
