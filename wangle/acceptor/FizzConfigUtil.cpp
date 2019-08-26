@@ -23,7 +23,6 @@ using fizz::CertUtils;
 using fizz::DefaultCertificateVerifier;
 using fizz::FizzUtil;
 using fizz::ProtocolVersion;
-using fizz::PskKeyExchangeMode;
 using fizz::VerificationContext;
 using fizz::server::ClientAuthMode;
 

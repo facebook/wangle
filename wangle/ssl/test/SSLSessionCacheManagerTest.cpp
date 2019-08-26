@@ -18,7 +18,6 @@
 #include <wangle/ssl/SSLSessionCacheManager.h>
 #include <folly/Random.h>
 
-using std::shared_ptr;
 using namespace folly;
 using namespace wangle;
 

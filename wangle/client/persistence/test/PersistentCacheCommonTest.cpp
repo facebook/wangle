@@ -18,7 +18,6 @@
 #include <wangle/client/persistence/PersistentCacheCommon.h>
 
 using namespace testing;
-using namespace wangle;
 
 namespace wangle {
 

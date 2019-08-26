@@ -22,8 +22,6 @@
 #include <folly/portability/Sockets.h>
 
 using std::chrono::microseconds;
-using std::map;
-using std::string;
 
 namespace wangle {
 

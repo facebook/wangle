@@ -22,7 +22,6 @@
 #include <folly/Singleton.h>
 #include <sys/stat.h>
 
-using namespace folly;
 
 namespace wangle {
 

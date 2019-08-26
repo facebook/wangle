@@ -16,8 +16,6 @@
 //
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
-using namespace std::chrono;
-using namespace folly::ssl;
 
 namespace wangle {
 // static

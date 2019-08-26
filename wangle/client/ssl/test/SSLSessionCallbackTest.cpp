@@ -20,7 +20,6 @@
 #include <vector>
 #include <map>
 
-using namespace testing;
 using namespace wangle;
 
 using folly::SSLContext;

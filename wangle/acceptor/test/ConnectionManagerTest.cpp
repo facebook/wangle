@@ -19,7 +19,6 @@
 #include <folly/portability/GMock.h>
 #include <folly/portability/GFlags.h>
 
-using namespace folly;
 using namespace testing;
 using namespace wangle;
 

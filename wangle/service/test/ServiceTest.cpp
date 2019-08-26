@@ -26,7 +26,6 @@
 
 namespace wangle {
 
-using namespace wangle;
 using namespace folly;
 
 typedef Pipeline<IOBufQueue&, std::string> ServicePipeline;

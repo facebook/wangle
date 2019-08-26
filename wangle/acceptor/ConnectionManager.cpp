@@ -19,7 +19,6 @@
 #include <glog/logging.h>
 #include <folly/io/async/EventBase.h>
 
-using folly::HHWheelTimer;
 using std::chrono::milliseconds;
 
 namespace wangle {

@@ -22,8 +22,6 @@
 #include <wangle/ssl/TLSTicketKeyManager.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
 
-using folly::SSLContext;
-using folly::EventBase;
 
 namespace wangle {
 

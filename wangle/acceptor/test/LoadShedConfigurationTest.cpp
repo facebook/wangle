@@ -18,7 +18,6 @@
 #include <folly/portability/GTest.h>
 
 using namespace wangle;
-using namespace testing;
 
 TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   LoadShedConfiguration lsc;

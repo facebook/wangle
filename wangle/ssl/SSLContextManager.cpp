@@ -44,7 +44,6 @@ using folly::SSLContext;
 using std::string;
 using std::shared_ptr;
 // Get OpenSSL portability APIs
-using namespace folly::ssl;
 
 /**
  * SSLContextManager helps to create and manage all SSL_CTX,

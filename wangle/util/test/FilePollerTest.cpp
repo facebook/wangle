@@ -29,7 +29,6 @@
 
 #if !defined(_WIN32)
 
-using namespace testing;
 using namespace folly;
 using namespace wangle;
 using namespace folly::test;

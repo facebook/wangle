@@ -18,7 +18,6 @@
 
 #ifdef SPLICE_F_NONBLOCK
 using namespace folly;
-using namespace wangle;
 
 namespace {
 

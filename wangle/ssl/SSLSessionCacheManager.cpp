@@ -26,9 +26,7 @@
 #include <folly/portability/OpenSSL.h>
 
 using folly::SSLContext;
-using folly::EventBase;
 using folly::AsyncSSLSocket;
-using folly::DelayedDestruction;
 using std::string;
 using std::shared_ptr;
 
@@ -46,7 +44,6 @@ DEFINE_bool(dcache_unit_test, false, "All VIPs share one session cache");
 
 namespace wangle {
 
-using namespace folly::ssl;
 
 
 int SSLSessionCacheManager::sExDataIndex_ = -1;

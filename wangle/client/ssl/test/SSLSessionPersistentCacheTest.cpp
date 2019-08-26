@@ -29,7 +29,6 @@
 
 using namespace testing;
 using namespace std::chrono;
-using namespace wangle;
 
 namespace wangle {
 

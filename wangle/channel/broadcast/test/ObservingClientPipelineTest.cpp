@@ -23,7 +23,6 @@
 
 using namespace wangle;
 using namespace folly;
-using namespace testing;
 
 using BytesPipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>;
 using TestObsPipeline = ObservingPipeline<std::shared_ptr<folly::IOBuf>>;

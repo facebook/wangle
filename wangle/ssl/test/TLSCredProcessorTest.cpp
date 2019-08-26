@@ -18,14 +18,12 @@
 
 #include <boost/filesystem.hpp>
 #include <folly/portability/GTest.h>
-#include <folly/portability/Stdlib.h>
 #include <folly/synchronization/Baton.h>
 #include <folly/File.h>
 #include <folly/FileUtil.h>
 #include <folly/Range.h>
 #include <wangle/ssl/test/TicketUtil.h>
 
-using namespace testing;
 using namespace folly;
 using namespace wangle;
 

@@ -32,18 +32,11 @@
 
 using folly::AsyncServerSocket;
 using folly::AsyncSocket;
-using folly::AsyncSocketException;
 using folly::AsyncSSLSocket;
 using folly::AsyncTransportWrapper;
 using folly::EventBase;
 using folly::SocketAddress;
-using folly::StringPiece;
-using std::filebuf;
-using std::ifstream;
-using std::ios;
-using std::shared_ptr;
 using std::string;
-using std::chrono::microseconds;
 using std::chrono::milliseconds;
 
 namespace wangle {
