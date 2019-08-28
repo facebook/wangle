@@ -18,6 +18,7 @@
 
 #include <boost/filesystem.hpp>
 #include <folly/portability/GTest.h>
+#include <folly/portability/Stdlib.h>
 #include <folly/synchronization/Baton.h>
 #include <folly/File.h>
 #include <folly/FileUtil.h>
