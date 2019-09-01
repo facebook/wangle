@@ -256,16 +256,16 @@ TEST(Wangle, FactoryToService) {
 
 class TimekeeperTester : public Timekeeper {
  public:
-  Future<Unit> after(Duration) override {
+  SemiFuture<Unit> after(Duration) override {
     Promise<Unit> p;
-    auto f = p.getFuture();
+    auto f = p.getSemiFuture();
     promises_.push_back(std::move(p));
     return f;
   }
   template <class Clock>
-  Future<Unit> at(std::chrono::time_point<Clock>) {
+  SemiFuture<Unit> at(std::chrono::time_point<Clock>) {
     Promise<Unit> p;
-    auto f = p.getFuture();
+    auto f = p.getSemiFuture();
     promises_.push_back(std::move(p));
     return f;
   }
