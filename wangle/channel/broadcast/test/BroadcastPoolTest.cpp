@@ -286,10 +286,7 @@ TEST_F(BroadcastPoolTest, ConnectErrorServerPool) {
   // a connect request
   std::string routingData = "url1";
   BroadcastHandler<int, std::string>* handler1 = nullptr;
-  BroadcastHandler<int, std::string>* handler2 = nullptr;
   bool handler1Error = false;
-  bool handler2Error = false;
-  auto base = EventBaseManager::get()->getEventBase();
 
   InSequence dummy;
 
