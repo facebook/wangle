@@ -54,7 +54,7 @@ endif()
 
 find_package(fizz CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context
-                                       date_time program_options)
+                                       date_time program_options chrono)
 find_package(OpenSSL REQUIRED)
 find_package(Glog REQUIRED)
 find_package(gflags CONFIG QUIET)
