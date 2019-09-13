@@ -46,7 +46,7 @@ class LoadShedConfiguration {
 
   LoadShedConfiguration() = default;
 
-  ~LoadShedConfiguration() = default;
+  virtual ~LoadShedConfiguration() = default;
 
   void addWhitelistAddr(folly::StringPiece);
 
@@ -298,7 +298,7 @@ class LoadShedConfiguration {
     uint64_t numLogicalCpuCores{0};
     uint64_t totalMemBytes{0};
   };
-  void checkIsSane(const SysParams& sysParams) const;
+  virtual void checkIsSane(const SysParams& sysParams) const;
 
  private:
   AddressSet whitelistAddrs_;
