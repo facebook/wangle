@@ -29,6 +29,9 @@ option(BUILD_SHARED_LIBS
 # is generally discouraged.
 mark_as_advanced(BUILD_SHARED_LIBS)
 
+include(FBBuildOptions)
+fb_activate_static_library_option()
+
 # When installing Folly & Wangle in a non-default prefix, this will let
 # projects linking against libwangle.so to find libfolly.so automatically.
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
