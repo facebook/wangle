@@ -38,6 +38,14 @@
 namespace wangle {
 
 /**
+ * Base class for custom configs.
+ */
+class CustomConfig {
+ public:
+  virtual ~CustomConfig() = default;
+};
+
+/**
  * Configuration for a single Acceptor.
  *
  * This configures not only accept behavior, but also some types of SSL
@@ -171,6 +179,12 @@ struct ServerSocketConfig {
   uint32_t socketMaxReadsPerEvent{16};
 
   FizzConfig fizzConfig;
+
+  /**
+   * A map containing custom configs.
+   */
+  std::unordered_map<std::string, std::shared_ptr<CustomConfig>>
+      customConfigMap;
 
  private:
   folly::AsyncSocket::OptionMap socketOptions_;

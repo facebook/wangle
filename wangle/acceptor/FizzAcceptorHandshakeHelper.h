@@ -109,7 +109,7 @@ class FizzAcceptorHandshakeHelper
       fizz::server::AsyncFizzServer* transport,
       folly::exception_wrapper ex) noexcept override;
   void fizzHandshakeAttemptFallback(
-      std::unique_ptr<folly::IOBuf> clientHello) override;
+     std::unique_ptr<folly::IOBuf> clientHello) override;
 
   // AsyncSSLSocket::HandshakeCallback API
   void handshakeSuc(folly::AsyncSSLSocket* sock) noexcept override;
@@ -120,7 +120,8 @@ class FizzAcceptorHandshakeHelper
   std::shared_ptr<const fizz::server::FizzServerContext> context_;
   std::shared_ptr<folly::SSLContext> sslContext_;
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
-  std::shared_ptr<fizz::extensions::TokenBindingServerExtension> extension_;
+  std::shared_ptr<fizz::extensions::TokenBindingServerExtension>
+      tokenBindingExtension_;
   fizz::server::AsyncFizzServer::UniquePtr transport_;
   folly::AsyncSSLSocket::UniquePtr sslSocket_;
   wangle::AcceptorHandshakeHelper::Callback* callback_;

@@ -29,11 +29,12 @@ void FizzAcceptorHandshakeHelper::start(
   sslContext_ = sock->getSSLContext();
 
   if (tokenBindingContext_) {
-    extension_ =
+    tokenBindingExtension_ =
         std::make_shared<TokenBindingServerExtension>(tokenBindingContext_);
   }
 
-  transport_ = createFizzServer(std::move(sock), context_, extension_);
+  transport_ =
+      createFizzServer(std::move(sock), context_, tokenBindingExtension_);
   transport_->accept(this);
 }
 
@@ -58,9 +59,10 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   tinfo_.securityType = transport->getSecurityProtocol();
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - acceptTime_);
-  if (extension_ && extension_->getNegotiatedKeyParam().hasValue()) {
+  if (tokenBindingExtension_ &&
+      tokenBindingExtension_->getNegotiatedKeyParam().hasValue()) {
     tinfo_.negotiatedTokenBindingKeyParameters =
-        static_cast<uint8_t>(*extension_->getNegotiatedKeyParam());
+        static_cast<uint8_t>(*tokenBindingExtension_->getNegotiatedKeyParam());
   }
 
   auto* handshakeLogging = transport->getState().handshakeLogging();
