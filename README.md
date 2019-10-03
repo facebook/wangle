@@ -1,4 +1,4 @@
-[![Travis Build Status](https://api.travis-ci.org/facebook/wangle.svg?branch=master)](https://travis-ci.org/facebook/wangle)
+[![Travis Build Status](https://api.travis-ci.com/facebook/wangle.svg?branch=master)](https://travis-ci.com/facebook/wangle)
 [![CI Status](https://github.com/facebook/wangle/workflows/CI/badge.svg?branch=master)](https://github.com/facebook/wangle/actions?workflow=CI)
 <section class="dex_guide"><h1 class="dex_title">Wangle</h1><section class="dex_document"><h1></h1><p class="dex_introduction">C++ networking library</p><p>Wangle is a library that makes it easy to build protocols, application clients, and application servers.</p>
 
