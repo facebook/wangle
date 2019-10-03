@@ -12,9 +12,9 @@ The main dependencies are:
 
 Once folly is installed, run the following inside the wangle directory to build, test, and install wangle:
 ```
-cmake .
+CMake.
 make
-ctest
+test
 sudo make install
 ```
 
@@ -52,9 +52,9 @@ See the CONTRIBUTING file for how to help out.
 
 <p>This is roughly equivalent to the <a href="https://twitter.github.io/finagle/" target="_blank">Finagle</a> library.</p>
 
-<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, http, etc.</p>
+<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, HTTP, etc.</p>
 
-<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call in to it.  These are protocol-specific</p>
+<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call into it.  These are protocol-specific</p>
 
 <p>ServiceFilter - a generic filter on a service. Examples: stats, request timeouts, rate limiting</p>
 
@@ -82,7 +82,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p><strong>join()</strong></p>
 
-<p>Joins all threadpools - all current reads and writes will be completed before this method returns.</p>
+<p>Joins all thread pools - all current reads and writes will be completed before this method returns.</p>
 
 <div class="remarkup-note"><span class="remarkup-note-word">NOTE:</span> however that both accept and io thread pools will be stopped using this method, so the thread pools can&#039;t be shared, or care must be taken using shared pools during shutdown.</div>
 
@@ -94,17 +94,17 @@ See the CONTRIBUTING file for how to help out.
 
 <p><strong>channelFactory(ServerSocketFactory)</strong></p>
 
-<p>Sets up the type of server.  Defaults to TCP AsyncServerSocket, but AsyncUDPServerSocket is also supported to receive udp messages.  In practice, ServerBootstrap is only useful for udp if you need to multiplex the messages across many threads, or have TCP connections going on at the same time, etc.  Simple usages of AsyncUDPSocket probably don&#039;t need the complexity of ServerBootstrap.</p>
+<p>Sets up the type of server.  Defaults to TCP AsyncServerSocket, but AsyncUDPServerSocket is also supported to receive UDP messages.  In practice, ServerBootstrap is only useful for UDP if you need to multiplex the messages across many threads or have TCP connections going on at the same time, etc.  Simple usages of AsyncUDPSocket probably don&#039;t need the complexity of ServerBootstrap.</p>
 
 <p><strong>pipeline(PipelineFactory&lt;AcceptPipeline&gt;)</strong></p>
 
-<p>This pipeline method is used to get the accepted socket (or udp message) *before* it has been handed off to an IO thread.  This can be used to steer the accept thread to a particular thread, or for logging.</p>
+<p>This pipeline method is used to get the accepted socket (or UDP message) *before* it has been handed off to an IO thread.  This can be used to steer the accept thread to a particular thread, or for logging.</p>
 
 <p>See also AcceptRoutingHandler and RoutingDataHandler for additional help in reading data off of the accepted socket <strong>before</strong> it gets attached to an IO thread.  These can be used to hash incoming sockets to specific threads.</p>
 
 <p><strong>childHandler(AcceptorFactory)</strong></p>
 
-<p>Previously facebook had lots of code that used AcceptorFactories instead of Pipelines, this is a method to support this code and be backwards compatible.  The AcceptorFactory is responsible for creating acceptors, setting up pipelines, setting up AsyncSocket read callbacks, etc.</p>
+<p>Previously facebook had lots of code that used AcceptorFactories instead of Pipelines, this is a method to support this code and be backward compatible.  The AcceptorFactory is responsible for creating acceptors, setting up pipelines, setting up AsyncSocket read callbacks, etc.</p>
 
 <h2 id="examples">Examples <a href="#examples" class="headerLink">#</a></h2>
 
@@ -146,11 +146,11 @@ See the CONTRIBUTING file for how to help out.
 <span class="c">// close the pipeline when finished</span>
 <span class="no">pipeline</span><span class="o">-&gt;</span><span class="na" data-symbol-name="close">close</span><span class="o">();</span></pre></div></section><section class="dex_document"><h1>Pipeline</h1><p class="dex_introduction">Send your socket data through a series of tubes</p><p>A Pipeline is a series of Handlers that intercept inbound or outbound events, giving full control over how events are handled.  Handlers can be added dynamically to the pipeline.</p>
 
-<p>When events are called, a Context* object is passed to the Handler - this means state can be stored in the context object, and a single instantiation of any individual Handler can be used for the entire program.</p>
+<p>When events are called, a Context* object is passed to the Handler - this means the state can be stored in the context object, and a single instantiation of any individual Handler can be used for the entire program.</p>
 
 <p>Netty&#039;s documentation: <a href="http://netty.io/4.0/api/io/netty/channel/ChannelPipeline.html" target="_blank">ChannelHandler</a></p>
 
-<p>Usually, the bottom of the Pipeline is a wangle::AsyncSocketHandler to read/write to a socket, but this isn&#039;t a requirement.</p>
+<p>Usually, the bottom of the Pipeline is a wangle:: AsyncSocketHandler to read/write to a socket, but this isn&#039;t a requirement.</p>
 
 <p>A pipeline is templated on the input and output types:</p>
 
@@ -190,17 +190,17 @@ See the CONTRIBUTING file for how to help out.
 
 <h3 id="asyncsockethandler">AsyncSocketHandler <a href="#asyncsockethandler" class="headerLink">#</a></h3>
 
-<p>This is almost always the first handler in the pipeline for clients and servers - it connects an AsyncSocket to the pipeline.  Having it as a handler is nice, because mocking it out for tests becomes trivial.</p>
+<p>This is almost always the first handler in the pipeline for clients and servers - it connects an AsyncSocket to the pipeline.  Having it as a handler is nice because mocking it out for tests becomes trivial.</p>
 
 <h3 id="outputbufferinghandler">OutputBufferingHandler <a href="#outputbufferinghandler" class="headerLink">#</a></h3>
 
-<p>Output is buffered and only sent once per event loop.  This logic is exactly what is in ThriftServer, and very similar to what exists in proxygen - it can improve throughput for small writes by up to 300%.</p>
+<p>Output is buffered and only sent once per event loop.  This logic is exactly what is in ThriftServer, and very similar to what exists in oxygen - it can improve throughput for small writes by up to 300%.</p>
 
 <h3 id="eventbasehandler">EventBaseHandler <a href="#eventbasehandler" class="headerLink">#</a></h3>
 
-<p>Putting this right after an AsyncSocketHandler means that writes can happen from any thread, and eventBase-&gt;runInEventBaseThread() will automatically be called to put them in the correct thread.  It doesn&#039;t intrinsically make the pipeline thread-safe though, writes from different threads may be interleaved, other handler stages must be only used from one thread or be thread safe, etc.</p>
+<p>Putting this right after an AsyncSocketHandler means that writes can happen from any thread, and event base-&gt;runInEventBaseThread() will automatically be called to put them in the correct thread.  It doesn&#039;t intrinsically make the pipeline thread-safe though, writes from different threads may be interleaved, other handler stages must be only used from one thread or be thread-safe, etc.</p>
 
-<p>In addition, reads are still always called on the eventBase thread.</p>
+<p>In addition, reads are still always called on the event base thread.</p>
 
 <h2 id="codecs">Codecs <a href="#codecs" class="headerLink">#</a></h2>
 
@@ -230,7 +230,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p>A Service is an RPC abstraction - Both clients and servers implement the interface.   Servers implement it by handling the request.  Clients implement it by sending the request to the server to complete.</p>
 
-<p>A Dispatcher is the adapter between the Pipeline and Service that matches up the requests and responses.  There are several built in Dispatchers, however if you are doing anything advanced, you may need to write your own.</p>
+<p>A Dispatcher is the adapter between the Pipeline and Service that matches up the requests and responses.  There are several built-in Dispatchers, however, if you are doing anything advanced, you may need to write your own.</p>
 
 <p>Because both clients and servers implement the same interface, mocking either clients or servers is trivially easy.</p>
 
@@ -249,7 +249,7 @@ See the CONTRIBUTING file for how to help out.
 
 <h2 id="servicefactories">ServiceFactories <a href="#servicefactories" class="headerLink">#</a></h2>
 
-<p>For some services, a Factory can help instantiate clients.   In Finagle, these are frequently provided for easy use with specific protocols, i.e. http, memcache, etc.</p>
+<p>For some services, a Factory can help instantiate clients.   In Finagle, these are frequently provided for easy use with specific protocols, i.e. HTTP, Memcache, etc.</p>
 
 <h2 id="servicefactoryfilters">ServiceFactoryFilters <a href="#servicefactoryfilters" class="headerLink">#</a></h2>
 
