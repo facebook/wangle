@@ -52,9 +52,9 @@ See the CONTRIBUTING file for how to help out.
 
 <p>This is roughly equivalent to the <a href="https://twitter.github.io/finagle/" target="_blank">Finagle</a> library.</p>
 
-<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, http, etc.</p>
+<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, HTTP, etc.</p>
 
-<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call in to it.  These are protocol-specific</p>
+<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call into it.  These are protocol-specific</p>
 
 <p>ServiceFilter - a generic filter on a service. Examples: stats, request timeouts, rate limiting</p>
 
