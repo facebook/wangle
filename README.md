@@ -52,9 +52,9 @@ See the CONTRIBUTING file for how to help out.
 
 <p>This is roughly equivalent to the <a href="https://twitter.github.io/finagle/" target="_blank">Finagle</a> library.</p>
 
-<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, http, etc.</p>
+<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, HTTP, etc.</p>
 
-<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call in to it.  These are protocol-specific</p>
+<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call into it.  These are protocol-specific</p>
 
 <p>ServiceFilter - a generic filter on a service. Examples: stats, request timeouts, rate limiting</p>
 
@@ -94,7 +94,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p><strong>channelFactory(ServerSocketFactory)</strong></p>
 
-<p>Sets up the type of server.  Defaults to TCP AsyncServerSocket, but AsyncUDPServerSocket is also supported to receive udp messages.  In practice, ServerBootstrap is only useful for udp if you need to multiplex the messages across many threads, or have TCP connections going on at the same time, etc.  Simple usages of AsyncUDPSocket probably don&#039;t need the complexity of ServerBootstrap.</p>
+<p>Sets up the type of server.  Defaults to TCP AsyncServerSocket, but AsyncUDPServerSocket is also supported to receive udp messages.  In practice, ServerBootstrap is only useful for udp if you need to multiplex the messages across many threads or have TCP connections going on at the same time, etc.  Simple usages of AsyncUDPSocket probably don&#039;t need the complexity of ServerBootstrap.</p>
 
 <p><strong>pipeline(PipelineFactory&lt;AcceptPipeline&gt;)</strong></p>
 
@@ -104,7 +104,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p><strong>childHandler(AcceptorFactory)</strong></p>
 
-<p>Previously facebook had lots of code that used AcceptorFactories instead of Pipelines, this is a method to support this code and be backwards compatible.  The AcceptorFactory is responsible for creating acceptors, setting up pipelines, setting up AsyncSocket read callbacks, etc.</p>
+<p>Previously facebook had lots of code that used AcceptorFactories instead of Pipelines, this is a method to support this code and be backward compatible.  The AcceptorFactory is responsible for creating acceptors, setting up pipelines, setting up AsyncSocket read callbacks, etc.</p>
 
 <h2 id="examples">Examples <a href="#examples" class="headerLink">#</a></h2>
 
@@ -190,7 +190,7 @@ See the CONTRIBUTING file for how to help out.
 
 <h3 id="asyncsockethandler">AsyncSocketHandler <a href="#asyncsockethandler" class="headerLink">#</a></h3>
 
-<p>This is almost always the first handler in the pipeline for clients and servers - it connects an AsyncSocket to the pipeline.  Having it as a handler is nice, because mocking it out for tests becomes trivial.</p>
+<p>This is almost always the first handler in the pipeline for clients and servers - it connects an AsyncSocket to the pipeline.  Having it as a handler is nice because mocking it out for tests becomes trivial.</p>
 
 <h3 id="outputbufferinghandler">OutputBufferingHandler <a href="#outputbufferinghandler" class="headerLink">#</a></h3>
 
@@ -200,7 +200,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p>Putting this right after an AsyncSocketHandler means that writes can happen from any thread, and eventBase-&gt;runInEventBaseThread() will automatically be called to put them in the correct thread.  It doesn&#039;t intrinsically make the pipeline thread-safe though, writes from different threads may be interleaved, other handler stages must be only used from one thread or be thread safe, etc.</p>
 
-<p>In addition, reads are still always called on the eventBase thread.</p>
+<p> Besides, reads are still always called on the eventBase thread.</p>
 
 <h2 id="codecs">Codecs <a href="#codecs" class="headerLink">#</a></h2>
 
