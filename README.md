@@ -14,9 +14,9 @@ The main dependencies are:
 
 Once folly is installed, run the following inside the wangle directory to build, test, and install wangle:
 ```
-cmake .
+CMake.
 make
-ctest
+test
 sudo make install
 ```
 
@@ -56,7 +56,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, http, etc.</p>
 
-<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call in to it.  These are protocol-specific</p>
+<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call into it.  These are protocol-specific</p>
 
 <p>ServiceFilter - a generic filter on a service. Examples: stats, request timeouts, rate limiting</p>
 
@@ -232,7 +232,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p>A Service is an RPC abstraction - Both clients and servers implement the interface.   Servers implement it by handling the request.  Clients implement it by sending the request to the server to complete.</p>
 
-<p>A Dispatcher is the adapter between the Pipeline and Service that matches up the requests and responses.  There are several built in Dispatchers, however if you are doing anything advanced, you may need to write your own.</p>
+<p>A Dispatcher is the adapter between the Pipeline and Service that matches up the requests and responses.  There are several built-in Dispatchers, however if you are doing anything advanced, you may need to write your own.</p>
 
 <p>Because both clients and servers implement the same interface, mocking either clients or servers is trivially easy.</p>
 
@@ -251,7 +251,7 @@ See the CONTRIBUTING file for how to help out.
 
 <h2 id="servicefactories">ServiceFactories <a href="#servicefactories" class="headerLink">#</a></h2>
 
-<p>For some services, a Factory can help instantiate clients.   In Finagle, these are frequently provided for easy use with specific protocols, i.e. http, memcache, etc.</p>
+<p>For some services, a Factory can help instantiate clients.   In Finagle, these are frequently provided for easy use with specific protocols, i.e. http, Memcache, etc.</p>
 
 <h2 id="servicefactoryfilters">ServiceFactoryFilters <a href="#servicefactoryfilters" class="headerLink">#</a></h2>
 
