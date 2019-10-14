@@ -12,7 +12,7 @@ The main dependencies are:
 
 Once folly is installed, run the following inside the wangle directory to build, test, and install wangle:
 ```
-cmake .
+CMake .
 make
 ctest
 sudo make install
@@ -52,9 +52,9 @@ See the CONTRIBUTING file for how to help out.
 
 <p>This is roughly equivalent to the <a href="https://twitter.github.io/finagle/" target="_blank">Finagle</a> library.</p>
 
-<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, http, etc.</p>
+<p>Aims to provide easy testing, load balancing, client pooling, retry logic, etc.  for any request/response type service - i.e. thrift, Http, etc.</p>
 
-<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call in to it.  These are protocol-specific</p>
+<p>Service - a matched interface between client/server.  A server will implement this interface, and a client will call into it.  These are protocol-specific</p>
 
 <p>ServiceFilter - a generic filter on a service. Examples: stats, request timeouts, rate limiting</p>
 
@@ -186,7 +186,7 @@ See the CONTRIBUTING file for how to help out.
 
 <p>Instantiating all these handlers and pipelines can hit the allocator pretty hard.  There are two ways to try to do fewer allocations.  StaticPipeline allows *all* the handlers, and the pipeline, to be instantiated all in the same memory block, so we only hit the allocator once.</p>
 
-<p>The other option is to allocate the handlers once at startup, and reuse them in many pipelines.  This means all state has to be saved in the HandlerContext object instead of the Handler itself, since each handler can be in multiple pipelines.  There is one context per pipeline to get around this limitation.</p></section><section class="dex_document"><h1>Built-in handlers</h1><p class="dex_introduction">The stuff that comes with the box</p><h2 id="byte-to-byte-handlers">Byte to byte handlers <a href="#byte-to-byte-handlers" class="headerLink">#</a></h2>
+<p>The other option is to allocate the handlers once at startup, and reuse them in many pipelines.This means all state has to be saved in the HandlerContext object instead of the Handler itself, since each handler can be in multiple pipelines.  There is one context per pipeline to get around this limitation.</p></section><section class="dex_document"><h1>Built-in handlers</h1><p class="dex_introduction">The stuff that comes with the box</p><h2 id="byte-to-byte-handlers">Byte to byte handlers <a href="#byte-to-byte-handlers" class="headerLink">#</a></h2>
 
 <h3 id="asyncsockethandler">AsyncSocketHandler <a href="#asyncsockethandler" class="headerLink">#</a></h3>
 
@@ -198,7 +198,7 @@ See the CONTRIBUTING file for how to help out.
 
 <h3 id="eventbasehandler">EventBaseHandler <a href="#eventbasehandler" class="headerLink">#</a></h3>
 
-<p>Putting this right after an AsyncSocketHandler means that writes can happen from any thread, and eventBase-&gt;runInEventBaseThread() will automatically be called to put them in the correct thread.  It doesn&#039;t intrinsically make the pipeline thread-safe though, writes from different threads may be interleaved, other handler stages must be only used from one thread or be thread safe, etc.</p>
+<p>Putting this right after an AsyncSocketHandler means that writes can happen from any thread, and eventBase-&gt;runInEventBaseThread() will automatically be called to put them in the correct thread.It doesn&#039;t intrinsically make the pipeline thread-safe though, writes from different threads may be interleaved, other handler stages must be only used from one thread or be thread safe, etc.</p>
 
 <p>In addition, reads are still always called on the eventBase thread.</p>
 
@@ -224,9 +224,9 @@ See the CONTRIBUTING file for how to help out.
 
 <p>Converts from IOBufs to std::strings and back for text-based protocols.  Must be used after one of the above frame decoders</p></section><section class="dex_document"><h1>Services</h1><p class="dex_introduction">How to add a new protocol</p><p><a href="https://twitter.github.io/finagle/guide/ServicesAndFilters.html" target="_blank">Finagle&#039;s documentation</a> on Services is highly recommended</p>
 
-<h2 id="services">Services <a href="#services" class="headerLink">#</a></h2>
+<h2 id="services"> Services <a href="#services" class="headerLink">#</a></h2>
 
-<p>A Pipeline was read() and write() methods - it streams bytes in one or both directions.  write() returns a future, but the future is set when the bytes are successfully written.   Using pipeline there is no easy way to match up requests and responses for RPC.</p>
+<p> A Pipeline was read() and write() methods - it streams bytes in one or both directions.  write() returns a future, but the future is set when the bytes are successfully written.   Using pipeline there is no easy way to match up requests and responses for RPC.</p>
 
 <p>A Service is an RPC abstraction - Both clients and servers implement the interface.   Servers implement it by handling the request.  Clients implement it by sending the request to the server to complete.</p>
 
