@@ -74,51 +74,6 @@ class LoadShedConfiguration {
   }
 
   /**
-   * Set/get the maximum number of downstream connections across all VIPs.
-   */
-  void setMaxConnections(uint64_t maxConns) {
-    maxConnections_ = maxConns;
-  }
-  uint64_t getMaxConnections() const {
-    return maxConnections_;
-  }
-
-  /**
-   * Set/get the maximum number of active downstream connections
-   * across all VIPs.
-   */
-  void setMaxActiveConnections(uint64_t maxActiveConns) {
-    maxActiveConnections_ = maxActiveConns;
-  }
-  uint64_t getMaxActiveConnections() const {
-    return maxActiveConnections_;
-  }
-
-  /**
-   * Set/get the acceptor queue size which can be used to pause accepting new
-   * client connections.
-   */
-  void setAcceptPauseOnAcceptorQueueSize(
-      const uint64_t acceptPauseOnAcceptorQueueSize) {
-    acceptPauseOnAcceptorQueueSize_ = acceptPauseOnAcceptorQueueSize;
-  }
-  uint64_t getAcceptPauseOnAcceptorQueueSize() const {
-    return acceptPauseOnAcceptorQueueSize_;
-  }
-
-  /**
-   * Set/get the acceptor queue size which can be used to resume accepting new
-   * client connections if accepting is paused.
-   */
-  void setAcceptResumeOnAcceptorQueueSize(
-      const uint64_t acceptResumeOnAcceptorQueueSize) {
-    acceptResumeOnAcceptorQueueSize_ = acceptResumeOnAcceptorQueueSize;
-  }
-  uint64_t getAcceptResumeOnAcceptorQueueSize() const {
-    return acceptResumeOnAcceptorQueueSize_;
-  }
-
-  /**
    * Set/get the maximum cpu usage.
    * Regarded as a soft limit; variable amount of new conn shedding should
    * occur when above this limit.
@@ -304,12 +259,6 @@ class LoadShedConfiguration {
  private:
   AddressSet whitelistAddrs_;
   NetworkSet whitelistNetworks_;
-
-  uint64_t maxConnections_{0};
-  uint64_t maxActiveConnections_{0};
-
-  uint64_t acceptPauseOnAcceptorQueueSize_{0};
-  uint64_t acceptResumeOnAcceptorQueueSize_{0};
 
   double maxCpuUsage_{1.0};
   double minCpuIdle_{0.0};

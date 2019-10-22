@@ -266,7 +266,6 @@ if(BUILD_TESTS)
   endmacro(add_gtest)
 
   # this test segfaults
-  add_gtest(acceptor/test/AcceptorTest.cpp AcceptorTest)
   add_gtest(acceptor/test/ConnectionManagerTest.cpp ConnectionManagerTest)
   add_gtest(acceptor/test/LoadShedConfigurationTest.cpp LoadShedConfigurationTest)
   add_gtest(acceptor/test/PeekingAcceptorHandshakeHelperTest.cpp PeekingAcceptorHandshakeHelperTest)

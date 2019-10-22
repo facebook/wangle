@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <wangle/acceptor/ConnectionCounter.h>
 #include <wangle/acceptor/ConnectionManager.h>
 #include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/LoadShedConfiguration.h>
@@ -329,16 +328,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    */
   folly::EventBase* base_{nullptr};
 
-  virtual uint64_t getConnectionCountForLoadShedding(void) const {
-    return 0;
-  }
-  virtual uint64_t getActiveConnectionCountForLoadShedding() const {
-    return 0;
-  }
-  virtual uint64_t getWorkerMaxConnections() const {
-    return connectionCounter_->getMaxConnections();
-  }
-
   /**
    * Hook for subclasses to drop newly accepted connections prior
    * to handshaking.
@@ -420,9 +409,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
 
  protected:
   const ServerSocketConfig accConfig_;
-  void setLoadShedConfig(
-      std::shared_ptr<const LoadShedConfiguration> loadShedConfig,
-      const IConnectionCounter* counter);
 
   // Helper function to initialize downstreamConnectionManager_
   virtual void initDownstreamConnectionManager(folly::EventBase* eventBase);
@@ -472,8 +458,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   static std::atomic<uint64_t> totalNumPendingSSLConns_;
 
   bool forceShutdownInProgress_{false};
-  std::shared_ptr<const LoadShedConfiguration> loadShedConfig_{nullptr};
-  const IConnectionCounter* connectionCounter_{nullptr};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 
   std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext();

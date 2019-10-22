@@ -23,20 +23,6 @@ using namespace wangle;
 TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   LoadShedConfiguration lsc;
 
-  lsc.setMaxConnections(10);
-  EXPECT_EQ(10, lsc.getMaxConnections());
-
-  lsc.setMaxActiveConnections(20);
-  EXPECT_EQ(20, lsc.getMaxActiveConnections());
-
-  EXPECT_EQ(0, lsc.getAcceptPauseOnAcceptorQueueSize());
-  lsc.setAcceptPauseOnAcceptorQueueSize(40);
-  EXPECT_EQ(40, lsc.getAcceptPauseOnAcceptorQueueSize());
-
-  EXPECT_EQ(0, lsc.getAcceptResumeOnAcceptorQueueSize());
-  lsc.setAcceptResumeOnAcceptorQueueSize(50);
-  EXPECT_EQ(50, lsc.getAcceptResumeOnAcceptorQueueSize());
-
   lsc.setMinFreeMem(30);
   EXPECT_EQ(30, lsc.getMinFreeMem());
 
@@ -57,9 +43,9 @@ TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   EXPECT_EQ(std::chrono::milliseconds(1200), lsc.getLoadUpdatePeriod());
 
   LoadShedConfiguration::AddressSet addressSet = {
-    folly::SocketAddress("127.0.0.1", 1100),
-    folly::SocketAddress("127.0.0.2", 1200),
-    folly::SocketAddress("127.0.0.3", 1300),
+      folly::SocketAddress("127.0.0.1", 1100),
+      folly::SocketAddress("127.0.0.2", 1200),
+      folly::SocketAddress("127.0.0.3", 1300),
   };
   lsc.setWhitelistAddrs(addressSet);
 
@@ -72,8 +58,8 @@ TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.4", 0)));
 
   LoadShedConfiguration::NetworkSet networkSet = {
-    NetworkAddress(folly::SocketAddress("127.0.0.5", 1500), 28),
-    NetworkAddress(folly::SocketAddress("127.0.0.6", 1600), 24),
+      NetworkAddress(folly::SocketAddress("127.0.0.5", 1500), 28),
+      NetworkAddress(folly::SocketAddress("127.0.0.6", 1600), 24),
   };
   lsc.setWhitelistNetworks(networkSet);
   EXPECT_EQ(networkSet, lsc.getWhitelistNetworks());

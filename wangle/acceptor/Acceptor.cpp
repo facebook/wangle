@@ -213,57 +213,8 @@ void Acceptor::drainAllConnections() {
   }
 }
 
-void Acceptor::setLoadShedConfig(
-    std::shared_ptr<const LoadShedConfiguration> loadShedConfig,
-    const IConnectionCounter* counter) {
-  loadShedConfig_ = loadShedConfig;
-  connectionCounter_ = counter;
-}
-
-bool Acceptor::canAccept(const SocketAddress& address) {
-  if (!connectionCounter_) {
-    return true;
-  }
-
-  const auto totalConnLimit =
-      loadShedConfig_ ? loadShedConfig_->getMaxConnections() : 0;
-  if (totalConnLimit == 0) {
-    return true;
-  }
-
-  uint64_t currentConnections = connectionCounter_->getNumConnections();
-  uint64_t maxConnections = getWorkerMaxConnections();
-  if (currentConnections < maxConnections) {
-    return true;
-  }
-
-  if (loadShedConfig_ && loadShedConfig_->isWhitelisted(address)) {
-    return true;
-  }
-
-  // Take care of the connection counts across all acceptors.
-  // Expensive since a lock must be taken to get the counter.
-
-  // getConnectionCountForLoadShedding() call can be very expensive,
-  // don't call it if you are not going to use the results.
-  const auto totalConnExceeded = totalConnLimit > 0 &&
-      getConnectionCountForLoadShedding() >= totalConnLimit;
-
-  const auto activeConnLimit =
-      loadShedConfig_ ? loadShedConfig_->getMaxActiveConnections() : 0;
-  // getActiveConnectionCountForLoadShedding() call can be very expensive,
-  // don't call it if you are not going to use the results.
-  const auto activeConnExceeded = !totalConnExceeded && activeConnLimit > 0 &&
-      getActiveConnectionCountForLoadShedding() >= activeConnLimit;
-
-  if (!activeConnExceeded && !totalConnExceeded) {
-    return true;
-  }
-  LOG_EVERY_N(ERROR, 1000) << "shedding connection because activeConnExceeded="
-                           << activeConnExceeded
-                           << "totalConnExceeded=" << totalConnExceeded;
-  VLOG(4) << address.describe() << " not whitelisted";
-  return false;
+bool Acceptor::canAccept(const SocketAddress& /*address*/) {
+  return true;
 }
 
 void Acceptor::connectionAccepted(

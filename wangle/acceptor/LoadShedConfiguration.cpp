@@ -51,10 +51,6 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
 
 void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
   if (loadSheddingEnabled_) {
-    // Active connetions obviously must be less than or equal to max
-    // connections.
-    CHECK_LE(maxActiveConnections_, maxConnections_);
-
     // Min cpu idle and max cpu ratios must have values in the range of [0-1]
     // inclusive and min cpu idle, normalized, must be greater than or equal
     // to max cpu ratio.
