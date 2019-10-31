@@ -51,6 +51,8 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
 
 void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
   if (loadSheddingEnabled_) {
+    // TODO: after final refactor, update method to check the limit ratios.
+
     // Min cpu idle and max cpu ratios must have values in the range of [0-1]
     // inclusive and min cpu idle, normalized, must be greater than or equal
     // to max cpu ratio.

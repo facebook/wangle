@@ -88,6 +88,7 @@ class LoadShedConfiguration {
   }
 
   /**
+   * [Deprecate]
    * Set/get the minimum cpu idle.
    * Regarded as a hard limit; every new conn should shed when above this limit
    * when normalized.
@@ -99,6 +100,15 @@ class LoadShedConfiguration {
   }
   double getMinCpuIdle() const {
     return minCpuIdle_;
+  }
+
+  void setCpuHardLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    cpuHardLimitRatio_ = limit;
+  }
+  double getCpuHardLimitRatio() const {
+    return cpuHardLimitRatio_;
   }
 
   /**
@@ -155,6 +165,7 @@ class LoadShedConfiguration {
   }
 
   /**
+   * [Deprecate]
    * Set/get the minium actual free memory on the system.
    * Regarded as a hard limit; every new conn should shed when above this limit
    * when normalized.
@@ -164,6 +175,15 @@ class LoadShedConfiguration {
   }
   uint64_t getMinFreeMem() const {
     return minFreeMem_;
+  }
+
+  void setMemHardLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    memHardLimitRatio_ = limit;
+  }
+  double getMemHardLimitRatio() const {
+    return memHardLimitRatio_;
   }
 
   /**
@@ -198,6 +218,7 @@ class LoadShedConfiguration {
     return maxTcpMemUsage_;
   }
 
+  // [Deprecate]
   void setMinFreeTcpMemPct(double min) {
     CHECK_GE(min, 0.0);
     CHECK_LE(min, 1.0);
@@ -205,6 +226,15 @@ class LoadShedConfiguration {
   }
   double getMinFreeTcpMemPct() const {
     return minFreeTcpMemPct_;
+  }
+
+  void setTcpMemHardLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    tcpMemHardLimitRatio_ = limit;
+  }
+  double getTcpMemHardLimitRatio() const {
+    return tcpMemHardLimitRatio_;
   }
 
   void setMaxUdpMemUsage(double max) {
@@ -216,6 +246,7 @@ class LoadShedConfiguration {
     return maxUdpMemUsage_;
   }
 
+  // [Deprecate]
   void setMinFreeUdpMemPct(double min) {
     CHECK_GE(min, 0.0);
     CHECK_LE(min, 1.0);
@@ -223,6 +254,15 @@ class LoadShedConfiguration {
   }
   double getMinFreeUdpMemPct() const {
     return minFreeUdpMemPct_;
+  }
+
+  void setUdpMemHardLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    udpMemHardLimitRatio_ = limit;
+  }
+  double getUdpMemHardLimitRatio() const {
+    return udpMemHardLimitRatio_;
   }
 
   void setLoadUpdatePeriod(std::chrono::milliseconds period) {
@@ -261,22 +301,30 @@ class LoadShedConfiguration {
   NetworkSet whitelistNetworks_;
 
   double maxCpuUsage_{1.0};
+  // minCpuIdle_ to be deprecated.
   double minCpuIdle_{0.0};
+  double cpuHardLimitRatio_{1.0};
   uint64_t cpuUsageExceedWindowSize_{0};
 
   uint64_t softIrqLogicalCpuCoreQuorum_{0};
   double softIrqCpuSoftLimitRatio_{1.0};
   double softIrqCpuHardLimitRatio_{1.0};
 
+  // minFreeMem_ to be deprecated.
   uint64_t minFreeMem_{0};
   double maxMemUsage_{1.0};
+  double memHardLimitRatio_{1.0};
   double memKillLimitRatio_{1.0};
 
   double maxTcpMemUsage_{1.0};
+  // minFreeTcpMemPct_ to be deprecated.
   double minFreeTcpMemPct_{0.0};
+  double tcpMemHardLimitRatio_{1.0};
 
   double maxUdpMemUsage_{1.0};
+  // minFreeUdpMemPct_ to be deprecated.
   double minFreeUdpMemPct_{0.0};
+  double udpMemHardLimitRatio_{1.0};
 
   std::chrono::milliseconds period_;
 
