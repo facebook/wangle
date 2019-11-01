@@ -51,55 +51,49 @@ bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
 
 void LoadShedConfiguration::checkIsSane(const SysParams& sysParams) const {
   if (loadSheddingEnabled_) {
-    // TODO: after final refactor, update method to check the limit ratios.
-
-    // Min cpu idle and max cpu ratios must have values in the range of [0-1]
-    // inclusive and min cpu idle, normalized, must be greater than or equal
-    // to max cpu ratio.
-    CHECK_GE(minCpuIdle_, 0.0);
-    CHECK_LE(minCpuIdle_, 1.0);
-    CHECK_GE(maxCpuUsage_, 0.0);
-    CHECK_LE(maxCpuUsage_, 1.0);
-    CHECK_GE(1.0 - minCpuIdle_, maxCpuUsage_);
+    // Cpu soft/hard limit ratios must have values in the range of [0-1],
+    // inclusive, where the hard limit must be greater than or equal to the
+    // soft limit.
+    CHECK_GE(cpuHardLimitRatio_, 0.0);
+    CHECK_LE(cpuHardLimitRatio_, 1.0);
+    CHECK_GE(cpuSoftLimitRatio_, 0.0);
+    CHECK_LE(cpuSoftLimitRatio_, cpuHardLimitRatio_);
 
     // CPU exceed window must be of size at least equal to 1.
     CHECK_GE(cpuUsageExceedWindowSize_, 1);
 
-    // Soft and hard soft cpu core utilization limits must have values in the
-    // range of [0-1] inclusive and that hard limit must be greater than or
-    // equal to the soft limit.
+    // Cpu irq soft/hard limit ratios must have values in the range of [0-1],
+    // inclusive, where the hard limit must be greater than or equal to the
+    // soft limit.
     CHECK_GE(softIrqLogicalCpuCoreQuorum_, 0);
     CHECK_LE(softIrqLogicalCpuCoreQuorum_, sysParams.numLogicalCpuCores);
-    CHECK_GE(softIrqCpuSoftLimitRatio_, 0.0);
-    CHECK_LE(softIrqCpuSoftLimitRatio_, 1.0);
     CHECK_GE(softIrqCpuHardLimitRatio_, 0.0);
     CHECK_LE(softIrqCpuHardLimitRatio_, 1.0);
-    CHECK_GE(softIrqCpuHardLimitRatio_, softIrqCpuSoftLimitRatio_);
+    CHECK_GE(softIrqCpuSoftLimitRatio_, 0.0);
+    CHECK_LE(softIrqCpuSoftLimitRatio_, softIrqCpuHardLimitRatio_);
 
-    // Max mem usage must be less than or equal to min free mem, normalized.
-    // We also must verify that min free mem is less than or equal to total
-    // mem bytes.  We allow the mem kill limit ratio to be any valid value.
-    CHECK_GE(maxMemUsage_, 0.0);
-    CHECK_LE(maxMemUsage_, 1.0);
-    CHECK_GE(
-        1.0 - ((double)minFreeMem_ / sysParams.totalMemBytes), maxMemUsage_);
-    CHECK_LE(minFreeMem_, sysParams.totalMemBytes);
-    CHECK_GE(memKillLimitRatio_, 0.0);
+    // Mem soft/hard limit ratios must have values in the range of [0-1],
+    // inclusive, where the hard limit must be greater than or equal to the
+    // soft limit.  We allow the mem kill limit ratio to be any valid value
+    // in the same inclusive range of [0-1].
+    CHECK_GE(memHardLimitRatio_, 0.0);
+    CHECK_LE(memHardLimitRatio_, 1.0);
+    CHECK_GE(memSoftLimitRatio_, 0.0);
+    CHECK_LE(memSoftLimitRatio_, memHardLimitRatio_);
+    CHECK_GE(memKillLimitRatio_, memHardLimitRatio_);
     CHECK_LE(memKillLimitRatio_, 1.0);
 
-    // Max TCP/UDP mem and min free TCP/UDP mem ratios must have values in the
-    // range of [0-1] inclusive and 1.0 minus min TCP mem ration must be greater
-    // than or equal to max TCP mem ratio.
-    CHECK_GE(maxTcpMemUsage_, 0.0);
-    CHECK_LE(maxTcpMemUsage_, 1.0);
-    CHECK_GE(1.0 - minFreeTcpMemPct_, maxTcpMemUsage_);
-    CHECK_GE(minFreeTcpMemPct_, 0.0);
-    CHECK_LE(minFreeTcpMemPct_, 1.0);
-    CHECK_GE(maxUdpMemUsage_, 0.0);
-    CHECK_LE(maxUdpMemUsage_, 1.0);
-    CHECK_GE(1.0 - minFreeUdpMemPct_, maxUdpMemUsage_);
-    CHECK_GE(minFreeUdpMemPct_, 0.0);
-    CHECK_LE(minFreeUdpMemPct_, 1.0);
+    // TCP/UDP mem soft/hard limit ratios must have values in the range of
+    // [0-1], inclusive, where the hard limit must be greater than or equal
+    // to the soft limit.
+    CHECK_GE(tcpMemHardLimitRatio_, 0.0);
+    CHECK_LE(tcpMemHardLimitRatio_, 1.0);
+    CHECK_GE(tcpMemSoftLimitRatio_, 0.0);
+    CHECK_LE(tcpMemSoftLimitRatio_, tcpMemHardLimitRatio_);
+    CHECK_GE(udpMemHardLimitRatio_, 0.0);
+    CHECK_LE(udpMemHardLimitRatio_, 1.0);
+    CHECK_GE(udpMemSoftLimitRatio_, 0.0);
+    CHECK_LE(udpMemSoftLimitRatio_, udpMemHardLimitRatio_);
 
     // Period must be greater than or equal to 0.
     CHECK_GE(period_.count(), std::chrono::milliseconds(0).count());

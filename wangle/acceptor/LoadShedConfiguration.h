@@ -74,34 +74,22 @@ class LoadShedConfiguration {
   }
 
   /**
-   * Set/get the maximum cpu usage.
-   * Regarded as a soft limit; variable amount of new conn shedding should
-   * occur when above this limit.
+   * Set/get the cpu usage soft limit.
+   * Various shedding protections should engage when above this limit.
    */
-  void setMaxCpuUsage(double max) {
-    CHECK(max >= 0);
-    CHECK(max <= 1);
-    maxCpuUsage_ = max;
+  void setCpuSoftLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    cpuSoftLimitRatio_ = limit;
   }
-  double getMaxCpuUsage() const {
-    return maxCpuUsage_;
+  double getCpuSoftLimitRatio() const {
+    return cpuSoftLimitRatio_;
   }
 
   /**
-   * [Deprecate]
-   * Set/get the minimum cpu idle.
-   * Regarded as a hard limit; every new conn should shed when above this limit
-   * when normalized.
+   * Set/get the cpu usage hard limit.
+   * More extreme shedding protections should engage when above this limit.
    */
-  void setMinCpuIdle(double min) {
-    CHECK(min >= 0);
-    CHECK(min <= 1);
-    minCpuIdle_ = min;
-  }
-  double getMinCpuIdle() const {
-    return minCpuIdle_;
-  }
-
   void setCpuHardLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
     CHECK_LE(limit, 1.0);
@@ -139,8 +127,7 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the soft cpu usage soft limit ratio.
-   * Variable amount of new conn shedding should occur when soft cpu
-   * utilization rises above this limit.
+   * Various shedding protections should engage when above this limit.
    */
   void setSoftIrqCpuSoftLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
@@ -153,7 +140,7 @@ class LoadShedConfiguration {
 
   /**
    * Set/get the soft cpu usage hard limit ratio.
-   * Every new conn should shed when soft cpu usage rises above this limit.
+   * More extreme shedding protections should engage when above this limit.
    */
   void setSoftIrqCpuHardLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
@@ -165,18 +152,22 @@ class LoadShedConfiguration {
   }
 
   /**
-   * [Deprecate]
-   * Set/get the minium actual free memory on the system.
-   * Regarded as a hard limit; every new conn should shed when above this limit
-   * when normalized.
+   * Set/get the memory usage soft limit ratio.
+   * Various shedding protections should engage when above this limit.
    */
-  void setMinFreeMem(uint64_t min) {
-    minFreeMem_ = min;
+  void setMemSoftLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    memSoftLimitRatio_ = limit;
   }
-  uint64_t getMinFreeMem() const {
-    return minFreeMem_;
+  double getMemSoftLimitRatio() const {
+    return memSoftLimitRatio_;
   }
 
+  /**
+   * Set/get the memory usage hard limit ratio.
+   * More extreme shedding protections should engage when above this limit.
+   */
   void setMemHardLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
     CHECK_LE(limit, 1.0);
@@ -187,19 +178,10 @@ class LoadShedConfiguration {
   }
 
   /**
-   * Set/get the maximum memory usage.
-   * Regarded as a soft limit; variable amount of new conn shedding should
-   * occur when above this limit.
+   * Set/get the memory usage kill limit ratio.
+   * Threshold above which the process should abort (self-terimate) in order
+   * to protect the underlying host.
    */
-  void setMaxMemUsage(double max) {
-    CHECK_GE(max, 0.0);
-    CHECK_LE(max, 1.0);
-    maxMemUsage_ = max;
-  }
-  double getMaxMemUsage() const {
-    return maxMemUsage_;
-  }
-
   void setMemKillLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
     CHECK_LE(limit, 1.0);
@@ -209,25 +191,23 @@ class LoadShedConfiguration {
     return memKillLimitRatio_;
   }
 
-  void setMaxTcpMemUsage(double max) {
-    CHECK_GE(max, 0.0);
-    CHECK_LE(max, 1.0);
-    maxTcpMemUsage_ = max;
+  /**
+   * Set/get the tcp memory usage soft limit ratio.
+   * Various shedding protections should engage when above this limit.
+   */
+  void setTcpMemSoftLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    tcpMemSoftLimitRatio_ = limit;
   }
-  double getMaxTcpMemUsage() const {
-    return maxTcpMemUsage_;
-  }
-
-  // [Deprecate]
-  void setMinFreeTcpMemPct(double min) {
-    CHECK_GE(min, 0.0);
-    CHECK_LE(min, 1.0);
-    minFreeTcpMemPct_ = min;
-  }
-  double getMinFreeTcpMemPct() const {
-    return minFreeTcpMemPct_;
+  double getTcpMemSoftLimitRatio() const {
+    return tcpMemSoftLimitRatio_;
   }
 
+  /**
+   * Set/get the tcp memory usage hard limit ratio.
+   * More extreme shedding protections should engage when above this limit.
+   */
   void setTcpMemHardLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
     CHECK_LE(limit, 1.0);
@@ -237,25 +217,23 @@ class LoadShedConfiguration {
     return tcpMemHardLimitRatio_;
   }
 
-  void setMaxUdpMemUsage(double max) {
-    CHECK_GE(max, 0.0);
-    CHECK_LE(max, 1.0);
-    maxUdpMemUsage_ = max;
+  /**
+   * Set/get the udp memory usage soft limit ratio.
+   * Various shedding protections should engage when above this limit.
+   */
+  void setUdpMemSoftLimitRatio(double limit) {
+    CHECK_GE(limit, 0.0);
+    CHECK_LE(limit, 1.0);
+    udpMemSoftLimitRatio_ = limit;
   }
-  double getMaxUdpMemUsage() const {
-    return maxUdpMemUsage_;
-  }
-
-  // [Deprecate]
-  void setMinFreeUdpMemPct(double min) {
-    CHECK_GE(min, 0.0);
-    CHECK_LE(min, 1.0);
-    minFreeUdpMemPct_ = min;
-  }
-  double getMinFreeUdpMemPct() const {
-    return minFreeUdpMemPct_;
+  double getUdpMemSoftLimitRatio() const {
+    return udpMemSoftLimitRatio_;
   }
 
+  /**
+   * Set/get the udp memory usage hard limit ratio.
+   * More extreme shedding protections should engage when above this limit.
+   */
   void setUdpMemHardLimitRatio(double limit) {
     CHECK_GE(limit, 0.0);
     CHECK_LE(limit, 1.0);
@@ -300,9 +278,7 @@ class LoadShedConfiguration {
   AddressSet whitelistAddrs_;
   NetworkSet whitelistNetworks_;
 
-  double maxCpuUsage_{1.0};
-  // minCpuIdle_ to be deprecated.
-  double minCpuIdle_{0.0};
+  double cpuSoftLimitRatio_{1.0};
   double cpuHardLimitRatio_{1.0};
   uint64_t cpuUsageExceedWindowSize_{0};
 
@@ -310,20 +286,14 @@ class LoadShedConfiguration {
   double softIrqCpuSoftLimitRatio_{1.0};
   double softIrqCpuHardLimitRatio_{1.0};
 
-  // minFreeMem_ to be deprecated.
-  uint64_t minFreeMem_{0};
-  double maxMemUsage_{1.0};
+  double memSoftLimitRatio_{1.0};
   double memHardLimitRatio_{1.0};
   double memKillLimitRatio_{1.0};
 
-  double maxTcpMemUsage_{1.0};
-  // minFreeTcpMemPct_ to be deprecated.
-  double minFreeTcpMemPct_{0.0};
+  double tcpMemSoftLimitRatio_{1.0};
   double tcpMemHardLimitRatio_{1.0};
 
-  double maxUdpMemUsage_{1.0};
-  // minFreeUdpMemPct_ to be deprecated.
-  double minFreeUdpMemPct_{0.0};
+  double udpMemSoftLimitRatio_{1.0};
   double udpMemHardLimitRatio_{1.0};
 
   std::chrono::milliseconds period_;

@@ -23,17 +23,17 @@ using namespace wangle;
 TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
   LoadShedConfiguration lsc;
 
-  lsc.setMinFreeMem(30);
-  EXPECT_EQ(30, lsc.getMinFreeMem());
+  lsc.setMemSoftLimitRatio(0.1);
+  EXPECT_EQ(0.1, lsc.getMemSoftLimitRatio());
 
-  lsc.setMaxMemUsage(0.1);
-  EXPECT_EQ(0.1, lsc.getMaxMemUsage());
+  lsc.setMemHardLimitRatio(0.2);
+  EXPECT_EQ(0.2, lsc.getMemHardLimitRatio());
 
-  lsc.setMaxCpuUsage(0.2);
-  EXPECT_EQ(0.2, lsc.getMaxCpuUsage());
+  lsc.setCpuSoftLimitRatio(0.3);
+  EXPECT_EQ(0.3, lsc.getCpuSoftLimitRatio());
 
-  lsc.setMinCpuIdle(0.03);
-  EXPECT_EQ(0.03, lsc.getMinCpuIdle());
+  lsc.setCpuHardLimitRatio(0.4);
+  EXPECT_EQ(0.4, lsc.getCpuHardLimitRatio());
 
   EXPECT_EQ(0, lsc.getCpuUsageExceedWindowSize());
   lsc.setCpuUsageExceedWindowSize(12);
