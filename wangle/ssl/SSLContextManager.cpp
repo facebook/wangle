@@ -251,7 +251,7 @@ void SSLContextManager::removeSSLContextConfigByDomainName(
   // to form the key.
   folly::StringPiece dn(domainName);
   if (dn.startsWith("*.")) {
-    dn.removePrefix("*");
+    dn.advance(1);
   }
   SSLContextKey key(DNString(dn.data(), dn.size()));
   removeSSLContextConfig(key);
