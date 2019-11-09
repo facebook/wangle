@@ -123,10 +123,13 @@ class SSLContextManager {
     const folly::SocketAddress& vipAddress,
     const std::shared_ptr<SSLCacheProvider> &externalCache);
 
-
   /**
-   * Remove ssl context exactly matching given key.
+   * Remove SSLContextConfig of the given key. Note that to remove the context
+   * for wildcard domain, call either
+   * removeSSLContextConfigByDomainName("*.example.com") or
+   * removeSSLContextConfig(SSLContextKey(".example.com")).
    */
+  void removeSSLContextConfigByDomainName(const std::string& domainName);
   void removeSSLContextConfig(const SSLContextKey& key);
 
   /**

@@ -223,8 +223,19 @@ TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
   retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
   EXPECT_FALSE(retCtx);
 
-  sslCtxMgr.removeSSLContextConfig(SSLContextKey("*.example.com"));
-  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
+  // If the wildcard context is successfully removed, there should be no context
+  // for a random domain that is of the form *.example.com.
+  sslCtxMgr.removeSSLContextConfig(SSLContextKey(".example.com"));
+  retCtx = sslCtxMgr.getSSLCtx(SSLContextKey("foo.example.com"));
+  EXPECT_FALSE(retCtx);
+
+  // Add it back and delete again but with the other API.
+  sslCtxMgr.insertSSLCtxByDomainName("*.example.com", start_example_com_ctx);
+  sslCtxMgr.addServerContext(start_example_com_ctx);
+  retCtx = sslCtxMgr.getSSLCtx(SSLContextKey("foo.example.com"));
+  EXPECT_TRUE(retCtx);
+  sslCtxMgr.removeSSLContextConfigByDomainName("*.example.com");
+  retCtx = sslCtxMgr.getSSLCtx(SSLContextKey("foo.example.com"));
   EXPECT_FALSE(retCtx);
 
   // Try to remove the context which does not exist - must be NOOP

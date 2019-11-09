@@ -245,6 +245,18 @@ void SSLContextManager::resetSSLContextConfigs(
   contexts_.swap(contexts);
 }
 
+void SSLContextManager::removeSSLContextConfigByDomainName(
+    const std::string& domainName) {
+  // Corresponding to insertSSLCtxByDomainNameImpl, we need to skip the wildcard
+  // to form the key.
+  folly::StringPiece dn(domainName);
+  if (dn.startsWith("*.")) {
+    dn.removePrefix("*");
+  }
+  SSLContextKey key(DNString(dn.data(), dn.size()));
+  removeSSLContextConfig(key);
+}
+
 void SSLContextManager::removeSSLContextConfig(const SSLContextKey& key) {
   // The default context can't be dropped.
   DNString defaultName(contexts_.defaultCtxDomainName.data(),
