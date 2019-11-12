@@ -31,7 +31,7 @@ class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
     if (pipeline_) {
       try {
         pipeline_->remove(this).finalize();
-      } catch (const std::invalid_argument& e) {
+      } catch (const std::invalid_argument&) {
         // not in pipeline; this is fine
       }
     }
@@ -40,7 +40,7 @@ class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
   void setPipeline(Pipeline* pipeline) {
     try {
       pipeline->template remove<ClientDispatcherBase>();
-    } catch (const std::invalid_argument& e) {
+    } catch (const std::invalid_argument&) {
       // no existing dispatcher; this is fine
     }
     pipeline_ = pipeline;

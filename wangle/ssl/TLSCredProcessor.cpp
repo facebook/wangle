@@ -161,7 +161,7 @@ void TLSCredProcessor::certFileUpdated() noexcept {
       insertSeeds(conf["new"], seedData.newSeeds);
     }
     return seedData;
-  } catch (const std::exception& ex) {
+  } catch (const std::exception&) {
     // Don't log ex.what() since it may contain contents of the key file.
     LOG(WARNING) << "Parsing " << fileName << " failed.";
     return folly::none;
