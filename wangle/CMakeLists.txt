@@ -53,6 +53,7 @@ if (NOT folly_FOUND)
 endif()
 
 find_package(fizz CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem regex context
                                        program_options)
 find_package(OpenSSL REQUIRED)

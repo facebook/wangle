@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 'fbcode_builder steps to build & test Wangle'
 
 import specs.gmock as gmock
+import specs.fmt as fmt
 import specs.folly as folly
 import specs.fizz as fizz
 import specs.sodium as sodium
@@ -37,7 +38,7 @@ def fbcode_builder_spec(builder):
         }
     )
     return {
-        'depends_on': [gmock, folly, fizz, sodium],
+        'depends_on': [gmock, fmt, folly, fizz, sodium],
         'steps': [
             builder.fb_github_cmake_install('wangle/_build', '../wangle'),
             builder.step(
