@@ -19,7 +19,6 @@
 #include <glog/logging.h>
 #include <folly/portability/GTest.h>
 #include <wangle/ssl/ServerSSLContext.h>
-#include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextManager.h>
 #include <wangle/ssl/TLSTicketKeyManager.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>

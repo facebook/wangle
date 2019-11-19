@@ -29,8 +29,6 @@ using namespace std::chrono;
 using namespace testing;
 using namespace wangle;
 
-using SSLCtxDeleter = folly::static_function_deleter<SSL_CTX, &SSL_CTX_free>;
-using SSLCtxPtr = std::unique_ptr<SSL_CTX, SSLCtxDeleter>;
 
 class SSLSessionCacheDataTest : public Test {
  public:
