@@ -52,6 +52,9 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
     std::shared_ptr<folly::AsyncServerSocket> socket(
         new folly::AsyncServerSocket(evb),
         ThreadSafeDestructor());
+    if (config.useZeroCopy) {
+      socket->setZeroCopy(true);
+    }
     socket->setMaxNumMessagesInQueue(
         config.maxNumPendingConnectionsPerWorker);
     socket->setReusePortEnabled(reuse);

@@ -170,6 +170,11 @@ struct ServerSocketConfig {
   bool enableTCPFastOpen{false};
 
   /**
+   * Use zero copy socket option
+   */
+  bool useZeroCopy{false};
+
+  /**
    * Limit on size of queue of TFO requests by clients.
    */
   uint32_t fastOpenQueueSize{100};

@@ -175,6 +175,9 @@ class ServerBootstrap {
         accConfig_.maxNumPendingConnectionsPerWorker);
 
     folly::via(acceptor_group_.get(), [&] {
+      if (useZeroCopy_) {
+        socket->setZeroCopy(true);
+      }
       socket->attachEventBase(folly::EventBaseManager::get()->getEventBase());
       socket->listen(socketConfig.acceptBacklog);
       socket->startAccepting();
@@ -333,7 +336,8 @@ class ServerBootstrap {
   std::shared_ptr<folly::IOThreadPoolExecutor> io_group_;
 
   std::shared_ptr<ServerWorkerPool> workerFactory_;
-  std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>> sockets_{
+  std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
+    sockets_{
     std::make_shared<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>()};
 
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
@@ -341,7 +345,7 @@ class ServerBootstrap {
   std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_{
       std::make_shared<DefaultAcceptPipelineFactory>()};
   std::shared_ptr<ServerSocketFactory> socketFactory_{
-    std::make_shared<AsyncServerSocketFactory>()};
+      std::make_shared<AsyncServerSocketFactory>()};
 
   ServerSocketConfig accConfig_;
 
@@ -350,6 +354,7 @@ class ServerBootstrap {
   std::unique_ptr<folly::Baton<>> stopBaton_{
     std::make_unique<folly::Baton<>>()};
   bool stopped_{false};
+  bool useZeroCopy_{false};
 };
 
 } // namespace wangle
