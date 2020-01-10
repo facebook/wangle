@@ -359,7 +359,7 @@ void SSLContextManager::addSSLContextConfig(
   if (ctxConfig.sessionContext && !ctxConfig.sessionContext->empty()) {
     sessionIdContext = *ctxConfig.sessionContext;
   }
-  VLOG(2) << "For vip " << vipName_
+  VLOG(3) << "For vip " << vipName_
           << ", setting sid_ctx " << sessionIdContext;
   sslCtx->setSessionCacheContext(sessionIdContext);
 
@@ -370,7 +370,7 @@ void SSLContextManager::addSSLContextConfig(
       sessionIdContext,
       stats_);
   sslCtx->setupTicketManager(ticketSeeds, ctxConfig, stats_);
-  VLOG(2) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
+  VLOG(3) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
 
   // finalize sslCtx setup by the individual features supported by openssl
   ctxSetupByOpensslFeature(sslCtx, ctxConfig, *contexts);
@@ -462,12 +462,12 @@ void SSLContextManager::verifyCertNames(
                                                description));
   }
   auto altName = SSLUtil::getSubjectAltName(x509);
-  VLOG(2) << "cert " << description << " CN: " << *cn;
+  VLOG(3) << "cert " << description << " CN: " << *cn;
   if (altName) {
     altName->sort();
-    VLOG(2) << "cert " << description << " SAN: " << flattenList(*altName);
+    VLOG(3) << "cert " << description << " SAN: " << flattenList(*altName);
   } else {
-    VLOG(2) << "cert " << description << " SAN: " << "{none}";
+    VLOG(3) << "cert " << description << " SAN: " << "{none}";
   }
   if (firstCert) {
     commonName = *cn;
