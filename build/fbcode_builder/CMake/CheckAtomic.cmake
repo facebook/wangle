@@ -78,7 +78,7 @@ if(PROXYGEN_COMPILER_IS_GCC_COMPATIBLE)
   check_working_cxx_atomics(HAVE_CXX_ATOMICS_WITHOUT_LIB)
   # If not, check if the library exists, and atomics work with it.
   if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB)
-    check_library_exists(atomic __atomic_is_lock_free "" HAVE_LIBATOMIC)
+    check_library_exists(atomic __atomic_fetch_add_4 "" HAVE_LIBATOMIC)
     if(HAVE_LIBATOMIC)
       list(APPEND CMAKE_REQUIRED_LIBRARIES "atomic")
       check_working_cxx_atomics(HAVE_CXX_ATOMICS_WITH_LIB)
