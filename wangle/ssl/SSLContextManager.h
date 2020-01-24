@@ -71,11 +71,11 @@ class SSLContextManager {
    * verification
    */
    struct ClientCertVerifyCallback {
-
      // no-op. Should be overridden if actual
-     // verification is required
+     // verification is required. This should assign the callback functions
+     // to the context, without altering the callback itself.
      virtual void attachSSLContext(
-       const std::shared_ptr<folly::SSLContext>& sslCtx) = 0;
+         const std::shared_ptr<folly::SSLContext>& sslCtx) const = 0;
      virtual ~ClientCertVerifyCallback() {}
    };
 
