@@ -88,6 +88,15 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   }
 
   /**
+   * Supply an SSLContextManager for use.
+   * If not set before init(), one will be created.
+   */
+  virtual void setSSLContextManager(
+      std::shared_ptr<SSLContextManager> contextManager) {
+    sslCtxManager_ = contextManager;
+  }
+
+  /**
    * Initialize the Acceptor to run in the specified EventBase
    * thread, receiving connections from the specified AsyncServerSocket.
    *
@@ -103,7 +112,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * Recreates ssl configs, re-reads certs
    */
   virtual void resetSSLContextConfigs(
-      std::shared_ptr<fizz::server::CertManager> certManager = nullptr);
+      std::shared_ptr<fizz::server::CertManager> certManager = nullptr,
+      std::shared_ptr<SSLContextManager> ctxManager = nullptr);
 
   SSLContextManager* getSSLContextManager() const {
     return sslCtxManager_.get();
@@ -428,7 +438,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    */
   folly::AsyncSocket::OptionMap socketOptions_;
 
-  std::unique_ptr<SSLContextManager> sslCtxManager_;
+  std::shared_ptr<SSLContextManager> sslCtxManager_;
 
   /**
    * Stores peekers for different security protocols.

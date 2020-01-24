@@ -80,15 +80,18 @@ void Acceptor::init(
           eventBase, "vip_" + getName(), accConfig_.strictSSL, stats);
     }
     try {
-      for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
-        sslCtxManager_->addSSLContextConfig(
-            sslCtxConfig,
-            accConfig_.sslCacheOptions,
-            &accConfig_.initialTicketSeeds,
-            accConfig_.bindAddress,
-            cacheProvider_);
+      // If the default ctx is nullptr, we can assume it hasn't been configured
+      // yet.
+      if (sslCtxManager_->getDefaultSSLCtx() == nullptr) {
+        for (const auto& sslCtxConfig : accConfig_.sslContextConfigs) {
+          sslCtxManager_->addSSLContextConfig(
+              sslCtxConfig,
+              accConfig_.sslCacheOptions,
+              &accConfig_.initialTicketSeeds,
+              accConfig_.bindAddress,
+              cacheProvider_);
+        }
       }
-
       CHECK(sslCtxManager_->getDefaultSSLCtx());
     } catch (const std::runtime_error& ex) {
       if (accConfig_.strictSSL) {
@@ -165,7 +168,8 @@ std::string Acceptor::getPskContext() {
 }
 
 void Acceptor::resetSSLContextConfigs(
-    std::shared_ptr<fizz::server::CertManager> certManager) {
+    std::shared_ptr<fizz::server::CertManager> certManager,
+    std::shared_ptr<SSLContextManager> ctxManager) {
   try {
     if (accConfig_.fizzConfig.enableFizz) {
       auto manager = certManager ? certManager : createFizzCertManager();
@@ -174,7 +178,9 @@ void Acceptor::resetSSLContextConfigs(
         getFizzPeeker()->setContext(recreateFizzContext());
       }
     }
-    if (sslCtxManager_) {
+    if (ctxManager) {
+      sslCtxManager_ = ctxManager;
+    } else if (sslCtxManager_) {
       sslCtxManager_->resetSSLContextConfigs(
           accConfig_.sslContextConfigs,
           accConfig_.sslCacheOptions,
