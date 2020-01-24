@@ -45,23 +45,135 @@ class TLSTicketKeyManager;
 struct TLSTicketKeySeeds;
 class ServerSSLContext;
 
+// SSLContextManager represents all of the different server side
+// SSL configurations behind a VIP.
+//
+// One VIP can serve multiple, independent TLS configurations by
+// selecting a configuration by the ServerNameIndication extension
+// on the initial ClientHello.
+//
+// There is 1 SSLContextManager per acceptor.
 class SSLContextManager {
  private:
-  struct SslContexts {
+  // SslContexts is an internal, private structure used for
+  // storing all of the different TLS configurations behind
+  // an acceptor.
+  //
+  //   1 Acceptor          : 1 SSLContextManager
+  //   1 SSLContextManager : N SSLContexts.
+  //
+  class SslContexts {
+   public:
+    SslContexts(bool strict);
     void clear();
     void swap(SslContexts& other) noexcept;
 
-    std::vector<std::shared_ptr<ServerSSLContext>> ctxs;
-    std::shared_ptr<ServerSSLContext> defaultCtx;
-    std::string defaultCtxDomainName;
+    /**
+     * These APIs are largely the internal implementations within SslContexts
+     * corresponding to various public APIs or lookups needed internally.
+     *
+     * For details regarding their arguments, see public API below.
+     */
+    void addSSLContextConfig(
+        const SSLContextConfig& ctxConfig,
+        const SSLCacheOptions& cacheOptions,
+        const TLSTicketKeySeeds* ticketSeeds,
+        const folly::SocketAddress& vipAddress,
+        const std::shared_ptr<SSLCacheProvider>& externalCache,
+        const SSLContextManager* mgr);
+
+    void removeSSLContextConfigByDomainName(const std::string& domainName);
+    void removeSSLContextConfig(const SSLContextKey& key);
+
+    std::shared_ptr<folly::SSLContext> getDefaultSSLCtx() const;
+
+    std::shared_ptr<folly::SSLContext> getSSLCtx(
+        const SSLContextKey& key) const;
+
+    std::shared_ptr<folly::SSLContext> getSSLCtxBySuffix(
+        const SSLContextKey& key) const;
+
+    std::shared_ptr<folly::SSLContext> getSSLCtxByExactDomain(
+        const SSLContextKey& key) const;
+
+    void insertSSLCtxByDomainName(
+        const std::string& dn,
+        std::shared_ptr<folly::SSLContext> sslCtx,
+        CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
+
+    void setDefaultCtxDomainName(const std::string& name);
+
+    void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx);
+
+    // Does feature-specific setup for OpenSSL
+    void ctxSetupByOpensslFeature(
+        std::shared_ptr<ServerSSLContext> sslCtx,
+        const SSLContextConfig& ctxConfig,
+        const SSLContextManager* mgr);
+
+    void reloadTLSTicketKeys(
+        const std::vector<std::string>& oldSeeds,
+        const std::vector<std::string>& currentSeeds,
+        const std::vector<std::string>& newSeeds);
+
+    void setThreadExternalCache(
+        const std::shared_ptr<SSLCacheProvider>& externalCache);
+
+    // Fetches ticket keys for use during reloads. Assumes all VIPs share seeds
+    // (as many places do) and returns the first seeds it finds.
+    TLSTicketKeySeeds getTicketKeys() const;
+
+    const std::string& getDefaultCtxDomainName() const {
+      return defaultCtxDomainName_;
+    }
+
+   private:
+    /**
+     * The following functions help to maintain the data structure for
+     * domain name matching in SNI.  Some notes:
+     *
+     * 1. It is a best match.
+     *
+     * 2. It allows wildcard CN and wildcard subject alternative name in a X509.
+     *    The wildcard name must be _prefixed_ by '*.'.  It errors out whenever
+     *    it sees '*' in any other locations.
+     *
+     * 3. It uses one std::unordered_map<DomainName, SSL_CTX> object to
+     *    do this.  For wildcard name like "*.facebook.com", ".facebook.com"
+     *    is used as the key.
+     *
+     * 4. After getting tlsext_hostname from the client hello message, it
+     *    will do a full string search first and then try one level up to
+     *    match any wildcard name (if any) in the X509.
+     *    [Note, browser also only looks one level up when matching the
+     * requesting domain name with the wildcard name in the server X509].
+     */
+
+    void insert(std::shared_ptr<ServerSSLContext> sslCtx, bool defaultFallback);
+
+    void insertSSLCtxByDomainNameImpl(
+        const std::string& dn,
+        std::shared_ptr<folly::SSLContext> sslCtx,
+        CertCrypto certCrypto);
+
+    void insertIntoDnMap(
+        SSLContextKey key,
+        std::shared_ptr<folly::SSLContext> sslCtx,
+        bool overwrite);
+
+    std::vector<std::shared_ptr<ServerSSLContext>> ctxs_;
+    std::shared_ptr<ServerSSLContext> defaultCtx_;
+    std::string defaultCtxDomainName_;
+    bool strict_{true};
 
     /**
      * Container to store the (DomainName -> SSL_CTX) mapping
      */
     std::unordered_map<
-      SSLContextKey,
-      std::shared_ptr<folly::SSLContext>,
-      SSLContextKeyHash> dnMap;
+        SSLContextKey,
+        std::shared_ptr<folly::SSLContext>,
+        SSLContextKeyHash>
+        dnMap_;
   };
 
  public:
@@ -102,8 +214,7 @@ class SSLContextManager {
        const SSLCacheOptions& cacheOptions,
        const TLSTicketKeySeeds* ticketSeeds,
        const folly::SocketAddress& vipAddress,
-       const std::shared_ptr<SSLCacheProvider>& externalCache,
-       SslContexts* contexts = nullptr);
+       const std::shared_ptr<SSLCacheProvider>& externalCache);
 
    /**
     * Resets SSLContextManager with new X509s
@@ -205,15 +316,7 @@ class SSLContextManager {
   void insertSSLCtxByDomainName(
     const std::string& dn,
     std::shared_ptr<folly::SSLContext> sslCtx,
-    SslContexts& contexts,
     CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
-
-  void insertSSLCtxByDomainName(
-    const std::string& dn,
-    std::shared_ptr<folly::SSLContext> sslCtx,
-    CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE) {
-    insertSSLCtxByDomainName(dn, sslCtx, contexts_, certCrypto);
-  }
 
   void loadCertsFromFiles(
       const std::shared_ptr<folly::SSLContext>& sslCtx,
@@ -227,19 +330,12 @@ class SSLContextManager {
       const std::string& lastCertPath,
       bool firstCert) const;
 
-  void setDefaultCtxDomainName(const std::string& name,
-                               SslContexts* contexts = nullptr);
+  void setDefaultCtxDomainName(const std::string& name);
 
-  void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx,
-                        SslContexts* contexts = nullptr);
+  void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx);
 
  private:
   SSLContextManager(const SSLContextManager&) = delete;
-
-  void ctxSetupByOpensslFeature(
-    std::shared_ptr<ServerSSLContext> sslCtx,
-    const SSLContextConfig& ctxConfig,
-    SslContexts& contexts);
 
   /**
    * Callback function from openssl to find the right X509 to
@@ -247,46 +343,9 @@ class SSLContextManager {
    */
 #if FOLLY_OPENSSL_HAS_SNI
 # define PROXYGEN_HAVE_SERVERNAMECALLBACK
-  folly::SSLContext::ServerNameCallbackResult
-    serverNameCallback(SSL* ssl);
+  folly::SSLContext::ServerNameCallbackResult serverNameCallback(
+      SSL* ssl) const;
 #endif
-
-  /**
-   * The following functions help to maintain the data structure for
-   * domain name matching in SNI.  Some notes:
-   *
-   * 1. It is a best match.
-   *
-   * 2. It allows wildcard CN and wildcard subject alternative name in a X509.
-   *    The wildcard name must be _prefixed_ by '*.'.  It errors out whenever
-   *    it sees '*' in any other locations.
-   *
-   * 3. It uses one std::unordered_map<DomainName, SSL_CTX> object to
-   *    do this.  For wildcard name like "*.facebook.com", ".facebook.com"
-   *    is used as the key.
-   *
-   * 4. After getting tlsext_hostname from the client hello message, it
-   *    will do a full string search first and then try one level up to
-   *    match any wildcard name (if any) in the X509.
-   *    [Note, browser also only looks one level up when matching the requesting
-   *     domain name with the wildcard name in the server X509].
-   */
-
-  void insert(
-    std::shared_ptr<ServerSSLContext> sslCtx,
-    bool defaultFallback,
-    SslContexts& contexts);
-
-  void insertSSLCtxByDomainNameImpl(
-    const std::string& dn,
-    std::shared_ptr<folly::SSLContext> sslCtx,
-    SslContexts& contexts,
-    CertCrypto certCrypto);
-
-  void insertIntoDnMap(SSLContextKey key,
-    std::shared_ptr<folly::SSLContext> sslCtx,
-    bool overwrite,
-    SslContexts& contexts);
 
   SslContexts contexts_;
   ClientHelloExtStats* clientHelloTLSExtStats_{nullptr};
