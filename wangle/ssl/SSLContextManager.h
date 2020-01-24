@@ -181,20 +181,20 @@ class SSLContextManager {
 
  protected:
   virtual void loadCertKeyPairsInSSLContext(
-    const std::shared_ptr<folly::SSLContext>&,
-    const SSLContextConfig&,
-    std::string& commonName);
+      const std::shared_ptr<folly::SSLContext>&,
+      const SSLContextConfig&,
+      std::string& commonName) const;
 
   virtual void loadCertKeyPairsInSSLContextExternal(
-    const std::shared_ptr<folly::SSLContext>&,
-    const SSLContextConfig&,
-    std::string& /* commonName */) {
-      LOG(FATAL) << "Unsupported in base SSLContextManager";
+      const std::shared_ptr<folly::SSLContext>&,
+      const SSLContextConfig&,
+      std::string& /* commonName */) const {
+    LOG(FATAL) << "Unsupported in base SSLContextManager";
   }
 
   virtual void overrideConfiguration(
-    const std::shared_ptr<folly::SSLContext>&,
-    const SSLContextConfig&) {}
+      const std::shared_ptr<folly::SSLContext>&,
+      const SSLContextConfig&) const {}
 
   std::string vipName_;
   SSLStats* stats_{nullptr};
@@ -216,16 +216,16 @@ class SSLContextManager {
   }
 
   void loadCertsFromFiles(
-    const std::shared_ptr<folly::SSLContext>& sslCtx,
-    const SSLContextConfig::CertificateInfo& cert);
+      const std::shared_ptr<folly::SSLContext>& sslCtx,
+      const SSLContextConfig::CertificateInfo& cert) const;
 
   void verifyCertNames(
-    const std::shared_ptr<folly::SSLContext>& sslCtx,
-    const std::string& description,
-    std::string& commonName,
-    std::unique_ptr<std::list<std::string>>& subjectAltName,
-    const std::string& lastCertPath,
-    bool firstCert);
+      const std::shared_ptr<folly::SSLContext>& sslCtx,
+      const std::string& description,
+      std::string& commonName,
+      std::unique_ptr<std::list<std::string>>& subjectAltName,
+      const std::string& lastCertPath,
+      bool firstCert) const;
 
   void setDefaultCtxDomainName(const std::string& name,
                                SslContexts* contexts = nullptr);

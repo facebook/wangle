@@ -389,7 +389,7 @@ void SSLContextManager::addSSLContextConfig(
 void SSLContextManager::loadCertKeyPairsInSSLContext(
     const std::shared_ptr<folly::SSLContext>& sslCtx,
     const SSLContextConfig& ctxConfig,
-    std::string& commonName) {
+    std::string& commonName) const {
   unsigned numCerts = 0;
   std::string lastCertPath;
   std::unique_ptr<std::list<std::string>> subjectAltName;
@@ -415,7 +415,7 @@ void SSLContextManager::loadCertKeyPairsInSSLContext(
 
 void SSLContextManager::loadCertsFromFiles(
     const std::shared_ptr<folly::SSLContext>& sslCtx,
-    const SSLContextConfig::CertificateInfo& cert) {
+    const SSLContextConfig::CertificateInfo& cert) const {
   try {
     // The private key lives in the same process
     // This needs to be called before loadPrivateKey().
@@ -441,12 +441,12 @@ void SSLContextManager::loadCertsFromFiles(
 }
 
 void SSLContextManager::verifyCertNames(
-  const std::shared_ptr<folly::SSLContext>& sslCtx,
-  const std::string& description,
-  std::string& commonName,
-  std::unique_ptr<std::list<std::string>>& subjectAltName,
-  const std::string& lastCertPath,
-  bool firstCert) {
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const std::string& description,
+    std::string& commonName,
+    std::unique_ptr<std::list<std::string>>& subjectAltName,
+    const std::string& lastCertPath,
+    bool firstCert) const {
   X509* x509 = getX509(sslCtx->getSSLCtx());
   if (!x509) {
     throw std::runtime_error(
