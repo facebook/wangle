@@ -38,11 +38,8 @@ class SSLContextManagerForTest : public SSLContextManager {
 
 TEST(SSLContextManagerTest, Test1)
 {
-  EventBase eventBase;
-  SSLContextManagerForTest sslCtxMgr(&eventBase,
-                                     "vip_ssl_context_manager_test_",
-                                     true,
-                                     nullptr);
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
   auto www_example_com_ctx = std::make_shared<SSLContext>();
   auto start_example_com_ctx = std::make_shared<SSLContext>();
   auto start_abc_example_com_ctx = std::make_shared<SSLContext>();
@@ -116,7 +113,6 @@ TEST(SSLContextManagerTest, Test1)
   retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.org"));
   EXPECT_EQ(retCtx, www_example_org_ctx_sha1);
 
-  eventBase.loop(); // Clean up events before SSLContextManager is destructed
 }
 
 
@@ -124,11 +120,8 @@ TEST(SSLContextManagerTest, Test1)
 // TODO Opensource builds cannot the cert/key paths
 TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
 {
-  EventBase eventBase;
-  SSLContextManagerForTest sslCtxMgr(&eventBase,
-                                     "vip_ssl_context_manager_test_",
-                                     true,
-                                     nullptr);
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.addCertificate(
@@ -149,17 +142,13 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
       reinterpret_cast<char*>(ctx->getSSLCtx()->sid_ctx),
       ctx->getSSLCtx()->sid_ctx_length);
   EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
-  eventBase.loop();
 }
 
 // TODO Opensource builds cannot find cert paths
 TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
 {
-  EventBase eventBase;
-  SSLContextManagerForTest sslCtxMgr(&eventBase,
-                                     "vip_ssl_context_manager_test_",
-                                     true,
-                                     nullptr);
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.sessionCacheEnabled = false;
@@ -181,17 +170,13 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
       reinterpret_cast<char*>(ctx->getSSLCtx()->sid_ctx),
       ctx->getSSLCtx()->sid_ctx_length);
   EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
-  eventBase.loop();
 }
 #endif
 
 TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
 {
-  EventBase eventBase;
-  SSLContextManagerForTest sslCtxMgr(&eventBase,
-                                     "vip_ssl_context_manager_test_",
-                                     true,
-                                     nullptr);
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
   auto www_example_com_ctx = std::make_shared<ServerSSLContext>();
   auto start_example_com_ctx = std::make_shared<ServerSSLContext>();
   auto start_abc_example_com_ctx = std::make_shared<ServerSSLContext>();

@@ -184,13 +184,11 @@ std::string flattenList(const std::list<std::string>& list) {
 SSLContextManager::~SSLContextManager() = default;
 
 SSLContextManager::SSLContextManager(
-  folly::EventBase* eventBase,
   const std::string& vipName,
   bool strict,
   SSLStats* stats) :
     vipName_(vipName),
     stats_(stats),
-    eventBase_(eventBase),
     strict_(strict) {
 
 }

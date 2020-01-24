@@ -77,7 +77,7 @@ void Acceptor::init(
 
     if (!sslCtxManager_) {
       sslCtxManager_ = std::make_unique<SSLContextManager>(
-          eventBase, "vip_" + getName(), accConfig_.strictSSL, stats);
+          "vip_" + getName(), accConfig_.strictSSL, stats);
     }
     try {
       // If the default ctx is nullptr, we can assume it hasn't been configured
