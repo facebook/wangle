@@ -25,12 +25,35 @@
 
 namespace wangle {
 
-
 class SSLSessionEstablishedCallback {
  public:
   virtual ~SSLSessionEstablishedCallback() = default;
   // notified when a non-reused SSL_SESSION is established.
   virtual void onEstablished(SSL_SESSION* session) = 0;
+};
+
+class ClientBootstrapSocketOptions {
+ public:
+  ClientBootstrapSocketOptions& setV4OptionMap(
+      const folly::AsyncSocket::OptionMap& options) {
+    v4_ = options;
+    return *this;
+  }
+  folly::AsyncSocket::OptionMap const& getV4OptionMap() const {
+    return v4_;
+  }
+  ClientBootstrapSocketOptions& setV6OptionMap(
+      const folly::AsyncSocket::OptionMap& options) {
+    v6_ = options;
+    return *this;
+  }
+  folly::AsyncSocket::OptionMap const& getV6OptionMap() const {
+    return v6_;
+  }
+
+ private:
+  folly::AsyncSocket::OptionMap v4_;
+  folly::AsyncSocket::OptionMap v6_;
 };
 
 using SSLSessionEstablishedCallbackUniquePtr =
@@ -60,8 +83,7 @@ class BaseClientBootstrap {
 
   virtual folly::Future<P*> connect(
       const folly::SocketAddress& address,
-      std::chrono::milliseconds timeout =
-          std::chrono::milliseconds(0)) = 0;
+      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) = 0;
 
   BaseClientBootstrap* sslContext(folly::SSLContextPtr sslContext) {
     sslContext_ = sslContext;
@@ -98,7 +120,20 @@ class BaseClientBootstrap {
     pipeline_ = pipelineFactory_->newPipeline(socket);
   }
 
+  void setSocketOptions(const ClientBootstrapSocketOptions& sockOpts) {
+    socketOptions_ = sockOpts;
+  }
+
  protected:
+  const folly::AsyncSocket::OptionMap& getSocketOptions(sa_family_t ipFamily) {
+    if (ipFamily == AF_INET) {
+      return socketOptions_.getV4OptionMap();
+    } else if (ipFamily == AF_INET6) {
+      return socketOptions_.getV6OptionMap();
+    }
+    return folly::AsyncSocket::emptyOptionMap;
+  }
+
   std::shared_ptr<PipelineFactory<P>> pipelineFactory_;
   typename P::Ptr pipeline_;
   folly::SSLContextPtr sslContext_;
@@ -106,6 +141,7 @@ class BaseClientBootstrap {
   std::string sni_;
   bool deferSecurityNegotiation_{false};
   SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback_;
+  ClientBootstrapSocketOptions socketOptions_;
 };
 
 template <typename ClientBootstrap = BaseClientBootstrap<>>

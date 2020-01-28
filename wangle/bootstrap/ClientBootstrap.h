@@ -131,7 +131,8 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
               socket,
               std::move(this->sslSessionEstablishedCallback_)),
           address,
-          timeout.count());
+          timeout.count(),
+          BaseClientBootstrap<Pipeline>::getSocketOptions(address.getFamily()));
     });
     return retval;
   }
