@@ -32,14 +32,14 @@ class FizzConfigUtil {
       const wangle::ServerSocketConfig& config);
 
   // Creates a TicketCipher with given params
-  template <class TicketCipher>
-  static std::unique_ptr<TicketCipher> createTicketCipher(
+  template <class TicketCipherT>
+  static std::unique_ptr<TicketCipherT> createTicketCipher(
       const TLSTicketKeySeeds& seeds,
       std::chrono::seconds validity,
       std::chrono::seconds handshakeValidity,
       folly::Optional<std::string> pskContext) {
     if (seeds.currentSeeds.empty()) {
-      return fizz::FizzUtil::createTicketCipher<TicketCipher>(
+      return fizz::FizzUtil::createTicketCipher<TicketCipherT>(
           seeds.oldSeeds,
           "",
           seeds.newSeeds,
@@ -47,7 +47,7 @@ class FizzConfigUtil {
           handshakeValidity,
           std::move(pskContext));
     } else {
-      return fizz::FizzUtil::createTicketCipher<TicketCipher>(
+      return fizz::FizzUtil::createTicketCipher<TicketCipherT>(
           seeds.oldSeeds,
           seeds.currentSeeds.at(0),
           seeds.newSeeds,
