@@ -17,9 +17,11 @@
 #pragma once
 
 #include <folly/IntrusiveList.h>
-#include <ostream>
 #include <folly/io/async/HHWheelTimer.h>
 #include <folly/io/async/DelayedDestruction.h>
+
+#include <ostream>
+#include <string>
 
 namespace wangle {
 
@@ -101,7 +103,7 @@ class ManagedConnection:
    * If a request is in progress, this should cause the connection to be
    * closed with a reset.
    */
-  virtual void dropConnection() = 0;
+  virtual void dropConnection(const std::string& errorMsg = "") = 0;
 
   /**
    * Dump the state of the connection to the log

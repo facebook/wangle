@@ -92,7 +92,7 @@ class ServerAcceptor : public Acceptor,
     }
     void notifyPendingShutdown() override {}
     void closeWhenIdle() override {}
-    void dropConnection() override {
+    void dropConnection(const std::string& /* errorMsg */ = "") override {
       auto ew = folly::make_exception_wrapper<AcceptorException>(
           AcceptorException::ExceptionType::DROPPED, "dropped");
       pipeline_->readException(ew);

@@ -63,7 +63,7 @@ class MockConnection : public ManagedConnection {
 
   MOCK_METHOD0(notifyPendingShutdown, void());
   MOCK_METHOD0(closeWhenIdle, void());
-  MOCK_METHOD0(dropConnection, void());
+  MOCK_METHOD1(dropConnection, void(const std::string&));
   MOCK_METHOD1(dumpConnectionState, void(uint8_t));
   MOCK_METHOD2(drainConnections, void(double, std::chrono::milliseconds));
 
@@ -195,8 +195,9 @@ TEST_F(ConnectionManagerTest, testDropAll) {
   InSequence enforceOrder;
 
   for (const auto& conn : conns_) {
-    EXPECT_CALL(*conn, dropConnection())
-      .WillOnce(Invoke([&] { cm_->removeConnection(conn.get()); }));
+    EXPECT_CALL(*conn, dropConnection(_))
+        .WillOnce(Invoke(
+            [&](const std::string&) { cm_->removeConnection(conn.get()); }));
   }
   cm_->dropAllConnections();
 }
@@ -218,7 +219,7 @@ TEST_F(ConnectionManagerTest, testDropPercent) {
   int numToDrop = 100 * pct;
   auto connIter = conns_.begin();
   while (connIter != conns_.end() && numToDrop > 0) {
-    EXPECT_CALL(*(*connIter), dropConnection());
+    EXPECT_CALL(*(*connIter), dropConnection(_));
     --numToDrop;
     ++connIter;
   }
@@ -232,7 +233,7 @@ TEST_F(ConnectionManagerTest, testDropPercent) {
   pct  = 0.5;
   numToDrop = 80 * pct;
   while (connIter != conns_.end() && numToDrop > 0) {
-    EXPECT_CALL(*(*connIter), dropConnection());
+    EXPECT_CALL(*(*connIter), dropConnection(_));
     --numToDrop;
     ++connIter;
   }
@@ -325,8 +326,10 @@ TEST_F(ConnectionManagerTest, testDropIdle) {
 
   // Expect the remaining idle conns to drop
   for (size_t i = 2; i < conns_.size() / 2; i++) {
-    EXPECT_CALL(*conns_[i], dropConnection())
-      .WillOnce(Invoke([this, i] { cm_->removeConnection(conns_[i].get()); }));
+    EXPECT_CALL(*conns_[i], dropConnection(_))
+        .WillOnce(Invoke([this, i](const std::string&) {
+          cm_->removeConnection(conns_[i].get());
+        }));
   }
 
   cm_->dropIdleConnections(conns_.size());

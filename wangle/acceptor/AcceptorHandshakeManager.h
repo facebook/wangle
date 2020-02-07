@@ -102,7 +102,7 @@ class AcceptorHandshakeManager : public ManagedConnection,
 
   void closeWhenIdle() override {}
 
-  void dropConnection() override {
+  void dropConnection(const std::string& /* errorMsg */ = "") override {
     dropConnection(SSLErrorEnum::NO_ERROR);
   }
 
