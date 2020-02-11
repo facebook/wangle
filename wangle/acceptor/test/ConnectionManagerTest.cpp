@@ -206,10 +206,10 @@ TEST_F(ConnectionManagerTest, testDropPercent) {
   InSequence enforceOrder;
 
   // Make sure we have exactly 100 connections.
-  const int numToAdd = 100 - conns_.size();
+  const size_t numToAdd = 100 - conns_.size();
   addConns(numToAdd);
-  const int numToRemove = conns_.size() - 100;
-  for (int i = 0; i < numToRemove; i++) {
+  const size_t numToRemove = conns_.size() - 100;
+  for (size_t i = 0; i < numToRemove; i++) {
     removeConn(conns_.begin()->get());
   }
   EXPECT_EQ(100, cm_->getNumConnections());

@@ -60,7 +60,7 @@ bool LineBasedFrameDecoder::decode(Context* ctx,
     } else {
       auto len = buf.chainLength();
       if (len > maxLength_) {
-        discardedBytes_ = len;
+        discardedBytes_ = folly::to_narrow(len);
         buf.trimStart(len);
         discarding_ = true;
         fail(ctx, "over " + folly::to<std::string>(len));
@@ -76,7 +76,7 @@ bool LineBasedFrameDecoder::decode(Context* ctx,
       discardedBytes_ = 0;
       discarding_ = false;
     } else {
-      discardedBytes_ = buf.chainLength();
+      discardedBytes_ = folly::to_narrow(buf.chainLength());
       buf.move();
     }
 

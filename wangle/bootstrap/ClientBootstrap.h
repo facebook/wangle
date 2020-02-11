@@ -124,6 +124,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
       }
       folly::Promise<Pipeline*> promise;
       retval = promise.getFuture();
+      DCHECK_LE(timeout.count(), std::numeric_limits<int>::max());
       socket->connect(
           new ConnectCallback(
               std::move(promise),
@@ -131,7 +132,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
               socket,
               std::move(this->sslSessionEstablishedCallback_)),
           address,
-          timeout.count(),
+          folly::to_narrow(timeout.count()),
           BaseClientBootstrap<Pipeline>::getSocketOptions(address.getFamily()));
     });
     return retval;

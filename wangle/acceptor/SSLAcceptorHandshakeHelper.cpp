@@ -41,8 +41,8 @@ void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
     AsyncSSLSocket* sock, TransportInfo& tinfo) {
   tinfo.secure = true;
   tinfo.securityType = sock->getSecurityProtocol();
-  tinfo.sslSetupBytesRead = sock->getRawBytesReceived();
-  tinfo.sslSetupBytesWritten = sock->getRawBytesWritten();
+  tinfo.sslSetupBytesRead = folly::to_narrow(sock->getRawBytesReceived());
+  tinfo.sslSetupBytesWritten = folly::to_narrow(sock->getRawBytesWritten());
   tinfo.sslServerName = sock->getSSLServerName() ?
     std::make_shared<std::string>(sock->getSSLServerName()) : nullptr;
   tinfo.sslCipher = sock->getNegotiatedCipherName() ?

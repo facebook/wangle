@@ -97,8 +97,11 @@ folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
     const std::string& certificateData) {
   // BIO_new_mem_buf creates a bio pointing to a read-only buffer. However,
   // older versions of OpenSSL fail to mark the first argument `const`.
+  DCHECK_LE(certificateData.length(), std::numeric_limits<int>::max());
   folly::ssl::BioUniquePtr bio(
-    BIO_new_mem_buf((void*)certificateData.data(), certificateData.length()));
+    BIO_new_mem_buf(
+      (void*)certificateData.data(),
+      folly::to_narrow(folly::to_signed(certificateData.length()))));
   if (!bio) {
     throw std::runtime_error("Cannot create mem BIO");
   }
@@ -132,12 +135,13 @@ std::string SSLUtil::decrypt(
 
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary. */
+  DCHECK_LE(ciphertext.size(), std::numeric_limits<int>::max());
   if (EVP_DecryptUpdate(
           ctx.get(),
           plaintext.get(),
           &offset1,
           const_cast<unsigned char*>(ciphertext.data()),
-          ciphertext.size()) != 1) {
+          folly::to_narrow(folly::to_signed(ciphertext.size()))) != 1) {
     throw std::runtime_error("Failure when decrypting file.");
   }
 
@@ -183,12 +187,13 @@ folly::Optional<std::string> SSLUtil::decryptOpenSSLEncFilePassString(
       fileData.substr(magic.size() + PKCS5_SALT_LEN);
 
   // Construct key and iv from password
+  DCHECK_LE(password.size(), std::numeric_limits<int>::max());
   EVP_BytesToKey(
       cipher,
       digest,
       reinterpret_cast<const unsigned char*>(salt.data()),
       reinterpret_cast<const unsigned char*>(password.data()),
-      password.size(),
+      folly::to_narrow(folly::to_signed(password.size())),
       1 /* one round */,
       key.data(),
       iv.data());

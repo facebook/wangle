@@ -80,7 +80,7 @@ bool LengthFieldBasedFrameDecoder::decode(Context* ctx,
   }
 
   buf.trimStart(initialBytesToStrip_);
-  int actualFrameLength = frameLength - initialBytesToStrip_;
+  int actualFrameLength = static_cast<int>(frameLength) - initialBytesToStrip_;
   result = buf.split(actualFrameLength);
   return true;
 }
