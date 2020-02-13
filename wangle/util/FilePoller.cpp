@@ -56,9 +56,11 @@ folly::Singleton<PollerContext> contextSingleton([] {
 });
 }
 
-folly::ThreadLocal<bool> FilePoller::ThreadProtector::polling_([] {
-  return new bool(false);
-});
+bool* FilePoller::ThreadProtector::polling() {
+  static thread_local bool sPolling{false};
+  return &sPolling;
+}
+
 
 constexpr std::chrono::milliseconds FilePoller::kDefaultPollInterval;
 

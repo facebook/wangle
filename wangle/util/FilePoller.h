@@ -160,15 +160,16 @@ class FilePoller {
   class ThreadProtector {
    public:
     ThreadProtector() {
-      *polling_ = true;
+     *polling() = true;
     }
     ~ThreadProtector() {
-      *polling_ = false;
+      *polling() = false;
     }
     static bool inPollerThread() {
-      return *polling_;
+      return *polling();
     }
-    static folly::ThreadLocal<bool> polling_;
+private:
+    static bool* polling();
   };
 };
 }
