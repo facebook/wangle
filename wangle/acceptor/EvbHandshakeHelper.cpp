@@ -33,11 +33,15 @@ void EvbHandshakeHelper::start(
   CHECK(originalEvb_);
 
   sock->detachEventBase();
-  handshakeEvb_->runInEventBaseThread(
-      [ this, sock = std::move(sock) ]() mutable {
-        sock->attachEventBase(handshakeEvb_);
-        helper_->start(std::move(sock), this);
-      });
+  originalEvb_->runInLoop(
+      [this, sock = std::move(sock)]() mutable {
+        handshakeEvb_->runInEventBaseThread(
+            [this, sock = std::move(sock)]() mutable {
+              sock->attachEventBase(handshakeEvb_);
+              helper_->start(std::move(sock), this);
+            });
+      },
+      /* thisIteration = */ true);
 }
 
 void EvbHandshakeHelper::dropConnection(SSLErrorEnum reason) {
@@ -98,30 +102,37 @@ void EvbHandshakeHelper::connectionReady(
 
   transport->detachEventBase();
 
-  originalEvb_->runInEventBaseThread([
-    this,
-    secureTransportType,
-    sslErr,
-    transport = std::move(transport),
-    nextProtocol = std::move(nextProtocol)
-  ]() mutable {
-    DCHECK(callback_);
-    VLOG(5) << "calling underlying callback connectionReady";
-    transport->attachEventBase(originalEvb_);
+  handshakeEvb_->runInLoop(
+      [this,
+       secureTransportType,
+       sslErr,
+       transport = std::move(transport),
+       nextProtocol = std::move(nextProtocol)]() mutable {
+        originalEvb_->runInEventBaseThread(
+            [this,
+             secureTransportType,
+             sslErr,
+             transport = std::move(transport),
+             nextProtocol = std::move(nextProtocol)]() mutable {
+              DCHECK(callback_);
+              VLOG(5) << "calling underlying callback connectionReady";
+              transport->attachEventBase(originalEvb_);
 
-    // If a dropConnection call occured by the time this lambda runs, we don't
-    // want to fire the callback. (See Case 2)
-    if (dropConnectionGuard_.hasValue()) {
-      dropConnectionGuard_.clear();
-      return;
-    }
+              // If a dropConnection call occured by the time this lambda runs,
+              // we don't want to fire the callback. (See Case 2)
+              if (dropConnectionGuard_.hasValue()) {
+                dropConnectionGuard_.clear();
+                return;
+              }
 
-    callback_->connectionReady(
-        std::move(transport),
-        std::move(nextProtocol),
-        secureTransportType,
-        sslErr);
-  });
+              callback_->connectionReady(
+                  std::move(transport),
+                  std::move(nextProtocol),
+                  secureTransportType,
+                  sslErr);
+            });
+      },
+      /* thisIteration = */ true);
 }
 
 void EvbHandshakeHelper::connectionError(
