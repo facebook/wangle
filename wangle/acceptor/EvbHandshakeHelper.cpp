@@ -78,7 +78,7 @@ void EvbHandshakeHelper::dropConnection(SSLErrorEnum reason) {
       helper_.reset();
 
       originalEvb_->runInEventBaseThread(
-          [this] { dropConnectionGuard_.clear(); });
+          [this] { dropConnectionGuard_.reset(); });
     });
   }
 }
@@ -121,7 +121,7 @@ void EvbHandshakeHelper::connectionReady(
               // If a dropConnection call occured by the time this lambda runs,
               // we don't want to fire the callback. (See Case 2)
               if (dropConnectionGuard_.hasValue()) {
-                dropConnectionGuard_.clear();
+                dropConnectionGuard_.reset();
                 return;
               }
 
@@ -160,7 +160,7 @@ void EvbHandshakeHelper::connectionError(
         // If a dropConnection call occured by the time this lambda runs, we
         // don't want to fire the callback. (See Case 2)
         if (dropConnectionGuard_.hasValue()) {
-          dropConnectionGuard_.clear();
+          dropConnectionGuard_.reset();
           return;
         }
         callback_->connectionError(nullptr, std::move(ex), sslErr);
