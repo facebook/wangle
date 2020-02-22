@@ -16,16 +16,15 @@
 
 #include <wangle/acceptor/SocketOptions.h>
 
+#include <folly/io/SocketOptionMap.h>
 #include <folly/portability/Sockets.h>
-
-using folly::AsyncSocket;
 
 namespace wangle {
 
-AsyncSocket::OptionMap filterIPSocketOptions(
-  const AsyncSocket::OptionMap& allOptions,
+  folly::SocketOptionMap filterIPSocketOptions(
+  const folly::SocketOptionMap& allOptions,
   const int addrFamily) {
-  AsyncSocket::OptionMap opts;
+  folly::SocketOptionMap opts;
   int exclude;
   if (addrFamily == AF_INET) {
     exclude = IPPROTO_IPV6;

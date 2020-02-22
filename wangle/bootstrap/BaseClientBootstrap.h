@@ -18,6 +18,7 @@
 
 #include <folly/SocketAddress.h>
 #include <folly/futures/Future.h>
+#include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <wangle/channel/Pipeline.h>
@@ -35,25 +36,25 @@ class SSLSessionEstablishedCallback {
 class ClientBootstrapSocketOptions {
  public:
   ClientBootstrapSocketOptions& setV4OptionMap(
-      const folly::AsyncSocket::OptionMap& options) {
+      const folly::SocketOptionMap& options) {
     v4_ = options;
     return *this;
   }
-  folly::AsyncSocket::OptionMap const& getV4OptionMap() const {
+  folly::SocketOptionMap const& getV4OptionMap() const {
     return v4_;
   }
   ClientBootstrapSocketOptions& setV6OptionMap(
-      const folly::AsyncSocket::OptionMap& options) {
+      const folly::SocketOptionMap& options) {
     v6_ = options;
     return *this;
   }
-  folly::AsyncSocket::OptionMap const& getV6OptionMap() const {
+  folly::SocketOptionMap const& getV6OptionMap() const {
     return v6_;
   }
 
  private:
-  folly::AsyncSocket::OptionMap v4_;
-  folly::AsyncSocket::OptionMap v6_;
+  folly::SocketOptionMap v4_;
+  folly::SocketOptionMap v6_;
 };
 
 using SSLSessionEstablishedCallbackUniquePtr =
@@ -125,13 +126,13 @@ class BaseClientBootstrap {
   }
 
  protected:
-  const folly::AsyncSocket::OptionMap& getSocketOptions(sa_family_t ipFamily) {
+  const folly::SocketOptionMap& getSocketOptions(sa_family_t ipFamily) {
     if (ipFamily == AF_INET) {
       return socketOptions_.getV4OptionMap();
     } else if (ipFamily == AF_INET6) {
       return socketOptions_.getV6OptionMap();
     }
-    return folly::AsyncSocket::emptyOptionMap;
+    return folly::emptySocketOptionMap;
   }
 
   std::shared_ptr<PipelineFactory<P>> pipelineFactory_;

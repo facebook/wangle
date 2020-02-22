@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSocket.h>
 
 namespace wangle {
@@ -24,8 +25,8 @@ namespace wangle {
  * Returns a copy of the socket options excluding options with the given
  * level.
  */
-folly::AsyncSocket::OptionMap filterIPSocketOptions(
-  const folly::AsyncSocket::OptionMap& allOptions,
+folly::SocketOptionMap filterIPSocketOptions(
+  const folly::SocketOptionMap& allOptions,
   const int addrFamily);
 
 } // namespace wangle

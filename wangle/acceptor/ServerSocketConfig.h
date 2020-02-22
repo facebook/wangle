@@ -28,6 +28,7 @@
 #include <folly/Random.h>
 #include <folly/SocketAddress.h>
 #include <folly/String.h>
+#include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/SSLContext.h>
 #include <sys/stat.h>
@@ -69,13 +70,13 @@ struct ServerSocketConfig {
   /**
    * Set/get the socket options to apply on all downstream connections.
    */
-  void setSocketOptions(const folly::AsyncSocket::OptionMap& opts) {
+  void setSocketOptions(const folly::SocketOptionMap& opts) {
     socketOptions_ = filterIPSocketOptions(opts, bindAddress.getFamily());
   }
-  folly::AsyncSocket::OptionMap& getSocketOptions() {
+  folly::SocketOptionMap& getSocketOptions() {
     return socketOptions_;
   }
-  const folly::AsyncSocket::OptionMap& getSocketOptions() const {
+  const folly::SocketOptionMap& getSocketOptions() const {
     return socketOptions_;
   }
 
@@ -193,7 +194,7 @@ struct ServerSocketConfig {
       customConfigMap;
 
  private:
-  folly::AsyncSocket::OptionMap socketOptions_;
+  folly::SocketOptionMap socketOptions_;
 };
 
 } // namespace wangle

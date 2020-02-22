@@ -31,6 +31,7 @@
 
 #include <event.h>
 #include <folly/ExceptionWrapper.h>
+#include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncServerSocket.h>
 #include <folly/io/async/AsyncUDPServerSocket.h>
@@ -436,7 +437,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   /**
    * Socket options to apply to the client socket
    */
-  folly::AsyncSocket::OptionMap socketOptions_;
+  folly::SocketOptionMap socketOptions_;
 
   std::shared_ptr<SSLContextManager> sslCtxManager_;
 
