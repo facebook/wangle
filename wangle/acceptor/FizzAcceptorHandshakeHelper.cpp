@@ -61,7 +61,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - acceptTime_);
   if (tokenBindingExtension_ &&
-      tokenBindingExtension_->getNegotiatedKeyParam().hasValue()) {
+      tokenBindingExtension_->getNegotiatedKeyParam().has_value()) {
     tinfo_.negotiatedTokenBindingKeyParameters =
         static_cast<uint8_t>(*tokenBindingExtension_->getNegotiatedKeyParam());
   }

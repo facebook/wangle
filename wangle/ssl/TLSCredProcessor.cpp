@@ -123,13 +123,13 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     const folly::Optional<std::string>& password) {
   try {
     std::string jsonData;
-    if (password.hasValue()) {
+    if (password.has_value()) {
       auto wrappedData = SSLUtil::decryptOpenSSLEncFilePassString(
           fileName,
           password.value(),
           EVP_aes_256_cbc(),
           EVP_sha256());
-      if (wrappedData.hasValue()) {
+      if (wrappedData.has_value()) {
         jsonData = wrappedData.value();
       } else {
         LOG(WARNING) << "Failed to read " << fileName
