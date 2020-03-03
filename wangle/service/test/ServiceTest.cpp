@@ -256,7 +256,7 @@ TEST(Wangle, FactoryToService) {
 
 class TimekeeperTester : public Timekeeper {
  public:
-  SemiFuture<Unit> after(Duration) override {
+  SemiFuture<Unit> after(HighResDuration) override {
     Promise<Unit> p;
     auto f = p.getSemiFuture();
     promises_.push_back(std::move(p));
