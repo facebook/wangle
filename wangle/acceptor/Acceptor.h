@@ -107,14 +107,18 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   virtual void init(
       folly::AsyncServerSocket* serverSocket,
       folly::EventBase* eventBase,
-      SSLStats* stats = nullptr);
+      SSLStats* stats = nullptr,
+      std::shared_ptr<const fizz::server::FizzServerContext> fizzContext =
+          nullptr);
 
   /**
    * Recreates ssl configs, re-reads certs
    */
   virtual void resetSSLContextConfigs(
       std::shared_ptr<fizz::server::CertManager> certManager = nullptr,
-      std::shared_ptr<SSLContextManager> ctxManager = nullptr);
+      std::shared_ptr<SSLContextManager> ctxManager = nullptr,
+      std::shared_ptr<const fizz::server::FizzServerContext> fizzContext =
+          nullptr);
 
   SSLContextManager* getSSLContextManager() const {
     return sslCtxManager_.get();
@@ -471,7 +475,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   bool forceShutdownInProgress_{false};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 
-  std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext();
+  std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext(
+      const std::shared_ptr<fizz::server::CertManager>& fizzCertManager);
 };
 
 class AcceptorFactory {

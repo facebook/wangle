@@ -130,8 +130,10 @@ class ServerAcceptor : public Acceptor,
   void init(
       folly::AsyncServerSocket* serverSocket,
       folly::EventBase* eventBase,
-      SSLStats* stats = nullptr) override {
-    Acceptor::init(serverSocket, eventBase, stats);
+      SSLStats* stats = nullptr,
+      std::shared_ptr<const fizz::server::FizzServerContext> fizzCtx =
+          nullptr) override {
+    Acceptor::init(serverSocket, eventBase, stats, fizzCtx);
 
     acceptPipeline_ = acceptPipelineFactory_->newPipeline(this);
 

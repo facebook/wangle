@@ -51,7 +51,8 @@ Acceptor::Acceptor(const ServerSocketConfig& accConfig)
 void Acceptor::init(
     AsyncServerSocket* serverSocket,
     EventBase* eventBase,
-    SSLStats* stats) {
+    SSLStats* stats,
+    std::shared_ptr<const fizz::server::FizzServerContext> fizzContext) {
   if (accConfig_.isSSL()) {
     if (accConfig_.allowInsecureConnectionsOnSecureServer) {
       securityProtocolCtxManager_.addPeeker(&tlsPlaintextPeekingCallback_);
@@ -68,7 +69,9 @@ void Acceptor::init(
       }
 
       auto* peeker = getFizzPeeker();
-      peeker->setContext(recreateFizzContext());
+      auto context =
+          fizzContext ? fizzContext : recreateFizzContext(fizzCertManager_);
+      peeker->setContext(std::move(context));
 
       securityProtocolCtxManager_.addPeeker(peeker);
     } else {
@@ -133,12 +136,13 @@ std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
 }
 
 std::shared_ptr<const fizz::server::FizzServerContext>
-Acceptor::recreateFizzContext() {
+Acceptor::recreateFizzContext(
+    const std::shared_ptr<fizz::server::CertManager>& fizzCertManager) {
   auto ctx = createFizzContext();
-  if (ctx && fizzCertManager_) {
+  if (ctx && fizzCertManager) {
     ctx->setTicketCipher(fizzTicketCipher_);
-    ctx->setCertManager(fizzCertManager_);
-  } else if (fizzCertManager_ == nullptr) {
+    ctx->setCertManager(fizzCertManager);
+  } else if (fizzCertManager == nullptr) {
     return nullptr;
   }
   return ctx;
@@ -169,13 +173,16 @@ std::string Acceptor::getPskContext() {
 
 void Acceptor::resetSSLContextConfigs(
     std::shared_ptr<fizz::server::CertManager> certManager,
-    std::shared_ptr<SSLContextManager> ctxManager) {
+    std::shared_ptr<SSLContextManager> ctxManager,
+    std::shared_ptr<const fizz::server::FizzServerContext> fizzContext) {
   try {
     if (accConfig_.fizzConfig.enableFizz) {
       auto manager = certManager ? certManager : createFizzCertManager();
       if (manager) {
         fizzCertManager_ = std::move(manager);
-        getFizzPeeker()->setContext(recreateFizzContext());
+        auto context =
+            fizzContext ? fizzContext : recreateFizzContext(fizzCertManager_);
+        getFizzPeeker()->setContext(std::move(context));
       }
     }
     if (ctxManager) {
@@ -204,7 +211,7 @@ void Acceptor::setTLSTicketSecrets(
     TLSTicketKeySeeds seeds{oldSecrets, currentSecrets, newSecrets};
 
     fizzTicketCipher_ = createFizzTicketCipher(seeds, getPskContext());
-    getFizzPeeker()->setContext(recreateFizzContext());
+    getFizzPeeker()->setContext(recreateFizzContext(fizzCertManager_));
   }
 
   if (sslCtxManager_) {
