@@ -65,6 +65,11 @@ public:
    */
   virtual folly::Future<folly::ssl::SSLSessionUniquePtr> getFuture(
       const std::string& sessionId) = 0;
+
+  virtual void setSecrets(
+      const std::vector<std::string>& /*oldSecrets*/,
+      const std::vector<std::string>& /*currentSecrets*/,
+      const std::vector<std::string>& /*newSecrets*/) {}
 };
 
 } // namespace wangle
