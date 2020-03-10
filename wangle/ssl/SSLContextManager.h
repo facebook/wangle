@@ -80,12 +80,20 @@ class SSLContextManager {
         const TLSTicketKeySeeds* ticketSeeds,
         const folly::SocketAddress& vipAddress,
         const std::shared_ptr<SSLCacheProvider>& externalCache,
-        const SSLContextManager* mgr);
+        const SSLContextManager* mgr,
+        std::shared_ptr<ServerSSLContext>& newDefault);
 
     void removeSSLContextConfigByDomainName(const std::string& domainName);
     void removeSSLContextConfig(const SSLContextKey& key);
 
     std::shared_ptr<folly::SSLContext> getDefaultSSLCtx() const;
+
+    // Similar to the getSSLCtx functions below, but indicates if the key
+    // is present in the defaults vector instead of returning a context
+    // from the map.
+    bool isDefaultCtx(const SSLContextKey& key) const;
+    bool isDefaultCtxExact(const SSLContextKey& key) const;
+    bool isDefaultCtxSuffix(const SSLContextKey& key) const;
 
     std::shared_ptr<folly::SSLContext> getSSLCtx(
         const SSLContextKey& key) const;
@@ -99,9 +107,8 @@ class SSLContextManager {
     void insertSSLCtxByDomainName(
         const std::string& dn,
         std::shared_ptr<folly::SSLContext> sslCtx,
-        CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
-
-    void setDefaultCtxDomainName(const std::string& name);
+        CertCrypto certCrypto,
+        bool defaultFallback);
 
     void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx);
 
@@ -109,7 +116,8 @@ class SSLContextManager {
     void ctxSetupByOpensslFeature(
         std::shared_ptr<ServerSSLContext> sslCtx,
         const SSLContextConfig& ctxConfig,
-        const SSLContextManager* mgr);
+        const SSLContextManager* mgr,
+        std::shared_ptr<ServerSSLContext>& newDefault);
 
     void reloadTLSTicketKeys(
         const std::vector<std::string>& oldSeeds,
@@ -154,15 +162,18 @@ class SSLContextManager {
     void insertSSLCtxByDomainNameImpl(
         const std::string& dn,
         std::shared_ptr<folly::SSLContext> sslCtx,
-        CertCrypto certCrypto);
+        CertCrypto certCrypto,
+        bool defaultFallback);
 
     void insertIntoDnMap(
         SSLContextKey key,
         std::shared_ptr<folly::SSLContext> sslCtx,
         bool overwrite);
 
+    void insertIntoDefaultKeys(SSLContextKey key, bool overwrite);
+
     std::vector<std::shared_ptr<ServerSSLContext>> ctxs_;
-    std::shared_ptr<ServerSSLContext> defaultCtx_;
+    std::vector<SSLContextKey> defaultCtxKeys_;
     std::string defaultCtxDomainName_;
     bool strict_{true};
 
@@ -314,9 +325,10 @@ class SSLContextManager {
    * Insert a SSLContext by domain name.
    */
   void insertSSLCtxByDomainName(
-    const std::string& dn,
-    std::shared_ptr<folly::SSLContext> sslCtx,
-    CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE);
+      const std::string& dn,
+      std::shared_ptr<folly::SSLContext> sslCtx,
+      CertCrypto certCrypto = CertCrypto::BEST_AVAILABLE,
+      bool defaultFallback = false);
 
   void loadCertsFromFiles(
       const std::shared_ptr<folly::SSLContext>& sslCtx,
@@ -329,8 +341,6 @@ class SSLContextManager {
       std::unique_ptr<std::list<std::string>>& subjectAltName,
       const std::string& lastCertPath,
       bool firstCert) const;
-
-  void setDefaultCtxDomainName(const std::string& name);
 
   void addServerContext(std::shared_ptr<ServerSSLContext> sslCtx);
 
@@ -351,6 +361,7 @@ class SSLContextManager {
   ClientHelloExtStats* clientHelloTLSExtStats_{nullptr};
   bool strict_{true};
   std::unique_ptr<ClientCertVerifyCallback> clientCertVerifyCallback_{nullptr};
+  std::shared_ptr<ServerSSLContext> defaultCtx_;
 };
 
 } // namespace wangle

@@ -32,7 +32,6 @@ class SSLContextManagerForTest : public SSLContextManager {
  public:
   using SSLContextManager::SSLContextManager;
   using SSLContextManager::insertSSLCtxByDomainName;
-  using SSLContextManager::setDefaultCtxDomainName;
   using SSLContextManager::addServerContext;
 };
 
@@ -180,6 +179,7 @@ TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
   auto www_example_com_ctx = std::make_shared<ServerSSLContext>();
   auto start_example_com_ctx = std::make_shared<ServerSSLContext>();
   auto start_abc_example_com_ctx = std::make_shared<ServerSSLContext>();
+  auto www_abc_example_com_ctx = std::make_shared<ServerSSLContext>();
 
   sslCtxMgr.insertSSLCtxByDomainName(
     "www.example.com",
@@ -226,7 +226,11 @@ TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
   sslCtxMgr.removeSSLContextConfig(SSLContextKey("xyz.example.com"));
 
   // Setting a default context
-  sslCtxMgr.setDefaultCtxDomainName("www.abc.example.com");
+  sslCtxMgr.insertSSLCtxByDomainName(
+      "www.abc.example.com",
+      www_abc_example_com_ctx,
+      CertCrypto::BEST_AVAILABLE,
+      true);
 
   // Context Manager must throw on attempt to remove the default context
   EXPECT_THROW(
