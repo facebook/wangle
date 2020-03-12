@@ -21,12 +21,13 @@
 #include <folly/SharedMutex.h>
 
 #include <glog/logging.h>
-#include <list>
-#include <memory>
+#include <wangle/acceptor/SSLContextSelectionMisc.h>
+#include <wangle/ssl/PasswordInFileFactory.h>
 #include <wangle/ssl/SSLContextConfig.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
-#include <wangle/acceptor/SSLContextSelectionMisc.h>
+#include <list>
+#include <memory>
 #include <vector>
 
 namespace folly {
@@ -177,6 +178,10 @@ class SSLContextManager {
      clientCertVerifyCallback_ = std::move(cb);
    }
 
+   void setPasswordFactory(std::shared_ptr<PasswordInFileFactory> factory) {
+     passwordFactory_ = std::move(factory);
+   }
+
  protected:
   virtual void loadCertKeyPairsInSSLContext(
       const std::shared_ptr<folly::SSLContext>&,
@@ -228,6 +233,7 @@ class SSLContextManager {
   bool strict_{true};
   std::unique_ptr<ClientCertVerifyCallback> clientCertVerifyCallback_{nullptr};
   std::shared_ptr<ServerSSLContext> defaultCtx_;
+  std::shared_ptr<PasswordInFileFactory> passwordFactory_{nullptr};
 };
 
 } // namespace wangle

@@ -20,13 +20,15 @@
 #include <fizz/util/FizzUtil.h>
 
 #include <wangle/acceptor/ServerSocketConfig.h>
+#include <wangle/ssl/PasswordInFileFactory.h>
 
 namespace wangle {
 
 class FizzConfigUtil {
  public:
-  static std::unique_ptr<fizz::server::CertManager>
-    createCertManager(const ServerSocketConfig& config);
+  static std::unique_ptr<fizz::server::CertManager> createCertManager(
+      const ServerSocketConfig& config,
+      const std::shared_ptr<PasswordInFileFactory>& pwFactory);
 
   static std::shared_ptr<fizz::server::FizzServerContext> createFizzContext(
       const wangle::ServerSocketConfig& config);
