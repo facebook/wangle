@@ -379,7 +379,9 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       std::shared_ptr<folly::AsyncUDPSocket> /*socket*/,
       const folly::SocketAddress&,
       std::unique_ptr<folly::IOBuf>,
-      bool) noexcept override {}
+      bool,
+      folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams)
+          noexcept override {}
 
   virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
       folly::EventBase* base,

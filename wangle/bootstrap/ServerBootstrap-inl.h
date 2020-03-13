@@ -236,7 +236,9 @@ class ServerAcceptor : public Acceptor,
       std::shared_ptr<folly::AsyncUDPSocket> socket,
       const folly::SocketAddress& addr,
       std::unique_ptr<folly::IOBuf> buf,
-      bool /* truncated */) noexcept override {
+      bool /* truncated */,
+      folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams /* params */)
+          noexcept override {
     acceptPipeline_->read(
         AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }
