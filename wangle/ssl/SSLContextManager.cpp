@@ -555,14 +555,9 @@ void SSLContextManager::loadCertsFromFiles(
     // The private key lives in the same process
     // This needs to be called before loadPrivateKey().
     if (!cert.passwordPath.empty()) {
-      if (passwordFactory_) {
-        sslCtx->passwordCollector(
-            passwordFactory_->getPasswordCollector(cert.passwordPath));
-      } else {
-        auto sslPassword =
-            std::make_shared<folly::PasswordInFile>(cert.passwordPath);
-        sslCtx->passwordCollector(std::move(sslPassword));
-      }
+      auto sslPassword = std::make_shared<folly::PasswordInFile>(
+          cert.passwordPath);
+      sslCtx->passwordCollector(std::move(sslPassword));
     }
     sslCtx->loadCertKeyPairFromFiles(
       cert.certPath.c_str(),

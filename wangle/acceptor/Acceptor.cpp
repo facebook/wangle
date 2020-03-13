@@ -159,7 +159,7 @@ std::shared_ptr<fizz::server::TicketCipher> Acceptor::createFizzTicketCipher(
 }
 
 std::unique_ptr<fizz::server::CertManager> Acceptor::createFizzCertManager() {
-  return FizzConfigUtil::createCertManager(accConfig_, nullptr);
+  return FizzConfigUtil::createCertManager(accConfig_);
 }
 
 std::string Acceptor::getPskContext() {

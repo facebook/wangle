@@ -28,9 +28,8 @@ using fizz::server::ClientAuthMode;
 
 namespace wangle {
 
-std::unique_ptr<fizz::server::CertManager> FizzConfigUtil::createCertManager(
-    const ServerSocketConfig& config,
-    const std::shared_ptr<PasswordInFileFactory>& pwFactory) {
+std::unique_ptr<fizz::server::CertManager>
+FizzConfigUtil::createCertManager(const ServerSocketConfig& config) {
   auto certMgr = std::make_unique<fizz::server::CertManager>();
   auto loadedCert = false;
   for (const auto& sslConfig : config.sslContextConfigs) {
@@ -41,14 +40,7 @@ std::unique_ptr<fizz::server::CertManager> FizzConfigUtil::createCertManager(
           selfCert = CertUtils::makeSelfCert(cert.certPath, cert.keyPath);
         } else {
           auto x509Chain = FizzUtil::readChainFile(cert.certPath);
-          std::shared_ptr<folly::PasswordInFile> pw;
-          if (pwFactory) {
-            pw = pwFactory->getPasswordCollector(cert.passwordPath);
-          } else {
-            pw = std::make_shared<folly::PasswordInFile>(cert.passwordPath);
-          }
-
-          auto pkey = FizzUtil::readPrivateKey(cert.keyPath, pw);
+          auto pkey = FizzUtil::readPrivateKey(cert.keyPath, cert.passwordPath);
           selfCert =
             CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
         }
