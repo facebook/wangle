@@ -380,7 +380,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       const folly::SocketAddress&,
       std::unique_ptr<folly::IOBuf>,
       bool,
-      folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams)
+      OnDataAvailableParams)
           noexcept override {}
 
   virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
