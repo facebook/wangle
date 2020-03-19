@@ -29,6 +29,84 @@ using namespace folly;
 
 namespace wangle {
 
+static const std::string kTestCert1PEM {
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIICFzCCAb6gAwIBAgIJAO6xBdXUFQqgMAkGByqGSM49BAEwaDELMAkGA1UEBhMC\n"
+  "VVMxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UECgwTRGVmYXVsdCBDb21w\n"
+  "YW55IEx0ZDERMA8GA1UECwwIdGVzdC5jb20xETAPBgNVBAMMCHRlc3QuY29tMCAX\n"
+  "DTE2MDMxNjE4MDg1M1oYDzQ3NTQwMjExMTgwODUzWjBoMQswCQYDVQQGEwJVUzEV\n"
+  "MBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkg\n"
+  "THRkMREwDwYDVQQLDAh0ZXN0LmNvbTERMA8GA1UEAwwIdGVzdC5jb20wWTATBgcq\n"
+  "hkjOPQIBBggqhkjOPQMBBwNCAARZ4vDgSPwytxU2HfQG/wxhsk0uHfr1eUmheqoC\n"
+  "yiQPB7aXZPbFs3JtvhzKc8DZ0rrZIQpkVLAGEIAa5UbuCy32o1AwTjAdBgNVHQ4E\n"
+  "FgQU05wwrHKWuyGM0qAIzeprza/FM9UwHwYDVR0jBBgwFoAU05wwrHKWuyGM0qAI\n"
+  "zeprza/FM9UwDAYDVR0TBAUwAwEB/zAJBgcqhkjOPQQBA0gAMEUCIBofo+kW0kxn\n"
+  "wzvNvopVKr/cFuDzwRKHdozoiZ492g6QAiEAo55BTcbSwBeszWR6Cr8gOCS4Oq7Z\n"
+  "Mt8v4GYjd1KT4fE=\n"
+  "-----END CERTIFICATE-----\n"
+};
+
+static const std::string kTestCert1Key {
+  "-----BEGIN EC PARAMETERS-----\n"
+  "BggqhkjOPQMBBw==\n"
+  "-----END EC PARAMETERS-----\n"
+  "-----BEGIN EC PRIVATE KEY-----\n"
+  "MHcCAQEEIKhuz+7RoCLvsXzcD1+Bq5ahrOViFJmgHiGR3w3OmXEroAoGCCqGSM49\n"
+  "AwEHoUQDQgAEWeLw4Ej8MrcVNh30Bv8MYbJNLh369XlJoXqqAsokDwe2l2T2xbNy\n"
+  "bb4cynPA2dK62SEKZFSwBhCAGuVG7gst9g==\n"
+  "-----END EC PRIVATE KEY-----\n"
+};
+
+static const std::string kTestCert2PEM {
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIICHDCCAcOgAwIBAgIJAMXIoAvQSr5HMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
+  "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
+  "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QyLmNvbTESMBAGA1UEAwwJdGVzdDIuY29t\n"
+  "MCAXDTIwMDMxODIwNDI1NFoYDzMwMTkwNzIwMjA0MjU0WjBqMQswCQYDVQQGEwJV\n"
+  "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
+  "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0Mi5jb20xEjAQBgNVBAMMCXRlc3QyLmNvbTBZ\n"
+  "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABLY1a1jMILAhlIvJS+G30h52LDnaeOvJ\n"
+  "SZf8SBV4kk0cx2/11wuA/Dw9auBOqadkhRI06cdT1SMfkxU+j0/Sh96jUDBOMB0G\n"
+  "A1UdDgQWBBRmOoWWWQR840qg207DzbHtUfmLZzAfBgNVHSMEGDAWgBRmOoWWWQR8\n"
+  "40qg207DzbHtUfmLZzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIBYI\n"
+  "7R2QG2aBXqXi5YUkDYH140ZvWSVO72Ny8Vv0fHNUAiA8khaQGXyhSmg5XtdYf+95\n"
+  "FMG3ZdzUrVbeGa66iTqsKA==\n"
+  "-----END CERTIFICATE-----\n"
+};
+
+static const std::string kTestCert2Key {
+  "-----BEGIN PRIVATE KEY-----\n"
+  "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgzgBUbZOZgJPOvfmZ\n"
+  "kfkqXA0kjCv+q9Mn4mSvnFZQ02ihRANCAAS2NWtYzCCwIZSLyUvht9Iediw52njr\n"
+  "yUmX/EgVeJJNHMdv9dcLgPw8PWrgTqmnZIUSNOnHU9UjH5MVPo9P0ofe\n"
+  "-----END PRIVATE KEY-----\n"
+};
+
+static const std::string kTestCert3PEM {
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIICHTCCAcOgAwIBAgIJANhD01ZIjSaYMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
+  "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
+  "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QzLmNvbTESMBAGA1UEAwwJdGVzdDMuY29t\n"
+  "MCAXDTIwMDMxODIwNDM1M1oYDzMwMTkwNzIwMjA0MzUzWjBqMQswCQYDVQQGEwJV\n"
+  "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
+  "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0My5jb20xEjAQBgNVBAMMCXRlc3QzLmNvbTBZ\n"
+  "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABPnM70rusTOR2a/6pp9ySifIak6E8OjG\n"
+  "OTInCWJinpcIL6/84dKkBbvnxoEnCac9D91Qn/DMS0SbFR+Ffy3eaJSjUDBOMB0G\n"
+  "A1UdDgQWBBSsgk2YknDXsMVAmPcNvmnsdQRe4DAfBgNVHSMEGDAWgBSsgk2YknDX\n"
+  "sMVAmPcNvmnsdQRe4DAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIHbT\n"
+  "lKFFkvhZk8ZA/R44o9uuUonJm5Gc4GrIU8FhprPyAiEA7X7y9w0wqBsRnqHY69/M\n"
+  "P1ay9D55cC8ZtIHW9Ioz4tU=\n"
+  "-----END CERTIFICATE-----\n"
+};
+
+static const std::string kTestCert3Key {
+  "-----BEGIN PRIVATE KEY-----\n"
+  "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgVTwC3zm6JwlDVi/J\n"
+  "scDGImwGGxlgzHchexWJAsM/YNWhRANCAAT5zO9K7rEzkdmv+qafckonyGpOhPDo\n"
+  "xjkyJwliYp6XCC+v/OHSpAW758aBJwmnPQ/dUJ/wzEtEmxUfhX8t3miU\n"
+  "-----END PRIVATE KEY-----\n"
+};
+
 class SSLContextManagerForTest : public SSLContextManager {
  public:
   using SSLContextManager::SSLContextManager;
@@ -129,28 +207,25 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
 
   SSLContextConfig ctxConfig1;
   ctxConfig1.sessionContext = "ctx1";
-  ctxConfig1.addCertificate(
-      "wangle/ssl/test/certs/test.cert.pem",
-      "wangle/ssl/test/certs/test.key.pem",
-      "");
+  ctxConfig1.setCertificateBuf(
+      kTestCert1PEM,
+      kTestCert1Key);
   SSLContextConfig ctxConfig1Default = ctxConfig1;
   ctxConfig1Default.isDefault = true;
 
   SSLContextConfig ctxConfig2;
   ctxConfig2.sessionContext = "ctx2";
-  ctxConfig2.addCertificate(
-      "wangle/ssl/test/certs/test2.cert.pem",
-      "wangle/ssl/test/certs/test2.key.pem",
-      "");
+  ctxConfig2.setCertificateBuf(
+      kTestCert2PEM,
+      kTestCert2Key);
   SSLContextConfig ctxConfig2Default = ctxConfig2;
   ctxConfig2Default.isDefault = true;
 
   SSLContextConfig ctxConfig3;
   ctxConfig3.sessionContext = "ctx3";
-  ctxConfig3.addCertificate(
-      "wangle/ssl/test/certs/test3.cert.pem",
-      "wangle/ssl/test/certs/test3.key.pem",
-      "");
+  ctxConfig3.setCertificateBuf(
+      kTestCert3PEM,
+      kTestCert3Key);
   SSLContextConfig ctxConfig3Default = ctxConfig3;
   ctxConfig3Default.isDefault = true;
 
@@ -233,17 +308,15 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
 #endif
 
 #if !(FOLLY_OPENSSL_IS_110) && !defined(OPENSSL_IS_BORINGSSL)
-// TODO Opensource builds cannot the cert/key paths
-TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
+TEST(SSLContextManagerTest, TestSessionContextIfSupplied)
 {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
-  ctxConfig.addCertificate(
-      "wangle/ssl/test/certs/test.cert.pem",
-      "wangle/ssl/test/certs/test.key.pem",
-      "");
+  ctxConfig.addCertificateBuf(
+      kTestCert1PEM,
+      kTestCert1Key);
 
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
@@ -260,18 +333,16 @@ TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSupplied)
   EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
 }
 
-// TODO Opensource builds cannot find cert paths
-TEST(SSLContextManagerTest, DISABLED_TestSessionContextIfSessionCacheAbsent)
+TEST(SSLContextManagerTest, TestSessionContextIfSessionCacheAbsent)
 {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.sessionCacheEnabled = false;
-  ctxConfig.addCertificate(
-      "wangle/ssl/test/certs/test.cert.pem",
-      "wangle/ssl/test/certs/test.key.pem",
-      "");
+  ctxConfig.addCertificateBuf(
+      kTestCert1PEM,
+      kTestCert1Key);
 
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
