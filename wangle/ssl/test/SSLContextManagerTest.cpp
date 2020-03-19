@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
+#include <wangle/ssl/SSLContextManager.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/SSLContext.h>
-#include <glog/logging.h>
 #include <folly/portability/GTest.h>
-#include <wangle/ssl/ServerSSLContext.h>
-#include <wangle/ssl/SSLContextManager.h>
-#include <wangle/ssl/TLSTicketKeyManager.h>
+#include <glog/logging.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
+#include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/ServerSSLContext.h>
+#include <wangle/ssl/TLSTicketKeyManager.h>
 
 using std::shared_ptr;
 using namespace folly;
@@ -114,6 +115,122 @@ TEST(SSLContextManagerTest, Test1)
 
 }
 
+// This test uses multiple contexts, which requires SNI support to work at all.
+#if FOLLY_OPENSSL_HAS_SNI
+TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+
+  TLSTicketKeySeeds seeds1{{"67"}, {"68"}, {"69"}};
+  TLSTicketKeySeeds seeds2{{"68"}, {"69"}, {"70"}};
+  TLSTicketKeySeeds seeds3{{"69"}, {"70"}, {"71"}};
+
+  SSLContextConfig ctxConfig1;
+  ctxConfig1.sessionContext = "ctx1";
+  ctxConfig1.addCertificate(
+      "wangle/ssl/test/certs/test.cert.pem",
+      "wangle/ssl/test/certs/test.key.pem",
+      "");
+  SSLContextConfig ctxConfig1Default = ctxConfig1;
+  ctxConfig1Default.isDefault = true;
+
+  SSLContextConfig ctxConfig2;
+  ctxConfig2.sessionContext = "ctx2";
+  ctxConfig2.addCertificate(
+      "wangle/ssl/test/certs/test2.cert.pem",
+      "wangle/ssl/test/certs/test2.key.pem",
+      "");
+  SSLContextConfig ctxConfig2Default = ctxConfig2;
+  ctxConfig2Default.isDefault = true;
+
+  SSLContextConfig ctxConfig3;
+  ctxConfig3.sessionContext = "ctx3";
+  ctxConfig3.addCertificate(
+      "wangle/ssl/test/certs/test3.cert.pem",
+      "wangle/ssl/test/certs/test3.key.pem",
+      "");
+  SSLContextConfig ctxConfig3Default = ctxConfig3;
+  ctxConfig3Default.isDefault = true;
+
+  // Helper function that verifies seeds are what we expect.
+  auto checkSeeds = [](std::shared_ptr<folly::SSLContext> ctx,
+                       TLSTicketKeySeeds& seeds) {
+    ASSERT_TRUE(ctx);
+    auto ticketMgr =
+        std::dynamic_pointer_cast<ServerSSLContext>(ctx)->getTicketManager();
+    ASSERT_TRUE(ticketMgr);
+    TLSTicketKeySeeds fetchedSeeds;
+    ticketMgr->getTLSTicketKeySeeds(
+        fetchedSeeds.oldSeeds,
+        fetchedSeeds.currentSeeds,
+        fetchedSeeds.newSeeds);
+    EXPECT_EQ(fetchedSeeds, seeds);
+  };
+
+  // Reset with just one default
+  sslCtxMgr.resetSSLContextConfigs(
+      {ctxConfig1Default}, cacheOptions, &seeds1, addr, nullptr);
+  EXPECT_EQ(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")),
+      sslCtxMgr.getDefaultSSLCtx());
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")));
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")), seeds1);
+
+  // Reset with a different set of contexts, no new seeds.
+  sslCtxMgr.resetSSLContextConfigs(
+      {ctxConfig2Default, ctxConfig3}, cacheOptions, nullptr, addr, nullptr);
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")));
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")));
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")));
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")), seeds1);
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")), seeds1);
+
+  // New set of contexts, new seeds.
+  sslCtxMgr.resetSSLContextConfigs(
+      {ctxConfig1Default, ctxConfig3}, cacheOptions, &seeds2, addr, nullptr);
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")));
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")));
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")), seeds2);
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")), seeds2);
+
+  // Back to one context, no new seeds.
+  sslCtxMgr.resetSSLContextConfigs(
+      {ctxConfig1Default}, cacheOptions, nullptr, addr, nullptr);
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")));
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")), seeds2);
+
+  // Finally, check that failure doesn't modify anything.
+  // This will have new contexts + seeds, but two default contexts set. This
+  // should error.
+  EXPECT_THROW(
+      sslCtxMgr.resetSSLContextConfigs(
+          {ctxConfig1Default, ctxConfig2Default, ctxConfig3},
+          cacheOptions,
+          &seeds3,
+          addr,
+          nullptr),
+      std::runtime_error);
+  // These should return the same as the previous successful result
+  EXPECT_TRUE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test2.com")));
+  EXPECT_FALSE(sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test3.com")));
+  checkSeeds(
+      sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("test.com")), seeds2);
+}
+#endif
 
 #if !(FOLLY_OPENSSL_IS_110) && !defined(OPENSSL_IS_BORINGSSL)
 // TODO Opensource builds cannot the cert/key paths

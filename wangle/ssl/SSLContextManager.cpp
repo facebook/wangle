@@ -374,7 +374,16 @@ void SSLContextManager::resetSSLContextConfigs(
   std::shared_ptr<ServerSSLContext> defaultCtx;
   TLSTicketKeySeeds oldTicketSeeds;
   if (!ticketSeeds) {
-    oldTicketSeeds = contexts_->getTicketKeys();
+    // Read from default context if there, otherwise from one of
+    // the others.
+    if (defaultCtx_ && defaultCtx_->getTicketManager()) {
+      defaultCtx_->getTicketManager()->getTLSTicketKeySeeds(
+          oldTicketSeeds.oldSeeds,
+          oldTicketSeeds.currentSeeds,
+          oldTicketSeeds.newSeeds);
+    } else {
+      oldTicketSeeds = contexts_->getTicketKeys();
+    }
   }
 
   for (const auto& ctxConfig : ctxConfigs) {
