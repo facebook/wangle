@@ -72,6 +72,9 @@ template <typename Pipeline>
 class ServerAcceptor : public Acceptor,
                        public wangle::InboundHandler<AcceptPipelineType> {
  public:
+  using OnDataAvailableParams =
+      folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams;
+
   class ServerConnection : public wangle::ManagedConnection,
                            public wangle::PipelineManager {
    public:
@@ -237,8 +240,7 @@ class ServerAcceptor : public Acceptor,
       const folly::SocketAddress& addr,
       std::unique_ptr<folly::IOBuf> buf,
       bool /* truncated */,
-      OnDataAvailableParams /* params */)
-          noexcept override {
+      OnDataAvailableParams /* params */) noexcept override {
     acceptPipeline_->read(
         AcceptPipelineType(make_tuple(buf.release(), socket, addr)));
   }

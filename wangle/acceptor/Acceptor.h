@@ -334,6 +334,9 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       const folly::exception_wrapper& /*ex*/) noexcept {}
 
  protected:
+  using OnDataAvailableParams =
+      folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams;
+
   /**
    * Our event loop.
    *
@@ -380,8 +383,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       const folly::SocketAddress&,
       std::unique_ptr<folly::IOBuf>,
       bool,
-      OnDataAvailableParams)
-          noexcept override {}
+      OnDataAvailableParams) noexcept override {}
 
   virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
       folly::EventBase* base,
