@@ -95,7 +95,7 @@ TEST_F(FileRegionTest, Repeated) {
   for (int i = 0; i < sendCount; i++) {
     fs.push_back(fileRegion.transferTo(socket));
   }
-  auto f = collect(fs);
+  auto f = collectSemiFuture(fs).via(&evb);
   ASSERT_NO_THROW(f.getVia(&evb));
 
   // Let the reads run to completion
