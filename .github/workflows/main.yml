@@ -84,15 +84,15 @@ jobs:
     - name: Build fizz
       run: python3 build/fbcode_builder/getdeps.py build --no-tests fizz
     - name: Build wangle
-      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. wangle
+      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. wangle  --project-install-prefix wangle:/usr/local
     - name: Copy artifacts
-      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/linux
+      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/linux --final-install-prefix /usr/local
     - uses: actions/upload-artifact@master
       with:
         name: wangle
         path: _artifacts
     - name: Test wangle
-      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. wangle
+      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. wangle  --project-install-prefix wangle:/usr/local
   mac:
     runs-on: macOS-latest
     steps:
@@ -170,15 +170,15 @@ jobs:
     - name: Build fizz
       run: python3 build/fbcode_builder/getdeps.py build --no-tests fizz
     - name: Build wangle
-      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. wangle
+      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. wangle  --project-install-prefix wangle:/usr/local
     - name: Copy artifacts
-      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/mac
+      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/mac --final-install-prefix /usr/local
     - uses: actions/upload-artifact@master
       with:
         name: wangle
         path: _artifacts
     - name: Test wangle
-      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. wangle
+      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. wangle  --project-install-prefix wangle:/usr/local
   windows:
     runs-on: windows-2016
     steps:
@@ -254,12 +254,12 @@ jobs:
     - name: Build fizz
       run: python build/fbcode_builder/getdeps.py build --no-tests fizz
     - name: Build wangle
-      run: python build/fbcode_builder/getdeps.py build --src-dir=. wangle
+      run: python build/fbcode_builder/getdeps.py build --src-dir=. wangle 
     - name: Copy artifacts
-      run: python build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/windows
+      run: python build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. wangle _artifacts/windows --final-install-prefix /usr/local
     - uses: actions/upload-artifact@master
       with:
         name: wangle
         path: _artifacts
     - name: Test wangle
-      run: python build/fbcode_builder/getdeps.py test --src-dir=. wangle
+      run: python build/fbcode_builder/getdeps.py test --src-dir=. wangle 
