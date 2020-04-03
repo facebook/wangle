@@ -118,6 +118,7 @@ set(WANGLE_SOURCES
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
+  ssl/PasswordInFileFactory.cpp
   ssl/ServerSSLContext.cpp
   ssl/SSLContextManager.cpp
   ssl/SSLSessionCacheManager.cpp
