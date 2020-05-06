@@ -21,9 +21,8 @@
 namespace wangle {
 // static
 void SSLSessionCallbacks::attachCallbacksToContext(
-    folly::SSLContext* context,
+    SSL_CTX* ctx,
     SSLSessionCallbacks* callbacks) {
-  auto ctx = context->getSSLCtx();
   SSL_CTX_set_session_cache_mode(
       ctx,
       SSL_SESS_CACHE_NO_INTERNAL | SSL_SESS_CACHE_CLIENT |
@@ -31,15 +30,14 @@ void SSLSessionCallbacks::attachCallbacksToContext(
   // Only initializes the cache index the first time.
   SSLUtil::getSSLCtxExIndex(&getCacheIndex());
   SSL_CTX_set_ex_data(ctx, getCacheIndex(), callbacks);
+  SSL_CTX_sess_set_new_cb(ctx, SSLSessionCallbacks::newSessionCallback);
   SSL_CTX_sess_set_remove_cb(ctx, SSLSessionCallbacks::removeSessionCallback);
-  context->attachSessionLifecycleCallbacks(std::make_unique<ContextSessionCallbacks>());
 }
 
 // static
 void SSLSessionCallbacks::detachCallbacksFromContext(
-    folly::SSLContext* context,
+    SSL_CTX* ctx,
     SSLSessionCallbacks* callbacks) {
-  auto ctx = context->getSSLCtx();
   auto sslSessionCache = getCacheFromContext(ctx);
   if (sslSessionCache != callbacks) {
     return;
@@ -47,8 +45,8 @@ void SSLSessionCallbacks::detachCallbacksFromContext(
   // We don't unset flags here because we cannot assume that we are the only
   // code that sets the cache flags.
   SSL_CTX_set_ex_data(ctx, getCacheIndex(), nullptr);
+  SSL_CTX_sess_set_new_cb(ctx, nullptr);
   SSL_CTX_sess_set_remove_cb(ctx, nullptr);
-  context->removeSessionLifecycleCallbacks();
 }
 
 // static
@@ -61,6 +59,24 @@ SSLSessionCallbacks* SSLSessionCallbacks::getCacheFromContext(SSL_CTX* ctx) {
 std::string SSLSessionCallbacks::getSessionKeyFromSSL(SSL* ssl) {
   auto sock = folly::AsyncSSLSocket::getFromSSL(ssl);
   return sock ? sock->getSessionKey() : "";
+}
+
+// static
+int SSLSessionCallbacks::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
+  SSLSessionPtr sessionPtr(session);
+  SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
+  auto sslSessionCache = getCacheFromContext(ctx);
+  std::string sessionKey = getSessionKeyFromSSL(ssl);
+  if (sessionKey.empty()) {
+    const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
+    sessionKey = name ? name : "";
+  }
+  if (!sessionKey.empty()) {
+    setSessionServiceIdentity(session, sessionKey);
+    sslSessionCache->setSSLSession(sessionKey, std::move(sessionPtr));
+    return 1;
+  }
+  return -1;
 }
 
 // static
@@ -80,20 +96,5 @@ void SSLSessionCallbacks::removeSessionCallback(
     }
   }
 #endif
-}
-
-void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr session) {
-  SSLSessionPtr sessionPtr(session.release());
-  SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-  auto sslSessionCache = SSLSessionCallbacks::getCacheFromContext(ctx);
-  std::string sessionKey = SSLSessionCallbacks::getSessionKeyFromSSL(ssl);
-  if (sessionKey.empty()) {
-    const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
-    sessionKey = name ? name : "";
-  }
-  if (!sessionKey.empty()) {
-    setSessionServiceIdentity(sessionPtr.get(), sessionKey);
-    sslSessionCache->setSSLSession(sessionKey, std::move(sessionPtr));
-  }
 }
 } // wangle

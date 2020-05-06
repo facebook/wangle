@@ -61,18 +61,18 @@ TEST(SSLSessionCallbackTest, AttachMultiple) {
   SSLContext c1;
   SSLContext c2;
   FakeSessionCallbacks cb;
-  FakeSessionCallbacks::attachCallbacksToContext(&c1, &cb);
-  FakeSessionCallbacks::attachCallbacksToContext(&c2, &cb);
+  FakeSessionCallbacks::attachCallbacksToContext(c1.getSSLCtx(), &cb);
+  FakeSessionCallbacks::attachCallbacksToContext(c2.getSSLCtx(), &cb);
 
   auto cb1 = FakeSessionCallbacks::getCacheFromContext(c1.getSSLCtx());
   auto cb2 = FakeSessionCallbacks::getCacheFromContext(c2.getSSLCtx());
   EXPECT_EQ(cb1, cb2);
 
-  FakeSessionCallbacks::detachCallbacksFromContext(&c1, cb1);
+  FakeSessionCallbacks::detachCallbacksFromContext(c1.getSSLCtx(), cb1);
   EXPECT_FALSE(FakeSessionCallbacks::getCacheFromContext(c1.getSSLCtx()));
 
   FakeSessionCallbacks unused;
-  FakeSessionCallbacks::detachCallbacksFromContext(&c2, &unused);
+  FakeSessionCallbacks::detachCallbacksFromContext(c2.getSSLCtx(), &unused);
   cb2 = FakeSessionCallbacks::getCacheFromContext(c2.getSSLCtx());
   EXPECT_EQ(&cb, cb2);
 }

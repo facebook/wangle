@@ -138,9 +138,6 @@ class SSLSessionCacheManager {
   SSLSessionCacheManager& operator=(const SSLSessionCacheManager&) = delete;
 
  private:
-  struct ContextSessionCallbacks : public folly::SSLContext::SessionLifecycleCallbacks {
-    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) override;
-  };
 
   folly::SSLContext* ctx_;
   std::shared_ptr<ShardedLocalSSLSessionCache> localCache_;
@@ -150,7 +147,7 @@ class SSLSessionCacheManager {
   /**
    * Invoked by openssl when a new SSL session is created
    */
-  void newSession(SSL* ssl, SSL_SESSION* session);
+  int newSession(SSL* ssl, SSL_SESSION* session);
 
   /**
    * Invoked by openssl when an SSL session is ejected from its internal cache.
@@ -182,6 +179,7 @@ class SSLSessionCacheManager {
    * static functions registered as callbacks to openssl via
    * SSL_CTX_sess_set_new/get/remove_cb
    */
+  static int newSessionCallback(SSL* ssl, SSL_SESSION* session);
   static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
 #if FOLLY_OPENSSL_IS_110

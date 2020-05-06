@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     // attach the context to the cache
     if (cache) {
       wangle::SSLSessionCallbacks::attachCallbacksToContext(
-        ctx.get(), cache.get());
+        ctx->getSSLCtx(), cache.get());
       auto session = cache->getSSLSession(SESSION_KEY);
       if (session) {
         VLOG(0) << "Reusing session";

@@ -17,7 +17,6 @@
 #pragma once
 
 #include <folly/io/async/AsyncSSLSocket.h>
-#include <folly/io/async/SSLContext.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/client/ssl/SSLSession.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
@@ -74,24 +73,23 @@ class SSLSessionCallbacks {
    * Sets up SSL Session callbacks on a context.  The application is
    * responsible for detaching the callbacks from the context.
    */
-  static void attachCallbacksToContext(folly::SSLContext* context,
+  static void attachCallbacksToContext(SSL_CTX* ctx,
                                        SSLSessionCallbacks* callbacks);
 
   /**
    * Detach the passed in callbacks from the context.  If the callbacks are not
    * set on the context, it is unchanged.
    */
-  static void detachCallbacksFromContext(folly::SSLContext* context,
+  static void detachCallbacksFromContext(SSL_CTX* ctx,
                                          SSLSessionCallbacks* callbacks);
 
   static SSLSessionCallbacks* getCacheFromContext(SSL_CTX* ctx);
 
  private:
-  struct ContextSessionCallbacks : public folly::SSLContext::SessionLifecycleCallbacks {
-    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) override;
-  };
 
   static std::string getSessionKeyFromSSL(SSL* ssl);
+
+  static int newSessionCallback(SSL* ssl, SSL_SESSION* session);
 
   static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
