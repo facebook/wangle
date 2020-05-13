@@ -35,13 +35,13 @@ class TLSCredProcessor {
   TLSCredProcessor();
   explicit TLSCredProcessor(std::chrono::milliseconds pollInterval);
 
-  ~TLSCredProcessor();
+  virtual ~TLSCredProcessor();
 
   /**
    * Set the ticket path to watch for file (optionally) encrypted with password.
    * Any previous ticket path will stop being watched.  This is not thread safe.
    */
-  void setTicketPathToWatch(
+  virtual void setTicketPathToWatch(
       const std::string& ticketFile,
       const folly::Optional<std::string>& password = folly::none);
 
@@ -50,15 +50,15 @@ class TLSCredProcessor {
    * cert, key, and CA.  Cert callbacks will be fired if any of these
    * change.  Empty strings are ignored.
    */
-  void setCertPathsToWatch(std::set<std::string> certFiles);
+  virtual void setCertPathsToWatch(std::set<std::string> certFiles);
 
-  void addTicketCallback(
+  virtual void addTicketCallback(
       std::function<void(wangle::TLSTicketKeySeeds)> callback);
-  void addCertCallback(std::function<void()> callback);
+  virtual void addCertCallback(std::function<void()> callback);
 
   void stop();
 
-  void setPollInterval(std::chrono::milliseconds pollInterval);
+  virtual void setPollInterval(std::chrono::milliseconds pollInterval);
 
   /**
    * This parses a TLS ticket file with the tickets and returns a
