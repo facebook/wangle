@@ -163,10 +163,10 @@ SSLSessionCacheManager::SSLSessionCacheManager(
   SSLUtil::getSSLCtxExIndex(&sExDataIndex_);
 
   SSL_CTX_set_ex_data(sslCtx, sExDataIndex_, this);
-  SSL_CTX_sess_set_new_cb(sslCtx, SSLSessionCacheManager::newSessionCallback);
   SSL_CTX_sess_set_get_cb(sslCtx, SSLSessionCacheManager::getSessionCallback);
   SSL_CTX_sess_set_remove_cb(sslCtx,
                              SSLSessionCacheManager::removeSessionCallback);
+  ctx->setSessionLifecycleCallbacks(std::make_unique<ContextSessionCallbacks>());
   if (!FLAGS_dcache_unit_test && !context.empty()) {
     // Use the passed in context
     ctx->setSessionCacheContext(context);
@@ -200,19 +200,7 @@ shared_ptr<ShardedLocalSSLSessionCache> SSLSessionCacheManager::getLocalCache(
   return sCache_;
 }
 
-int SSLSessionCacheManager::newSessionCallback(SSL* ssl, SSL_SESSION* session) {
-  SSLSessionCacheManager* manager = nullptr;
-  SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-  manager = (SSLSessionCacheManager *)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
-
-  if (manager == nullptr) {
-    LOG(FATAL) << "Null SSLSessionCacheManager in callback";
-  }
-  return manager->newSession(ssl, session);
-}
-
-
-int SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
+void SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
   unsigned int sessIdLen = 0;
   const unsigned char* sessId = SSL_SESSION_get_id(session, &sessIdLen);
   string sessionId((char*) sessId, sessIdLen);
@@ -229,8 +217,6 @@ int SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
       SSLUtil::hexlify(sessionId);
     storeCacheRecord(sessionId, session);
   }
-
-  return 1;
 }
 
 void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
@@ -350,6 +336,15 @@ bool SSLSessionCacheManager::storeCacheRecord(const string& sessionId,
   size_t expiration = SSL_CTX_get_timeout(ctx_->getSSLCtx());
   return externalCache_->setAsync(sessionId, sessionString,
                                   std::chrono::seconds(expiration));
+}
+
+void SSLSessionCacheManager::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) {
+  SSLSessionCacheManager* manager = nullptr;
+  SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
+  manager = (SSLSessionCacheManager *)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
+
+  CHECK(manager) << "Null SSLSessionCacheManager in callback";
+  manager->newSession(ssl, sessionPtr.release());
 }
 
 
