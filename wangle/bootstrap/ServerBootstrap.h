@@ -216,7 +216,7 @@ class ServerBootstrap {
       group(nullptr);
     }
 
-    bool reusePort = reusePort_ || (acceptor_group_->numThreads() > 1);
+    bool reusePort = reusePort_ || (acceptor_group_->numThreads() > 1)  || accConfig_.reusePort;
 
     std::mutex sock_lock;
     std::vector<std::shared_ptr<folly::AsyncSocketBase>> new_sockets;

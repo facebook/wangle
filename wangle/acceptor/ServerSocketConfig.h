@@ -185,6 +185,11 @@ struct ServerSocketConfig {
    */
   uint32_t socketMaxReadsPerEvent{16};
 
+  /**
+   * Enable so-reuseport while binding the listening socket
+   */
+   bool reusePort{false};
+
   FizzConfig fizzConfig;
 
   /**
