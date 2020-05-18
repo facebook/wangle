@@ -787,7 +787,7 @@ void SSLContextManager::SslContexts::ctxSetupByOpensslFeature(
 #if FOLLY_OPENSSL_HAS_SNI
   if (ctxConfig.isDefault) {
     if (newDefault) {
-      throw std::runtime_error(">1 X509 is set as default");
+      throw std::runtime_error("More than 1 X509 is set as default");
     }
 
     newDefault = sslCtx;
