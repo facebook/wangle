@@ -61,15 +61,15 @@ class BonkMultiplexClientDispatcher
     : public ClientDispatcherBase<SerializePipeline, Bonk, Xtruct> {
  public:
   void read(Context*, Xtruct in) override {
-    auto search = requests_.find(in.i32_thing);
+    auto search = requests_.find(*in.i32_thing_ref());
     CHECK(search != requests_.end());
     auto p = std::move(search->second);
-    requests_.erase(in.i32_thing);
+    requests_.erase(*in.i32_thing_ref());
     p.setValue(in);
   }
 
   Future<Xtruct> operator()(Bonk arg) override {
-    auto& p = requests_[arg.type];
+    auto& p = requests_[*arg.type_ref()];
     auto f = p.getFuture();
     p.setInterruptHandler([arg, this](const folly::exception_wrapper&) {
       this->requests_.erase(arg.type);
@@ -125,11 +125,11 @@ int main(int argc, char** argv) {
       std::cout << "Input string and int" << std::endl;
 
       Bonk request;
-      std::cin >> request.message;
-      std::cin >> request.type;
+      std::cin >> *request.message_ref();
+      std::cin >> *request.type_ref();
       service(request).thenValue([request](Xtruct response) {
-        CHECK(request.type == response.i32_thing);
-        std::cout << response.string_thing << std::endl;
+        CHECK(*request.type_ref() == *response.i32_thing_ref());
+        std::cout << *response.string_thing_ref() << std::endl;
       });
     }
   } catch (const std::exception& e) {

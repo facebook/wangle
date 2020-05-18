@@ -43,17 +43,19 @@ class RpcService : public Service<Bonk, Xtruct> {
  public:
   Future<Xtruct> operator()(Bonk request) override {
     // Oh no, we got Bonked!  Quick, Bonk back
-    printf("Bonk: %s, %i\n", request.message.c_str(), request.type);
+    printf(
+        "Bonk: %s, %i\n", request.message_ref()->c_str(), *request.type_ref());
 
     /* sleep override: ignore lint
      * useful for testing dispatcher behavior by hand
      */
     // Wait for a bit
-    return futures::sleepUnsafe(std::chrono::seconds(request.type))
+    return futures::sleepUnsafe(std::chrono::seconds(*request.type_ref()))
         .thenValue([request](auto&&) {
           Xtruct response;
-          response.string_thing = "Stop saying " + request.message + "!";
-          response.i32_thing = request.type;
+          *response.string_thing_ref() =
+              "Stop saying " + *request.message_ref() + "!";
+          *response.i32_thing_ref() = *request.type_ref();
           return response;
         });
   }
