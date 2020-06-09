@@ -230,7 +230,6 @@ class Pipeline : public PipelineBase {
 namespace folly {
 
 class AsyncSocket;
-class AsyncTransportWrapper;
 class AsyncUDPSocket;
 
 }
@@ -244,7 +243,7 @@ template <typename Pipeline>
 class PipelineFactory {
  public:
   virtual typename Pipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper>) = 0;
+      std::shared_ptr<folly::AsyncTransport>) = 0;
 
   virtual typename Pipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncUDPSocket> /* serverSocket */,
@@ -256,7 +255,7 @@ class PipelineFactory {
 };
 
 struct ConnInfo {
-  folly::AsyncTransportWrapper* sock;
+  folly::AsyncTransport* sock;
   const folly::SocketAddress* clientAddr;
   const std::string& nextProtoName;
   SecureTransportType secureType;
@@ -269,7 +268,7 @@ enum class ConnEvent {
 };
 
 typedef boost::variant<folly::IOBuf*,
-                       folly::AsyncTransportWrapper*,
+                       folly::AsyncTransport*,
                        ConnInfo&,
                        ConnEvent,
                        std::tuple<folly::IOBuf*,
