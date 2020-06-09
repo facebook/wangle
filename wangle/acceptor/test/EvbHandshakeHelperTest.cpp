@@ -97,7 +97,7 @@ TEST_F(EvbHandshakeHelperTest, TestSuccessPath) {
 
         sock->getEventBase()->runInLoop([sock, cb] {
           cb->connectionReady(
-              AsyncTransportWrapper::UniquePtr(sock),
+              AsyncTransport::UniquePtr(sock),
               "h2",
               SecureTransportType::TLS,
               folly::none);
@@ -156,7 +156,7 @@ TEST_F(EvbHandshakeHelperTest, TestDropConnection) {
     barrier.post();
   }));
 
-  AsyncTransportWrapper* transport;
+  AsyncTransport* transport;
   EXPECT_CALL(mockCb_, connectionError_(_, _, _))
       .WillOnce(SaveArg<0>(&transport));
 

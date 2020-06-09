@@ -152,7 +152,7 @@ class SimpleBroadcastPipelineFactory
     : public BroadcastPipelineFactory<std::string, std::string> {
  public:
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> socket) override {
+      std::shared_ptr<AsyncTransport> socket) override {
     LOG(INFO) << "Creating a new BroadcastPipeline for upstream server";
 
     auto pipeline = DefaultPipeline::create();
@@ -191,7 +191,7 @@ class SimpleObservingPipelineFactory
             serverPool, broadcastPipelineFactory) {}
 
   SimpleObservingPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> socket,
+      std::shared_ptr<AsyncTransport> socket,
       const std::string& routingData,
       RoutingDataHandler<std::string>*,
       std::shared_ptr<TransportInfo> transportInfo) override {

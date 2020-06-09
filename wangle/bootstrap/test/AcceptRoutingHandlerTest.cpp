@@ -26,7 +26,7 @@ using TestClient = ClientBootstrap<DefaultPipeline>;
 class TestClientPipelineFactory : public PipelineFactory<DefaultPipeline> {
  public:
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> socket) override {
+      std::shared_ptr<AsyncTransport> socket) override {
     // Socket should be connected already
     EXPECT_TRUE(socket->good());
 

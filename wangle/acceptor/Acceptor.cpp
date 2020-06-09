@@ -17,6 +17,7 @@
 #include <wangle/acceptor/Acceptor.h>
 
 #include <fizz/server/TicketTypes.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
@@ -34,7 +35,7 @@
 using folly::AsyncServerSocket;
 using folly::AsyncSocket;
 using folly::AsyncSSLSocket;
-using folly::AsyncTransportWrapper;
+using folly::AsyncTransport;
 using folly::EventBase;
 using folly::SocketAddress;
 using std::string;
@@ -315,7 +316,7 @@ void Acceptor::startHandshakeManager(
 }
 
 void Acceptor::connectionReady(
-    AsyncTransportWrapper::UniquePtr sock,
+    AsyncTransport::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocolName,
     SecureTransportType secureTransportType,
@@ -338,7 +339,7 @@ void Acceptor::connectionReady(
 }
 
 void Acceptor::plaintextConnectionReady(
-    AsyncTransportWrapper::UniquePtr sock,
+    AsyncTransport::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocolName,
     SecureTransportType secureTransportType,
@@ -352,7 +353,7 @@ void Acceptor::plaintextConnectionReady(
 }
 
 void Acceptor::sslConnectionReady(
-    AsyncTransportWrapper::UniquePtr sock,
+    AsyncTransport::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocol,
     SecureTransportType secureTransportType,

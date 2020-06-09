@@ -39,7 +39,6 @@
 
 namespace wangle {
 
-class AsyncTransport;
 class ManagedConnection;
 class SecurityProtocolContextManager;
 class SSLContextManager;
@@ -287,7 +286,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * subclasses to deal with plaintext connections.
    */
   virtual void plaintextConnectionReady(
-      folly::AsyncTransportWrapper::UniquePtr sock,
+      folly::AsyncTransport::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocolName,
       SecureTransportType secureTransportType,
@@ -300,7 +299,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * for SSL connections.
    */
   void connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr sock,
+      folly::AsyncTransport::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocolName,
       SecureTransportType secureTransportType,
@@ -311,7 +310,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * pending SSL connections. This should normally not be overridden.
    */
   virtual void sslConnectionReady(
-      folly::AsyncTransportWrapper::UniquePtr sock,
+      folly::AsyncTransport::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
       const std::string& nextProtocol,
       SecureTransportType secureTransportType,
@@ -328,7 +327,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * sock may be nullptr.
    */
   virtual void updateSSLStats(
-      const folly::AsyncTransportWrapper* /*sock*/,
+      const folly::AsyncTransport* /*sock*/,
       std::chrono::milliseconds /*acceptLatency*/,
       SSLErrorEnum /*error*/,
       const folly::exception_wrapper& /*ex*/) noexcept {}
@@ -370,7 +369,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    *                            requested by the client.
    */
   virtual void onNewConnection(
-      folly::AsyncTransportWrapper::UniquePtr /*sock*/,
+      folly::AsyncTransport::UniquePtr /*sock*/,
       const folly::SocketAddress* /*address*/,
       const std::string& /*nextProtocolName*/,
       SecureTransportType /*secureTransportType*/,

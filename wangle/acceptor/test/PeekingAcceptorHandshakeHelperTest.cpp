@@ -135,7 +135,7 @@ TEST_F(PeekingAcceptorHandshakeHelperTest, TestPeek2ndSuccess) {
 
 
 TEST_F(PeekingAcceptorHandshakeHelperTest, TestEOFDuringPeek) {
-  AsyncTransportWrapper::ReadCallback* rcb;
+  AsyncTransport::ReadCallback* rcb;
   EXPECT_CALL(*sslSock_, setReadCB(_))
     .WillOnce(SaveArg<0>(&rcb));
   EXPECT_CALL(*sslSock_, setReadCB(nullptr));

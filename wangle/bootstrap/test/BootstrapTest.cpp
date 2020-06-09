@@ -35,7 +35,7 @@ typedef ClientBootstrap<BytesPipeline> TestClient;
 class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
   BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     // Socket should be connected already
     EXPECT_TRUE(sock->good());
 
@@ -54,7 +54,7 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
   BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper>) override {
+      std::shared_ptr<AsyncTransport>) override {
     pipelines++;
     auto pipeline = BytesPipeline::create();
     pipeline->addBack(new BytesToBytesHandler());
@@ -70,7 +70,7 @@ EventBase base_;
   TestAcceptor() : Acceptor(ServerSocketConfig()) {
     Acceptor::init(nullptr, &base_);
   }
-  void onNewConnection(AsyncTransportWrapper::UniquePtr,
+  void onNewConnection(AsyncTransport::UniquePtr,
                        const folly::SocketAddress*,
                        const std::string& /* nextProtocolName */,
                        SecureTransportType,

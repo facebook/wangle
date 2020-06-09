@@ -29,7 +29,7 @@ void AcceptRoutingHandler<Pipeline, R>::read(
   populateAcceptors();
 
   const auto& connInfo = boost::get<ConnInfo&>(conn);
-  auto socket = std::shared_ptr<folly::AsyncTransportWrapper>(
+  auto socket = std::shared_ptr<folly::AsyncTransport>(
       connInfo.sock, folly::DelayedDestruction::Destructor());
 
   uint64_t connId = nextConnId_++;
@@ -87,7 +87,7 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 
   // Fetch the socket from the pipeline and pause reading from the
   // socket
-  auto socket = std::dynamic_pointer_cast<folly::AsyncTransportWrapper>(
+  auto socket = std::dynamic_pointer_cast<folly::AsyncTransport>(
       routingPipeline->getTransport());
   CHECK(socket);
   routingPipeline->transportInactive();

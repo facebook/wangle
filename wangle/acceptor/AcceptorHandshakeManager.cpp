@@ -27,7 +27,7 @@ void AcceptorHandshakeManager::start(
 }
 
 void AcceptorHandshakeManager::connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<SSLErrorEnum> sslErr) noexcept {
@@ -54,7 +54,7 @@ void AcceptorHandshakeManager::connectionReady(
 }
 
 void AcceptorHandshakeManager::connectionError(
-    folly::AsyncTransportWrapper* transport,
+    folly::AsyncTransport* transport,
     folly::exception_wrapper ex,
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
   if (sslErr) {

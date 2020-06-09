@@ -55,7 +55,7 @@ class TelnetHandler : public HandlerAdapter<std::string> {
 class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
  public:
   TelnetPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = TelnetPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder(8192));

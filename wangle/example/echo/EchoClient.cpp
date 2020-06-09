@@ -53,7 +53,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
   EchoPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(

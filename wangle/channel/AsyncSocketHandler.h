@@ -28,10 +28,10 @@ namespace wangle {
 // This handler may only be used in a single Pipeline
 class AsyncSocketHandler
   : public wangle::BytesToBytesHandler,
-    public folly::AsyncTransportWrapper::ReadCallback {
+    public folly::AsyncTransport::ReadCallback {
  public:
   explicit AsyncSocketHandler(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket)
+      std::shared_ptr<folly::AsyncTransport> socket)
     : socket_(std::move(socket)) {}
 
   AsyncSocketHandler(AsyncSocketHandler&&) = default;
@@ -188,7 +188,7 @@ class AsyncSocketHandler
     return folly::makeFuture();
   }
 
-  class WriteCallback : private folly::AsyncTransportWrapper::WriteCallback {
+  class WriteCallback : private folly::AsyncTransport::WriteCallback {
     void writeSuccess() noexcept override {
       promise_.setValue();
       delete this;
@@ -207,7 +207,7 @@ class AsyncSocketHandler
   };
 
   folly::IOBufQueue bufQueue_{folly::IOBufQueue::cacheChainLength()};
-  std::shared_ptr<folly::AsyncTransportWrapper> socket_{nullptr};
+  std::shared_ptr<folly::AsyncTransport> socket_{nullptr};
   bool firedInactive_{false};
   bool pipelineDeleted_{false};
 };

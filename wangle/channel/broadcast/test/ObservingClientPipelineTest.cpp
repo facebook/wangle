@@ -44,7 +44,7 @@ struct TestRoutingData {
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
   BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> /* unused */) override {
+      std::shared_ptr<AsyncTransport> /* unused */) override {
     pipelines_++;
     auto pipeline = BytesPipeline::create();
     pipeline->addBack(new BytesToBytesHandler());
@@ -65,7 +65,7 @@ class CustomPipelineFactory
   }
 
   TestObsPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket,
+      std::shared_ptr<folly::AsyncTransport> socket,
       const TestRoutingData& routingData,
       RoutingDataHandler<TestRoutingData>* /* unused */,
       std::shared_ptr<TransportInfo> /* unused */) override {
@@ -78,7 +78,7 @@ class CustomPipelineFactory
   }
 
   BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     // Should not be called.
     ADD_FAILURE() << "Should not be called, "
                   << "this function is typically called from "
@@ -101,7 +101,7 @@ class CustomPipelineMakerTestClient : public TestClient {
   }
 
   void makePipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket) override {
+      std::shared_ptr<folly::AsyncTransport> socket) override {
     setPipeline(factory_->newPipeline(
       socket, routingData_, nullptr, nullptr));
   }

@@ -22,7 +22,7 @@
 
 namespace wangle {
 
-class SocketPeeker : public folly::AsyncTransportWrapper::ReadCallback,
+class SocketPeeker : public folly::AsyncTransport::ReadCallback,
                      public folly::DelayedDestruction {
  public:
   using UniquePtr =

@@ -45,7 +45,7 @@ class AcceptorHandshakeHelper : public folly::DelayedDestruction {
      * If sslErr is set, Acceptor::updateSSLStats will be called.
      */
     virtual void connectionReady(
-        folly::AsyncTransportWrapper::UniquePtr transport,
+        folly::AsyncTransport::UniquePtr transport,
         std::string nextProtocol,
         SecureTransportType secureTransportType,
         folly::Optional<SSLErrorEnum> sslErr) noexcept = 0;
@@ -56,7 +56,7 @@ class AcceptorHandshakeHelper : public folly::DelayedDestruction {
      * If sslErr is set, Acceptor::updateSSLStats will be called.
      */
     virtual void connectionError(
-        folly::AsyncTransportWrapper* transport,
+        folly::AsyncTransport* transport,
         folly::exception_wrapper ex,
         folly::Optional<SSLErrorEnum> sslErr) noexcept = 0;
   };
@@ -115,14 +115,14 @@ class AcceptorHandshakeManager : public ManagedConnection,
 
  protected:
   void connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<SSLErrorEnum>
           details) noexcept override;
 
   void connectionError(
-      folly::AsyncTransportWrapper* transport,
+      folly::AsyncTransport* transport,
       folly::exception_wrapper ex,
       folly::Optional<SSLErrorEnum>
           details) noexcept override;

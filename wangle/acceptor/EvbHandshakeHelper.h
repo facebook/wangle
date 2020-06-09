@@ -50,13 +50,13 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
 
   // Exposing these for tests, do not directly call these callbacks.
   virtual void connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<SSLErrorEnum> sslErr) noexcept override;
 
   virtual void connectionError(
-      folly::AsyncTransportWrapper* transport,
+      folly::AsyncTransport* transport,
       folly::exception_wrapper ex,
       folly::Optional<SSLErrorEnum> sslErr) noexcept override;
 

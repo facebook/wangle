@@ -57,7 +57,7 @@ class BroadcastPoolTest : public Test {
   class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
    public:
     DefaultPipeline::Ptr newPipeline(
-        std::shared_ptr<AsyncTransportWrapper>) override {
+        std::shared_ptr<AsyncTransport>) override {
       auto pipeline = DefaultPipeline::create();
       pipeline->addBack(new BytesToBytesHandler());
       pipeline->finalize();

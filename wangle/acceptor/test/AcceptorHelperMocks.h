@@ -38,18 +38,18 @@ class MockHandshakeHelperCallback
   MOCK_METHOD3(
       connectionError_,
       void(
-          folly::AsyncTransportWrapper*,
+          folly::AsyncTransport*,
           folly::exception_wrapper,
           folly::Optional<wangle::SSLErrorEnum>));
   void connectionError(
-      folly::AsyncTransportWrapper* transport,
+      folly::AsyncTransport* transport,
       folly::exception_wrapper ex,
       folly::Optional<wangle::SSLErrorEnum> sslErr) noexcept override {
     connectionError_(transport, ex, sslErr);
   }
 
   void connectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<wangle::SSLErrorEnum> sslErr) noexcept override {
@@ -113,13 +113,13 @@ struct UseSharedPtrPolicy<MockHandshakeHelperCallback<P>> {
   MOCK_METHOD4(
       connectionReadyInternal,
       void(
-          std::shared_ptr<folly::AsyncTransportWrapper>,
+          std::shared_ptr<folly::AsyncTransport>,
           std::string,
           SecureTransportType,
           folly::Optional<wangle::SSLErrorEnum>));
 
   void dispatchConnectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<wangle::SSLErrorEnum> sslErr) {
@@ -136,13 +136,13 @@ struct UseOwnedRawPtrPolicy<MockHandshakeHelperCallback<P>> {
   MOCK_METHOD4(
       connectionReadyInternalRaw,
       void(
-          folly::AsyncTransportWrapper*,
+          folly::AsyncTransport*,
           std::string,
           SecureTransportType,
           folly::Optional<wangle::SSLErrorEnum>));
 
   void dispatchConnectionReady(
-      folly::AsyncTransportWrapper::UniquePtr transport,
+      folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
       folly::Optional<wangle::SSLErrorEnum> sslErr) {

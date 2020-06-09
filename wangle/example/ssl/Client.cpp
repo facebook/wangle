@@ -76,7 +76,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
   EchoPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(
@@ -92,7 +92,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 class EchoClientBootstrap : public ClientBootstrap<EchoPipeline> {
  public:
   void makePipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket) override {
+      std::shared_ptr<folly::AsyncTransport> socket) override {
     auto sslSock = socket->getUnderlyingTransport<AsyncSSLSocket>();
     if (sslSock) {
       sslSock->setSessionKey(SESSION_KEY);

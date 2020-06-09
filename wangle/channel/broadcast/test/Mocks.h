@@ -127,7 +127,7 @@ class MockBroadcastPipelineFactory
     : public BroadcastPipelineFactory<int, std::string> {
  public:
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket) override {
+      std::shared_ptr<folly::AsyncTransport> socket) override {
     auto pipeline = DefaultPipeline::create();
     pipeline->addBack(AsyncSocketHandler(socket));
     pipeline->addBack(std::make_shared<MockByteToMessageDecoder<int>>());
@@ -155,7 +155,7 @@ class MockObservingPipelineFactory
       : ObservingPipelineFactory(serverPool, broadcastPipelineFactory) {}
 
   ObservingPipeline<int>::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper>,
+      std::shared_ptr<folly::AsyncTransport>,
       const std::string& routingData,
       RoutingDataHandler<std::string>*,
       std::shared_ptr<TransportInfo>) override {

@@ -82,7 +82,7 @@ class ServerPipelineFactory
     : public RoutingDataPipelineFactory<DefaultPipeline, char> {
  public:
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock,
+      std::shared_ptr<AsyncTransport> sock,
       const char& routingData,
       RoutingDataHandler<char>*,
       std::shared_ptr<TransportInfo> transportInfo) override {

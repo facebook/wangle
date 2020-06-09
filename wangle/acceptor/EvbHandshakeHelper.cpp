@@ -84,7 +84,7 @@ void EvbHandshakeHelper::dropConnection(SSLErrorEnum reason) {
 }
 
 void EvbHandshakeHelper::connectionReady(
-    folly::AsyncTransportWrapper::UniquePtr transport,
+    folly::AsyncTransport::UniquePtr transport,
     std::string nextProtocol,
     SecureTransportType secureTransportType,
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
@@ -136,7 +136,7 @@ void EvbHandshakeHelper::connectionReady(
 }
 
 void EvbHandshakeHelper::connectionError(
-    folly::AsyncTransportWrapper* transport,
+    folly::AsyncTransport* transport,
     folly::exception_wrapper ex,
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
   DCHECK(transport->getEventBase() == handshakeEvb_);

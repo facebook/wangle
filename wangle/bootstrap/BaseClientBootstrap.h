@@ -117,7 +117,7 @@ class BaseClientBootstrap {
   }
 
   virtual void makePipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket) {
+      std::shared_ptr<folly::AsyncTransport> socket) {
     pipeline_ = pipelineFactory_->newPipeline(socket);
   }
 

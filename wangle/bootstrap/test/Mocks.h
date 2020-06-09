@@ -111,7 +111,7 @@ class MockDownstreamPipelineFactory
       MockBytesToBytesHandler* downstreamHandler)
       : downstreamHandler_(downstreamHandler) {}
   DefaultPipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket,
+      std::shared_ptr<folly::AsyncTransport> socket,
       const char& /*routingData*/,
       RoutingDataHandler<char>* /*handler*/,
       std::shared_ptr<TransportInfo> /*transportInfo*/) override {

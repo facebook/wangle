@@ -85,7 +85,7 @@ class FileServerHandler : public HandlerAdapter<std::string> {
 class FileServerPipelineFactory : public PipelineFactory<FileServerPipeline> {
  public:
   FileServerPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransportWrapper> sock) override {
+      std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = FileServerPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder());

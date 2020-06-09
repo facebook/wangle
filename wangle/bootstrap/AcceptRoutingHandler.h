@@ -117,7 +117,7 @@ class RoutingDataPipelineFactory {
   virtual ~RoutingDataPipelineFactory() {}
 
   virtual typename Pipeline::Ptr newPipeline(
-      std::shared_ptr<folly::AsyncTransportWrapper> socket,
+      std::shared_ptr<folly::AsyncTransport> socket,
       const R& routingData,
       RoutingDataHandler<R>* routingHandler,
       std::shared_ptr<TransportInfo> transportInfo) = 0;
