@@ -298,10 +298,11 @@ class ServerBootstrap {
   }
 
   void waitForStop() {
-    if (!stopped_) {
-      CHECK(stopBaton_);
+    if (stopBaton_) {
       stopBaton_->wait();
+      stopBaton_.reset();
     }
+    CHECK(stopped_);
   }
 
   /*
