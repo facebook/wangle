@@ -130,7 +130,7 @@ TEST(Bootstrap, ClientConnectionManagerTest) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(1));
+  server.group(std::make_shared<IOThreadPoolExecutor>(1), true);
   server.bind(0);
   auto base = EventBaseManager::get()->getEventBase();
 
@@ -159,7 +159,7 @@ TEST(Bootstrap, ServerAcceptGroupTest) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(1), nullptr);
+  server.group(std::make_shared<IOThreadPoolExecutor>(1), nullptr, true);
   server.bind(0);
 
   SocketAddress address;
@@ -201,7 +201,7 @@ TEST(Bootstrap, ServerAcceptGroup2Test) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(4), nullptr);
+  server.group(std::make_shared<IOThreadPoolExecutor>(4), nullptr, true);
   server.bind(0);
 
   SocketAddress address;
@@ -239,7 +239,7 @@ TEST(Bootstrap, SharedThreadPool) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(pool, pool);
+  server.group(pool, pool, true);
 
   server.bind(0);
 

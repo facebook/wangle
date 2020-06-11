@@ -23,6 +23,7 @@
 #include <folly/io/async/EventBaseManager.h>
 #include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/SharedSSLContextManager.h>
 #include <wangle/bootstrap/ServerSocketFactory.h>
 #include <wangle/channel/Handler.h>
 #include <wangle/channel/Pipeline.h>
@@ -275,17 +276,40 @@ class ServerAcceptorFactory : public AcceptorFactory {
         childPipelineFactory_(childPipelineFactory),
         accConfig_(accConfig) {}
 
+  virtual void enableSharedSSLContext(bool enable) {
+    if (enable) {
+      sharedSSLContextManager_ =
+          std::make_shared<SharedSSLContextManagerImpl<FizzConfigUtil>>(
+              accConfig_);
+    }
+  }
+
   std::shared_ptr<Acceptor> newAcceptor(folly::EventBase* base) override {
     auto acceptor = std::make_shared<ServerAcceptor<Pipeline>>(
         acceptPipelineFactory_, childPipelineFactory_, accConfig_);
-    acceptor->init(nullptr, base, nullptr);
+
+    if (sharedSSLContextManager_) {
+      acceptor->setFizzCertManager(sharedSSLContextManager_->getCertManager());
+      acceptor->setSSLContextManager(
+          sharedSSLContextManager_->getContextManager());
+      acceptor->init(
+          nullptr, base, nullptr, sharedSSLContextManager_->getFizzContext());
+      sharedSSLContextManager_->addAcceptor(acceptor);
+    } else {
+      acceptor->init(nullptr, base, nullptr);
+    }
     return acceptor;
+  }
+
+  std::shared_ptr<SharedSSLContextManager> getSharedSSLContextManager() const {
+    return sharedSSLContextManager_;
   }
 
  private:
   std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
   ServerSocketConfig accConfig_;
+  std::shared_ptr<SharedSSLContextManager> sharedSSLContextManager_;
 };
 
 class ServerWorkerPool : public folly::ThreadPoolExecutor::Observer {

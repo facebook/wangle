@@ -31,6 +31,10 @@ DEFINE_string(ca_path, "", "Path to trusted CA file");
 DEFINE_int32(port, 8080, "Listen port");
 DEFINE_string(tickets_path, "", "Path for ticket seeds");
 DEFINE_uint32(num_workers, 2, "Number of worker threads");
+DEFINE_bool(
+    enable_share_ssl_ctx,
+    true,
+    "Enable sharing SSL context configs between worker threads");
 
 /**
  * This is meant to be a simple server that accepts plaintext and SSL on a
@@ -59,8 +63,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 // where we define the chain of handlers for each messeage received
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
-  EchoPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransport> sock) override {
+  EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder(8192));
@@ -78,38 +81,45 @@ void initCredProcessorCallbacks(
     TLSCredProcessor& processor) {
   // set up ticket seed callback
   processor.addTicketCallback([&](TLSTicketKeySeeds seeds) {
-    // update
-    sb.forEachWorker([&](Acceptor* acceptor) {
-      if (!acceptor) {
-        // this condition can happen if the processor triggers before the
-        // server is ready / listening
-        return;
-      }
-      auto evb = acceptor->getEventBase();
-      if (!evb) {
-        return;
-      }
-      evb->runInEventBaseThread([acceptor, seeds] {
-        acceptor->setTLSTicketSecrets(
-          seeds.oldSeeds, seeds.currentSeeds, seeds.newSeeds);
+    if (FLAGS_enable_share_ssl_ctx) {
+      sb.getSharedSSLContextManager()->updateTLSTicketKeys(seeds);
+    } else {
+      // update
+      sb.forEachWorker([&](Acceptor* acceptor) {
+        if (!acceptor) {
+          // this condition can happen if the processor triggers before the
+          // server is ready / listening
+          return;
+        }
+        auto evb = acceptor->getEventBase();
+        if (!evb) {
+          return;
+        }
+        evb->runInEventBaseThread([acceptor, seeds] {
+          acceptor->setTLSTicketSecrets(
+              seeds.oldSeeds, seeds.currentSeeds, seeds.newSeeds);
         });
       });
+    }
   });
 
   // Reconfigure SSL when we detect cert or CA changes.
   processor.addCertCallback([&] {
-    sb.forEachWorker([&](Acceptor* acceptor) {
-      if (!acceptor) {
-        return;
-      }
-      auto evb = acceptor->getEventBase();
-      if (!evb) {
-        return;
-      }
-      evb->runInEventBaseThread([acceptor] {
-        acceptor->resetSSLContextConfigs();
+    if (FLAGS_enable_share_ssl_ctx) {
+      sb.getSharedSSLContextManager()->reloadSSLContextConfigs();
+    } else {
+      sb.forEachWorker([&](Acceptor* acceptor) {
+        if (!acceptor) {
+          return;
+        }
+        auto evb = acceptor->getEventBase();
+        if (!evb) {
+          return;
+        }
+        evb->runInEventBaseThread(
+            [acceptor] { acceptor->resetSSLContextConfigs(); });
       });
-    });
+    }
   });
 }
 } // namespace
@@ -147,7 +157,7 @@ int main(int argc, char** argv) {
     cfg.allowInsecureConnectionsOnSecureServer = true;
 
     // reload ssl contexts when certs change
-    std::set<std::string> pathsToWatch { FLAGS_cert_path, FLAGS_key_path };
+    std::set<std::string> pathsToWatch{FLAGS_cert_path, FLAGS_key_path};
     if (!FLAGS_ca_path.empty()) {
       pathsToWatch.insert(FLAGS_ca_path);
     }
@@ -163,7 +173,7 @@ int main(int argc, char** argv) {
   // create a server
   sb.acceptorConfig(cfg);
   sb.childPipeline(std::make_shared<EchoPipelineFactory>());
-  sb.group(workers);
+  sb.group(workers, FLAGS_enable_share_ssl_ctx);
 
   sb.bind(FLAGS_port);
   sb.waitForStop();

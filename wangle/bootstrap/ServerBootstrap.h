@@ -99,10 +99,11 @@ class ServerBootstrap {
    * with one thread per core.
    *
    * @param io_group - io executor to use for IO threads.
+   * @param enableSharedSSLCtx - enable sharing SSL context configs among IO threads
    */
   ServerBootstrap* group(
-      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
-    return group(nullptr, io_group);
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group, bool enableSharedSSLCtx=false) {
+    return group(nullptr, io_group, enableSharedSSLCtx);
   }
 
   /*
@@ -116,7 +117,8 @@ class ServerBootstrap {
    */
   ServerBootstrap* group(
       std::shared_ptr<folly::IOThreadPoolExecutor> accept_group,
-      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group,
+      bool enableSharedSSLCtx=false) {
     if (!accept_group) {
       accept_group = std::make_shared<folly::IOThreadPoolExecutor>(
         1, std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
@@ -139,9 +141,12 @@ class ServerBootstrap {
       workerFactory_ = std::make_shared<ServerWorkerPool>(
         acceptorFactory_, io_group.get(), sockets_, socketFactory_);
     } else {
+      auto acceptorFactory = std::make_shared<ServerAcceptorFactory<Pipeline>>(
+            acceptPipelineFactory_, childPipelineFactory_, accConfig_);
+      acceptorFactory->enableSharedSSLContext(enableSharedSSLCtx);
+      sharedSSLContextManager_ = acceptorFactory->getSharedSSLContextManager();
       workerFactory_ = std::make_shared<ServerWorkerPool>(
-          std::make_shared<ServerAcceptorFactory<Pipeline>>(
-              acceptPipelineFactory_, childPipelineFactory_, accConfig_),
+          acceptorFactory,
           io_group.get(),
           sockets_,
           socketFactory_);
@@ -313,6 +318,10 @@ class ServerBootstrap {
     return *sockets_;
   }
 
+  std::shared_ptr<SharedSSLContextManager> getSharedSSLContextManager() const {
+    return sharedSSLContextManager_;
+  }
+
   std::shared_ptr<folly::IOThreadPoolExecutor> getIOGroup() const {
     return io_group_;
   }
@@ -335,6 +344,7 @@ class ServerBootstrap {
  private:
   std::shared_ptr<folly::IOThreadPoolExecutor> acceptor_group_;
   std::shared_ptr<folly::IOThreadPoolExecutor> io_group_;
+  std::shared_ptr<SharedSSLContextManager> sharedSSLContextManager_;
 
   std::shared_ptr<ServerWorkerPool> workerFactory_;
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
