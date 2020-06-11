@@ -17,6 +17,7 @@
 #pragma once
 
 #include <fizz/server/FizzServerContext.h>
+#include <fizz/server/TicketTypes.h>
 #include <fizz/util/FizzUtil.h>
 
 #include <wangle/acceptor/ServerSocketConfig.h>
@@ -57,6 +58,17 @@ class FizzConfigUtil {
           handshakeValidity,
           std::move(pskContext));
     }
+  }
+
+  // Creates AES128TicketCipher as default fizz ticket cipher
+  static std::shared_ptr<fizz::server::TicketCipher> createFizzTicketCipher(
+      const wangle::TLSTicketKeySeeds& seeds,
+      std::chrono::seconds validity,
+      std::chrono::seconds handshakeValidity,
+      folly::Optional<std::string> pskContext) {
+    return wangle::FizzConfigUtil::createTicketCipher<
+        fizz::server::AES128TicketCipher>(
+        seeds, validity, handshakeValidity, std::move(pskContext));
   }
 };
 

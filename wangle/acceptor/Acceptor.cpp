@@ -152,7 +152,7 @@ Acceptor::recreateFizzContext(
 std::shared_ptr<fizz::server::TicketCipher> Acceptor::createFizzTicketCipher(
     const TLSTicketKeySeeds& seeds,
     folly::Optional<std::string> pskContext) {
-  return FizzConfigUtil::createTicketCipher<fizz::server::AES128TicketCipher>(
+  return FizzConfigUtil::createFizzTicketCipher(
       seeds,
       accConfig_.sslCacheOptions.sslCacheTimeout,
       accConfig_.sslCacheOptions.handshakeValidity,
