@@ -187,4 +187,13 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
   }
 };
 
+class AcceptorFactorySharedSSLContext : public AcceptorFactory {
+ public:
+  virtual std::shared_ptr<SharedSSLContextManager>
+  initSharedSSLContextManager() = 0;
+
+ protected:
+  std::shared_ptr<wangle::SharedSSLContextManager> sharedSSLContextManager_;
+};
+
 } // namespace wangle
