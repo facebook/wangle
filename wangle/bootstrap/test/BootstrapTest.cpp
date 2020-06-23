@@ -130,7 +130,8 @@ TEST(Bootstrap, ClientConnectionManagerTest) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(1), true);
+  server.setUseSharedSSLContextManager(true);
+  server.group(std::make_shared<IOThreadPoolExecutor>(1));
   server.bind(0);
   auto base = EventBaseManager::get()->getEventBase();
 
@@ -159,7 +160,8 @@ TEST(Bootstrap, ServerAcceptGroupTest) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(1), nullptr, true);
+  server.setUseSharedSSLContextManager(true);
+  server.group(std::make_shared<IOThreadPoolExecutor>(1), nullptr);
   server.bind(0);
 
   SocketAddress address;
@@ -201,7 +203,8 @@ TEST(Bootstrap, ServerAcceptGroup2Test) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(std::make_shared<IOThreadPoolExecutor>(4), nullptr, true);
+  server.setUseSharedSSLContextManager(true);
+  server.group(std::make_shared<IOThreadPoolExecutor>(4), nullptr);
   server.bind(0);
 
   SocketAddress address;
@@ -239,7 +242,8 @@ TEST(Bootstrap, SharedThreadPool) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   server.childPipeline(factory);
-  server.group(pool, pool, true);
+  server.setUseSharedSSLContextManager(true);
+  server.group(pool, pool);
 
   server.bind(0);
 

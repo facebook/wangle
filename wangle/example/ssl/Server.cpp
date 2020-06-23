@@ -173,7 +173,8 @@ int main(int argc, char** argv) {
   // create a server
   sb.acceptorConfig(cfg);
   sb.childPipeline(std::make_shared<EchoPipelineFactory>());
-  sb.group(workers, FLAGS_enable_share_ssl_ctx);
+  sb.setUseSharedSSLContextManager(FLAGS_enable_share_ssl_ctx);
+  sb.group(workers);
 
   sb.bind(FLAGS_port);
   sb.waitForStop();

@@ -99,11 +99,10 @@ class ServerBootstrap {
    * with one thread per core.
    *
    * @param io_group - io executor to use for IO threads.
-   * @param enableSharedSSLCtx - enable sharing SSL context configs among IO threads
    */
   ServerBootstrap* group(
-      std::shared_ptr<folly::IOThreadPoolExecutor> io_group, bool enableSharedSSLCtx=false) {
-    return group(nullptr, io_group, enableSharedSSLCtx);
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
+    return group(nullptr, io_group);
   }
 
   /*
@@ -117,8 +116,7 @@ class ServerBootstrap {
    */
   ServerBootstrap* group(
       std::shared_ptr<folly::IOThreadPoolExecutor> accept_group,
-      std::shared_ptr<folly::IOThreadPoolExecutor> io_group,
-      bool enableSharedSSLCtx=false) {
+      std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
     if (!accept_group) {
       accept_group = std::make_shared<folly::IOThreadPoolExecutor>(
         1, std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
@@ -143,7 +141,7 @@ class ServerBootstrap {
     } else {
       auto acceptorFactory = std::make_shared<ServerAcceptorFactory<Pipeline>>(
             acceptPipelineFactory_, childPipelineFactory_, accConfig_);
-      acceptorFactory->enableSharedSSLContext(enableSharedSSLCtx);
+      acceptorFactory->enableSharedSSLContext(useSharedSSLContextManager_);
       sharedSSLContextManager_ = acceptorFactory->getSharedSSLContextManager();
       workerFactory_ = std::make_shared<ServerWorkerPool>(
           acceptorFactory,
@@ -341,6 +339,11 @@ class ServerBootstrap {
     return this;
   }
 
+  ServerBootstrap* setUseSharedSSLContextManager(bool enabled) {
+    useSharedSSLContextManager_ = enabled;
+    return this;
+  }
+
  private:
   std::shared_ptr<folly::IOThreadPoolExecutor> acceptor_group_;
   std::shared_ptr<folly::IOThreadPoolExecutor> io_group_;
@@ -366,6 +369,7 @@ class ServerBootstrap {
     std::make_unique<folly::Baton<>>()};
   bool stopped_{false};
   bool useZeroCopy_{false};
+  bool useSharedSSLContextManager_{false};
 };
 
 } // namespace wangle
