@@ -183,16 +183,23 @@ class SSLContextManager {
    }
 
  protected:
-  virtual void loadCertKeyPairsInSSLContext(
+  // Return value indicates if any certificates were loaded. If not, the cert
+  // manager skips this context config. Allows for contexts using certs only
+  // supported by TLS 1.3/Fizz. Note: This is different than an error
+  // occurring. If an error occurs, it ought to throw in here. Returning false
+  // means the context is empty *due to a policy decision*.
+  virtual bool loadCertKeyPairsInSSLContext(
       const std::shared_ptr<folly::SSLContext>&,
       const SSLContextConfig&,
       std::string& commonName) const;
 
-  virtual void loadCertKeyPairsInSSLContextExternal(
+  virtual bool loadCertKeyPairsInSSLContextExternal(
       const std::shared_ptr<folly::SSLContext>&,
       const SSLContextConfig&,
       std::string& /* commonName */) const {
     LOG(FATAL) << "Unsupported in base SSLContextManager";
+    // unreachable
+    return false;
   }
 
   virtual void overrideConfiguration(

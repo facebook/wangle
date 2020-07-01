@@ -445,11 +445,21 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
       std::make_shared<ServerSSLContext>(ctxConfig.sslVersion);
 
   std::string commonName;
+  bool loaded;
   if (ctxConfig.offloadDisabled) {
-    mgr->loadCertKeyPairsInSSLContext(sslCtx, ctxConfig, commonName);
+    loaded = mgr->loadCertKeyPairsInSSLContext(sslCtx, ctxConfig, commonName);
   } else {
-    mgr->loadCertKeyPairsInSSLContextExternal(sslCtx, ctxConfig, commonName);
+    loaded = mgr->loadCertKeyPairsInSSLContextExternal(
+        sslCtx, ctxConfig, commonName);
   }
+
+  if (!loaded) {
+    // No compatible contexts were loaded.
+    VLOG(3) << "Context with CN=" << commonName
+            << " loaded no certs, skipping...";
+    return;
+  }
+
   mgr->overrideConfiguration(sslCtx, ctxConfig);
 
   // Let the server pick the highest performing cipher from among the client's
@@ -530,7 +540,7 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   }
 }
 
-void SSLContextManager::loadCertKeyPairsInSSLContext(
+bool SSLContextManager::loadCertKeyPairsInSSLContext(
     const std::shared_ptr<folly::SSLContext>& sslCtx,
     const SSLContextConfig& ctxConfig,
     std::string& commonName) const {
@@ -555,6 +565,8 @@ void SSLContextManager::loadCertKeyPairsInSSLContext(
                     (numCerts == 1));
     lastCertPath = cert.certPath;
   }
+
+  return true;
 }
 
 void SSLContextManager::loadCertsFromFiles(
