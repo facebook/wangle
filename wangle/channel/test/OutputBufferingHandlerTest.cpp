@@ -43,7 +43,7 @@ TEST(OutputBufferingHandlerTest, Basic) {
 
   EventBase eb;
   auto socket = AsyncSocket::newSocket(&eb);
-  pipeline->setTransport(socket);
+  pipeline->setTransport(std::move(socket));
 
   // Buffering should prevent writes until the EB loops, and the writes should
   // be batched into one write call.
