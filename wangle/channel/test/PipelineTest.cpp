@@ -54,7 +54,7 @@ ACTION(FireClose) {
 // Test move only types, among other things
 TEST(PipelineTest, RealHandlersCompile) {
   EventBase eb;
-  auto socket = AsyncSocket::newSocket(&eb);
+  auto socket = folly::to_shared_ptr(AsyncSocket::newSocket(&eb));
   // static
   {
     auto pipeline = StaticPipeline<IOBufQueue&, std::unique_ptr<IOBuf>,
