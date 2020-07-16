@@ -55,6 +55,9 @@ class FizzAcceptorHandshakeHelper
     virtual void logFizzHandshakeSuccess(
         const fizz::server::AsyncFizzServer&,
         const wangle::TransportInfo* tinfo) = 0;
+    virtual void logFizzHandshakeFallback(
+        const fizz::server::AsyncFizzServer&,
+        const wangle::TransportInfo* tinfo) = 0;
     virtual void logFizzHandshakeError(
         const fizz::server::AsyncFizzServer&,
         const folly::exception_wrapper&) = 0;
@@ -100,8 +103,7 @@ class FizzAcceptorHandshakeHelper
 
   virtual folly::AsyncSSLSocket::UniquePtr createSSLSocket(
       const std::shared_ptr<folly::SSLContext>& sslContext,
-      folly::EventBase* evb,
-      int fd);
+      folly::AsyncTransport::UniquePtr transport);
 
   // AsyncFizzServer::HandshakeCallback API
   void fizzHandshakeSuccess(
