@@ -18,7 +18,7 @@
 
 #include <string>
 #include <glog/logging.h>
-#include <wangle/client/ssl/SSLSession.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 
 namespace wangle {
 
@@ -26,7 +26,7 @@ std::vector<std::pair<SSL_SESSION*, size_t>> getSessions();
 
 std::pair<SSL_SESSION*, size_t> getSessionWithTicket();
 
-SSLSessionPtr createPersistentTestSession(
+folly::ssl::SSLSessionUniquePtr createPersistentTestSession(
     std::pair<SSL_SESSION*, size_t> session);
 
 std::string getSessionData(SSL_SESSION* s, size_t expectedLength);

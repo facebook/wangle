@@ -42,7 +42,7 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
 
 template<typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(
-    const std::string& identity, SSLSessionPtr session) noexcept {
+    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept {
   if (!session) {
     return;
   }
@@ -58,7 +58,7 @@ void SSLSessionPersistentCacheBase<K>::setSSLSession(
 }
 
 template<typename K>
-SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
+folly::ssl::SSLSessionUniquePtr SSLSessionPersistentCacheBase<K>::getSSLSession(
     const std::string& identity) const noexcept {
   auto key = getKey(identity);
   auto hit = persistentCache_->get(key);
@@ -68,7 +68,7 @@ SSLSessionPtr SSLSessionPersistentCacheBase<K>::getSSLSession(
 
   // Create a SSL_SESSION and return. In failure it returns nullptr.
   auto& value = hit.value();
-  auto sess = SSLSessionPtr(getSessionFromCacheData(value));
+  auto sess = folly::ssl::SSLSessionUniquePtr(getSessionFromCacheData(value));
 
 #if OPENSSL_TICKETS
   if (sess &&

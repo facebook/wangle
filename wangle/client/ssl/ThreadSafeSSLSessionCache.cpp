@@ -22,12 +22,12 @@ namespace wangle {
 
 void ThreadSafeSSLSessionCache::setSSLSession(
   const std::string& identity,
-  SSLSessionPtr session) noexcept {
+  folly::ssl::SSLSessionUniquePtr session) noexcept {
   SharedMutex::WriteHolder lock(mutex_);
   delegate_->setSSLSession(identity, std::move(session));
 }
 
-SSLSessionPtr ThreadSafeSSLSessionCache::getSSLSession(
+folly::ssl::SSLSessionUniquePtr ThreadSafeSSLSessionCache::getSSLSession(
     const std::string& identity) const noexcept {
   SharedMutex::ReadHolder lock(mutex_);
   return delegate_->getSSLSession(identity);

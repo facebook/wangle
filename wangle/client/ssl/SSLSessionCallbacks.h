@@ -19,7 +19,7 @@
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/SSLContext.h>
 #include <wangle/ssl/SSLUtil.h>
-#include <wangle/client/ssl/SSLSession.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
 
 #include <openssl/ssl.h>
@@ -46,12 +46,12 @@ class SSLSessionCallbacks {
   // implementation must make it's own memory copy of the session data to put
   // into the cache.
   virtual void setSSLSession(
-    const std::string& identity, SSLSessionPtr session) noexcept = 0;
+    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept = 0;
 
   // Return a SSL session if the cache contained session information for the
   // specified identity. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
-  virtual SSLSessionPtr getSSLSession(
+  virtual folly::ssl::SSLSessionUniquePtr getSSLSession(
     const std::string& identity) const noexcept = 0;
 
   // Remove session data of the specified identity from cache. Return true if

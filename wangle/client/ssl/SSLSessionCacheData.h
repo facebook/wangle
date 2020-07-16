@@ -21,7 +21,7 @@
 
 #include <folly/DynamicConverter.h>
 #include <folly/FBString.h>
-#include <wangle/client/ssl/SSLSession.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 
 namespace wangle {
 

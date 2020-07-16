@@ -31,15 +31,15 @@ class FakeSessionCallbacks : public SSLSessionCallbacks {
  public:
   void setSSLSession(
       const std::string& identity,
-      SSLSessionPtr session) noexcept override {
+      folly::ssl::SSLSessionUniquePtr session) noexcept override {
     cache_.emplace(identity, std::move(session));
    }
 
-   SSLSessionPtr getSSLSession(const std::string& identity) const
+   folly::ssl::SSLSessionUniquePtr getSSLSession(const std::string& identity) const
        noexcept override {
      auto it = cache_.find(identity);
      if (it == cache_.end()) {
-       return SSLSessionPtr(nullptr);
+       return folly::ssl::SSLSessionUniquePtr(nullptr);
      }
      auto sess = std::move(it->second);
      cache_.erase(it);
@@ -51,7 +51,7 @@ class FakeSessionCallbacks : public SSLSessionCallbacks {
    }
 
  private:
-   mutable std::map<std::string, SSLSessionPtr> cache_;
+   mutable std::map<std::string, folly::ssl::SSLSessionUniquePtr> cache_;
 };
 
 class ThreadSafeSSLSessionCacheTest : public Test {

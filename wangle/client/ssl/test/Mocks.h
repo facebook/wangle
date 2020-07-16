@@ -29,14 +29,14 @@ class MockSSLSessionCallbacks : public SSLSessionCallbacks {
 
   MOCK_METHOD1(removeSSLSessionInternal, bool(const std::string&));
 
-  SSLSessionPtr getSSLSession(
+  folly::ssl::SSLSessionUniquePtr getSSLSession(
       const std::string& host) const noexcept override {
-    return SSLSessionPtr(getSSLSessionInternal(host));
+    return folly::ssl::SSLSessionUniquePtr(getSSLSessionInternal(host));
   }
 
   void setSSLSession(
       const std::string& host,
-      SSLSessionPtr session) noexcept override {
+      folly::ssl::SSLSessionUniquePtr session) noexcept override {
     setSSLSessionInternal(host, session.release());
   }
 

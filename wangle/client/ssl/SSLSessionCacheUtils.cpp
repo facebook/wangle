@@ -115,7 +115,7 @@ folly::Optional<SSLSessionCacheData> getCacheDataForSession(SSL_SESSION* sess) {
   }
 #ifdef WANGLE_HAVE_SSL_SESSION_DUP
   result.sessionDuplicateTemplate =
-      std::shared_ptr<SSL_SESSION>(SSL_SESSION_dup(sess), SessionDestructor{});
+      std::shared_ptr<SSL_SESSION>(SSL_SESSION_dup(sess), SSL_SESSION_free);
 #endif
   return result;
 }

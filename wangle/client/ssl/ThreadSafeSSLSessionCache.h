@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <wangle/client/ssl/SSLSession.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
 #include <folly/SharedMutex.h>
@@ -36,8 +36,8 @@ class ThreadSafeSSLSessionCache : public SSLSessionCallbacks {
 
    // From SSLSessionCallbacks
    void setSSLSession(
-     const std::string& identity, SSLSessionPtr session) noexcept override;
-   SSLSessionPtr getSSLSession(
+     const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept override;
+   folly::ssl::SSLSessionUniquePtr getSSLSession(
        const std::string& identity) const noexcept override;
    bool removeSSLSession(const std::string& identity) noexcept override;
    bool supportsPersistence() const noexcept override;

@@ -133,7 +133,7 @@ TEST_F(SSLSessionPersistentCacheTest, BadSession) {
   std::string badHost = "bad";
 
   // Insert bad session to an empty cache.
-  cache_->setSSLSession(badHost, SSLSessionPtr(nullptr));
+  cache_->setSSLSession(badHost, folly::ssl::SSLSessionUniquePtr(nullptr));
   ASSERT_FALSE(cache_->getSSLSession(badHost));
   ASSERT_EQ(0, cache_->size());
 
@@ -141,7 +141,7 @@ TEST_F(SSLSessionPersistentCacheTest, BadSession) {
   cache_->setSSLSession("host1", createPersistentTestSession(sessions_[1]));
 
   // Insert bad session to non-empty cache
-  cache_->setSSLSession(badHost, SSLSessionPtr(nullptr));
+  cache_->setSSLSession(badHost, folly::ssl::SSLSessionUniquePtr(nullptr));
   ASSERT_FALSE(cache_->getSSLSession(badHost));
   ASSERT_EQ(2, cache_->size());
 
@@ -155,7 +155,7 @@ TEST_F(SSLSessionPersistentCacheTest, Overwrite) {
 
   {
     // Overwrite host1 with a nullptr, the cache shouldn't have changed.
-    cache_->setSSLSession("host1", SSLSessionPtr(nullptr));
+    cache_->setSSLSession("host1", folly::ssl::SSLSessionUniquePtr(nullptr));
     verifyEntryInCache("host0", sessions_[0]);
     verifyEntryInCache("host1", sessions_[1]);
   }

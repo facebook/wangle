@@ -348,13 +348,13 @@ std::pair<SSL_SESSION*, size_t> getSessionWithTicket() {
   return std::make_pair(s, sessionDataWithTicketLen);
 }
 
-SSLSessionPtr createPersistentTestSession(
+folly::ssl::SSLSessionUniquePtr createPersistentTestSession(
     std::pair<SSL_SESSION*, size_t> session) {
   if (session.first) {
     // This simulates what openssl does before handing control to the cache.
     SSL_SESSION_up_ref(session.first);
   }
-  return SSLSessionPtr(session.first);
+  return folly::ssl::SSLSessionUniquePtr(session.first);
 }
 
 std::string getSessionData(SSL_SESSION* s, size_t expectedLength) {

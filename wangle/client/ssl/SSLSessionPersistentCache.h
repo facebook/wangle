@@ -20,7 +20,7 @@
 #include <folly/Memory.h>
 #include <wangle/client/persistence/PersistentCache.h>
 #include <wangle/client/persistence/PersistentCacheCommon.h>
-#include <wangle/client/ssl/SSLSession.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/ssl/SSLSessionCacheData.h>
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
@@ -60,12 +60,12 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
   // implementation must make it's own memory copy of the session data to put
   // into the cache.
   void setSSLSession(
-    const std::string& identity, SSLSessionPtr session) noexcept override;
+    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept override;
 
   // Return a SSL session if the cache contained session information for the
   // specified identity. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
-  SSLSessionPtr getSSLSession(
+  folly::ssl::SSLSessionUniquePtr getSSLSession(
     const std::string& identity) const noexcept override;
 
   // Remove session data of the specified identity from cache. Return true if

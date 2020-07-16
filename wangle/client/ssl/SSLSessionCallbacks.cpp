@@ -83,7 +83,6 @@ void SSLSessionCallbacks::removeSessionCallback(
 }
 
 void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr session) {
-  SSLSessionPtr sessionPtr(session.release());
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
   auto sslSessionCache = SSLSessionCallbacks::getCacheFromContext(ctx);
   std::string sessionKey = SSLSessionCallbacks::getSessionKeyFromSSL(ssl);
@@ -92,8 +91,8 @@ void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly:
     sessionKey = name ? name : "";
   }
   if (!sessionKey.empty()) {
-    setSessionServiceIdentity(sessionPtr.get(), sessionKey);
-    sslSessionCache->setSSLSession(sessionKey, std::move(sessionPtr));
+    setSessionServiceIdentity(session.get(), sessionKey);
+    sslSessionCache->setSSLSession(sessionKey, std::move(session));
   }
 }
 } // wangle
