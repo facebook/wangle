@@ -39,6 +39,7 @@
 
 namespace wangle {
 
+class AcceptObserver;
 class ManagedConnection;
 class SecurityProtocolContextManager;
 class SSLContextManager;
@@ -332,6 +333,28 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       SSLErrorEnum /*error*/,
       const folly::exception_wrapper& /*ex*/) noexcept {}
 
+  /**
+   * Adds observer for accept events.
+   *
+   * Can be used to install socket observers and instrumentation without
+   * changing / interfering with application-specific acceptor logic.
+   *
+   * @param observer     Observer to add (implements AcceptObserver).
+   */
+  void addAcceptObserver(AcceptObserver* observer) {
+    observerList_.add(observer);
+  }
+
+  /**
+   * Remove observer for accept events.
+   *
+   * @param observer     Observer to remove.
+   * @return             Whether observer found and removed from list.
+   */
+  bool removeAcceptObserver(AcceptObserver* observer) {
+    return observerList_.remove(observer);
+  }
+
  protected:
   using OnDataAvailableParams =
       folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams;
@@ -403,7 +426,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
         true /* defer the security negotiation until sslAccept */));
   }
 
- protected:
   /**
    * onConnectionsDrained() will be called once all connections have been
    * drained while the acceptor is stopping.
@@ -425,7 +447,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   void onConnectionAdded(const ManagedConnection*) override {}
   void onConnectionRemoved(const ManagedConnection*) override {}
 
- protected:
   const ServerSocketConfig accConfig_;
 
   // Helper function to initialize downstreamConnectionManager_
@@ -480,6 +501,41 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
 
   std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext(
       const std::shared_ptr<fizz::server::CertManager>& fizzCertManager);
+
+  // Wrapper around list of AcceptObservers to handle cleanup on destruction
+  class AcceptObserverList {
+   public:
+    explicit AcceptObserverList(Acceptor* acceptor);
+
+    /**
+     * Destructor, triggers observerDetach for any attached observers.
+     */
+    ~AcceptObserverList();
+
+    /**
+     * Add observer and trigger observerAttach.
+     */
+    void add(AcceptObserver* observer);
+
+    /**
+     * Remove observer and trigger observerDetach.
+     */
+    bool remove(AcceptObserver* observer);
+
+    /**
+     * Get reference to vector containing observers.
+     */
+    const std::vector<AcceptObserver*>& getAll() const {
+      return observers_;
+    }
+
+   private:
+    Acceptor* acceptor_{nullptr};
+    std::vector<AcceptObserver*> observers_;
+  };
+
+  // List of AcceptObservers
+  AcceptObserverList observerList_;
 };
 
 class AcceptorFactory {

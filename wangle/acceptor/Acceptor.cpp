@@ -27,6 +27,7 @@
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/FizzConfigUtil.h>
 #include <wangle/acceptor/ManagedConnection.h>
+#include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <wangle/ssl/SSLContextManager.h>
 
@@ -47,7 +48,9 @@ static const std::string empty_string;
 std::atomic<uint64_t> Acceptor::totalNumPendingSSLConns_{0};
 
 Acceptor::Acceptor(const ServerSocketConfig& accConfig)
-    : accConfig_(accConfig), socketOptions_(accConfig.getSocketOptions()) {}
+    : accConfig_(accConfig),
+      socketOptions_(accConfig.getSocketOptions()),
+      observerList_(this) {}
 
 void Acceptor::init(
     AsyncServerSocket* serverSocket,
@@ -288,6 +291,9 @@ void Acceptor::processEstablishedConnection(
     }
 
     tinfo.tfoSucceded = sslSock->getTFOSucceded();
+    for (const auto& cb : observerList_.getAll()) {
+      cb->accept(sslSock.get());
+    }
     startHandshakeManager(
         std::move(sslSock), this, clientAddr, acceptTime, tinfo);
   } else {
@@ -295,6 +301,9 @@ void Acceptor::processEstablishedConnection(
     tinfo.acceptTime = acceptTime;
     AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd));
     tinfo.tfoSucceded = sock->getTFOSucceded();
+    for (const auto& cb : observerList_.getAll()) {
+      cb->accept(sock.get());
+    }
     plaintextConnectionReady(
         std::move(sock),
         clientAddr,
@@ -329,6 +338,9 @@ void Acceptor::connectionReady(
   tinfo.initWithSocket(asyncSocket);
   tinfo.appProtocol = std::make_shared<std::string>(nextProtocolName);
   if (state_ < State::kDraining) {
+    for (const auto& cb : observerList_.getAll()) {
+      cb->ready(sock.get());
+    }
     onNewConnection(
         std::move(sock),
         &clientAddr,
@@ -478,6 +490,34 @@ void Acceptor::dropConnections(double pctToDrop) {
       downstreamConnectionManager_->dropConnections(pctToDrop);
     }
   });
+}
+
+Acceptor::AcceptObserverList::AcceptObserverList(Acceptor* acceptor)
+    : acceptor_(acceptor) {}
+
+Acceptor::AcceptObserverList::~AcceptObserverList() {
+  for (const auto& cb : observers_) {
+  cb->acceptorDestroy(acceptor_);
+  }
+}
+
+void Acceptor::AcceptObserverList::add(AcceptObserver* observer) {
+  observers_.emplace_back(observer);
+  observer->observerAttach(acceptor_);
+}
+
+bool Acceptor::AcceptObserverList::remove(AcceptObserver* observer) {
+  const auto eraseIt =
+      std::remove(observers_.begin(), observers_.end(), observer);
+  if (eraseIt == observers_.end()) {
+    return false;
+  }
+
+  for (auto it = eraseIt; it != observers_.end(); it++) {
+    (*it)->observerDetach(acceptor_);
+  }
+  observers_.erase(eraseIt, observers_.end());
+  return true;
 }
 
 } // namespace wangle
