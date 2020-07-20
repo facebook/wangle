@@ -288,7 +288,7 @@ TEST(ServiceFilter, ExpiringMax) {
 
   EXPECT_EQ("test", (*expiringService)("test").get());
   timekeeper.promises_[0].setValue();
-  EXPECT_TRUE((*expiringService)("test").getTry().hasException());
+  EXPECT_TRUE((*expiringService)("test").result().hasException());
 }
 
 TEST(ServiceFilter, ExpiringIdle) {
