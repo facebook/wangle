@@ -29,7 +29,6 @@
 #include <wangle/ssl/SSLCacheProvider.h>
 #include <wangle/ssl/SSLStats.h>
 
-#include <event.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSSLSocket.h>
