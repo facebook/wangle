@@ -74,7 +74,6 @@ set(WANGLE_HEADER_DIRS
   channel
   client
   codec
-  portability
   service
   ssl
   util
