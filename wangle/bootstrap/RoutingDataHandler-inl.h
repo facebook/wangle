@@ -26,7 +26,7 @@ template <typename R>
 void RoutingDataHandler<R>::read(Context*, folly::IOBufQueue& q) {
   RoutingData routingData;
   if (parseRoutingData(q, routingData)) {
-    cob_->onRoutingData(connId_, routingData);
+    parseRoutingDataCallback(routingData);
   }
 }
 
@@ -40,8 +40,14 @@ void RoutingDataHandler<R>::readEOF(Context*) {
 
 template <typename R>
 void RoutingDataHandler<R>::readException(
-    Context*, folly::exception_wrapper ex) {
+    Context*,
+    folly::exception_wrapper ex) {
   cob_->onError(connId_, ex);
+}
+
+template <typename R>
+void RoutingDataHandler<R>::parseRoutingDataCallback(RoutingData& routingData) {
+  cob_->onRoutingData(connId_, routingData);
 }
 
 } // namespace wangle

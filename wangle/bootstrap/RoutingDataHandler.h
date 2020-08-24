@@ -54,10 +54,23 @@ class RoutingDataHandler : public wangle::BytesToBytesHandler {
    * should be moved into RoutingData::bufQueue.
    *
    * @return bool - True on success, false if bufQueue doesn't have
-   *                sufficient bytes for parsing
+   *                sufficient bytes for parsing. It will call
+   *                parseRoutingDataCallback upon returning true.
    */
-  virtual bool parseRoutingData(folly::IOBufQueue& bufQueue,
-                                RoutingData& routingData) = 0;
+  virtual bool parseRoutingData(
+      folly::IOBufQueue& bufQueue,
+      RoutingData& routingData) = 0;
+
+ protected:
+  /**
+   * Use only if you want to set routingData asynchronously. This
+   * function should be called inside parseRoutingData() once
+   * routingData resolves to resume callback for non-blocking
+   * I/O. If you choose to do so instead of just setting routingData
+   * synchronously in parseRoutingData, remember to return false in
+   * parseRoutingData otherwise the callback will be executed twice.
+   */
+  void parseRoutingDataCallback(RoutingData& routingData);
 
  private:
   uint64_t connId_;
@@ -70,7 +83,8 @@ class RoutingDataHandlerFactory {
   virtual ~RoutingDataHandlerFactory() {}
 
   virtual std::shared_ptr<RoutingDataHandler<R>> newHandler(
-      uint64_t connId, typename RoutingDataHandler<R>::Callback* cob) = 0;
+      uint64_t connId,
+      typename RoutingDataHandler<R>::Callback* cob) = 0;
 };
 
 } // namespace wangle
