@@ -72,7 +72,7 @@ class BonkMultiplexClientDispatcher
     auto& p = requests_[*arg.type_ref()];
     auto f = p.getFuture();
     p.setInterruptHandler([arg, this](const folly::exception_wrapper&) {
-      this->requests_.erase(arg.type);
+      this->requests_.erase(*arg.type_ref());
     });
     this->pipeline_->write(arg);
 
