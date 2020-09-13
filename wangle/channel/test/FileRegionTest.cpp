@@ -64,7 +64,7 @@ TEST_F(FileRegionTest, Basic) {
   FileRegion fileRegion(fd, 0, count);
   auto f = fileRegion.transferTo(socket);
   try {
-    f.getVia(&evb);
+    std::move(f).getVia(&evb);
   } catch (std::exception& e) {
     LOG(FATAL) << exceptionStr(e);
   }
@@ -96,7 +96,7 @@ TEST_F(FileRegionTest, Repeated) {
     fs.push_back(fileRegion.transferTo(socket));
   }
   auto f = collect(fs).via(&evb);
-  ASSERT_NO_THROW(f.getVia(&evb));
+  ASSERT_NO_THROW(std::move(f).getVia(&evb));
 
   // Let the reads run to completion
   socket->shutdownWrite();
