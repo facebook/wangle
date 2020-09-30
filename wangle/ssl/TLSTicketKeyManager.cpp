@@ -190,7 +190,7 @@ TLSTicketKeyManager::setTLSTicketKeySeeds(
   }
 
   if (ticketKeys_.size() == 0 || activeKeys_.size() == 0) {
-    LOG(WARNING) << "No keys configured, falling back to default";
+    VLOG(1) << "No keys configured, falling back to default";
     SSL_CTX_set_tlsext_ticket_key_cb(ctx_->getSSLCtx(), nullptr);
     return false;
   }
