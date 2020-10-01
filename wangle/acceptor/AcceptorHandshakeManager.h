@@ -28,6 +28,11 @@
 
 namespace wangle {
 
+/**
+ * Helper to return a string of the given transport's client IP and port.
+ */
+std::string describeAddresses(const folly::AsyncTransport* transport);
+
 class Acceptor;
 
 class AcceptorHandshakeHelper : public folly::DelayedDestruction {

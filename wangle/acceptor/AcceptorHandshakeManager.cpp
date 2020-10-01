@@ -19,6 +19,24 @@
 
 namespace wangle {
 
+// helper to return a string of the given transport's client IP and port
+std::string describeAddresses(const folly::AsyncTransport* transport) {
+  folly::SocketAddress peer;
+  try {
+    transport->getPeerAddress(&peer);
+  } catch (...) {
+    // ignore
+  }
+  folly::SocketAddress local;
+  try {
+    transport->getLocalAddress(&local);
+  } catch (...) {
+    // ignore
+  }
+  return folly::to<std::string>(
+      "(peer=", peer.describe(), ", local=", local.describe(), ")");
+}
+
 void AcceptorHandshakeManager::start(
     folly::AsyncSSLSocket::UniquePtr sock) noexcept {
   acceptor_->getConnectionManager()->addConnection(this, true);
@@ -27,10 +45,10 @@ void AcceptorHandshakeManager::start(
 }
 
 void AcceptorHandshakeManager::connectionReady(
-      folly::AsyncTransport::UniquePtr transport,
-      std::string nextProtocol,
-      SecureTransportType secureTransportType,
-      folly::Optional<SSLErrorEnum> sslErr) noexcept {
+    folly::AsyncTransport::UniquePtr transport,
+    std::string nextProtocol,
+    SecureTransportType secureTransportType,
+    folly::Optional<SSLErrorEnum> sslErr) noexcept {
   if (sslErr) {
     acceptor_->updateSSLStats(
         transport.get(),
@@ -73,8 +91,7 @@ std::chrono::milliseconds AcceptorHandshakeManager::timeSinceAcceptMs() const {
 
 void AcceptorHandshakeManager::startHandshakeTimeout() {
   auto handshake_timeout = acceptor_->getSSLHandshakeTimeout();
-  acceptor_->getConnectionManager()->scheduleTimeout(
-      this, handshake_timeout);
+  acceptor_->getConnectionManager()->scheduleTimeout(this, handshake_timeout);
 }
 
-}
+} // namespace wangle

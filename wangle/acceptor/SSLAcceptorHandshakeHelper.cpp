@@ -105,13 +105,12 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
 void SSLAcceptorHandshakeHelper::handshakeErr(
     AsyncSSLSocket* sock,
     const AsyncSocketException& ex) noexcept {
-  auto elapsedTime =
-    std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - acceptTime_);
-  VLOG(3) << "SSL handshake error after " << elapsedTime.count() <<
-      " ms; " << sock->getRawBytesReceived() << " bytes received & " <<
-      sock->getRawBytesWritten() << " bytes sent: " <<
-      ex.what();
+  auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - acceptTime_);
+  VLOG(3) << "SSL handshake error with " << describeAddresses(sock) << " after "
+          << elapsedTime.count() << " ms; " << sock->getRawBytesReceived()
+          << " bytes received & " << sock->getRawBytesWritten()
+          << " bytes sent: " << ex.what();
 
   auto sslEx = folly::make_exception_wrapper<SSLException>(
       sslError_, elapsedTime, sock->getRawBytesReceived());
