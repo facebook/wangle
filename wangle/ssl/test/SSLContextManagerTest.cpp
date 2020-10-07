@@ -27,6 +27,8 @@
 using std::shared_ptr;
 using namespace folly;
 
+// @lint-ignore-every PRIVATEKEY
+
 namespace wangle {
 
 static const std::string kTestCert1PEM {
@@ -106,6 +108,56 @@ static const std::string kTestCert3Key {
   "xjkyJwliYp6XCC+v/OHSpAW758aBJwmnPQ/dUJ/wzEtEmxUfhX8t3miU\n"
   "-----END PRIVATE KEY-----\n"
 };
+
+static const std::string kCertWithNoCNButWithSAN{
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIC4DCCAcigAwIBAgIJALTMdz3uPpCKMA0GCSqGSIb3DQEBCwUAMC8xLTArBgNV\n"
+    "BAoMJGludGVyb3AgcnVubmVyIENlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0yMDA5\n"
+    "MjMxNjQyMzVaFw0yMTA5MjMxNjQyMzVaMBkxFzAVBgNVBAoMDmludGVyb3AgcnVu\n"
+    "bmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1mRHbCeMxpws+sHC\n"
+    "OFAALZpm0Lme6a2rmtAQDdNl+ZHj9jENaNpyqhtgmADQ4xe4eQ/3b+9Dzp5ZZttq\n"
+    "XQuJwSitVQkzk3C8fwEFxbU9lXmn2eU07EbNjc6yp+TNtfFiae5NaivuryeBGFAW\n"
+    "tZ7DfJW6u2nD4iGcCz8DGiWQ3A66yZr2F7vyww7L3IJgZJHLtNEJqyqNp/V6437y\n"
+    "e/av1MVptvyHF/x1G2C5sg7OmoL8Sh2eI9KSJ7cP8GK7AKUTGUNn86CUe1lshGof\n"
+    "sFxiOHUgOqGcWEC24G18rgt1vCKaxWDfTGO3pY+55bzFpnVdnBlK7kPG2+j+Bj8W\n"
+    "NwUEwQIDAQABoxUwEzARBgNVHREECjAIggZzZXJ2ZXIwDQYJKoZIhvcNAQELBQAD\n"
+    "ggEBAKawb0cI0Ieu19mk5LFkK74Hw7s4+58SucdC93zNBvitm1fnMDmCpYfFTsEV\n"
+    "LuuheCQGQSCwL5IMDXdhaHMefL1VTvkws/QOQWYcHB3M3SvC+nApkiSy7Z77+Q1i\n"
+    "oetv9zLnPX1l9wV2GozxygbLrFAICBNbfCBoES06ZrAVI5WKpRyH1iBN0O2oky8g\n"
+    "J6zWLo7/3QdkDXqxjPzAhe0QiLZj3gVbmb0qCDOQOb59WxfoXqH+0LYYWcz046p7\n"
+    "Qc0UmyO6jI4gPtR+E3C/U7qHpD0fkz2aVJp+vleOBtzinGfAhYPDgTCwQ55xGU72\n"
+    "MPZDaUDgJLPG+bgt0iK1AV7EBec=\n"
+    "-----END CERTIFICATE-----\n"};
+
+static const std::string kCertWithNoCNButWithSANKey{
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQDWZEdsJ4zGnCz6\n"
+    "wcI4UAAtmmbQuZ7praua0BAN02X5keP2MQ1o2nKqG2CYANDjF7h5D/dv70POnllm\n"
+    "22pdC4nBKK1VCTOTcLx/AQXFtT2VeafZ5TTsRs2NzrKn5M218WJp7k1qK+6vJ4EY\n"
+    "UBa1nsN8lbq7acPiIZwLPwMaJZDcDrrJmvYXu/LDDsvcgmBkkcu00QmrKo2n9Xrj\n"
+    "fvJ79q/UxWm2/IcX/HUbYLmyDs6agvxKHZ4j0pIntw/wYrsApRMZQ2fzoJR7WWyE\n"
+    "ah+wXGI4dSA6oZxYQLbgbXyuC3W8IprFYN9MY7elj7nlvMWmdV2cGUruQ8bb6P4G\n"
+    "PxY3BQTBAgMBAAECggEBAJsCzGVVv0KG/zqbR6thpI9UeQxneY/pww7fawwkEjI9\n"
+    "mr6RvulWMNvviYq95EqeBwJ5WeWz8Kn+8hMdiC0YP5TKrXCzg3gSZifJ/HtzzMA7\n"
+    "wvIX+IjxtIPYtHISS+5GRmrjI1QlyaEZBg0nMxREY4G73NTO5xOkS2gSOlL4YGHK\n"
+    "bNdzQpLyZj6Goosr0g1J+l2/EVKO+/xBvZv6Fj6im+PmAimb+xe9iul7QDQHlYtI\n"
+    "T9J+2lvgzAof+uGYkMLwIO4R6xnjfd+Ey91rrQXgLfu1H63IT5qD0cOQ8sp+6XOW\n"
+    "slX6n1UxCjGYAJeSXqqu+5fX03XZt4h2zej2xtwLzeUCgYEA/RcnrLjzW2K1fnZq\n"
+    "WYuLcl9YwG4gUqqAzPsVOBPsWpnU1DMuC/L24u/CIlGLEEPRXgt8r6nGqfSg6Hs4\n"
+    "EOve8px3So5Nvt8EhugbANuQJlBPb3rkbV6cnCAbzpS6KYwCMNRZImO2K1bsab17\n"
+    "GBNagzKy5wqp6TFY0+CMySxytJ8CgYEA2Ns70YY3iYDFLLxrVpxHQG9bR4chATE2\n"
+    "tnePihfGgaW0oa744cMhJF/JIfpepB2JG/aOD6vmgtDO/z+vMqkO9Dvt/6wHa+S4\n"
+    "5AVkJnIkApNWXYdPM53szLx9fiuiQrQszsVpBSA20ytG9JjZ8/8i4T80KTgV0Il+\n"
+    "BrfzYYzjap8CgYEApCg8p59e2UtxBRGxcVs9m3WUj1vewz+sQ0goPzNM/ocAsJJx\n"
+    "r3ZsBE4W0UOqu2YBispQmW+5V8tAAwrJFtCmzx4FkeozKzZkLUynFytSmEdG/rvr\n"
+    "JbVURz/cSWXWSdRyJ1HUbqXWJs4+kWdBTCBheO+NcqZMBuDnCKaBKosV62kCgYEA\n"
+    "mvx9ES+Cy9Rrl6CGep0w012C+GkcbpS0zM5AmWqKpig/I/tAx2HFcxC+WHlvYI33\n"
+    "azPYrlymX8JK3uSuG1/2Xxnh7IQPvc33UoiD3nJfSDPzWt8U/QgWsPDaI+2dh1zs\n"
+    "VU+D0nUGmf/pM3F2/ErRq/iXGAqMlMFff//Cg2rFMnMCgYEA7De3L3aNpHFWhtUi\n"
+    "7c3DGtP3qTC6FAS9GJlA1TVsjgHt4nL3ZAKWOqXwVa1kXNDeYgN/Br39dfYW/KRE\n"
+    "Liz9kBryc02/2YSjg4YFDgrCqzeERPmwj8AKM3sPyL+nLzZOvJ3EbhyiQiOYGh+U\n"
+    "osLtL9tFEp8IrKHnoNVDuMPaZPM=\n"
+    "-----END PRIVATE KEY-----\n"};
 
 class SSLContextManagerForTest : public SSLContextManager {
  public:
@@ -424,6 +476,23 @@ TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
   EXPECT_THROW(
       sslCtxMgr.removeSSLContextConfig(SSLContextKey("www.abc.example.com")),
       std::invalid_argument);
+}
+
+TEST(SSLContextManagerTest, TestCertificateWithNoCN) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  SSLContextConfig ctxConfig;
+  ctxConfig.sessionContext = "ctx";
+  ctxConfig.setCertificateBuf(
+      kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
+  ctxConfig.isDefault = true;
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+  SSLContextKey key("O = interop runner", CertCrypto::BEST_AVAILABLE);
+  auto ctx = sslCtxMgr.getSSLCtx(key);
+  ASSERT_NE(ctx, nullptr);
 }
 
 } // namespace wangle

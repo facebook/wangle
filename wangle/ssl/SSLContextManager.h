@@ -222,10 +222,15 @@ class SSLContextManager {
       const std::shared_ptr<folly::SSLContext>& sslCtx,
       const SSLContextConfig::CertificateInfo& cert) const;
 
+  /**
+   * Helper used to verify that all certificates installed for a single
+   * `folly::SSLContext` convey the same identities (with the possibility of
+   * different SubjectPublicKeyInfos)
+   */
   void verifyCertNames(
       const std::shared_ptr<folly::SSLContext>& sslCtx,
       const std::string& description,
-      std::string& commonName,
+      std::string& groupIdentity,
       std::unique_ptr<std::list<std::string>>& subjectAltName,
       const std::string& lastCertPath,
       bool firstCert) const;

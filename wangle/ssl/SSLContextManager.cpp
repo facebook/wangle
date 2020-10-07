@@ -29,6 +29,7 @@
 #include <folly/ScopeGuard.h>
 #include <folly/String.h>
 #include <folly/portability/OpenSSL.h>
+#include <folly/ssl/OpenSSLCertUtils.h>
 #include <functional>
 
 
@@ -179,7 +180,29 @@ std::string flattenList(const std::list<std::string>& list) {
   }
   return s;
 }
+
+enum class CertIdentitySource {
+  None,
+  CommonName,
+  DistinguishedName,
+};
+using CertIdentityResult =
+    std::pair<folly::Optional<std::string>, CertIdentitySource>;
+
+CertIdentityResult getCertIdentity(X509& x) {
+  auto cn = folly::ssl::OpenSSLCertUtils::getCommonName(x);
+  if (cn.has_value()) {
+    return std::make_pair(
+        std::move(cn).value(), CertIdentitySource::CommonName);
+  }
+  auto dn = folly::ssl::OpenSSLCertUtils::getSubject(x);
+  if (dn.has_value()) {
+    return std::make_pair(
+        std::move(dn).value(), CertIdentitySource::DistinguishedName);
+  }
+  return std::make_pair(folly::none, CertIdentitySource::None);
 }
+} // namespace
 
 class SSLContextManager::SslContexts
     : public std::enable_shared_from_this<SSLContextManager::SslContexts> {
@@ -604,7 +627,7 @@ void SSLContextManager::loadCertsFromFiles(
 void SSLContextManager::verifyCertNames(
     const std::shared_ptr<folly::SSLContext>& sslCtx,
     const std::string& description,
-    std::string& commonName,
+    std::string& groupIdentity,
     std::unique_ptr<std::list<std::string>>& subjectAltName,
     const std::string& lastCertPath,
     bool firstCert) const {
@@ -615,13 +638,14 @@ void SSLContextManager::verifyCertNames(
             "Certificate: ", description, " is invalid"));
   }
   auto guard = folly::makeGuard([x509] { X509_free(x509); });
-  auto cn = SSLUtil::getCommonName(x509);
-  if (!cn) {
-    throw std::runtime_error(folly::to<string>("Cannot get CN for X509 ",
+  auto identityResult = getCertIdentity(*x509);
+  auto& identity = identityResult.first;
+  if (!identity) {
+    throw std::runtime_error(folly::to<string>("Cannot get identity for X509 ",
                                                description));
   }
   auto altName = SSLUtil::getSubjectAltName(x509);
-  VLOG(3) << "cert " << description << " CN: " << *cn;
+  VLOG(3) << "cert " << description << " Identity: " << *identity;
   if (altName) {
     altName->sort();
     VLOG(3) << "cert " << description << " SAN: " << flattenList(*altName);
@@ -629,12 +653,12 @@ void SSLContextManager::verifyCertNames(
     VLOG(3) << "cert " << description << " SAN: " << "{none}";
   }
   if (firstCert) {
-    commonName = *cn;
+    groupIdentity = *identity;
     subjectAltName = std::move(altName);
   } else {
-    if (commonName != *cn) {
+    if (groupIdentity != *identity) {
       throw std::runtime_error(folly::to<string>("X509 ", description,
-                                        " does not have same CN as ",
+                                        " does not have same identity as ",
                                         lastCertPath));
     }
     if (altName == nullptr) {
@@ -834,9 +858,13 @@ void SSLContextManager::SslContexts::insert(
     throw std::runtime_error("SSLCtx is invalid");
   }
   auto guard = folly::makeGuard([x509] { X509_free(x509); });
-  auto cn = SSLUtil::getCommonName(x509);
-  if (!cn) {
-    throw std::runtime_error("Cannot get CN");
+
+  auto identityResult = getCertIdentity(*x509);
+  auto& identity = identityResult.first;
+  auto identitySource = identityResult.second;
+
+  if (!identity) {
+    throw std::runtime_error("Cannot get certificate identity");
   }
 
   /**
@@ -859,7 +887,8 @@ void SSLContextManager::SslContexts::insert(
   // Not sure if we ever get this kind of X509...
   // If we do, assume '*' is always in the CN and ignore all subject alternative
   // names.
-  if (cn->length() == 1 && (*cn)[0] == '*') {
+  if (identitySource == CertIdentitySource::CommonName &&
+      identity->length() == 1 && (*identity)[0] == '*') {
     if (!defaultFallback) {
       throw std::runtime_error("STAR X509 is not the default");
     }
@@ -877,8 +906,11 @@ void SSLContextManager::SslContexts::insert(
     VLOG(4) << "Adding SSLContext with best available crypto";
   }
 
-  // Insert by CN
-  insertSSLCtxByDomainName(*cn, sslCtx, certCrypto, defaultFallback);
+  // Insert by identity.
+  //
+  // This will be used as the lookup key if this SSLContext is marked as
+  // the default.
+  insertSSLCtxByDomainName(*identity, sslCtx, certCrypto, defaultFallback);
 
   // Insert by subject alternative name(s)
   auto altNames = SSLUtil::getSubjectAltName(x509);
@@ -889,7 +921,7 @@ void SSLContextManager::SslContexts::insert(
   }
 
   if (defaultFallback) {
-    defaultCtxDomainName_ = *cn;
+    defaultCtxDomainName_ = *identity;
   } else {
     addServerContext(sslCtx);
   }
