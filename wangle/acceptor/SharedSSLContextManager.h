@@ -63,6 +63,7 @@ class SharedSSLContextManager {
   }
 
   virtual void updateTLSTicketKeys(TLSTicketKeySeeds seeds) = 0;
+  virtual void updateSSLConfigAndReloadContexts(SSLContextConfig ssl) = 0;
   virtual void reloadSSLContextConfigs() = 0;
 
  protected:
@@ -112,6 +113,16 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
       LOG(ERROR) << "Failed to re-configure TLS: " << ex.what()
                  << "will keep old config";
     }
+  }
+
+  /*
+   * Updates the config and reloads shared fizz, SSL contexts data
+   */
+  void updateSSLConfigAndReloadContexts(SSLContextConfig ssl) {
+    for (auto& sslContext : config_.sslContextConfigs) {
+      sslContext = ssl;
+    }
+    reloadSSLContextConfigs();
   }
 
   /*
