@@ -21,6 +21,7 @@
 #include <folly/io/SocketOptionMap.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/ssl/SSLSession.h>
 #include <wangle/channel/Pipeline.h>
 #include <memory>
 
@@ -29,8 +30,8 @@ namespace wangle {
 class SSLSessionEstablishedCallback {
  public:
   virtual ~SSLSessionEstablishedCallback() = default;
-  // notified when a non-reused SSL_SESSION is established.
-  virtual void onEstablished(SSL_SESSION* session) = 0;
+  // notified when a non-reused SSLSession is established.
+  virtual void onEstablished(std::shared_ptr<folly::ssl::SSLSession> session) = 0;
 };
 
 class ClientBootstrapSocketOptions {
@@ -91,7 +92,7 @@ class BaseClientBootstrap {
     return this;
   }
 
-  BaseClientBootstrap* sslSession(SSL_SESSION* sslSession) {
+  BaseClientBootstrap* sslSession(std::shared_ptr<folly::ssl::SSLSession> sslSession) {
     sslSession_ = sslSession;
     return this;
   }
@@ -138,7 +139,7 @@ class BaseClientBootstrap {
   std::shared_ptr<PipelineFactory<P>> pipelineFactory_;
   typename P::Ptr pipeline_;
   folly::SSLContextPtr sslContext_;
-  SSL_SESSION* sslSession_{nullptr};
+  std::shared_ptr<folly::ssl::SSLSession> sslSession_{nullptr};
   std::string sni_;
   bool deferSecurityNegotiation_{false};
   SSLSessionEstablishedCallbackUniquePtr sslSessionEstablishedCallback_;
