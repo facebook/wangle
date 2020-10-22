@@ -162,6 +162,8 @@ class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
   GMOCK_METHOD1_(, noexcept, , connect, void(AsyncTransport*));
   GMOCK_METHOD1_(, noexcept, , fdDetach, void(AsyncSocket*));
   GMOCK_METHOD2_(, noexcept, , move, void(AsyncSocket*, AsyncSocket*));
+  GMOCK_METHOD2_(, noexcept, , evbAttach, void(AsyncTransport*, EventBase*));
+  GMOCK_METHOD2_(, noexcept, , evbDetach, void(AsyncTransport*, EventBase*));
 };
 
 class MockFizzLoggingCallback
