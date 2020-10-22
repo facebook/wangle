@@ -42,6 +42,8 @@ class AcceptorException : public std::runtime_error {
     DROP_CONN_PCT = 5,
     FORCE_STOP = 6,
     INTERNAL_ERROR = 7,
+    ACCEPT_PAUSED = 8,
+    ACCEPT_RESUMED = 9,
   };
 
   explicit AcceptorException(ExceptionType type)
@@ -259,9 +261,11 @@ class ServerAcceptor : public Acceptor,
     Acceptor::sslConnectionError(ex);
   }
 
+ protected:
+  std::shared_ptr<AcceptPipeline> acceptPipeline_;
+
  private:
   std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_;
-  std::shared_ptr<AcceptPipeline> acceptPipeline_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
 };
 
