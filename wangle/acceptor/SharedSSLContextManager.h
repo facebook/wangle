@@ -152,6 +152,8 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
             seeds_,
             config_.sslCacheOptions.sslCacheTimeout,
             config_.sslCacheOptions.handshakeValidity,
+            fizzContext_->getFactoryPtr(),
+            certManager_,
             getPskContext(config_));
         fizzContext_->setTicketCipher(fizzTicketCipher);
       }
