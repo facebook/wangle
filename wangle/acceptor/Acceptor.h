@@ -457,9 +457,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   virtual std::shared_ptr<fizz::server::FizzServerContext> createFizzContext();
   virtual std::shared_ptr<fizz::server::TicketCipher> createFizzTicketCipher(
       const TLSTicketKeySeeds& seeds,
-      std::shared_ptr<fizz::Factory> factory,
-      std::shared_ptr<fizz::server::CertManager> certManager,
-      folly::Optional<std::string> pskContext);
+      folly::Optional<std::string> pskContext = folly::none);
 
   virtual std::unique_ptr<fizz::server::CertManager> createFizzCertManager();
 
@@ -482,11 +480,10 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   wangle::ConnectionManager::UniquePtr downstreamConnectionManager_;
 
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
-
- private:
-  TLSTicketKeySeeds ticketSecrets_;
+  std::shared_ptr<fizz::server::TicketCipher> fizzTicketCipher_{nullptr};
   std::shared_ptr<fizz::server::CertManager> fizzCertManager_{nullptr};
 
+ private:
   // Forbidden copy constructor and assignment opererator
   Acceptor(Acceptor const&) = delete;
   Acceptor& operator=(Acceptor const&) = delete;
@@ -501,7 +498,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   bool forceShutdownInProgress_{false};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
 
-  std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext();
+  std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext(
+      const std::shared_ptr<fizz::server::CertManager>& fizzCertManager);
 
   // Wrapper around list of AcceptObservers to handle cleanup on destruction
   class AcceptObserverList {
