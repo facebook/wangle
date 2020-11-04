@@ -84,6 +84,11 @@ struct TransportInfo {
   int64_t cwndBytes{-1};
 
   /*
+   * The receiver flow control window for the entire connection in bytes.
+   */
+  int64_t recvwnd{-1};
+
+  /*
    * MSS
    */
   int64_t mss{-1};
