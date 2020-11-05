@@ -50,7 +50,7 @@ class ManagedConnection:
   };
 
   // HHWheelTimer::Callback API (left for subclasses to implement).
-  void timeoutExpired() noexcept override = 0;
+  virtual void timeoutExpired() noexcept = 0;
 
   /**
    * Print a human-readable description of the connection.
