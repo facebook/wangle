@@ -40,6 +40,8 @@ class FizzConfigUtil {
       const TLSTicketKeySeeds& seeds,
       std::chrono::seconds validity,
       std::chrono::seconds handshakeValidity,
+      std::shared_ptr<fizz::Factory> factory,
+      std::shared_ptr<fizz::server::CertManager> certManager,
       folly::Optional<std::string> pskContext) {
     if (seeds.currentSeeds.empty()) {
       return fizz::FizzUtil::createTicketCipher<TicketCipherT>(
@@ -48,6 +50,8 @@ class FizzConfigUtil {
           seeds.newSeeds,
           validity,
           handshakeValidity,
+          std::move(factory),
+          std::move(certManager),
           std::move(pskContext));
     } else {
       return fizz::FizzUtil::createTicketCipher<TicketCipherT>(
@@ -56,6 +60,8 @@ class FizzConfigUtil {
           seeds.newSeeds,
           validity,
           handshakeValidity,
+          std::move(factory),
+          std::move(certManager),
           std::move(pskContext));
     }
   }
@@ -65,10 +71,17 @@ class FizzConfigUtil {
       const wangle::TLSTicketKeySeeds& seeds,
       std::chrono::seconds validity,
       std::chrono::seconds handshakeValidity,
+      std::shared_ptr<fizz::Factory> factory,
+      std::shared_ptr<fizz::server::CertManager> certManager,
       folly::Optional<std::string> pskContext) {
     return wangle::FizzConfigUtil::createTicketCipher<
         fizz::server::AES128TicketCipher>(
-        seeds, validity, handshakeValidity, std::move(pskContext));
+        seeds,
+        validity,
+        handshakeValidity,
+        std::move(factory),
+        std::move(certManager),
+        std::move(pskContext));
   }
 };
 
