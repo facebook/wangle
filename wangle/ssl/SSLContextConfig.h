@@ -119,6 +119,7 @@ struct SSLContextConfig {
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
   std::string sslCiphers{getDefaultCiphers()};
+  folly::Optional<std::string> sigAlgs;
   std::string eccCurveName{"prime256v1"};
 
   // Weighted lists of NPN strings to advertise

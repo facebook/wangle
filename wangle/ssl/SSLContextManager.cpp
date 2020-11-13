@@ -502,6 +502,10 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   // since we test their validity by actually setting them.
   sslCtx->ciphers(ctxConfig.sslCiphers);
 
+  if (ctxConfig.sigAlgs) {
+    sslCtx->setSigAlgsOrThrow(*ctxConfig.sigAlgs);
+  }
+
   // Use a fix DH param
   DH* dh = get_dh2048();
   SSL_CTX_set_tmp_dh(sslCtx->getSSLCtx(), dh);
