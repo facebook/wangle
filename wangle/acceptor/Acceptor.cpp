@@ -310,8 +310,6 @@ void Acceptor::processEstablishedConnection(
     plaintextConnectionReady(
         std::move(sock),
         clientAddr,
-        empty_string,
-        SecureTransportType::NONE,
         tinfo);
   }
 }
@@ -354,16 +352,14 @@ void Acceptor::connectionReady(
 }
 
 void Acceptor::plaintextConnectionReady(
-    AsyncTransport::UniquePtr sock,
+    AsyncSocket::UniquePtr sock,
     const SocketAddress& clientAddr,
-    const string& nextProtocolName,
-    SecureTransportType secureTransportType,
     TransportInfo& tinfo) {
   connectionReady(
       std::move(sock),
       clientAddr,
-      nextProtocolName,
-      secureTransportType,
+      {},
+      SecureTransportType::NONE,
       tinfo);
 }
 

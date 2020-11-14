@@ -286,10 +286,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * subclasses to deal with plaintext connections.
    */
   virtual void plaintextConnectionReady(
-      folly::AsyncTransport::UniquePtr sock,
+      folly::AsyncSocket::UniquePtr sock,
       const folly::SocketAddress& clientAddr,
-      const std::string& nextProtocolName,
-      SecureTransportType secureTransportType,
       TransportInfo& tinfo);
 
   /**
