@@ -16,17 +16,17 @@
 
 #pragma once
 
-#include <array>
-#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
+#include <array>
 
 namespace wangle {
 
-class SocketPeeker : public folly::AsyncTransport::ReadCallback,
-                     public folly::DelayedDestruction {
+class TransportPeeker : public folly::AsyncTransport::ReadCallback,
+                        public folly::DelayedDestruction {
  public:
   using UniquePtr =
-      std::unique_ptr<SocketPeeker, folly::DelayedDestruction::Destructor>;
+      std::unique_ptr<TransportPeeker, folly::DelayedDestruction::Destructor>;
 
   class Callback {
    public:
@@ -35,23 +35,27 @@ class SocketPeeker : public folly::AsyncTransport::ReadCallback,
     virtual void peekError(const folly::AsyncSocketException& ex) noexcept = 0;
   };
 
-  SocketPeeker(folly::AsyncSocket& socket, Callback* callback, size_t numBytes)
-      : socket_(socket), callback_(callback), peekBytes_(numBytes) {}
+  TransportPeeker(
+      folly::AsyncTransport& transport,
+      Callback* callback,
+      size_t numBytes)
+      : transport_(transport),
+        transportCallback_(callback),
+        peekBytes_(numBytes) {}
 
-  ~SocketPeeker() override {
-    if (socket_.getReadCallback() == this) {
-      socket_.setReadCB(nullptr);
+  ~TransportPeeker() override {
+    if (transport_.getReadCallback() == this) {
+      transport_.setReadCB(nullptr);
     }
   }
 
   void start() {
     if (peekBytes_.size() == 0) {
       // No peeking necessary.
-      auto callback = callback_;
-      callback_ = nullptr;
+      auto callback = std::exchange(transportCallback_, nullptr);
       callback->peekSuccess(std::move(peekBytes_));
     } else {
-      socket_.setReadCB(this);
+      transport_.setReadCB(this);
     }
   }
 
@@ -72,10 +76,8 @@ class SocketPeeker : public folly::AsyncTransport::ReadCallback,
   void readErr(const folly::AsyncSocketException& ex) noexcept override {
     folly::DelayedDestruction::DestructorGuard dg(this);
 
-    socket_.setReadCB(nullptr);
-    if (callback_) {
-      auto callback = callback_;
-      callback_ = nullptr;
+    transport_.setReadCB(nullptr);
+    if (auto callback = std::exchange(transportCallback_, nullptr)) {
       callback->peekError(ex);
     }
   }
@@ -87,11 +89,8 @@ class SocketPeeker : public folly::AsyncTransport::ReadCallback,
     CHECK_LE(read_, peekBytes_.size());
 
     if (read_ == peekBytes_.size()) {
-      socket_.setPreReceivedData(
-          folly::IOBuf::copyBuffer(folly::range(peekBytes_)));
-      socket_.setReadCB(nullptr);
-      auto callback = callback_;
-      callback_ = nullptr;
+      transport_.setReadCB(nullptr);
+      auto callback = std::exchange(transportCallback_, nullptr);
       callback->peekSuccess(std::move(peekBytes_));
     }
   }
@@ -103,9 +102,35 @@ class SocketPeeker : public folly::AsyncTransport::ReadCallback,
   }
 
  private:
-  folly::AsyncSocket& socket_;
-  Callback* callback_;
+  folly::AsyncTransport& transport_;
+  Callback* transportCallback_;
   size_t read_{0};
   std::vector<uint8_t> peekBytes_;
 };
-}
+
+class SocketPeeker : public TransportPeeker, private TransportPeeker::Callback {
+ public:
+  using UniquePtr =
+      std::unique_ptr<SocketPeeker, folly::DelayedDestruction::Destructor>;
+
+  using Callback = TransportPeeker::Callback;
+
+  SocketPeeker(folly::AsyncSocket& socket, Callback* callback, size_t numBytes)
+      : TransportPeeker(socket, this, numBytes),
+        socket_(socket),
+        socketCallback_(callback) {}
+
+ private:
+  void peekSuccess(std::vector<uint8_t> data) noexcept override {
+    socket_.setPreReceivedData(folly::IOBuf::copyBuffer(folly::range(data)));
+    socketCallback_->peekSuccess(std::move(data));
+  }
+
+  void peekError(const folly::AsyncSocketException& ex) noexcept override {
+    socketCallback_->peekError(ex);
+  }
+
+  folly::AsyncSocket& socket_;
+  Callback* socketCallback_;
+};
+} // namespace wangle
