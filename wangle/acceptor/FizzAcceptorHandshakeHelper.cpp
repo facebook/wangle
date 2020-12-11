@@ -15,6 +15,7 @@
  */
 
 #include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
+#include <fizz/record/Types.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 #include <wangle/ssl/SSLContextManager.h>
 
@@ -22,6 +23,23 @@ using namespace fizz::extensions;
 using namespace fizz::server;
 
 namespace wangle {
+namespace detail {
+
+template <typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true>
+std::string enumVectorToHexStr(const std::vector<T>& enumVector) {
+  std::string hexStr;
+  bool first = true;
+  for (auto enumValue : enumVector) {
+    if (first) {
+      first = false;
+    } else {
+      hexStr += ":";
+    }
+    hexStr += fizz::enumToHex(enumValue);
+  }
+  return hexStr;
+}
+} // namespace detail
 
 void FizzAcceptorHandshakeHelper::start(
     folly::AsyncSSLSocket::UniquePtr sock,
@@ -67,9 +85,16 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   }
 
   auto* handshakeLogging = transport->getState().handshakeLogging();
-  if (handshakeLogging && handshakeLogging->clientSni) {
-    tinfo_.sslServerName =
-        std::make_shared<std::string>(*handshakeLogging->clientSni);
+  if (handshakeLogging) {
+    if (handshakeLogging->clientSni) {
+      tinfo_.sslServerName =
+          std::make_shared<std::string>(*handshakeLogging->clientSni);
+    }
+
+    tinfo_.sslClientCiphersHex = std::make_shared<std::string>(
+        detail::enumVectorToHexStr(handshakeLogging->clientCiphers));
+    tinfo_.sslClientExts = std::make_shared<std::string>(
+        folly::join(":", handshakeLogging->clientExtensions));
   }
 
   auto appProto = transport->getApplicationProtocol();
