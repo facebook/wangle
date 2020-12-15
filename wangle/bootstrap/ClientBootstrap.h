@@ -57,7 +57,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
             dynamic_cast<AsyncSSLSocket*>(socket_.get());
           if (sslSocket && !sslSocket->getSSLSessionReused()) {
             sslSessionEstablishedCallback_->onEstablished(
-              sslSocket->getSSLSessionV2());
+              sslSocket->getSSLSession());
           }
         }
         bootstrap_->makePipeline(std::move(socket_));
@@ -116,7 +116,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
           sslSocket->setServerName(this->sni_);
         }
         if (this->sslSession_) {
-          sslSocket->setSSLSessionV2(this->sslSession_);
+          sslSocket->setSSLSession(this->sslSession_);
         }
         socket = sslSocket;
       } else {

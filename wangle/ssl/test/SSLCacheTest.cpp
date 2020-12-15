@@ -227,9 +227,9 @@ SSLCacheClient::connectSuccess() noexcept
 
   if (!FLAGS_handshakes) {
     if (session_ != nullptr)
-      sslSocket_->setSSLSessionV2(session_);
+      sslSocket_->setSSLSession(session_);
     else if (FLAGS_global && pSess_ != nullptr)
-      sslSocket_->setSSLSessionV2(pSess_);
+      sslSocket_->setSSLSession(pSess_);
   }
   sslSocket_->sslConn(this);
 }
@@ -248,7 +248,7 @@ SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept
     cr_->hits++;
   } else {
     cr_->miss++;
-    session_ = sslSocket_->getSSLSessionV2();
+    session_ = sslSocket_->getSSLSession();
     if (FLAGS_global && pSess_ != nullptr && pSess_ == nullptr) {
       pSess_ = session_;
     }
