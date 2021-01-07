@@ -158,16 +158,17 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
         fizzContext_->setTicketCipher(fizzTicketCipher);
       }
     }
-    ctxManager_ = std::make_shared<SSLContextManager>(
+    auto ctxManager = std::make_shared<SSLContextManager>(
         "vip_" + config_.name, config_.strictSSL, nullptr);
     for (const auto& sslCtxConfig : config_.sslContextConfigs) {
-      ctxManager_->addSSLContextConfig(
+      ctxManager->addSSLContextConfig(
           sslCtxConfig,
           config_.sslCacheOptions,
           &seeds_,
           config_.bindAddress,
           cacheProvider_);
     }
+    ctxManager_ = std::move(ctxManager);
   }
 
   void updateAcceptors() {
