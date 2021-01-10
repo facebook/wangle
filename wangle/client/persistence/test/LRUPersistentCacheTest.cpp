@@ -154,11 +154,7 @@ TYPED_TEST(LRUPersistentCacheTest, SettingPersistenceFromCtor) {
 
 TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   auto persistence = this->persistence.get();
-  auto cache = createCacheWithExecutor<TypeParam>(
-      this->manualExecutor,
-      std::move(this->persistence),
-      std::chrono::milliseconds::zero(),
-      0);
+  auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
   cache->init();
   cache->put("k0", "v0");
   EXPECT_CALL(*persistence, persist_(_))
