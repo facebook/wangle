@@ -275,7 +275,6 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTaskInline) {
       std::chrono::milliseconds::zero(),
       1);
   cache->init();
-  this->manualExecutor->run();
   EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
       .Times(1)
       .WillOnce(Invoke(
