@@ -504,3 +504,45 @@ TYPED_TEST(LRUPersistentCacheTest, EmptyPersistenceMatchesEmptyCache) {
   cache->put("k0", "v0");
   EXPECT_TRUE(cache->hasPendingUpdates());
 }
+
+TYPED_TEST(LRUPersistentCacheTest, ZeroSyncIntervalSyncsImmediately) {
+  EXPECT_CALL(*this->persistence, load_())
+      .Times(1)
+      .WillOnce(Return(dynamic::array()));
+  auto rawPersistence = this->persistence.get();
+  auto cache = createCacheWithExecutor<TypeParam>(
+      this->manualExecutor,
+      std::move(this->persistence),
+      std::chrono::milliseconds::zero(),
+      1,
+      true);
+  cache->init();
+  this->manualExecutor->run();
+  EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
+      .WillRepeatedly(Invoke(
+          rawPersistence,
+          &MockPersistenceLayer::getLastPersistedVersionConcrete));
+
+  cache->put("k0", "v0");
+  EXPECT_CALL(*rawPersistence, persist_(DynSize(1)))
+      .Times(1)
+      .WillOnce(Return(true));
+  this->manualExecutor->run();
+
+  // The following put will trigger a sync because syncImmediatelyWithExecutor
+  // is set to true
+  EXPECT_CALL(*rawPersistence, getLastPersistedVersion())
+      .WillRepeatedly(Invoke(
+          rawPersistence,
+          &MockPersistenceLayer::getLastPersistedVersionConcrete));
+  EXPECT_CALL(*rawPersistence, persist_(DynSize(2)))
+      .Times(1)
+      .WillOnce(Return(true));
+  cache->put("k1", "v1");
+  this->manualExecutor->run();
+
+  EXPECT_CALL(*rawPersistence, persist_(_)).Times(0);
+  cache.reset();
+  // Nothing more should happen after this
+  this->manualExecutor->drain();
+}
