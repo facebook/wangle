@@ -169,13 +169,22 @@ class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
 class MockFizzLoggingCallback
     : public FizzAcceptorHandshakeHelper::LoggingCallback {
  public:
-  MOCK_METHOD2(
+  GMOCK_METHOD2_(
+      ,
+      noexcept,
+      ,
       logFizzHandshakeSuccess,
       void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
-  MOCK_METHOD2(
+  GMOCK_METHOD2_(
+      ,
+      noexcept,
+      ,
       logFizzHandshakeFallback,
       void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
-  MOCK_METHOD2(
+  GMOCK_METHOD2_(
+      ,
+      noexcept,
+      ,
       logFizzHandshakeError,
       void(
           const fizz::server::AsyncFizzServer&,
