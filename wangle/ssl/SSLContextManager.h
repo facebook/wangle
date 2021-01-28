@@ -16,9 +16,9 @@
 
 #pragma once
 
+#include <folly/SharedMutex.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/SSLContext.h>
-#include <folly/SharedMutex.h>
 
 #include <glog/logging.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
@@ -35,7 +35,7 @@ namespace folly {
 class SocketAddress;
 class SSLContext;
 
-}
+} // namespace folly
 
 namespace wangle {
 
@@ -67,120 +67,119 @@ class SSLContextManager {
   class SslContexts;
 
  public:
-
-   /**
+  /**
    * Provide ability to perform explicit client certificate
    * verification
    */
-   struct ClientCertVerifyCallback {
-     // no-op. Should be overridden if actual
-     // verification is required. This should assign the callback functions
-     // to the context, without altering the callback itself.
-     virtual void attachSSLContext(
-         const std::shared_ptr<folly::SSLContext>& sslCtx) const = 0;
-     virtual ~ClientCertVerifyCallback() {}
-   };
+  struct ClientCertVerifyCallback {
+    // no-op. Should be overridden if actual
+    // verification is required. This should assign the callback functions
+    // to the context, without altering the callback itself.
+    virtual void attachSSLContext(
+        const std::shared_ptr<folly::SSLContext>& sslCtx) const = 0;
+    virtual ~ClientCertVerifyCallback() {}
+  };
 
-   explicit SSLContextManager(
-       const std::string& vipName,
-       bool strict,
-       SSLStats* stats);
-   virtual ~SSLContextManager();
+  explicit SSLContextManager(
+      const std::string& vipName,
+      bool strict,
+      SSLStats* stats);
+  virtual ~SSLContextManager();
 
-   /**
-    * Add a new X509 to SSLContextManager.  The details of a X509
-    * is passed as a SSLContextConfig object.
-    *
-    * @param ctxConfig     Details of a X509, its private key, password, etc.
-    * @param cacheOptions  Options for how to do session caching.
-    * @param ticketSeeds   If non-null, the initial ticket key seeds to use.
-    * @param vipAddress    Which VIP are the X509(s) used for? It is only for
-    *                      for user friendly log message
-    * @param externalCache Optional external provider for the session cache;
-    *                      may be null
-    */
-   void addSSLContextConfig(
-       const SSLContextConfig& ctxConfig,
-       const SSLCacheOptions& cacheOptions,
-       const TLSTicketKeySeeds* ticketSeeds,
-       const folly::SocketAddress& vipAddress,
-       const std::shared_ptr<SSLCacheProvider>& externalCache);
+  /**
+   * Add a new X509 to SSLContextManager.  The details of a X509
+   * is passed as a SSLContextConfig object.
+   *
+   * @param ctxConfig     Details of a X509, its private key, password, etc.
+   * @param cacheOptions  Options for how to do session caching.
+   * @param ticketSeeds   If non-null, the initial ticket key seeds to use.
+   * @param vipAddress    Which VIP are the X509(s) used for? It is only for
+   *                      for user friendly log message
+   * @param externalCache Optional external provider for the session cache;
+   *                      may be null
+   */
+  void addSSLContextConfig(
+      const SSLContextConfig& ctxConfig,
+      const SSLCacheOptions& cacheOptions,
+      const TLSTicketKeySeeds* ticketSeeds,
+      const folly::SocketAddress& vipAddress,
+      const std::shared_ptr<SSLCacheProvider>& externalCache);
 
-   /**
-    * Resets SSLContextManager with new X509s
-    *
-    * @param ctxConfigs    Details of a X509s, private key, password, etc.
-    * @param cacheOptions  Options for how to do session caching.
-    * @param ticketSeeds   If non-null, the initial ticket key seeds to use.
-    * @param vipAddress    Which VIP are the X509(s) used for? It is only for
-    *                      for user friendly log message
-    * @param externalCache Optional external provider for the session cache;
-    *                      may be null
-    */
-   void resetSSLContextConfigs(
-       const std::vector<SSLContextConfig>& ctxConfig,
-       const SSLCacheOptions& cacheOptions,
-       const TLSTicketKeySeeds* ticketSeeds,
-       const folly::SocketAddress& vipAddress,
-       const std::shared_ptr<SSLCacheProvider>& externalCache);
+  /**
+   * Resets SSLContextManager with new X509s
+   *
+   * @param ctxConfigs    Details of a X509s, private key, password, etc.
+   * @param cacheOptions  Options for how to do session caching.
+   * @param ticketSeeds   If non-null, the initial ticket key seeds to use.
+   * @param vipAddress    Which VIP are the X509(s) used for? It is only for
+   *                      for user friendly log message
+   * @param externalCache Optional external provider for the session cache;
+   *                      may be null
+   */
+  void resetSSLContextConfigs(
+      const std::vector<SSLContextConfig>& ctxConfig,
+      const SSLCacheOptions& cacheOptions,
+      const TLSTicketKeySeeds* ticketSeeds,
+      const folly::SocketAddress& vipAddress,
+      const std::shared_ptr<SSLCacheProvider>& externalCache);
 
-   /**
-    * Remove SSLContextConfig of the given key. Note that to remove the context
-    * for wildcard domain, call either
-    * removeSSLContextConfigByDomainName("*.example.com") or
-    * removeSSLContextConfig(SSLContextKey(".example.com")).
-    */
-   void removeSSLContextConfigByDomainName(const std::string& domainName);
-   void removeSSLContextConfig(const SSLContextKey& key);
+  /**
+   * Remove SSLContextConfig of the given key. Note that to remove the context
+   * for wildcard domain, call either
+   * removeSSLContextConfigByDomainName("*.example.com") or
+   * removeSSLContextConfig(SSLContextKey(".example.com")).
+   */
+  void removeSSLContextConfigByDomainName(const std::string& domainName);
+  void removeSSLContextConfig(const SSLContextKey& key);
 
-   /**
-    * Clears all ssl contexts
-    */
-   void clear();
+  /**
+   * Clears all ssl contexts
+   */
+  void clear();
 
-   /**
-    * Get the default SSL_CTX for a VIP
-    */
-   std::shared_ptr<folly::SSLContext> getDefaultSSLCtx() const;
+  /**
+   * Get the default SSL_CTX for a VIP
+   */
+  std::shared_ptr<folly::SSLContext> getDefaultSSLCtx() const;
 
-   /**
-    * Search first by exact domain, then by one level up
-    */
-   std::shared_ptr<folly::SSLContext> getSSLCtx(const SSLContextKey& key) const;
+  /**
+   * Search first by exact domain, then by one level up
+   */
+  std::shared_ptr<folly::SSLContext> getSSLCtx(const SSLContextKey& key) const;
 
-   /**
-    * Search by the _one_ level up subdomain
-    */
-   std::shared_ptr<folly::SSLContext> getSSLCtxBySuffix(
-       const SSLContextKey& key) const;
+  /**
+   * Search by the _one_ level up subdomain
+   */
+  std::shared_ptr<folly::SSLContext> getSSLCtxBySuffix(
+      const SSLContextKey& key) const;
 
-   /**
-    * Search by the full-string domain name
-    */
-   std::shared_ptr<folly::SSLContext> getSSLCtxByExactDomain(
-       const SSLContextKey& key) const;
+  /**
+   * Search by the full-string domain name
+   */
+  std::shared_ptr<folly::SSLContext> getSSLCtxByExactDomain(
+      const SSLContextKey& key) const;
 
-   void reloadTLSTicketKeys(
-       const std::vector<std::string>& oldSeeds,
-       const std::vector<std::string>& currentSeeds,
-       const std::vector<std::string>& newSeeds);
+  void reloadTLSTicketKeys(
+      const std::vector<std::string>& oldSeeds,
+      const std::vector<std::string>& currentSeeds,
+      const std::vector<std::string>& newSeeds);
 
-   void setSSLStats(SSLStats* stats) {
-     stats_ = stats;
-   }
+  void setSSLStats(SSLStats* stats) {
+    stats_ = stats;
+  }
 
   /**
    * SSLContextManager only collects SNI stats now
    */
-   void setClientHelloExtStats(ClientHelloExtStats* stats);
+  void setClientHelloExtStats(ClientHelloExtStats* stats);
 
-   void setClientVerifyCallback(std::unique_ptr<ClientCertVerifyCallback> cb) {
-     clientCertVerifyCallback_ = std::move(cb);
-   }
+  void setClientVerifyCallback(std::unique_ptr<ClientCertVerifyCallback> cb) {
+    clientCertVerifyCallback_ = std::move(cb);
+  }
 
-   void setPasswordFactory(std::shared_ptr<PasswordInFileFactory> factory) {
-     passwordFactory_ = std::move(factory);
-   }
+  void setPasswordFactory(std::shared_ptr<PasswordInFileFactory> factory) {
+    passwordFactory_ = std::move(factory);
+  }
 
  protected:
   // Return value indicates if any certificates were loaded. If not, the cert
