@@ -87,7 +87,7 @@ int TLSTicketKeyManager::processTicket(
     if (key == nullptr) {
       // no keys available to encrypt
       VLOG(2) << "No TLS ticket key found";
-      return -1;
+      return 0;
     }
     VLOG(4) << "Encrypting new ticket with key name="
             << SSLUtil::hexlify(key->keyName_);
