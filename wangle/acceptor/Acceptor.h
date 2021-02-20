@@ -436,6 +436,9 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   void connectionAccepted(
       folly::NetworkSocket fdNetworkSocket,
       const folly::SocketAddress& clientAddr) noexcept override;
+  // TODO(T81599451): Remove the 'using' statement below after
+  // eliminating the old AcceptCallback::acceptError callback
+  using folly::AsyncServerSocket::AcceptCallback::acceptError;
   void acceptError(const std::exception& ex) noexcept override;
   void acceptStopped() noexcept override;
 
