@@ -54,7 +54,7 @@ class SharedSSLContextManager {
   }
 
   virtual void addAcceptor(std::shared_ptr<wangle::Acceptor> acc) {
-    acceptors_.insert(acc);
+    acceptors_.emplace(acc.get(), acc);
   }
 
   virtual void setSSLCacheProvider(
@@ -72,7 +72,7 @@ class SharedSSLContextManager {
   std::shared_ptr<wangle::SSLContextManager> ctxManager_;
   std::shared_ptr<fizz::server::FizzServerContext> fizzContext_;
   TLSTicketKeySeeds seeds_;
-  std::set<std::shared_ptr<wangle::Acceptor>> acceptors_;
+  std::unordered_map<void*, std::weak_ptr<wangle::Acceptor>> acceptors_;
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
 };
 
@@ -176,7 +176,8 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
     auto ctxManager = ctxManager_;
     auto fizzContext = fizzContext_;
 
-    for (auto acceptor : acceptors_) {
+    for (auto weakAcceptor : acceptors_) {
+      auto acceptor = weakAcceptor.second.lock();
       if (!acceptor) {
         continue;
       }
