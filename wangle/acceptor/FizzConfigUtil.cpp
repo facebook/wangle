@@ -93,13 +93,13 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
 
   auto verify = config.sslContextConfigs.front().clientVerification;
   switch (verify) {
-    case folly::SSLContext::SSLVerifyPeerEnum::VERIFY_REQ_CLIENT_CERT:
+    case folly::SSLContext::VerifyClientCertificate::ALWAYS:
       ctx->setClientAuthMode(ClientAuthMode::Required);
       break;
-    case folly::SSLContext::SSLVerifyPeerEnum::VERIFY:
+    case folly::SSLContext::VerifyClientCertificate::IF_PRESENTED:
       ctx->setClientAuthMode(ClientAuthMode::Optional);
       break;
-    default:
+    case folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST:
       ctx->setClientAuthMode(ClientAuthMode::None);
   }
 

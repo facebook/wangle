@@ -115,7 +115,7 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
     sslCtxConfig.sessionContext = "AcceptorTest";
     sslCtxConfig.isDefault = true;
     sslCtxConfig.clientVerification =
-        folly::SSLContext::SSLVerifyPeerEnum::NO_VERIFY;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
     sslCtxConfig.sessionCacheEnabled = false;
     return sslCtxConfig;
   }

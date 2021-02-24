@@ -130,9 +130,11 @@ struct SSLContextConfig {
   bool isDefault{false};
   // File containing trusted CA's to validate client certificates
   std::string clientCAFile;
+
   // Verification method to use for client certificates.
-  folly::SSLContext::SSLVerifyPeerEnum clientVerification{
-    folly::SSLContext::SSLVerifyPeerEnum::VERIFY_REQ_CLIENT_CERT};
+  folly::SSLContext::VerifyClientCertificate clientVerification{
+    folly::SSLContext::VerifyClientCertificate::ALWAYS};
+
   // Key offload configuration
   KeyOffloadParams keyOffloadParams;
 
