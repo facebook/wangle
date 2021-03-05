@@ -42,7 +42,7 @@ class SSLCacheProvider;
 // It is used for server side SSL connections.
 class ServerSSLContext : public folly::SSLContext {
  public:
-  explicit ServerSSLContext(SSLVersion version = TLSv1);
+  explicit ServerSSLContext(SSLVersion version = TLSv1_2);
 
   virtual ~ServerSSLContext() override = default;
 
