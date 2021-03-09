@@ -70,6 +70,12 @@ class SSLContextManager {
   /**
    * Provide ability to perform explicit client certificate
    * verification
+   * If this callback is used, it becomes the responsibility
+   * of the callback to ensure that any verification is done (e.g. via
+   * SSL_CTX_set_verify(...). We remove the verification option
+   * on the SSLContext wrapper so that no other layer decides to set its own
+   * verification callback overriding the callbacks behavior. E.g.
+   * AsyncSSLSocket's verify callback wiping out any existing cb set.
    */
   struct ClientCertVerifyCallback {
     // no-op. Should be overridden if actual
@@ -173,6 +179,11 @@ class SSLContextManager {
    */
   void setClientHelloExtStats(ClientHelloExtStats* stats);
 
+  /*
+   * Please read class header before setting this callback, it may have
+   * unintended conseqeunces, as you are now fully responsible for any
+   * verification.
+   */
   void setClientVerifyCallback(std::unique_ptr<ClientCertVerifyCallback> cb) {
     clientCertVerifyCallback_ = std::move(cb);
   }

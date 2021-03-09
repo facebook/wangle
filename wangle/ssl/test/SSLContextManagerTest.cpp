@@ -262,6 +262,8 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
   ctxConfig1.setCertificateBuf(
       kTestCert1PEM,
       kTestCert1Key);
+  ctxConfig1.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig1Default = ctxConfig1;
   ctxConfig1Default.isDefault = true;
 
@@ -270,6 +272,8 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
   ctxConfig2.setCertificateBuf(
       kTestCert2PEM,
       kTestCert2Key);
+  ctxConfig2.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig2Default = ctxConfig2;
   ctxConfig2Default.isDefault = true;
 
@@ -278,6 +282,8 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
   ctxConfig3.setCertificateBuf(
       kTestCert3PEM,
       kTestCert3Key);
+  ctxConfig3.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig3Default = ctxConfig3;
   ctxConfig3Default.isDefault = true;
 
@@ -486,6 +492,8 @@ TEST(SSLContextManagerTest, TestCertificateWithNoCN) {
   ctxConfig.setCertificateBuf(
       kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
   ctxConfig.isDefault = true;
+  ctxConfig.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
   sslCtxMgr.addSSLContextConfig(

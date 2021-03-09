@@ -508,18 +508,24 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
     set_key_from_curve(sslCtx->getSSLCtx(), curve);
   }
 
+  if (ctxConfig.clientCAFile.empty() &&
+      ctxConfig.clientVerification !=
+        SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
+    LOG(FATAL) << "You can't verify certs without the client ca file";
+  }
+
+  sslCtx->setVerificationOption(ctxConfig.clientVerification);
+  if (mgr->clientCertVerifyCallback_ != nullptr) {
+    mgr->clientCertVerifyCallback_->attachSSLContext(sslCtx);
+    // See header for ClientCertVerifyCallback to understand why this is done
+    sslCtx->setVerificationOption(
+        SSLContext::VerifyClientCertificate::DO_NOT_REQUEST);
+  }
+
   if (!ctxConfig.clientCAFile.empty()) {
     try {
       sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
       sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
-
-      // Only allow over-riding of verification callback if one
-      // isn't explicitly set on the context
-      if (mgr->clientCertVerifyCallback_ == nullptr) {
-        sslCtx->setVerificationOption(ctxConfig.clientVerification);
-      } else {
-        mgr->clientCertVerifyCallback_->attachSSLContext(sslCtx);
-      }
 
     } catch (const std::exception& ex) {
       string msg = folly::to<string>(
