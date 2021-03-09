@@ -27,7 +27,6 @@ namespace wangle {
 enum class SecureTransportType {
   NONE, // Transport is not secure.
   TLS,  // Transport is based on TLS
-  ZERO, // Transport is based on zero protocol
 };
 
 std::string getSecureTransportName(const SecureTransportType& type);

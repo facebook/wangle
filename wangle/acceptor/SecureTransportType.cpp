@@ -22,8 +22,6 @@ std::string getSecureTransportName(const SecureTransportType& type) {
   switch (type) {
   case SecureTransportType::TLS:
     return "TLS";
-  case SecureTransportType::ZERO:
-    return "Zero";
   default:
     return "";
   }
