@@ -115,7 +115,7 @@ struct SSLContextConfig {
 
   std::vector<CertificateInfo> certificates;
   folly::SSLContext::SSLVersion sslVersion{
-    folly::SSLContext::TLSv1};
+    folly::SSLContext::TLSv1_2};
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
   std::string sslCiphers{getDefaultCiphers()};
