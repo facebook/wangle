@@ -81,8 +81,10 @@ setSessionServiceIdentity(SSL_SESSION* session, const std::string& str) {
     return false;
   }
   auto serviceExData = new std::string(str);
+  auto oldExData = SSL_SESSION_get_ex_data(session, getSessionServiceIdentityIdx());
   if(SSL_SESSION_set_ex_data(
     session, getSessionServiceIdentityIdx(), serviceExData) > 0) {
+    delete static_cast<std::string *>(oldExData);
     return true;
   }
 
