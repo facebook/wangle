@@ -38,6 +38,7 @@ class PipelineManager {
   virtual ~PipelineManager() = default;
   virtual void deletePipeline(PipelineBase* pipeline) = 0;
   virtual void refreshTimeout() {}
+  virtual void adjustTimeout(std::chrono::milliseconds /*newTimeout*/) {}
 };
 
 class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
