@@ -49,28 +49,28 @@ class LoadShedConfiguration {
 
   virtual ~LoadShedConfiguration() = default;
 
-  void addWhitelistAddr(folly::StringPiece);
+  void addAllowlistAddr(folly::StringPiece);
 
   /**
-   * Set/get the set of IPs that should be whitelisted through even when we're
+   * Set/get the set of IPs that should be allowlisted through even when we're
    * trying to shed load.
    */
-  void setWhitelistAddrs(const AddressSet& addrs) {
-    whitelistAddrs_ = addrs;
+  void setAllowlistAddrs(const AddressSet& addrs) {
+    allowlistAddrs_ = addrs;
   }
-  const AddressSet& getWhitelistAddrs() const {
-    return whitelistAddrs_;
+  const AddressSet& getAllowlistAddrs() const {
+    return allowlistAddrs_;
   }
 
   /**
-   * Set/get the set of networks that should be whitelisted through even
+   * Set/get the set of networks that should be allowlisted through even
    * when we're trying to shed load.
    */
-  void setWhitelistNetworks(const NetworkSet& networks) {
-    whitelistNetworks_ = networks;
+  void setAllowlistNetworks(const NetworkSet& networks) {
+    allowlistNetworks_ = networks;
   }
-  const NetworkSet& getWhitelistNetworks() const {
-    return whitelistNetworks_;
+  const NetworkSet& getAllowlistNetworks() const {
+    return allowlistNetworks_;
   }
 
   /**
@@ -258,7 +258,7 @@ class LoadShedConfiguration {
     return loadSheddingEnabled_;
   }
 
-  bool isWhitelisted(const folly::SocketAddress& addr) const;
+  bool isAllowlisted(const folly::SocketAddress& addr) const;
 
   /**
    * Performs a series of CHECKs to ensure the underlying configuration is
@@ -275,8 +275,8 @@ class LoadShedConfiguration {
   virtual void checkIsSane(const SysParams& sysParams) const;
 
  private:
-  AddressSet whitelistAddrs_;
-  NetworkSet whitelistNetworks_;
+  AddressSet allowlistAddrs_;
+  NetworkSet allowlistNetworks_;
 
   double cpuSoftLimitRatio_{1.0};
   double cpuHardLimitRatio_{1.0};

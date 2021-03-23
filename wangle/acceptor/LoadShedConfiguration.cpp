@@ -24,24 +24,24 @@ using std::string;
 
 namespace wangle {
 
-void LoadShedConfiguration::addWhitelistAddr(folly::StringPiece input) {
+void LoadShedConfiguration::addAllowlistAddr(folly::StringPiece input) {
   auto addr = input.str();
   size_t separator = addr.find_first_of('/');
   if (separator == string::npos) {
-    whitelistAddrs_.insert(SocketAddress(addr, 0));
+    allowlistAddrs_.insert(SocketAddress(addr, 0));
   } else {
     unsigned prefixLen = folly::to<unsigned>(addr.substr(separator + 1));
     addr.erase(separator);
-    whitelistNetworks_.insert(
+    allowlistNetworks_.insert(
         NetworkAddress(SocketAddress(addr, 0), prefixLen));
   }
 }
 
-bool LoadShedConfiguration::isWhitelisted(const SocketAddress& address) const {
-  if (whitelistAddrs_.find(address) != whitelistAddrs_.end()) {
+bool LoadShedConfiguration::isAllowlisted(const SocketAddress& address) const {
+  if (allowlistAddrs_.find(address) != allowlistAddrs_.end()) {
     return true;
   }
-  for (auto& network : whitelistNetworks_) {
+  for (auto& network : allowlistNetworks_) {
     if (network.contains(address)) {
       return true;
     }

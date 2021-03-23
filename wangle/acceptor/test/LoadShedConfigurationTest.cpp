@@ -47,25 +47,25 @@ TEST(LoadShedConfigurationTest, TestSettersAndGetters) {
       folly::SocketAddress("127.0.0.2", 1200),
       folly::SocketAddress("127.0.0.3", 1300),
   };
-  lsc.setWhitelistAddrs(addressSet);
+  lsc.setAllowlistAddrs(addressSet);
 
-  EXPECT_EQ(addressSet, lsc.getWhitelistAddrs());
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.1", 1100)));
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.2", 1200)));
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.3", 1300)));
-  EXPECT_FALSE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.4", 1400)));
-  lsc.addWhitelistAddr(folly::StringPiece("127.0.0.4"));
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.4", 0)));
+  EXPECT_EQ(addressSet, lsc.getAllowlistAddrs());
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.1", 1100)));
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.2", 1200)));
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.3", 1300)));
+  EXPECT_FALSE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.4", 1400)));
+  lsc.addAllowlistAddr(folly::StringPiece("127.0.0.4"));
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.4", 0)));
 
   LoadShedConfiguration::NetworkSet networkSet = {
       NetworkAddress(folly::SocketAddress("127.0.0.5", 1500), 28),
       NetworkAddress(folly::SocketAddress("127.0.0.6", 1600), 24),
   };
-  lsc.setWhitelistNetworks(networkSet);
-  EXPECT_EQ(networkSet, lsc.getWhitelistNetworks());
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.5", 1500)));
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("127.0.0.6", 1300)));
-  EXPECT_FALSE(lsc.isWhitelisted(folly::SocketAddress("10.0.0.7", 1700)));
-  lsc.addWhitelistAddr(folly::StringPiece("10.0.0.7/20"));
-  EXPECT_TRUE(lsc.isWhitelisted(folly::SocketAddress("10.0.0.7", 0)));
+  lsc.setAllowlistNetworks(networkSet);
+  EXPECT_EQ(networkSet, lsc.getAllowlistNetworks());
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.5", 1500)));
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("127.0.0.6", 1300)));
+  EXPECT_FALSE(lsc.isAllowlisted(folly::SocketAddress("10.0.0.7", 1700)));
+  lsc.addAllowlistAddr(folly::StringPiece("10.0.0.7/20"));
+  EXPECT_TRUE(lsc.isAllowlisted(folly::SocketAddress("10.0.0.7", 0)));
 }
