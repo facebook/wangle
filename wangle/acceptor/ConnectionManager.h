@@ -151,6 +151,10 @@ class ConnectionManager: public folly::DelayedDestruction,
     return timeout_;
   }
 
+  std::chrono::milliseconds getIdleConnEarlyDropThreshold() const {
+    return idleConnEarlyDropThreshold_;
+  }
+
   void setLoweredIdleTimeout(std::chrono::milliseconds timeout) {
     CHECK(timeout >= std::chrono::milliseconds(0));
     CHECK(timeout <= timeout_);
