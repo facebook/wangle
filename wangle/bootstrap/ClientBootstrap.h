@@ -118,7 +118,7 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
         if (this->sslSession_) {
           sslSocket->setSSLSession(this->sslSession_);
         }
-        socket = sslSocket;
+        socket = std::move(sslSocket);
       } else {
         socket = folly::AsyncSocket::newSocket(base);
       }
