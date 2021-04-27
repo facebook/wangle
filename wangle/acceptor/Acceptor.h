@@ -406,21 +406,25 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
 
   virtual folly::AsyncSocket::UniquePtr makeNewAsyncSocket(
       folly::EventBase* base,
-      int fd) {
+      int fd,
+      const folly::SocketAddress* peerAddress) {
     return folly::AsyncSocket::UniquePtr(
-        new folly::AsyncSocket(base, folly::NetworkSocket::fromFd(fd)));
+        new folly::AsyncSocket(
+            base, folly::NetworkSocket::fromFd(fd), 0, peerAddress));
   }
 
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
       const std::shared_ptr<folly::SSLContext>& ctx,
       folly::EventBase* base,
-      int fd) {
+      int fd,
+      const folly::SocketAddress* peerAddress) {
     return folly::AsyncSSLSocket::UniquePtr(new folly::AsyncSSLSocket(
         ctx,
         base,
         folly::NetworkSocket::fromFd(fd),
         true, /* set server */
-        true /* defer the security negotiation until sslAccept */));
+        true /* defer the security negotiation until sslAccept */,
+        peerAddress));
   }
 
   /**

@@ -278,7 +278,8 @@ void Acceptor::processEstablishedConnection(
   }
   if (shouldDoSSL) {
     AsyncSSLSocket::UniquePtr sslSock(
-        makeNewAsyncSSLSocket(sslCtxManager_->getDefaultSSLCtx(), base_, fd));
+        makeNewAsyncSSLSocket(
+            sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
     ++numPendingSSLConns_;
     ++totalNumPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
@@ -302,7 +303,7 @@ void Acceptor::processEstablishedConnection(
   } else {
     tinfo.secure = false;
     tinfo.acceptTime = acceptTime;
-    AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd));
+    AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd, &clientAddr));
     tinfo.tfoSucceded = sock->getTFOSucceded();
     for (const auto& cb : observerList_.getAll()) {
       cb->accept(sock.get());
