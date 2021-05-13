@@ -502,21 +502,22 @@ Acceptor::AcceptObserverList::~AcceptObserverList() {
 }
 
 void Acceptor::AcceptObserverList::add(AcceptObserver* observer) {
+  // adding the same observer multiple times is not allowed
+  CHECK(
+      std::find(observers_.begin(), observers_.end(), observer) ==
+      observers_.end());
+
   observers_.emplace_back(observer);
   observer->observerAttach(acceptor_);
 }
 
 bool Acceptor::AcceptObserverList::remove(AcceptObserver* observer) {
-  const auto eraseIt =
-      std::remove(observers_.begin(), observers_.end(), observer);
-  if (eraseIt == observers_.end()) {
+  const auto it = std::find(observers_.begin(), observers_.end(), observer);
+  if (it == observers_.end()) {
     return false;
   }
-
-  for (auto it = eraseIt; it != observers_.end(); it++) {
-    (*it)->observerDetach(acceptor_);
-  }
-  observers_.erase(eraseIt, observers_.end());
+  observer->observerDetach(acceptor_);
+  observers_.erase(it);
   return true;
 }
 

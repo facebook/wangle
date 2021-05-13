@@ -298,18 +298,41 @@ TEST_P(AcceptorTest, AcceptObserverMultipleRemove) {
   auto cb2 = std::make_unique<StrictMock<MockAcceptObserver>>();
   EXPECT_CALL(*cb2, observerAttach(acceptor.get()));
   acceptor->addAcceptObserver(cb2.get());
-  Mock::VerifyAndClearExpectations(cb1.get());
-  Mock::VerifyAndClearExpectations(cb2.get());
-
-  EXPECT_CALL(*cb2, observerDetach(acceptor.get()));
-  EXPECT_TRUE(acceptor->removeAcceptObserver(cb2.get()));
-  Mock::VerifyAndClearExpectations(cb1.get());
   Mock::VerifyAndClearExpectations(cb2.get());
 
   EXPECT_CALL(*cb1, observerDetach(acceptor.get()));
   EXPECT_TRUE(acceptor->removeAcceptObserver(cb1.get()));
   Mock::VerifyAndClearExpectations(cb1.get());
+
+  EXPECT_CALL(*cb2, observerDetach(acceptor.get()));
+  EXPECT_TRUE(acceptor->removeAcceptObserver(cb2.get()));
   Mock::VerifyAndClearExpectations(cb2.get());
+
+  // cleanup
+  acceptor->forceStop();
+  serverSocket->stopAccepting();
+  evb_.loop();
+}
+
+TEST_P(AcceptorTest, AcceptObserverMultipleRemoveReverse) {
+  auto [acceptor, serverSocket] = initTestAcceptorAndSocket();
+  auto cb1 = std::make_unique<StrictMock<MockAcceptObserver>>();
+  EXPECT_CALL(*cb1, observerAttach(acceptor.get()));
+  acceptor->addAcceptObserver(cb1.get());
+  Mock::VerifyAndClearExpectations(cb1.get());
+
+  auto cb2 = std::make_unique<StrictMock<MockAcceptObserver>>();
+  EXPECT_CALL(*cb2, observerAttach(acceptor.get()));
+  acceptor->addAcceptObserver(cb2.get());
+  Mock::VerifyAndClearExpectations(cb2.get());
+
+  EXPECT_CALL(*cb2, observerDetach(acceptor.get()));
+  EXPECT_TRUE(acceptor->removeAcceptObserver(cb2.get()));
+  Mock::VerifyAndClearExpectations(cb2.get());
+
+  EXPECT_CALL(*cb1, observerDetach(acceptor.get()));
+  EXPECT_TRUE(acceptor->removeAcceptObserver(cb1.get()));
+  Mock::VerifyAndClearExpectations(cb1.get());
 
   // cleanup
   acceptor->forceStop();
@@ -327,7 +350,6 @@ TEST_P(AcceptorTest, AcceptObserverMultipleAcceptorDestroyed) {
   auto cb2 = std::make_unique<StrictMock<MockAcceptObserver>>();
   EXPECT_CALL(*cb2, observerAttach(acceptor.get()));
   acceptor->addAcceptObserver(cb2.get());
-  Mock::VerifyAndClearExpectations(cb1.get());
   Mock::VerifyAndClearExpectations(cb2.get());
 
   // stop the acceptor
