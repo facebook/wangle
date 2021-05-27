@@ -352,6 +352,13 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
     return observerList_.remove(observer);
   }
 
+  /**
+   * Create a FizzServerContext from the TLS settings presently in this
+   * Acceptor.  This context is a suitable starting point for enabling QUIC
+   * via mvfst.
+   */
+  std::shared_ptr<fizz::server::FizzServerContext> recreateFizzContext();
+
  protected:
   using OnDataAvailableParams =
       folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams;
@@ -505,8 +512,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
 
   bool forceShutdownInProgress_{false};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};
-
-  std::shared_ptr<const fizz::server::FizzServerContext> recreateFizzContext();
 
   // Wrapper around list of AcceptObservers to handle cleanup on destruction
   class AcceptObserverList {

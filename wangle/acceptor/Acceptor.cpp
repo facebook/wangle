@@ -137,7 +137,7 @@ std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
   return FizzConfigUtil::createFizzContext(accConfig_);
 }
 
-std::shared_ptr<const fizz::server::FizzServerContext>
+std::shared_ptr<fizz::server::FizzServerContext>
 Acceptor::recreateFizzContext() {
   if (fizzCertManager_ == nullptr) {
     return nullptr;
