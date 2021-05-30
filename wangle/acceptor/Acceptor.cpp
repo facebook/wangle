@@ -24,6 +24,7 @@
 #include <folly/portability/GFlags.h>
 #include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
+#include <folly/GLog.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/FizzConfigUtil.h>
 #include <wangle/acceptor/ManagedConnection.h>
@@ -394,7 +395,8 @@ void Acceptor::acceptError(const std::exception& ex) noexcept {
   // The most likely error is out of FDs.  AsyncServerSocket will back off
   // briefly if we are out of FDs, then continue accepting later.
   // Just log a message here.
-  LOG(ERROR) << "error accepting on acceptor socket: " << ex.what();
+  FB_LOG_EVERY_MS(ERROR, 1000) << "error accepting on acceptor socket: "
+                               << ex.what();
 }
 
 void Acceptor::acceptStopped() noexcept {
