@@ -23,6 +23,7 @@
 #include <folly/Unit.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncTransport.h>
+#include <folly/io/async/AsyncUDPSocket.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>
@@ -231,8 +232,6 @@ class Pipeline : public PipelineBase {
 namespace folly {
 
 class AsyncSocket;
-class AsyncUDPSocket;
-
 }
 
 namespace wangle {
@@ -268,13 +267,21 @@ enum class ConnEvent {
   CONN_REMOVED,
 };
 
-typedef boost::variant<folly::IOBuf*,
-                       folly::AsyncTransport*,
-                       ConnInfo&,
-                       ConnEvent,
-                       std::tuple<folly::IOBuf*,
-                                  std::shared_ptr<folly::AsyncUDPSocket>,
-                                  folly::SocketAddress>> AcceptPipelineType;
+typedef boost::variant<
+    folly::IOBuf*,
+    folly::AsyncTransport*,
+    ConnInfo&,
+    ConnEvent,
+    std::tuple<
+        folly::IOBuf*,
+        std::shared_ptr<folly::AsyncUDPSocket>,
+        folly::SocketAddress>,
+    std::tuple<
+        folly::IOBuf*,
+        std::shared_ptr<folly::AsyncUDPSocket>,
+        folly::SocketAddress,
+        folly::AsyncUDPSocket::ReadCallback::OnDataAvailableParams>>
+    AcceptPipelineType;
 typedef Pipeline<AcceptPipelineType> AcceptPipeline;
 
 class AcceptPipelineFactory {
