@@ -72,17 +72,16 @@ ConnectionManager::addConnection(ManagedConnection* connection,
     // probably idle).  Delay the closeWhenIdle call until the end of the loop
     // where it will be safer to terminate the conn.
     // Hold a DestructorGuard to the end of the loop for this
-    auto cmDg = new DestructorGuard(this);
-    auto connDg = new DestructorGuard(connection);
-    eventBase_->runInLoop([connection, this, cmDg, connDg] {
-        if (connection->listHook_.is_linked()) {
-          auto it = conns_.iterator_to(*connection);
-          DCHECK(it != conns_.end());
-          connection->fireCloseWhenIdle(!notifyPendingShutdown_);
-        }
-        delete connDg;
-        delete cmDg;
-      });
+    eventBase_->runInLoop([connection,
+                           this,
+                           cmDg = DestructorGuard(this),
+                           connDg = DestructorGuard(connection)] {
+      if (connection->listHook_.is_linked()) {
+        auto it = conns_.iterator_to(*connection);
+        DCHECK(it != conns_.end());
+        connection->fireCloseWhenIdle(!notifyPendingShutdown_);
+      }
+    });
   }
 }
 
