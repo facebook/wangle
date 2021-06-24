@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <exception>
+
 #include <folly/FileUtil.h>
 #include <folly/portability/Unistd.h>
 #include <folly/json.h>
@@ -70,18 +72,22 @@ folly::Optional<folly::dynamic> FilePersistenceLayer::load() noexcept {
   // not being able to read the backing storage means we just
   // start with an empty cache. Failing to deserialize, or write,
   // is a real error so we report errors there.
-  if (!folly::readFile(file_.c_str(), serializedCache)) {
-    return folly::none;
-  }
-
+  std::string exceptionWhat;
   try {
+    if (!folly::readFile(file_.c_str(), serializedCache)) {
+      return folly::none;
+    }
+
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
     return folly::parseJson(serializedCache, opts);
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Deserialization of cache file " << file_
-               << " failed with parse error: " << err.what();
+    exceptionWhat = err.what();
+  } catch (...) {
+    exceptionWhat = "Non-standard excpetion";
   }
+  LOG(ERROR) << "Deserialization of cache file " << file_
+             << " failed with error: " << exceptionWhat;
   return folly::none;
 }
 
