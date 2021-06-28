@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+#include <wangle/client/persistence/FilePersistenceLayer.h>
+
 #include <exception>
 
 #include <folly/FileUtil.h>
 #include <folly/portability/Unistd.h>
 #include <folly/json.h>
-#include <wangle/client/persistence/FilePersistenceLayer.h>
 
 namespace wangle {
 
@@ -30,8 +31,9 @@ bool FilePersistenceLayer::persist(
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
     serializedCache = folly::json::serialize(dynObj, opts);
-  } catch (const std::exception& err) {
-    LOG(ERROR) << "Serializing to JSON failed with error: " << err.what();
+  } catch (...) {
+    LOG(ERROR) << "Serializing to JSON failed with error: "
+               << folly::exceptionStr(std::current_exception());
     return false;
   }
   bool persisted = false;
@@ -72,7 +74,6 @@ folly::Optional<folly::dynamic> FilePersistenceLayer::load() noexcept {
   // not being able to read the backing storage means we just
   // start with an empty cache. Failing to deserialize, or write,
   // is a real error so we report errors there.
-  std::string exceptionWhat;
   try {
     if (!folly::readFile(file_.c_str(), serializedCache)) {
       return folly::none;
@@ -81,14 +82,11 @@ folly::Optional<folly::dynamic> FilePersistenceLayer::load() noexcept {
     folly::json::serialization_opts opts;
     opts.allow_non_string_keys = true;
     return folly::parseJson(serializedCache, opts);
-  } catch (const std::exception& err) {
-    exceptionWhat = err.what();
   } catch (...) {
-    exceptionWhat = "Non-standard excpetion";
+    LOG(ERROR) << "Deserialization of cache file " << file_ << "failed: "
+               << folly::exceptionStr(std::current_exception());
+    return folly::none;
   }
-  LOG(ERROR) << "Deserialization of cache file " << file_
-             << " failed with error: " << exceptionWhat;
-  return folly::none;
 }
 
 void FilePersistenceLayer::clear() {
