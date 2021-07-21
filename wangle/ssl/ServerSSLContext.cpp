@@ -20,8 +20,6 @@
 #include <wangle/ssl/SSLCacheOptions.h>
 #include <wangle/ssl/SSLContextConfig.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
-#include <wangle/ssl/TLSTicketKeyManager.h>
-#include <wangle/ssl/TLSTicketKeySeeds.h>
 
 
 namespace wangle {
@@ -29,28 +27,6 @@ namespace wangle {
 ServerSSLContext::ServerSSLContext(SSLVersion version)
     : folly::SSLContext(version) {
   setSessionCacheContext("ServerSSLContext");
-}
-
-void ServerSSLContext::setupTicketManager(
-    const TLSTicketKeySeeds* ticketSeeds,
-    const SSLContextConfig& ctxConfig,
-    SSLStats* stats) {
-#ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-  if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
-    ticketManager_ = std::make_unique<TLSTicketKeyManager>(this, stats);
-    ticketManager_->setTLSTicketKeySeeds(
-        ticketSeeds->oldSeeds,
-        ticketSeeds->currentSeeds,
-        ticketSeeds->newSeeds);
-  } else {
-    setOptions(SSL_OP_NO_TICKET);
-    ticketManager_.reset();
-  }
-#else
-  if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
-    OPENSSL_MISSING_FEATURE(TLSTicket);
-  }
-#endif
 }
 
 void ServerSSLContext::setupSessionCache(

@@ -116,7 +116,9 @@ class SSLContextManager {
    *
    * @param ctxConfigs    Details of a X509s, private key, password, etc.
    * @param cacheOptions  Options for how to do session caching.
-   * @param ticketSeeds   If non-null, the initial ticket key seeds to use.
+   * @param ticketSeeds   If non-null, and ticketHandler_ is a
+   *                      TLSTicketKeyManager, the initial ticket key seeds to
+   *                      use.
    * @param vipAddress    Which VIP are the X509(s) used for? It is only for
    *                      for user friendly log message
    * @param externalCache Optional external provider for the session cache;
@@ -165,6 +167,10 @@ class SSLContextManager {
   std::shared_ptr<folly::SSLContext> getSSLCtxByExactDomain(
       const SSLContextKey& key) const;
 
+  /**
+   * Updates ticket keys in ticket handler if using TLSTicketKeyManager,
+   * otherwise a no-op.
+   */
   void reloadTLSTicketKeys(
       const std::vector<std::string>& oldSeeds,
       const std::vector<std::string>& currentSeeds,

@@ -195,6 +195,34 @@ CertIdentityResult getCertIdentity(X509& x) {
   }
   return std::make_pair(folly::none, CertIdentitySource::None);
 }
+
+void configureTicketResumption(
+    std::shared_ptr<ServerSSLContext>& sslCtx,
+    const TLSTicketKeySeeds* ticketSeeds,
+    const SSLContextConfig& ctxConfig,
+    SSLStats* stats) {
+#ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
+  if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
+    auto handler = TicketSeedHandler::fromSeeds(ticketSeeds);
+    handler->setStats(stats);
+    sslCtx->setTicketHandler(std::move(handler));
+  } else {
+    sslCtx->setOptions(SSL_OP_NO_TICKET);
+  }
+#else
+  if (ticketSeeds && ctxConfig.sessionTicketEnabled) {
+    OPENSSL_MISSING_FEATURE(TLSTicket);
+  }
+#endif
+}
+
+TicketSeedHandler* getTicketSeedHandler(
+    const std::shared_ptr<ServerSSLContext>& ctx) {
+  if (!ctx) {
+    return nullptr;
+  }
+  return dynamic_cast<TicketSeedHandler*>(ctx->getTicketHandler());
+}
 } // namespace
 
 class SSLContextManager::SslContexts
@@ -370,9 +398,8 @@ TLSTicketKeySeeds SSLContextManager::SslContexts::getTicketKeys() const {
   // This assumes that all ctxs have the same ticket seeds. Which we assume in
   // other places as well
   for (auto& ctx : ctxs_) {
-    auto ticketManager = ctx->getTicketManager();
-    if (ticketManager) {
-      ticketManager->getTLSTicketKeySeeds(
+    if (auto ticketHandler = getTicketSeedHandler(ctx)) {
+      ticketHandler->getTLSTicketKeySeeds(
           seeds.oldSeeds, seeds.currentSeeds, seeds.newSeeds);
       break;
     }
@@ -392,8 +419,8 @@ void SSLContextManager::resetSSLContextConfigs(
   if (!ticketSeeds) {
     // Read from default context if there, otherwise from one of
     // the others.
-    if (defaultCtx_ && defaultCtx_->getTicketManager()) {
-      defaultCtx_->getTicketManager()->getTLSTicketKeySeeds(
+    if (auto ticketHandler = getTicketSeedHandler(defaultCtx_)) {
+      ticketHandler->getTLSTicketKeySeeds(
           oldTicketSeeds.oldSeeds,
           oldTicketSeeds.currentSeeds,
           oldTicketSeeds.newSeeds);
@@ -550,7 +577,8 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
 
   sslCtx->setupSessionCache(
       ctxConfig, cacheOptions, externalCache, sessionIdContext, mgr->stats_);
-  sslCtx->setupTicketManager(ticketSeeds, ctxConfig, mgr->stats_);
+  configureTicketResumption(sslCtx, ticketSeeds, ctxConfig, mgr->stats_);
+
   VLOG(3) << "On VipID=" << vipAddress.describe() << " context=" << sslCtx;
 
   // finalize sslCtx setup by the individual features supported by openssl
@@ -1156,9 +1184,8 @@ void SSLContextManager::SslContexts::reloadTLSTicketKeys(
     const std::vector<std::string>& newSeeds) {
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
   for (auto& ctx : ctxs_) {
-    auto tmgr = ctx->getTicketManager();
-    if (tmgr) {
-      tmgr->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
+    if (auto ticketHandler = getTicketSeedHandler(ctx)) {
+      ticketHandler->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
     }
   }
 #endif
@@ -1224,11 +1251,8 @@ void SSLContextManager::reloadTLSTicketKeys(
     const std::vector<std::string>& currentSeeds,
     const std::vector<std::string>& newSeeds) {
   contexts_->reloadTLSTicketKeys(oldSeeds, currentSeeds, newSeeds);
-  if (defaultCtx_) {
-    auto tmgr = defaultCtx_->getTicketManager();
-    if (tmgr) {
-      tmgr->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
-    }
+  if (auto ticketHandler = getTicketSeedHandler(defaultCtx_)) {
+    ticketHandler->setTLSTicketKeySeeds(oldSeeds, currentSeeds, newSeeds);
   }
 }
 

@@ -37,37 +37,21 @@ const int kTLSTicketKeySaltLen = 12;
 
 namespace wangle {
 
-// TLSTicketKeyManager Implementation
-int32_t TLSTicketKeyManager::sExDataIndex_ = -1;
-
-TLSTicketKeyManager::TLSTicketKeyManager(
-    folly::SSLContext* ctx,
-    SSLStats* stats)
-    : ctx_(ctx), stats_(stats) {
-  SSLUtil::getSSLCtxExIndex(&sExDataIndex_);
-  SSL_CTX_set_ex_data(ctx_->getSSLCtx(), sExDataIndex_, this);
+std::unique_ptr<TLSTicketKeyManager> TLSTicketKeyManager::fromSeeds(
+    const TLSTicketKeySeeds* seeds) {
+  auto mgr = std::make_unique<TLSTicketKeyManager>();
+  mgr->setTLSTicketKeySeeds(
+      seeds->oldSeeds,
+      seeds->currentSeeds,
+      seeds->newSeeds);
+  return mgr;
 }
+
+TLSTicketKeyManager::TLSTicketKeyManager() {}
 
 TLSTicketKeyManager::~TLSTicketKeyManager() {}
 
-int TLSTicketKeyManager::callback(
-    SSL* ssl,
-    unsigned char* keyName,
-    unsigned char* iv,
-    EVP_CIPHER_CTX* cipherCtx,
-    HMAC_CTX* hmacCtx,
-    int encrypt) {
-  TLSTicketKeyManager* manager = nullptr;
-  SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-  manager = (TLSTicketKeyManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
-
-  if (manager == nullptr) {
-    LOG(FATAL) << "Null TLSTicketKeyManager in callback";
-  }
-  return manager->processTicket(ssl, keyName, iv, cipherCtx, hmacCtx, encrypt);
-}
-
-int TLSTicketKeyManager::processTicket(
+int TLSTicketKeyManager::ticketCallback(
     SSL*,
     unsigned char* keyName,
     unsigned char* iv,
@@ -189,12 +173,9 @@ bool TLSTicketKeyManager::setTLSTicketKeySeeds(
   }
 
   if (ticketKeys_.size() == 0 || activeKeys_.size() == 0) {
-    VLOG(1) << "No keys configured, falling back to default";
-    SSL_CTX_set_tlsext_ticket_key_cb(ctx_->getSSLCtx(), nullptr);
+    VLOG(1) << "No keys configured, session ticket resumption disabled";
     return false;
   }
-  SSL_CTX_set_tlsext_ticket_key_cb(
-      ctx_->getSSLCtx(), TLSTicketKeyManager::callback);
 
   return true;
 }

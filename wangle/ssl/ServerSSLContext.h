@@ -33,8 +33,6 @@ namespace wangle {
 struct SSLCacheOptions;
 struct SSLContextConfig;
 class SSLStats;
-class TLSTicketKeyManager;
-struct TLSTicketKeySeeds;
 class SSLSessionCacheManager;
 class SSLCacheProvider;
 
@@ -46,11 +44,6 @@ class ServerSSLContext : public folly::SSLContext {
 
   virtual ~ServerSSLContext() override = default;
 
-  void setupTicketManager(
-      const TLSTicketKeySeeds* ticketSeeds,
-      const SSLContextConfig& ctxConfig,
-      SSLStats* stats);
-
   void setupSessionCache(
       const SSLContextConfig& ctxConfig,
       const SSLCacheOptions& cacheOptions,
@@ -58,18 +51,12 @@ class ServerSSLContext : public folly::SSLContext {
       const std::string& sessionIdContext,
       SSLStats* stats);
 
-  // Get the ticket key manager that this context manages.
-  TLSTicketKeyManager* getTicketManager() {
-    return ticketManager_.get();
-  }
-
   // Get the session cache manager that this context manages.
   SSLSessionCacheManager* getSessionCacheManager() {
     return sessionCacheManager_.get();
   }
 
  private:
-  std::unique_ptr<TLSTicketKeyManager> ticketManager_;
   std::unique_ptr<SSLSessionCacheManager> sessionCacheManager_;
 };
 

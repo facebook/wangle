@@ -292,7 +292,7 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
                        TLSTicketKeySeeds& seeds) {
     ASSERT_TRUE(ctx);
     auto ticketMgr =
-        std::dynamic_pointer_cast<ServerSSLContext>(ctx)->getTicketManager();
+        dynamic_cast<TLSTicketKeyManager*>(ctx->getTicketHandler());
     ASSERT_TRUE(ticketMgr);
     TLSTicketKeySeeds fetchedSeeds;
     ticketMgr->getTLSTicketKeySeeds(

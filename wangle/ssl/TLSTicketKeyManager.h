@@ -18,13 +18,25 @@
 
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/SSLContext.h>
+#include <folly/ssl/OpenSSLTicketHandler.h>
 
 namespace wangle {
 
 #ifndef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-class TLSTicketKeyManager {};
+class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
+  virtual int ticketCallback(
+      SSL* ssl,
+      unsigned char* keyName,
+      unsigned char* iv,
+      EVP_CIPHER_CTX* cipherCtx,
+      HMAC_CTX* hmacCtx,
+      int encrypt) override {
+    return -1;
+  }
+};
 #else
 class SSLStats;
+struct TLSTicketKeySeeds;
 /**
  * The TLSTicketKeyManager handles TLS ticket key encryption and decryption in
  * a way that facilitates sharing the ticket keys across a range of servers.
@@ -61,25 +73,22 @@ class SSLStats;
  * a 1:1 relationship with the SSLContext provided.
  *
  */
-class TLSTicketKeyManager {
+class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
  public:
-  explicit TLSTicketKeyManager(folly::SSLContext* ctx, SSLStats* stats);
+  static std::unique_ptr<TLSTicketKeyManager> fromSeeds(
+      const TLSTicketKeySeeds* seeds);
+
+  TLSTicketKeyManager();
 
   virtual ~TLSTicketKeyManager();
 
-  /**
-   * SSL callback to set up encryption/decryption context for a TLS Ticket Key.
-   *
-   * This will be supplied to the SSL library via
-   * SSL_CTX_set_tlsext_ticket_key_cb.
-   */
-  static int callback(
+  int ticketCallback(
       SSL* ssl,
       unsigned char* keyName,
       unsigned char* iv,
       EVP_CIPHER_CTX* cipherCtx,
       HMAC_CTX* hmacCtx,
-      int encrypt);
+      int encrypt) override;
 
   /**
    * Initialize the manager with three sets of seeds.  There must be at least
@@ -100,24 +109,12 @@ class TLSTicketKeyManager {
       std::vector<std::string>& currentSeeds,
       std::vector<std::string>& newSeeds) const;
 
-  struct Unsafe {
-    TLSTicketKeyManager* obj;
-    int processTicket(
-        SSL* ssl,
-        uint8_t* keyName,
-        uint8_t* iv,
-        EVP_CIPHER_CTX* cipherCtx,
-        HMAC_CTX* hmacCtx,
-        int encrypt) {
-      return CHECK_NOTNULL(obj)->processTicket(
-          ssl, keyName, iv, cipherCtx, hmacCtx, encrypt);
-    }
-  };
-
-  Unsafe unsafe() {
-    return Unsafe{this};
+  /**
+   * Stats object can record new tickets and ticket secret rotations.
+   */
+  void setStats(SSLStats* stats) {
+    stats_ = stats;
   }
-
  private:
   TLSTicketKeyManager(const TLSTicketKeyManager&) = delete;
   TLSTicketKeyManager& operator=(const TLSTicketKeyManager&) = delete;
@@ -138,30 +135,6 @@ class TLSTicketKeyManager {
     unsigned char keySource_[SHA256_DIGEST_LENGTH];
   };
 
-  /**
-   * Method to setup encryption/decryption context for a TLS Ticket Key
-   *
-   * OpenSSL documentation is thin on the return value semantics.
-   *
-   * For encrypt=1, return < 0 on error, >= 0 for successfully initialized
-   * For encrypt=0, return < 0 on error, 0 on key not found
-   *                 1 on key found, 2 renew_ticket
-   *
-   * renew_ticket means a new ticket will be issued.  We could return this value
-   * when receiving a ticket encrypted with a key derived from an OLD seed.
-   * However, session_timeout seconds after deploying with a seed
-   * rotated from  CURRENT -> OLD, there will be no valid tickets outstanding
-   * encrypted with the old key.  This grace period means no unnecessary
-   * handshakes will be performed.  If the seed is believed compromised, it
-   * should NOT be configured as an OLD seed.
-   */
-  int processTicket(
-      SSL* ssl,
-      unsigned char* keyName,
-      unsigned char* iv,
-      EVP_CIPHER_CTX* cipherCtx,
-      HMAC_CTX* hmacCtx,
-      int encrypt);
 
   // Creates the name for the nth key generated from seed
   std::string
@@ -232,11 +205,11 @@ class TLSTicketKeyManager {
   // Key sources that can be used for encryption
   TLSActiveKeyList activeKeys_;
 
-  folly::SSLContext* ctx_;
   SSLStats* stats_{nullptr};
 
   static int32_t sExDataIndex_;
 };
 #endif
 
+using TicketSeedHandler = TLSTicketKeyManager;
 } // namespace wangle

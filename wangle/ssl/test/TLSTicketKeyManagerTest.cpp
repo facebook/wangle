@@ -50,8 +50,7 @@ TEST(TLSTicketKeyManager, TestSetGetTLSTicketKeySeeds) {
   std::vector<std::string> origCurr = {"68"};
   std::vector<std::string> origNext = {"69"};
 
-  folly::SSLContext ctx;
-  wangle::TLSTicketKeyManager manager(&ctx, nullptr);
+  wangle::TLSTicketKeyManager manager;
 
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
   std::vector<std::string> old;
@@ -76,9 +75,8 @@ TEST(TLSTicketKeyManager, TestValidateTicketSeedsSuccess) {
   std::vector<std::string> newCurr = {"69", "79"};
   std::vector<std::string> newNext = {"70", "80"};
 
-  folly::SSLContext ctx;
-  wangle::TLSTicketKeyManager manager(&ctx, &stats);
-
+  wangle::TLSTicketKeyManager manager;
+  manager.setStats(&stats);
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
   manager.setTLSTicketKeySeeds(newOld, newCurr, newNext);
 }
@@ -91,9 +89,8 @@ TEST(TLSTicketKeyManager, TestValidateTicketSeedsIdempotent) {
   std::vector<std::string> origCurr = {"68", "78"};
   std::vector<std::string> origNext = {"69", "79"};
 
-  folly::SSLContext ctx;
-  wangle::TLSTicketKeyManager manager(&ctx, &stats);
-
+  wangle::TLSTicketKeyManager manager;
+  manager.setStats(&stats);
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
 }
@@ -113,9 +110,8 @@ TEST(TLSTicketKeyManager, TestValidateTicketSeedsFailure) {
   std::vector<std::string> newCurr = {"70", "80"};
   std::vector<std::string> newNext = {"71", "81"};
 
-  folly::SSLContext ctx;
-  wangle::TLSTicketKeyManager manager(&ctx, &stats);
-
+  wangle::TLSTicketKeyManager manager;
+  manager.setStats(&stats);
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
   manager.setTLSTicketKeySeeds(newOld, newCurr, newNext);
 }
@@ -134,9 +130,8 @@ TEST(TLSTicketKeyManager, TestValidateTicketSeedsSubsetPass) {
   std::vector<std::string> newCurr = {"69"};
   std::vector<std::string> newNext = {"70", "80"};
 
-  folly::SSLContext ctx;
-  wangle::TLSTicketKeyManager manager(&ctx, &stats);
-
+  wangle::TLSTicketKeyManager manager;
+  manager.setStats(&stats);
   manager.setTLSTicketKeySeeds(origOld, origCurr, origNext);
   manager.setTLSTicketKeySeeds(newOld, newCurr, newNext);
 }
