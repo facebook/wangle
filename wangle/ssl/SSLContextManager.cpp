@@ -565,6 +565,8 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
     }
   }
 
+  sslCtx->setAlpnAllowMismatch(ctxConfig.alpnAllowMismatch);
+
   // we always want to setup the session id context
   // to make session resumption work (tickets or session cache)
   std::string sessionIdContext = commonName;

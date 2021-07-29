@@ -91,6 +91,12 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
     ctx->setSupportedAlpns(FizzUtil::getAlpnsFromNpnList(list));
   }
 
+  if (config.sslContextConfigs.front().alpnAllowMismatch) {
+    ctx->setAlpnMode(fizz::server::AlpnMode::AllowMismatch);
+  } else {
+    ctx->setAlpnMode(fizz::server::AlpnMode::Optional);
+  }
+
   auto verify = config.sslContextConfigs.front().clientVerification;
   switch (verify) {
     case folly::SSLContext::VerifyClientCertificate::ALWAYS:

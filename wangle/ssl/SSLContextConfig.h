@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+
 /**
  * SSLContextConfig helps to describe the configs/options for
  * a SSL_CTX. For example:
@@ -148,6 +149,8 @@ struct SSLContextConfig {
   // they will not be shared between other sessions generated from the
   // same context. If not specified the vip name will be used by default
   folly::Optional<std::string> sessionContext;
+
+  bool alpnAllowMismatch{true};
 };
 
 } // namespace wangle

@@ -503,4 +503,46 @@ TEST(SSLContextManagerTest, TestCertificateWithNoCN) {
   ASSERT_NE(ctx, nullptr);
 }
 
+TEST(SSLContextManagerTest, TestAlpnAllowMismatch) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  SSLContextConfig ctxConfig;
+  ctxConfig.alpnAllowMismatch = true;
+  ctxConfig.sessionContext = "ctx";
+  ctxConfig.setCertificateBuf(
+      kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
+  ctxConfig.isDefault = true;
+  ctxConfig.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+  SSLContextKey key("O = interop runner", CertCrypto::BEST_AVAILABLE);
+  auto ctx = sslCtxMgr.getSSLCtx(key);
+  ASSERT_NE(ctx, nullptr);
+  ASSERT_TRUE(ctx->getAlpnAllowMismatch());
+}
+
+TEST(SSLContextManagerTest, TestAlpnNotAllowMismatch) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  SSLContextConfig ctxConfig;
+  ctxConfig.alpnAllowMismatch = false;
+  ctxConfig.sessionContext = "ctx";
+  ctxConfig.setCertificateBuf(
+      kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
+  ctxConfig.isDefault = true;
+  ctxConfig.clientVerification =
+    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+  SSLContextKey key("O = interop runner", CertCrypto::BEST_AVAILABLE);
+  auto ctx = sslCtxMgr.getSSLCtx(key);
+  ASSERT_NE(ctx, nullptr);
+  ASSERT_FALSE(ctx->getAlpnAllowMismatch());
+}
+
 } // namespace wangle
