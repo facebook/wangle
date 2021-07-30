@@ -221,10 +221,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
     return accConfig_;
   }
 
-  static uint64_t getTotalNumPendingSSLConns() {
-    return totalNumPendingSSLConns_.load();
-  }
-
   /**
    * Called right when the TCP connection has been accepted, before processing
    * the first HTTP bytes (HTTP) or the SSL handshake (HTTPS)
@@ -507,8 +503,6 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
 
   State state_{State::kInit};
   uint64_t numPendingSSLConns_{0};
-
-  static std::atomic<uint64_t> totalNumPendingSSLConns_;
 
   bool forceShutdownInProgress_{false};
   std::chrono::milliseconds gracefulShutdownTimeout_{5000};

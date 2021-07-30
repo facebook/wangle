@@ -46,7 +46,6 @@ using std::chrono::milliseconds;
 namespace wangle {
 
 static const std::string empty_string;
-std::atomic<uint64_t> Acceptor::totalNumPendingSSLConns_{0};
 
 Acceptor::Acceptor(const ServerSocketConfig& accConfig)
     : accConfig_(accConfig),
@@ -282,7 +281,6 @@ void Acceptor::processEstablishedConnection(
         makeNewAsyncSSLSocket(
             sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
     ++numPendingSSLConns_;
-    ++totalNumPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name
               << " too many handshakes in progress";
@@ -373,7 +371,6 @@ void Acceptor::sslConnectionReady(
     TransportInfo& tinfo) {
   CHECK(numPendingSSLConns_ > 0);
   --numPendingSSLConns_;
-  --totalNumPendingSSLConns_;
   connectionReady(
       std::move(sock), clientAddr, nextProtocol, secureTransportType, tinfo);
   if (state_ == State::kDraining) {
@@ -384,7 +381,6 @@ void Acceptor::sslConnectionReady(
 void Acceptor::sslConnectionError(const folly::exception_wrapper&) {
   CHECK(numPendingSSLConns_ > 0);
   --numPendingSSLConns_;
-  --totalNumPendingSSLConns_;
   if (state_ == State::kDraining) {
     checkDrained();
   }
