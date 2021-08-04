@@ -16,11 +16,12 @@
 
 #include <wangle/ssl/TLSTicketKeyManager.h>
 
+#include <folly/GLog.h>
 #include <folly/Random.h>
 #include <folly/String.h>
 #include <folly/io/async/AsyncTimeout.h>
-#include <openssl/aes.h>
 #include <folly/portability/OpenSSL.h>
+#include <openssl/aes.h>
 #include <wangle/ssl/SSLStats.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
@@ -41,9 +42,7 @@ std::unique_ptr<TLSTicketKeyManager> TLSTicketKeyManager::fromSeeds(
     const TLSTicketKeySeeds* seeds) {
   auto mgr = std::make_unique<TLSTicketKeyManager>();
   mgr->setTLSTicketKeySeeds(
-      seeds->oldSeeds,
-      seeds->currentSeeds,
-      seeds->newSeeds);
+      seeds->oldSeeds, seeds->currentSeeds, seeds->newSeeds);
   return mgr;
 }
 
@@ -70,7 +69,9 @@ int TLSTicketKeyManager::ticketCallback(
     key = findEncryptionKey();
     if (key == nullptr) {
       // no keys available to encrypt
-      VLOG(2) << "No TLS ticket key found";
+      FB_LOG_EVERY_MS(ERROR, 1000)
+          << "No TLS ticket key available for encryption. Either set a ticket "
+          << "key or uninstall TLSTicketKeyManager from this SSLContext.";
       return 0;
     }
     VLOG(4) << "Encrypting new ticket with key name="
