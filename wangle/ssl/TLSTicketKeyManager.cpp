@@ -26,9 +26,6 @@
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
 
-#ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-using std::string;
-
 namespace {
 
 const int kTLSTicketKeyNameLen = 4;
@@ -57,87 +54,109 @@ int TLSTicketKeyManager::ticketCallback(
     EVP_CIPHER_CTX* cipherCtx,
     HMAC_CTX* hmacCtx,
     int encrypt) {
-  uint8_t salt[kTLSTicketKeySaltLen];
-  uint8_t* saltptr = nullptr;
-  uint8_t output[SHA256_DIGEST_LENGTH];
-  uint8_t* hmacKey = nullptr;
-  uint8_t* aesKey = nullptr;
-  TLSTicketKeySource* key = nullptr;
   int result = 0;
 
   if (encrypt) {
-    key = findEncryptionKey();
-    if (key == nullptr) {
-      // no keys available to encrypt
-      FB_LOG_EVERY_MS(ERROR, 1000)
-          << "No TLS ticket key available for encryption. Either set a ticket "
-          << "key or uninstall TLSTicketKeyManager from this SSLContext.";
-      return 0;
+    result = encryptCallback(keyName, iv, cipherCtx, hmacCtx);
+    // recordTLSTicket() below will unconditionally increment the new ticket
+    // counter regardless of result value, so exit early here.
+    if (result == 0) {
+      return result;
     }
-    VLOG(4) << "Encrypting new ticket with key name="
-            << SSLUtil::hexlify(key->keyName_);
-
-    // Get a random salt and write out key name
-    if (RAND_bytes(salt, (int)sizeof(salt)) != 1 &&
-        ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
-      ERR_get_error();
-    }
-    memcpy(keyName, key->keyName_.data(), kTLSTicketKeyNameLen);
-    memcpy(keyName + kTLSTicketKeyNameLen, salt, kTLSTicketKeySaltLen);
-
-    // Create the unique keys by hashing with the salt
-    makeUniqueKeys(key->keySource_, sizeof(key->keySource_), salt, output);
-    // This relies on the fact that SHA256 has 32 bytes of output
-    // and that AES-128 keys are 16 bytes
-    hmacKey = output;
-    aesKey = output + SHA256_DIGEST_LENGTH / 2;
-
-    // Initialize iv and cipher/mac CTX
-    if (RAND_bytes(iv, AES_BLOCK_SIZE) != 1 &&
-        ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
-      ERR_get_error();
-    }
-    HMAC_Init_ex(
-        hmacCtx, hmacKey, SHA256_DIGEST_LENGTH / 2, EVP_sha256(), nullptr);
-    EVP_EncryptInit_ex(cipherCtx, EVP_aes_128_cbc(), nullptr, aesKey, iv);
-
-    result = 1;
   } else {
-    key = findDecryptionKey(keyName);
-    if (key == nullptr) {
-      // no ticket found for decryption - will issue a new ticket
-      if (VLOG_IS_ON(4)) {
-        string skeyName((char*)keyName, kTLSTicketKeyNameLen);
-        VLOG(4) << "Can't find ticket key with name="
-                << SSLUtil::hexlify(skeyName) << ", will generate new ticket";
-      }
-
-      result = 0;
-    } else {
-      VLOG(4) << "Decrypting ticket with key name="
-              << SSLUtil::hexlify(key->keyName_);
-
-      // Reconstruct the unique key via the salt
-      saltptr = keyName + kTLSTicketKeyNameLen;
-      makeUniqueKeys(key->keySource_, sizeof(key->keySource_), saltptr, output);
-      hmacKey = output;
-      aesKey = output + SHA256_DIGEST_LENGTH / 2;
-
-      // Initialize cipher/mac CTX
-      HMAC_Init_ex(
-          hmacCtx, hmacKey, SHA256_DIGEST_LENGTH / 2, EVP_sha256(), nullptr);
-      EVP_DecryptInit_ex(cipherCtx, EVP_aes_128_cbc(), nullptr, aesKey, iv);
-
-      result = 1;
-    }
+    result = decryptCallback(keyName, iv, cipherCtx, hmacCtx);
   }
-  // result records whether a ticket key was found to decrypt this ticket,
-  // not wether the session was re-used.
+
+  // Result records whether a ticket key was found to encrypt or decrypt this
+  // ticket, not whether the session was re-used.
   if (stats_) {
     stats_->recordTLSTicket(encrypt, result);
   }
 
   return result;
+}
+
+int TLSTicketKeyManager::encryptCallback(
+    unsigned char* keyName,
+    unsigned char* iv,
+    EVP_CIPHER_CTX* cipherCtx,
+    HMAC_CTX* hmacCtx) {
+  uint8_t salt[kTLSTicketKeySaltLen];
+  uint8_t output[SHA256_DIGEST_LENGTH];
+  uint8_t* hmacKey = nullptr;
+  uint8_t* aesKey = nullptr;
+
+  auto key = findEncryptionKey();
+  if (key == nullptr) {
+    // no keys available to encrypt
+    FB_LOG_EVERY_MS(ERROR, 1000)
+        << "No TLS ticket key available for encryption. Either set a ticket "
+        << "key or uninstall TLSTicketKeyManager from this SSLContext.";
+    return 0;
+  }
+  VLOG(4) << "Encrypting new ticket with key name="
+          << SSLUtil::hexlify(key->keyName_);
+
+  // Get a random salt and write out key name
+  if (RAND_bytes(salt, (int)sizeof(salt)) != 1 &&
+      ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
+    ERR_get_error();
+  }
+  memcpy(keyName, key->keyName_.data(), kTLSTicketKeyNameLen);
+  memcpy(keyName + kTLSTicketKeyNameLen, salt, kTLSTicketKeySaltLen);
+
+  // Create the unique keys by hashing with the salt
+  makeUniqueKeys(key->keySource_, sizeof(key->keySource_), salt, output);
+  // This relies on the fact that SHA256 has 32 bytes of output
+  // and that AES-128 keys are 16 bytes
+  hmacKey = output;
+  aesKey = output + SHA256_DIGEST_LENGTH / 2;
+
+  // Initialize iv and cipher/mac CTX
+  if (RAND_bytes(iv, AES_BLOCK_SIZE) != 1 &&
+      ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_RAND) {
+    ERR_get_error();
+  }
+  HMAC_Init_ex(
+      hmacCtx, hmacKey, SHA256_DIGEST_LENGTH / 2, EVP_sha256(), nullptr);
+  EVP_EncryptInit_ex(cipherCtx, EVP_aes_128_cbc(), nullptr, aesKey, iv);
+
+  return 1;
+}
+
+int TLSTicketKeyManager::decryptCallback(
+    unsigned char* keyName,
+    unsigned char* iv,
+    EVP_CIPHER_CTX* cipherCtx,
+    HMAC_CTX* hmacCtx) {
+  uint8_t* saltptr = nullptr;
+  uint8_t output[SHA256_DIGEST_LENGTH];
+  uint8_t* hmacKey = nullptr;
+  uint8_t* aesKey = nullptr;
+
+  auto key = findDecryptionKey(keyName);
+  if (key == nullptr) {
+    // no ticket found for decryption - will issue a new ticket
+    std::string skeyName((char*)keyName, kTLSTicketKeyNameLen);
+    VLOG(4) << "Can't find ticket key with name=" << SSLUtil::hexlify(skeyName)
+            << ", will generate new ticket";
+    return 0;
+  }
+  VLOG(4) << "Decrypting ticket with key name="
+          << SSLUtil::hexlify(key->keyName_);
+
+  // Reconstruct the unique key via the salt
+  saltptr = keyName + kTLSTicketKeyNameLen;
+  makeUniqueKeys(key->keySource_, sizeof(key->keySource_), saltptr, output);
+  hmacKey = output;
+  aesKey = output + SHA256_DIGEST_LENGTH / 2;
+
+  // Initialize cipher/mac CTX
+  HMAC_Init_ex(
+      hmacCtx, hmacKey, SHA256_DIGEST_LENGTH / 2, EVP_sha256(), nullptr);
+  EVP_DecryptInit_ex(cipherCtx, EVP_aes_128_cbc(), nullptr, aesKey, iv);
+
+  return 1;
 }
 
 bool TLSTicketKeyManager::setTLSTicketKeySeeds(
@@ -151,7 +170,7 @@ bool TLSTicketKeyManager::setTLSTicketKeySeeds(
   activeKeys_.clear();
   ticketKeys_.clear();
   ticketSeeds_.clear();
-  const std::vector<string>* seedList = &oldSeeds;
+  const std::vector<std::string>* seedList = &oldSeeds;
   for (uint32_t i = 0; i < 3; i++) {
     TLSTicketSeedType type = (TLSTicketSeedType)i;
     if (type == SEED_CURRENT) {
@@ -219,7 +238,7 @@ void TLSTicketKeyManager::recordTlsTicketRotation(
   }
 }
 
-string TLSTicketKeyManager::makeKeyName(
+std::string TLSTicketKeyManager::makeKeyName(
     TLSTicketSeed* seed,
     uint32_t n,
     unsigned char* nameBuf) {
@@ -229,7 +248,7 @@ string TLSTicketKeyManager::makeKeyName(
   SHA256_Update(&ctx, seed->seedName_, sizeof(seed->seedName_));
   SHA256_Update(&ctx, &n, sizeof(n));
   SHA256_Final(nameBuf, &ctx);
-  return string((char*)nameBuf, kTLSTicketKeyNameLen);
+  return std::string((char*)nameBuf, kTLSTicketKeyNameLen);
 }
 
 TLSTicketKeyManager::TLSTicketKeySource* TLSTicketKeyManager::insertNewKey(
@@ -287,12 +306,12 @@ void TLSTicketKeyManager::hashNth(
 }
 
 TLSTicketKeyManager::TLSTicketSeed* TLSTicketKeyManager::insertSeed(
-    const string& seedInput,
+    const std::string& seedInput,
     TLSTicketSeedType type) {
   TLSTicketSeed* seed = nullptr;
-  string seedOutput;
+  std::string seedOutput;
 
-  if (!folly::unhexlify<string, string>(seedInput, seedOutput)) {
+  if (!folly::unhexlify<std::string, std::string>(seedInput, seedOutput)) {
     LOG(WARNING) << "Failed to decode seed type=" << (uint32_t)type
                  << " seed=" << seedInput;
     return seed;
@@ -325,7 +344,7 @@ TLSTicketKeyManager::findEncryptionKey() {
 
 TLSTicketKeyManager::TLSTicketKeySource* TLSTicketKeyManager::findDecryptionKey(
     unsigned char* keyName) {
-  string name((char*)keyName, kTLSTicketKeyNameLen);
+  std::string name((char*)keyName, kTLSTicketKeyNameLen);
   TLSTicketKeySource* key = nullptr;
   TLSTicketKeyMap::iterator mapit = ticketKeys_.find(name);
   if (mapit != ticketKeys_.end()) {
@@ -348,4 +367,3 @@ void TLSTicketKeyManager::makeUniqueKeys(
 }
 
 } // namespace wangle
-#endif

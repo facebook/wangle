@@ -22,19 +22,6 @@
 
 namespace wangle {
 
-#ifndef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
-class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
-  virtual int ticketCallback(
-      SSL* ssl,
-      unsigned char* keyName,
-      unsigned char* iv,
-      EVP_CIPHER_CTX* cipherCtx,
-      HMAC_CTX* hmacCtx,
-      int encrypt) override {
-    return -1;
-  }
-};
-#else
 class SSLStats;
 struct TLSTicketKeySeeds;
 /**
@@ -115,9 +102,22 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
   void setStats(SSLStats* stats) {
     stats_ = stats;
   }
+
  private:
   TLSTicketKeyManager(const TLSTicketKeyManager&) = delete;
   TLSTicketKeyManager& operator=(const TLSTicketKeyManager&) = delete;
+
+  int encryptCallback(
+      unsigned char* keyName,
+      unsigned char* iv,
+      EVP_CIPHER_CTX* cipherCtx,
+      HMAC_CTX* hmacCtx);
+
+  int decryptCallback(
+      unsigned char* keyName,
+      unsigned char* iv,
+      EVP_CIPHER_CTX* cipherCtx,
+      HMAC_CTX* hmacCtx);
 
   enum TLSTicketSeedType { SEED_OLD = 0, SEED_CURRENT, SEED_NEW };
 
@@ -134,7 +134,6 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
     TLSTicketSeedType type_;
     unsigned char keySource_[SHA256_DIGEST_LENGTH];
   };
-
 
   // Creates the name for the nth key generated from seed
   std::string
@@ -206,10 +205,6 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
   TLSActiveKeyList activeKeys_;
 
   SSLStats* stats_{nullptr};
-
-  static int32_t sExDataIndex_;
 };
-#endif
-
 using TicketSeedHandler = TLSTicketKeyManager;
 } // namespace wangle
