@@ -37,9 +37,9 @@ DEFINE_int32(upstream_port, 8081, "Upstream server port");
  * Steps to run:
  * 1) Run an upstream server that can broadcast messages:
  *
- *    nc -l localhost 8081
+ *    nc -l ::1 8081
  *
- *    This starts a server on localhost:8081.
+ *    This starts a server on ::1:8081.
  *
  * 2) Start the broadcast proxy with the upstream_port set to 8081:
  *
