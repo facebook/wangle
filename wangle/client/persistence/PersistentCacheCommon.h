@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <mutex>
 #include <memory>
+#include <mutex>
 
 #include <folly/Executor.h>
 #include <folly/Optional.h>
@@ -36,11 +36,11 @@ constexpr std::size_t DEFAULT_CACHE_CAPACITY = 100;
 /**
  * A guard that provides write and read access to a mutex type.
  */
-template<typename MutexT>
+template <typename MutexT>
 struct CacheLockGuard;
 
 // Specialize on std::mutex by providing exclusive access
-template<>
+template <>
 struct CacheLockGuard<std::mutex> {
   using Read = std::lock_guard<std::mutex>;
   using Write = std::lock_guard<std::mutex>;
@@ -60,7 +60,7 @@ struct PersistentCacheConfig {
   std::size_t capacity{client::persistence::DEFAULT_CACHE_CAPACITY};
   // How often to sync to the persistence (in ms).
   std::chrono::milliseconds syncInterval{
-        client::persistence::DEFAULT_CACHE_SYNC_INTERVAL};
+      client::persistence::DEFAULT_CACHE_SYNC_INTERVAL};
   // How many times to retry to sync on failure.
   int nSyncRetries{client::persistence::DEFAULT_CACHE_SYNC_RETRIES};
   // An executor to run sync operations, if not provided, a std::thread

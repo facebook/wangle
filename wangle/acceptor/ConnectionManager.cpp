@@ -16,27 +16,27 @@
 
 #include <wangle/acceptor/ConnectionManager.h>
 
-#include <glog/logging.h>
 #include <folly/io/async/EventBase.h>
+#include <glog/logging.h>
 
 using std::chrono::milliseconds;
 
 namespace wangle {
 
-ConnectionManager::ConnectionManager(folly::EventBase* eventBase,
-    milliseconds timeout, Callback* callback)
-  : callback_(callback),
-    eventBase_(eventBase),
-    drainIterator_(conns_.end()),
-    idleIterator_(conns_.end()),
-    drainHelper_(*this),
-    timeout_(timeout),
-    idleConnEarlyDropThreshold_(timeout_ / 2) {
+ConnectionManager::ConnectionManager(
+    folly::EventBase* eventBase,
+    milliseconds timeout,
+    Callback* callback)
+    : callback_(callback),
+      eventBase_(eventBase),
+      drainIterator_(conns_.end()),
+      idleIterator_(conns_.end()),
+      drainHelper_(*this),
+      timeout_(timeout),
+      idleConnEarlyDropThreshold_(timeout_ / 2) {}
 
-}
-
-void
-ConnectionManager::addConnection(ManagedConnection* connection,
+void ConnectionManager::addConnection(
+    ManagedConnection* connection,
     bool timeout) {
   CHECK_NOTNULL(connection);
   ConnectionManager* oldMgr = connection->getConnectionManager();
@@ -62,7 +62,7 @@ ConnectionManager::addConnection(ManagedConnection* connection,
   }
 
   if (drainHelper_.getShutdownState() >=
-      ShutdownState::NOTIFY_PENDING_SHUTDOWN &&
+          ShutdownState::NOTIFY_PENDING_SHUTDOWN &&
       notifyPendingShutdown_) {
     connection->fireNotifyPendingShutdown();
   }
@@ -85,8 +85,8 @@ ConnectionManager::addConnection(ManagedConnection* connection,
   }
 }
 
-void
-ConnectionManager::scheduleTimeout(ManagedConnection* const connection,
+void ConnectionManager::scheduleTimeout(
+    ManagedConnection* const connection,
     std::chrono::milliseconds timeout) {
   if (timeout > std::chrono::milliseconds(0)) {
     eventBase_->timer().scheduleTimeout(connection, timeout);
@@ -94,13 +94,12 @@ ConnectionManager::scheduleTimeout(ManagedConnection* const connection,
 }
 
 void ConnectionManager::scheduleTimeout(
-  folly::HHWheelTimer::Callback* callback,
-  std::chrono::milliseconds timeout) {
+    folly::HHWheelTimer::Callback* callback,
+    std::chrono::milliseconds timeout) {
   eventBase_->timer().scheduleTimeout(callback, timeout);
 }
 
-void
-ConnectionManager::removeConnection(ManagedConnection* connection) {
+void ConnectionManager::removeConnection(ManagedConnection* connection) {
   if (connection->getConnectionManager() == this) {
     connection->cancelTimeout();
     connection->setConnectionManager(nullptr);
@@ -125,9 +124,8 @@ ConnectionManager::removeConnection(ManagedConnection* connection) {
   }
 }
 
-void
-ConnectionManager::initiateGracefulShutdown(
-  std::chrono::milliseconds idleGrace) {
+void ConnectionManager::initiateGracefulShutdown(
+    std::chrono::milliseconds idleGrace) {
   VLOG(3) << this << " initiateGracefulShutdown with nconns=" << conns_.size();
   if (drainHelper_.getShutdownState() != ShutdownState::NONE) {
     VLOG(3) << "Ignoring redundant call to initiateGracefulShutdown";
@@ -136,8 +134,9 @@ ConnectionManager::initiateGracefulShutdown(
   drainHelper_.startDrainAll(idleGrace);
 }
 
-void ConnectionManager::drainConnections(double pct,
-                                         std::chrono::milliseconds idleGrace) {
+void ConnectionManager::drainConnections(
+    double pct,
+    std::chrono::milliseconds idleGrace) {
   if (drainHelper_.getShutdownState() != ShutdownState::NONE) {
     VLOG(3) << "Ignoring partial drain with full drain in progress";
     return;
@@ -146,14 +145,15 @@ void ConnectionManager::drainConnections(double pct,
 }
 
 void ConnectionManager::DrainHelper::startDrainPartial(
-  double pct, std::chrono::milliseconds idleGrace) {
+    double pct,
+    std::chrono::milliseconds idleGrace) {
   all_ = false;
   pct_ = pct;
   startDrain(idleGrace);
 }
 
 void ConnectionManager::DrainHelper::startDrainAll(
-  std::chrono::milliseconds idleGrace) {
+    std::chrono::milliseconds idleGrace) {
   all_ = true;
   pct_ = 1.0;
   if (isScheduled()) {
@@ -164,7 +164,7 @@ void ConnectionManager::DrainHelper::startDrainAll(
 }
 
 void ConnectionManager::DrainHelper::startDrain(
-  std::chrono::milliseconds idleGrace) {
+    std::chrono::milliseconds idleGrace) {
   if (idleGrace.count() > 0) {
     shutdownState_ = ShutdownState::NOTIFY_PENDING_SHUTDOWN;
     scheduleTimeout(idleGrace);
@@ -178,16 +178,16 @@ void ConnectionManager::DrainHelper::startDrain(
   drainConnections();
 }
 
-void
-ConnectionManager::DrainHelper::drainConnections() {
+void ConnectionManager::DrainHelper::drainConnections() {
   DestructorGuard g(&manager_);
   size_t numCleared = 0;
   size_t numKept = 0;
 
   auto it = manager_.drainIterator_;
 
-  CHECK(shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN ||
-        shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE);
+  CHECK(
+      shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN ||
+      shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE);
   while (it != manager_.conns_.end() && (numKept + numCleared) < 64) {
     ManagedConnection& conn = *it++;
     if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN) {
@@ -206,8 +206,8 @@ ConnectionManager::DrainHelper::drainConnections() {
   }
 
   if (shutdownState_ == ShutdownState::CLOSE_WHEN_IDLE) {
-    VLOG(2) << "Idle connections cleared: " << numCleared <<
-      ", busy conns kept: " << numKept;
+    VLOG(2) << "Idle connections cleared: " << numCleared
+            << ", busy conns kept: " << numKept;
   } else {
     VLOG(3) << this << " notified n=" << numKept;
   }
@@ -230,17 +230,16 @@ ConnectionManager::DrainHelper::drainConnections() {
   }
 }
 
-void
-ConnectionManager::DrainHelper::idleGracefulTimeoutExpired() {
+void ConnectionManager::DrainHelper::idleGracefulTimeoutExpired() {
   VLOG(2) << this << " idleGracefulTimeoutExpired";
-  if (shutdownState_ ==
-      ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE) {
+  if (shutdownState_ == ShutdownState::NOTIFY_PENDING_SHUTDOWN_COMPLETE) {
     shutdownState_ = ShutdownState::CLOSE_WHEN_IDLE;
     manager_.drainIterator_ = drainStartIterator();
     drainConnections();
   } else {
-    VLOG(4) << this << " idleGracefulTimeoutExpired during "
-      "NOTIFY_PENDING_SHUTDOWN, ignoring";
+    VLOG(4) << this
+            << " idleGracefulTimeoutExpired during "
+               "NOTIFY_PENDING_SHUTDOWN, ignoring";
   }
 }
 
@@ -249,8 +248,7 @@ void ConnectionManager::stopDrainingForShutdown() {
   drainHelper_.cancelTimeout();
 }
 
-void
-ConnectionManager::dropAllConnections() {
+void ConnectionManager::dropAllConnections() {
   DestructorGuard g(this);
 
   // Signal the drain helper in case that has not happened before.
@@ -283,8 +281,7 @@ ConnectionManager::dropAllConnections() {
   }
 }
 
-void
-ConnectionManager::dropConnections(double pct) {
+void ConnectionManager::dropConnections(double pct) {
   DestructorGuard g(this);
 
   // Signal the drain helper in case that has not happened before.
@@ -299,8 +296,7 @@ ConnectionManager::dropConnections(double pct) {
   }
 }
 
-void
-ConnectionManager::onActivated(ManagedConnection& conn) {
+void ConnectionManager::onActivated(ManagedConnection& conn) {
   auto it = conns_.iterator_to(conn);
   if (it == idleIterator_) {
     idleIterator_++;
@@ -309,8 +305,7 @@ ConnectionManager::onActivated(ManagedConnection& conn) {
   conns_.push_front(conn);
 }
 
-void
-ConnectionManager::onDeactivated(ManagedConnection& conn) {
+void ConnectionManager::onDeactivated(ManagedConnection& conn) {
   auto it = conns_.iterator_to(conn);
   bool moveDrainIter = false;
   if (it == drainIterator_) {
@@ -327,22 +322,21 @@ ConnectionManager::onDeactivated(ManagedConnection& conn) {
   }
 }
 
-size_t
-ConnectionManager::dropIdleConnections(size_t num) {
+size_t ConnectionManager::dropIdleConnections(size_t num) {
   VLOG(4) << "attempt to drop " << num << " idle connections";
   if (idleConnEarlyDropThreshold_ >= timeout_) {
     return 0;
   }
 
   size_t count = 0;
-  while(count < num) {
+  while (count < num) {
     auto it = idleIterator_;
     if (it == conns_.end()) {
       return count; // no more idle session
     }
     auto idleTime = it->getIdleTime();
     if (idleTime == std::chrono::milliseconds(0) ||
-          idleTime <= idleConnEarlyDropThreshold_) {
+        idleTime <= idleConnEarlyDropThreshold_) {
       VLOG(4) << "conn's idletime: " << idleTime.count()
               << ", earlyDropThreshold: " << idleConnEarlyDropThreshold_.count()
               << ", attempt to drop " << count << "/" << num;
@@ -357,4 +351,4 @@ ConnectionManager::dropIdleConnections(size_t num) {
   return count;
 }
 
-} // wangle
+} // namespace wangle

@@ -16,14 +16,14 @@
 
 #pragma once
 
-#include <atomic>
-#include <cerrno>
 #include <folly/DynamicConverter.h>
 #include <folly/FileUtil.h>
-#include <folly/json.h>
 #include <folly/ScopeGuard.h>
+#include <folly/json.h>
 #include <folly/portability/SysTime.h>
 #include <folly/system/ThreadName.h>
+#include <atomic>
+#include <cerrno>
 #include <functional>
 
 namespace wangle {
@@ -38,8 +38,7 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
       executor_(std::move(config.executor)),
       inlinePersistenceLoading_(config.inlinePersistenceLoading) {
   if (persistence) {
-    std::shared_ptr<CachePersistence> sharedPersistence(
-        std::move(persistence));
+    std::shared_ptr<CachePersistence> sharedPersistence(std::move(persistence));
     {
       typename wangle::CacheLockGuard<MutexT>::Write writeLock(
           persistenceLock_);
@@ -48,7 +47,7 @@ LRUPersistentCache<K, V, MutexT>::LRUPersistentCache(
   }
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 LRUPersistentCache<K, V, MutexT>::~LRUPersistentCache() {
   if (executor_) {
     oneShotSync();
@@ -80,9 +79,9 @@ void LRUPersistentCache<K, V, MutexT>::init() {
     return;
   }
   executor_->add([self = folly::to_weak_ptr(this->shared_from_this())]() {
-      if (auto sharedSelf = self.lock()) {
-        sharedSelf->setPersistenceHelper(true);
-      }
+    if (auto sharedSelf = self.lock()) {
+      sharedSelf->setPersistenceHelper(true);
+    }
   });
 }
 
@@ -107,7 +106,7 @@ void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
 
   lastExecutorScheduleTime_ = std::chrono::steady_clock::now();
   std::weak_ptr<LRUPersistentCache<K, V, MutexT>> weakSelf =
-  this->shared_from_this();
+      this->shared_from_this();
   executor_->add([self = std::move(weakSelf)]() {
     if (auto sharedSelf = self.lock()) {
       sharedSelf->oneShotSync();
@@ -115,7 +114,7 @@ void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
   });
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 bool LRUPersistentCache<K, V, MutexT>::hasPendingUpdates() {
   typename wangle::CacheLockGuard<MutexT>::Read readLock(persistenceLock_);
   if (!persistence_) {
@@ -125,7 +124,7 @@ bool LRUPersistentCache<K, V, MutexT>::hasPendingUpdates() {
       persistence_->getLastPersistedVersion());
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 void* LRUPersistentCache<K, V, MutexT>::syncThreadMain(void* arg) {
   folly::setThreadName("lru-sync-thread");
 
@@ -154,7 +153,7 @@ void LRUPersistentCache<K, V, MutexT>::oneShotSync() {
   executorScheduled_.clear();
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::sync() {
   // load the cache. be silent if load fails, we just drop the cache
   // and start from scratch.
@@ -189,9 +188,8 @@ void LRUPersistentCache<K, V, MutexT>::sync() {
   }
 }
 
-template<typename K, typename V, typename MutexT>
-bool LRUPersistentCache<K, V, MutexT>::syncNow(
-    CachePersistence& persistence) {
+template <typename K, typename V, typename MutexT>
+bool LRUPersistentCache<K, V, MutexT>::syncNow(CachePersistence& persistence) {
   // check if we need to sync.  There is a chance that someone can
   // update cache_ between this check and the convert below, but that
   // is ok.  The persistence layer would have needed to update anyway
@@ -211,19 +209,19 @@ bool LRUPersistentCache<K, V, MutexT>::syncNow(
   auto& kvPairs = std::get<0>(serializedCacheAndVersion.value());
   auto& version = std::get<1>(serializedCacheAndVersion.value());
   auto persisted =
-    persistence.persistVersionedData(std::move(kvPairs), version);
+      persistence.persistVersionedData(std::move(kvPairs), version);
 
   return persisted;
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 std::shared_ptr<CachePersistence>
 LRUPersistentCache<K, V, MutexT>::getPersistence() {
   typename wangle::CacheLockGuard<MutexT>::Read readLock(persistenceLock_);
   return persistence_;
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 void LRUPersistentCache<K, V, MutexT>::setPersistenceHelper(
     bool syncVersion) noexcept {
   typename wangle::CacheLockGuard<MutexT>::Write writeLock(persistenceLock_);
@@ -256,4 +254,4 @@ folly::Optional<CacheDataVersion> LRUPersistentCache<K, V, MutexT>::load(
   }
   return cache_.loadData(kvPairs.value());
 }
-}
+} // namespace wangle

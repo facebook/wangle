@@ -39,7 +39,9 @@ using FileTime = FilePoller::FileTime;
 
 class FilePollerTest : public testing::Test {
  public:
-  void createFile() { File(tmpFile, O_CREAT); }
+  void createFile() {
+    File(tmpFile, O_CREAT);
+  }
 
   TemporaryDirectory tmpDir;
   fs::path tmpFilePath{tmpDir.path() / "file-poller"};
@@ -59,8 +61,8 @@ void updateModifiedTime(
 
 #ifdef _WIN32
   throw std::runtime_error("don't know how to set mtime on win32");
-#elif defined(__APPLE__) || defined(__FreeBSD__) \
- || (defined(__NetBSD__) && (__NetBSD_Version__ < 6099000000))
+#elif defined(__APPLE__) || defined(__FreeBSD__) || \
+    (defined(__NetBSD__) && (__NetBSD_Version__ < 6099000000))
   newTimes[0] = currentFileStat.st_atimespec;
   newTimes[1] = currentFileStat.st_mtimespec;
 #else
@@ -195,11 +197,11 @@ class TestFile {
   }
 
   const std::string name{"fakeFile"};
+
  private:
   bool exists_{false};
   FileTime modTime_;
   std::mutex m;
-
 };
 
 class NoDiskPoller : public FilePoller {
@@ -208,8 +210,8 @@ class NoDiskPoller : public FilePoller {
       : FilePoller(milliseconds(10)), testFile_(testFile) {}
 
  protected:
-  FilePoller::FileModificationData
-  getFileModData(const std::string& path) noexcept override {
+  FilePoller::FileModificationData getFileModData(
+      const std::string& path) noexcept override {
     EXPECT_EQ(path, testFile_.name);
     return testFile_.toFileModData();
   }
@@ -221,9 +223,7 @@ class NoDiskPoller : public FilePoller {
 struct PollerWithState {
   explicit PollerWithState(TestFile& testFile) {
     poller = std::make_unique<NoDiskPoller>(testFile);
-    poller->addFileToTrack(testFile.name, [&] {
-      state.updateTriggered();
-    });
+    poller->addFileToTrack(testFile.name, [&] { state.updateTriggered(); });
   }
 
   void waitForUpdate(bool expect = true) {

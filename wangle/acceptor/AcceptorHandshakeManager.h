@@ -16,15 +16,15 @@
 
 #pragma once
 
-#include <chrono>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Optional.h>
 #include <folly/SocketAddress.h>
-#include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>
+#include <chrono>
 
 namespace wangle {
 
@@ -38,7 +38,8 @@ class Acceptor;
 class AcceptorHandshakeHelper : public folly::DelayedDestruction {
  public:
   using UniquePtr = std::unique_ptr<
-    AcceptorHandshakeHelper, folly::DelayedDestruction::Destructor>;
+      AcceptorHandshakeHelper,
+      folly::DelayedDestruction::Destructor>;
 
   class Callback {
    public:
@@ -80,11 +81,11 @@ class AcceptorHandshakeManager : public ManagedConnection,
       Acceptor* acceptor,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
-      TransportInfo tinfo) :
-    acceptor_(acceptor),
-    clientAddr_(clientAddr),
-    acceptTime_(acceptTime),
-    tinfo_(std::move(tinfo)) {}
+      TransportInfo tinfo)
+      : acceptor_(acceptor),
+        clientAddr_(clientAddr),
+        acceptTime_(acceptTime),
+        tinfo_(std::move(tinfo)) {}
 
   ~AcceptorHandshakeManager() override = default;
 
@@ -123,14 +124,12 @@ class AcceptorHandshakeManager : public ManagedConnection,
       folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,
       SecureTransportType secureTransportType,
-      folly::Optional<SSLErrorEnum>
-          details) noexcept override;
+      folly::Optional<SSLErrorEnum> details) noexcept override;
 
   void connectionError(
       folly::AsyncTransport* transport,
       folly::exception_wrapper ex,
-      folly::Optional<SSLErrorEnum>
-          details) noexcept override;
+      folly::Optional<SSLErrorEnum> details) noexcept override;
 
   std::chrono::milliseconds timeSinceAcceptMs() const;
 
@@ -145,4 +144,4 @@ class AcceptorHandshakeManager : public ManagedConnection,
   AcceptorHandshakeHelper::UniquePtr helper_;
 };
 
-}
+} // namespace wangle

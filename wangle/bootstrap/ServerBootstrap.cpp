@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-#include <wangle/bootstrap/ServerBootstrap.h>
 #include <folly/executors/thread_factory/NamedThreadFactory.h>
-#include <wangle/channel/Handler.h>
 #include <folly/io/async/EventBaseManager.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
+#include <wangle/channel/Handler.h>
 
 namespace wangle {
 
 void ServerWorkerPool::threadStarted(
-  folly::ThreadPoolExecutor::ThreadHandle* h) {
+    folly::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = acceptorFactory_->newAcceptor(exec_->getEventBase(h));
   {
     Mutex::WriteHolder holder(workersMutex_.get());
     workers_->insert({h, worker});
   }
 
-  for(auto socket : *sockets_) {
+  for (auto socket : *sockets_) {
     socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-      [this, worker, socket](){
-        socketFactory_->addAcceptCB(
-          socket, worker.get(), worker->getEventBase());
-    });
+        [this, worker, socket]() {
+          socketFactory_->addAcceptCB(
+              socket, worker.get(), worker->getEventBase());
+        });
   }
 }
 
 void ServerWorkerPool::threadStopped(
-  folly::ThreadPoolExecutor::ThreadHandle* h) {
+    folly::ThreadPoolExecutor::ThreadHandle* h) {
   auto worker = [&]() -> std::shared_ptr<Acceptor> {
     Mutex::WriteHolder holder(workersMutex_.get());
     auto workerIt = workers_->find(h);
@@ -58,20 +58,18 @@ void ServerWorkerPool::threadStopped(
   }
 
   for (auto socket : *sockets_) {
-    socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-      [&]() {
-        socketFactory_->removeAcceptCB(
-          socket, worker.get(), nullptr);
+    socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait([&]() {
+      socketFactory_->removeAcceptCB(socket, worker.get(), nullptr);
     });
   }
 
   auto evb = worker->getEventBase();
 
   evb->runImmediatelyOrRunInEventBaseThreadAndWait(
-    [w = std::move(worker)]() mutable {
-      w->dropAllConnections();
-      w.reset();
-    });
+      [w = std::move(worker)]() mutable {
+        w->dropAllConnections();
+        w.reset();
+      });
 }
 
 } // namespace wangle

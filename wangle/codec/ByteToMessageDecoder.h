@@ -51,7 +51,8 @@ class ByteToMessageDecoder : public InboundHandler<folly::IOBufQueue&, M> {
    * @return bool - Return true if decoding is successful, false if buf
    *                has insufficient bytes.
    */
-  virtual bool decode(Context* ctx, folly::IOBufQueue& buf, M& result, size_t&) = 0;
+  virtual bool
+  decode(Context* ctx, folly::IOBufQueue& buf, M& result, size_t&) = 0;
 
   void transportActive(Context* ctx) override {
     transportActive_ = true;

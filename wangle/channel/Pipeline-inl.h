@@ -39,8 +39,7 @@ template <class H>
 PipelineBase& PipelineBase::addBack(std::shared_ptr<H> handler) {
   typedef typename ContextType<H>::type Context;
   return addHelper(
-      std::make_shared<Context>(shared_from_this(), std::move(handler)),
-      false);
+      std::make_shared<Context>(shared_from_this(), std::move(handler)), false);
 }
 
 template <class H>
@@ -50,15 +49,14 @@ PipelineBase& PipelineBase::addBack(H&& handler) {
 
 template <class H>
 PipelineBase& PipelineBase::addBack(H* handler) {
-  return addBack(std::shared_ptr<H>(handler, [](H*){}));
+  return addBack(std::shared_ptr<H>(handler, [](H*) {}));
 }
 
 template <class H>
 PipelineBase& PipelineBase::addFront(std::shared_ptr<H> handler) {
   typedef typename ContextType<H>::type Context;
   return addHelper(
-      std::make_shared<Context>(shared_from_this(), std::move(handler)),
-      true);
+      std::make_shared<Context>(shared_from_this(), std::move(handler)), true);
 }
 
 template <class H>
@@ -68,7 +66,7 @@ PipelineBase& PipelineBase::addFront(H&& handler) {
 
 template <class H>
 PipelineBase& PipelineBase::addFront(H* handler) {
-  return addFront(std::shared_ptr<H>(handler, [](H*){}));
+  return addFront(std::shared_ptr<H>(handler, [](H*) {}));
 }
 
 template <class H>
@@ -148,7 +146,7 @@ bool PipelineBase::setOwner(H* handler) {
 
 template <class Context>
 void PipelineBase::addContextFront(Context* ctx) {
-  addHelper(std::shared_ptr<Context>(ctx, [](Context*){}), true);
+  addHelper(std::shared_ptr<Context>(ctx, [](Context*) {}), true);
 }
 
 template <class Context>
@@ -177,7 +175,7 @@ inline void logWarningIfNotUnit<folly::Unit>(const std::string& /*warning*/) {
   // do nothing
 }
 
-} // detail
+} // namespace detail
 
 template <class R, class W>
 template <class T>
@@ -230,8 +228,9 @@ Pipeline<R, W>::readException(folly::exception_wrapper e) {
 
 template <class R, class W>
 template <class T>
-typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                        folly::Future<folly::Unit>>::type
+typename std::enable_if<
+    !std::is_same<T, folly::Unit>::value,
+    folly::Future<folly::Unit>>::type
 Pipeline<R, W>::write(W msg) {
   if (!back_) {
     throw std::invalid_argument("write(): no outbound handler in Pipeline");
@@ -241,20 +240,22 @@ Pipeline<R, W>::write(W msg) {
 
 template <class R, class W>
 template <class T>
-typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                        folly::Future<folly::Unit>>::type
-  Pipeline<R, W>::writeException(folly::exception_wrapper e) {
+typename std::enable_if<
+    !std::is_same<T, folly::Unit>::value,
+    folly::Future<folly::Unit>>::type
+Pipeline<R, W>::writeException(folly::exception_wrapper e) {
   if (!back_) {
     throw std::invalid_argument(
-      "writeException(): no outbound handler in Pipeline");
+        "writeException(): no outbound handler in Pipeline");
   }
   return back_->writeException(std::move(e));
 }
 
 template <class R, class W>
 template <class T>
-typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                        folly::Future<folly::Unit>>::type
+typename std::enable_if<
+    !std::is_same<T, folly::Unit>::value,
+    folly::Future<folly::Unit>>::type
 Pipeline<R, W>::close() {
   if (!back_) {
     throw std::invalid_argument("close(): no outbound handler in Pipeline");
@@ -269,7 +270,7 @@ void Pipeline<R, W>::finalize() {
   if (!inCtxs_.empty()) {
     front_ = dynamic_cast<InboundLink<R>*>(inCtxs_.front());
     for (size_t i = 0; i < inCtxs_.size() - 1; i++) {
-      inCtxs_[i]->setNextIn(inCtxs_[i+1]);
+      inCtxs_[i]->setNextIn(inCtxs_[i + 1]);
     }
     inCtxs_.back()->setNextIn(nullptr);
   }
@@ -278,7 +279,7 @@ void Pipeline<R, W>::finalize() {
   if (!outCtxs_.empty()) {
     back_ = dynamic_cast<OutboundLink<W>*>(outCtxs_.back());
     for (size_t i = outCtxs_.size() - 1; i > 0; i--) {
-      outCtxs_[i]->setNextOut(outCtxs_[i-1]);
+      outCtxs_[i]->setNextOut(outCtxs_[i - 1]);
     }
     outCtxs_.front()->setNextOut(nullptr);
   }

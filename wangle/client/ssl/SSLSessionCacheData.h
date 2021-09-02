@@ -32,9 +32,11 @@ struct SSLSessionCacheData {
   std::shared_ptr<SSL_SESSION> sessionDuplicateTemplate;
 };
 
-} //proxygen
+} // namespace wangle
 
 namespace folly {
-  template<> folly::dynamic toDynamic(const wangle::SSLSessionCacheData& d);
-  template<> wangle::SSLSessionCacheData convertTo(const dynamic& d);
-} //folly
+template <>
+folly::dynamic toDynamic(const wangle::SSLSessionCacheData& d);
+template <>
+wangle::SSLSessionCacheData convertTo(const dynamic& d);
+} // namespace folly

@@ -17,18 +17,18 @@
 #include <wangle/acceptor/Acceptor.h>
 
 #include <fizz/server/TicketTypes.h>
-#include <folly/io/async/AsyncTransport.h>
+#include <folly/GLog.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GFlags.h>
 #include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
-#include <folly/GLog.h>
+#include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/FizzConfigUtil.h>
 #include <wangle/acceptor/ManagedConnection.h>
-#include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <wangle/ssl/SSLContextManager.h>
 
@@ -63,9 +63,10 @@ void Acceptor::init(
     }
 
     if (accConfig_.fizzConfig.enableFizz) {
-      ticketSecrets_ = {accConfig_.initialTicketSeeds.oldSeeds,
-                        accConfig_.initialTicketSeeds.currentSeeds,
-                        accConfig_.initialTicketSeeds.newSeeds};
+      ticketSecrets_ = {
+          accConfig_.initialTicketSeeds.oldSeeds,
+          accConfig_.initialTicketSeeds.currentSeeds,
+          accConfig_.initialTicketSeeds.newSeeds};
 
       if (!fizzCertManager_) {
         fizzCertManager_ = createFizzCertManager();
@@ -277,9 +278,8 @@ void Acceptor::processEstablishedConnection(
     shouldDoSSL = sslCtxManager_->getDefaultSSLCtx() != nullptr;
   }
   if (shouldDoSSL) {
-    AsyncSSLSocket::UniquePtr sslSock(
-        makeNewAsyncSSLSocket(
-            sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
+    AsyncSSLSocket::UniquePtr sslSock(makeNewAsyncSSLSocket(
+        sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
     ++numPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name
@@ -307,10 +307,7 @@ void Acceptor::processEstablishedConnection(
     for (const auto& cb : observerList_.getAll()) {
       cb->accept(sock.get());
     }
-    plaintextConnectionReady(
-        std::move(sock),
-        clientAddr,
-        tinfo);
+    plaintextConnectionReady(std::move(sock), clientAddr, tinfo);
   }
 }
 
@@ -356,11 +353,7 @@ void Acceptor::plaintextConnectionReady(
     const SocketAddress& clientAddr,
     TransportInfo& tinfo) {
   connectionReady(
-      std::move(sock),
-      clientAddr,
-      {},
-      SecureTransportType::NONE,
-      tinfo);
+      std::move(sock), clientAddr, {}, SecureTransportType::NONE, tinfo);
 }
 
 void Acceptor::sslConnectionReady(
@@ -391,8 +384,8 @@ void Acceptor::acceptError(const std::exception& ex) noexcept {
   // The most likely error is out of FDs.  AsyncServerSocket will back off
   // briefly if we are out of FDs, then continue accepting later.
   // Just log a message here.
-  FB_LOG_EVERY_MS(ERROR, 1000) << "error accepting on acceptor socket: "
-                               << ex.what();
+  FB_LOG_EVERY_MS(ERROR, 1000)
+      << "error accepting on acceptor socket: " << ex.what();
 }
 
 void Acceptor::acceptStopped() noexcept {
@@ -495,7 +488,7 @@ Acceptor::AcceptObserverList::AcceptObserverList(Acceptor* acceptor)
 
 Acceptor::AcceptObserverList::~AcceptObserverList() {
   for (const auto& cb : observers_) {
-  cb->acceptorDestroy(acceptor_);
+    cb->acceptorDestroy(acceptor_);
   }
 }
 

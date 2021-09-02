@@ -17,7 +17,6 @@
 //
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
-
 namespace wangle {
 // static
 void SSLSessionCallbacks::attachCallbacksToContext(
@@ -32,7 +31,8 @@ void SSLSessionCallbacks::attachCallbacksToContext(
   SSLUtil::getSSLCtxExIndex(&getCacheIndex());
   SSL_CTX_set_ex_data(ctx, getCacheIndex(), callbacks);
   SSL_CTX_sess_set_remove_cb(ctx, SSLSessionCallbacks::removeSessionCallback);
-  context->setSessionLifecycleCallbacks(std::make_unique<ContextSessionCallbacks>());
+  context->setSessionLifecycleCallbacks(
+      std::make_unique<ContextSessionCallbacks>());
 }
 
 // static
@@ -82,7 +82,9 @@ void SSLSessionCallbacks::removeSessionCallback(
 #endif
 }
 
-void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr session) {
+void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(
+    SSL* ssl,
+    folly::ssl::SSLSessionUniquePtr session) {
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
   auto sslSessionCache = SSLSessionCallbacks::getCacheFromContext(ctx);
   std::string sessionKey = SSLSessionCallbacks::getSessionKeyFromSSL(ssl);
@@ -95,4 +97,4 @@ void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly:
     sslSessionCache->setSSLSession(sessionKey, std::move(session));
   }
 }
-} // wangle
+} // namespace wangle

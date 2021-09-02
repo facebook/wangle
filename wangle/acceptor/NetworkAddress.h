@@ -25,15 +25,14 @@ namespace wangle {
  * a network in CIDR notation
  */
 class NetworkAddress {
-public:
+ public:
   /**
    * Create a NetworkAddress for an addr/prefixLen
    * @param addr         IPv4 or IPv6 address of the network
    * @param prefixLen    Prefix length, in bits
    */
-  NetworkAddress(const folly::SocketAddress& addr,
-      unsigned prefixLen):
-    addr_(addr), prefixLen_(prefixLen) {}
+  NetworkAddress(const folly::SocketAddress& addr, unsigned prefixLen)
+      : addr_(addr), prefixLen_(prefixLen) {}
 
   /** Get the network address */
   const folly::SocketAddress& getAddress() const {
@@ -41,7 +40,9 @@ public:
   }
 
   /** Get the prefix length in bits */
-  unsigned getPrefixLength() const { return prefixLen_; }
+  unsigned getPrefixLength() const {
+    return prefixLen_;
+  }
 
   /** Check whether a given address lies within the network */
   bool contains(const folly::SocketAddress& addr) const {
@@ -50,7 +51,7 @@ public:
 
   /** Comparison operator to enable use in ordered collections */
   bool operator<(const NetworkAddress& other) const {
-    if (addr_ <  other.addr_) {
+    if (addr_ < other.addr_) {
       return true;
     } else if (other.addr_ < addr_) {
       return false;
@@ -63,7 +64,7 @@ public:
     return addr_ == other.addr_ && prefixLen_ == other.prefixLen_;
   }
 
-private:
+ private:
   folly::SocketAddress addr_;
   unsigned prefixLen_;
 };

@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include <folly/futures/Future.h>
 #include <folly/Memory.h>
+#include <folly/futures/Future.h>
 
-#include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
-#include <wangle/channel/Pipeline.h>
+#include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
+#include <wangle/channel/Pipeline.h>
 
 namespace wangle {
 
@@ -62,10 +62,13 @@ class Service {
  *
  * [ThriftIn -> (String  ->  Int) -> ThriftOut]
  */
-template <typename ReqA, typename RespA,
-          typename ReqB = ReqA, typename RespB = RespA>
+template <
+    typename ReqA,
+    typename RespA,
+    typename ReqB = ReqA,
+    typename RespB = RespA>
 class ServiceFilter : public Service<ReqA, RespA> {
-  public:
+ public:
   explicit ServiceFilter(std::shared_ptr<Service<ReqB, RespB>> service)
       : service_(service) {}
   ~ServiceFilter() override = default;
@@ -92,12 +95,10 @@ template <typename Pipeline, typename Req, typename Resp>
 class ServiceFactory {
  public:
   virtual folly::Future<std::shared_ptr<Service<Req, Resp>>> operator()(
-    std::shared_ptr<ClientBootstrap<Pipeline>> client) = 0;
+      std::shared_ptr<ClientBootstrap<Pipeline>> client) = 0;
 
   virtual ~ServiceFactory() = default;
-
 };
-
 
 template <typename Pipeline, typename Req, typename Resp>
 class ConstFactory : public ServiceFactory<Pipeline, Req, Resp> {
@@ -109,16 +110,21 @@ class ConstFactory : public ServiceFactory<Pipeline, Req, Resp> {
       std::shared_ptr<ClientBootstrap<Pipeline>> /* client */) override {
     return service_;
   }
+
  private:
   std::shared_ptr<Service<Req, Resp>> service_;
 };
 
-template <typename Pipeline, typename ReqA, typename RespA,
-          typename ReqB = ReqA, typename RespB = RespA>
+template <
+    typename Pipeline,
+    typename ReqA,
+    typename RespA,
+    typename ReqB = ReqA,
+    typename RespB = RespA>
 class ServiceFactoryFilter : public ServiceFactory<Pipeline, ReqA, RespA> {
  public:
   explicit ServiceFactoryFilter(
-    std::shared_ptr<ServiceFactory<Pipeline, ReqB, RespB>> serviceFactory)
+      std::shared_ptr<ServiceFactory<Pipeline, ReqB, RespB>> serviceFactory)
       : serviceFactory_(std::move(serviceFactory)) {}
 
   ~ServiceFactoryFilter() override = default;
@@ -131,7 +137,7 @@ template <typename Pipeline, typename Req, typename Resp = Req>
 class FactoryToService : public Service<Req, Resp> {
  public:
   explicit FactoryToService(
-    std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
+      std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
       : factory_(factory) {}
   ~FactoryToService() override = default;
 
@@ -148,6 +154,5 @@ class FactoryToService : public Service<Req, Resp> {
  private:
   std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory_;
 };
-
 
 } // namespace wangle

@@ -62,21 +62,21 @@ class BaseWithOptional {
 };
 
 template <class Handler>
-class BaseWithoutOptional {
-};
+class BaseWithoutOptional {};
 
 template <class R, class W, class Handler, class... Handlers>
 class StaticPipeline<R, W, Handler, Handlers...>
-    : public StaticPipeline<R, W, Handlers...>
-    , public std::conditional<std::is_abstract<Handler>::value,
-                              BaseWithoutOptional<Handler>,
-                              BaseWithOptional<Handler>>::type {
+    : public StaticPipeline<R, W, Handlers...>,
+      public std::conditional<
+          std::is_abstract<Handler>::value,
+          BaseWithoutOptional<Handler>,
+          BaseWithOptional<Handler>>::type {
  public:
   using Ptr = std::shared_ptr<StaticPipeline>;
 
   template <class... HandlerArgs>
   static Ptr create(HandlerArgs&&... handlers) {
-    auto ptr =  std::shared_ptr<StaticPipeline>(
+    auto ptr = std::shared_ptr<StaticPipeline>(
         new StaticPipeline(std::forward<HandlerArgs>(handlers)...));
     ptr->initialize();
     return ptr;
@@ -91,18 +91,15 @@ class StaticPipeline<R, W, Handler, Handlers...>
  protected:
   template <class... HandlerArgs>
   explicit StaticPipeline(HandlerArgs&&... handlers)
-    : StaticPipeline(true, std::forward<HandlerArgs>(handlers)...) {
+      : StaticPipeline(true, std::forward<HandlerArgs>(handlers)...) {
     isFirst_ = true;
   }
 
   template <class HandlerArg, class... HandlerArgs>
-  StaticPipeline(
-      bool isFirst,
-      HandlerArg&& handler,
-      HandlerArgs&&... handlers)
-    : StaticPipeline<R, W, Handlers...>(
-          false,
-          std::forward<HandlerArgs>(handlers)...) {
+  StaticPipeline(bool isFirst, HandlerArg&& handler, HandlerArgs&&... handlers)
+      : StaticPipeline<R, W, Handlers...>(
+            false,
+            std::forward<HandlerArgs>(handlers)...) {
     isFirst_ = isFirst;
     setHandler(std::forward<HandlerArg>(handler));
     Pipeline<R, W>::addContextFront(&ctx_);
@@ -117,32 +114,28 @@ class StaticPipeline<R, W, Handler, Handlers...>
  private:
   template <class HandlerArg>
   typename std::enable_if<std::is_same<
-    typename std::remove_reference<HandlerArg>::type,
-    Handler
-  >::value>::type
+      typename std::remove_reference<HandlerArg>::type,
+      Handler>::value>::type
   setHandler(HandlerArg&& arg) {
     BaseWithOptional<Handler>::handler_.emplace(std::forward<HandlerArg>(arg));
     handlerPtr_ = std::shared_ptr<Handler>(
-        &(*BaseWithOptional<Handler>::handler_),
-        [](Handler*){});
+        &(*BaseWithOptional<Handler>::handler_), [](Handler*) {});
   }
 
   template <class HandlerArg>
   typename std::enable_if<std::is_same<
-    typename std::decay<HandlerArg>::type,
-    std::shared_ptr<Handler>
-  >::value>::type
+      typename std::decay<HandlerArg>::type,
+      std::shared_ptr<Handler>>::value>::type
   setHandler(HandlerArg&& arg) {
     handlerPtr_ = std::forward<HandlerArg>(arg);
   }
 
   template <class HandlerArg>
-  typename std::enable_if<std::is_same<
-    typename std::decay<HandlerArg>::type,
-    Handler*
-  >::value>::type
-  setHandler(HandlerArg&& arg) {
-    handlerPtr_ = std::shared_ptr<Handler>(arg, [](Handler*){});
+  typename std::enable_if<
+      std::is_same<typename std::decay<HandlerArg>::type, Handler*>::value>::
+      type
+      setHandler(HandlerArg&& arg) {
+    handlerPtr_ = std::shared_ptr<Handler>(arg, [](Handler*) {});
   }
 
   bool isFirst_;

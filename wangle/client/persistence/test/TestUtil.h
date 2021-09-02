@@ -21,15 +21,15 @@
 #include <vector>
 
 #include <folly/Memory.h>
-#include <folly/portability/Unistd.h>
 #include <folly/portability/GTest.h>
+#include <folly/portability/Unistd.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 
 namespace wangle {
 
 std::string getPersistentCacheFilename();
 
-template<typename K, typename V, typename MutexT = std::mutex>
+template <typename K, typename V, typename MutexT = std::mutex>
 void testSimplePutGet(
     const std::vector<K>& keys,
     const std::vector<V>& values) {
@@ -96,4 +96,4 @@ void testSimplePutGet(
   EXPECT_TRUE(unlink(filename.c_str()) != -1);
 }
 
-}
+} // namespace wangle

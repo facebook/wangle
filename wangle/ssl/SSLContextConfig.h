@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 
-
 /**
  * SSLContextConfig helps to describe the configs/options for
  * a SSL_CTX. For example:
@@ -42,16 +41,14 @@ struct SSLContextConfig {
   virtual ~SSLContextConfig() = default;
 
   struct CertificateInfo {
-    CertificateInfo(const std::string& crtPath,
-                    const std::string& kyPath,
-                    const std::string& passwdPath)
+    CertificateInfo(
+        const std::string& crtPath,
+        const std::string& kyPath,
+        const std::string& passwdPath)
         : certPath(crtPath), keyPath(kyPath), passwordPath(passwdPath) {}
 
-    CertificateInfo(const std::string& crtBuf,
-                    const std::string& kyBuf)
-        : certPath(crtBuf),
-          keyPath(kyBuf),
-          isBuffer(true) {}
+    CertificateInfo(const std::string& crtBuf, const std::string& kyBuf)
+        : certPath(crtBuf), keyPath(kyBuf), isBuffer(true) {}
 
     std::string certPath;
     std::string keyPath;
@@ -79,27 +76,27 @@ struct SSLContextConfig {
   /**
    * Helpers to set/add a certificate
    */
-  virtual void setCertificate(const std::string& certPath,
-                              const std::string& keyPath,
-                              const std::string& passwordPath) {
+  virtual void setCertificate(
+      const std::string& certPath,
+      const std::string& keyPath,
+      const std::string& passwordPath) {
     certificates.clear();
     addCertificate(certPath, keyPath, passwordPath);
   }
 
-  void setCertificateBuf(const std::string& cert,
-                         const std::string& key) {
+  void setCertificateBuf(const std::string& cert, const std::string& key) {
     certificates.clear();
     addCertificateBuf(cert, key);
   }
 
-  void addCertificate(const std::string& certPath,
-                      const std::string& keyPath,
-                      const std::string& passwordPath) {
+  void addCertificate(
+      const std::string& certPath,
+      const std::string& keyPath,
+      const std::string& passwordPath) {
     certificates.emplace_back(certPath, keyPath, passwordPath);
   }
 
-  void addCertificateBuf(const std::string& cert,
-                         const std::string& key) {
+  void addCertificateBuf(const std::string& cert, const std::string& key) {
     certificates.emplace_back(cert, key);
   }
 
@@ -115,8 +112,7 @@ struct SSLContextConfig {
   typedef std::function<bool(char const* server_name)> SNINoMatchFn;
 
   std::vector<CertificateInfo> certificates;
-  folly::SSLContext::SSLVersion sslVersion{
-    folly::SSLContext::TLSv1_2};
+  folly::SSLContext::SSLVersion sslVersion{folly::SSLContext::TLSv1_2};
   bool sessionCacheEnabled{true};
   bool sessionTicketEnabled{true};
   std::string sslCiphers{getDefaultCiphers()};
@@ -124,8 +120,7 @@ struct SSLContextConfig {
   std::string eccCurveName{"prime256v1"};
 
   // Weighted lists of NPN strings to advertise
-  std::list<folly::SSLContext::NextProtocolsItem>
-      nextProtocols;
+  std::list<folly::SSLContext::NextProtocolsItem> nextProtocols;
   bool isLocalPrivateKey{true};
   // Should this SSLContextConfig be the default for SNI purposes
   bool isDefault{false};
@@ -134,7 +129,7 @@ struct SSLContextConfig {
 
   // Verification method to use for client certificates.
   folly::SSLContext::VerifyClientCertificate clientVerification{
-    folly::SSLContext::VerifyClientCertificate::ALWAYS};
+      folly::SSLContext::VerifyClientCertificate::ALWAYS};
 
   // Key offload configuration
   KeyOffloadParams keyOffloadParams;

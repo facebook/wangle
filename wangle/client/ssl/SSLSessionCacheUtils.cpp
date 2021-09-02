@@ -25,7 +25,7 @@ namespace wangle {
 
 namespace {
 static int32_t getSessionServiceIdentityIdx() {
-  static int32_t index = []{
+  static int32_t index = [] {
     int result = -1;
     SSLUtil::getSSLSessionExStrIndex(&result);
     return result;
@@ -40,8 +40,8 @@ static SSL_SESSION* fbStringToSession(const folly::fbstring& str) {
 }
 
 // serialize and deserialize session data
-static
-folly::Optional<folly::fbstring> sessionToFbString(SSL_SESSION* session) {
+static folly::Optional<folly::fbstring> sessionToFbString(
+    SSL_SESSION* session) {
   if (!session) {
     return folly::Optional<folly::fbstring>();
   }
@@ -73,18 +73,18 @@ folly::Optional<folly::fbstring> sessionToFbString(SSL_SESSION* session) {
 
   return folly::Optional<folly::fbstring>();
 }
-}
+} // namespace
 
-bool
-setSessionServiceIdentity(SSL_SESSION* session, const std::string& str) {
+bool setSessionServiceIdentity(SSL_SESSION* session, const std::string& str) {
   if (!session || str.empty()) {
     return false;
   }
   auto serviceExData = new std::string(str);
-  auto oldExData = SSL_SESSION_get_ex_data(session, getSessionServiceIdentityIdx());
-  if(SSL_SESSION_set_ex_data(
-    session, getSessionServiceIdentityIdx(), serviceExData) > 0) {
-    delete static_cast<std::string *>(oldExData);
+  auto oldExData =
+      SSL_SESSION_get_ex_data(session, getSessionServiceIdentityIdx());
+  if (SSL_SESSION_set_ex_data(
+          session, getSessionServiceIdentityIdx(), serviceExData) > 0) {
+    delete static_cast<std::string*>(oldExData);
     return true;
   }
 
@@ -92,8 +92,7 @@ setSessionServiceIdentity(SSL_SESSION* session, const std::string& str) {
   return false;
 }
 
-folly::Optional<std::string>
-getSessionServiceIdentity(SSL_SESSION* session) {
+folly::Optional<std::string> getSessionServiceIdentity(SSL_SESSION* session) {
   if (!session) {
     return folly::Optional<std::string>();
   }
@@ -161,4 +160,4 @@ SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone) {
 #endif
 }
 
-}
+} // namespace wangle

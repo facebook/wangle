@@ -30,7 +30,6 @@ using namespace testing;
 using namespace wangle;
 using folly::ssl::SSLSessionUniquePtr;
 
-
 class SSLSessionCacheDataTest : public Test {
  public:
   void SetUp() override {

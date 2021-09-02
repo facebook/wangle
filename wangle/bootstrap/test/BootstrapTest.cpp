@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "wangle/bootstrap/ServerBootstrap.h"
 #include "wangle/bootstrap/ClientBootstrap.h"
+#include "wangle/bootstrap/ServerBootstrap.h"
 #include "wangle/channel/Handler.h"
 
-#include <glog/logging.h>
-#include <folly/portability/GTest.h>
 #include <boost/thread.hpp>
 #include <folly/String.h>
 #include <folly/experimental/TestUtil.h>
+#include <folly/portability/GTest.h>
+#include <glog/logging.h>
 
 using namespace wangle;
 using namespace folly;
@@ -40,9 +40,8 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
     EXPECT_TRUE(sock->good());
 
     // Check after a small delay that socket is readable
-    EventBaseManager::get()->getEventBase()->tryRunAfterDelay([sock](){
-      EXPECT_TRUE(sock->readable());
-    }, 100);
+    EventBaseManager::get()->getEventBase()->tryRunAfterDelay(
+        [sock]() { EXPECT_TRUE(sock->readable()); }, 100);
 
     auto pipeline = BytesPipeline::create();
     pipeline->addBack(new BytesToBytesHandler());
@@ -53,8 +52,7 @@ class TestClientPipelineFactory : public PipelineFactory<BytesPipeline> {
 
 class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
  public:
-  BytesPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransport>) override {
+  BytesPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransport>) override {
     pipelines++;
     auto pipeline = BytesPipeline::create();
     pipeline->addBack(new BytesToBytesHandler());
@@ -65,16 +63,18 @@ class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
 };
 
 class TestAcceptor : public Acceptor {
-EventBase base_;
+  EventBase base_;
+
  public:
   TestAcceptor() : Acceptor(ServerSocketConfig()) {
     Acceptor::init(nullptr, &base_);
   }
-  void onNewConnection(AsyncTransport::UniquePtr,
-                       const folly::SocketAddress*,
-                       const std::string& /* nextProtocolName */,
-                       SecureTransportType,
-                       const TransportInfo&) override {}
+  void onNewConnection(
+      AsyncTransport::UniquePtr,
+      const folly::SocketAddress*,
+      const std::string& /* nextProtocolName */,
+      SecureTransportType,
+      const TransportInfo&) override {}
 };
 
 class TestAcceptorFactory : public AcceptorFactory {
@@ -168,7 +168,7 @@ TEST(Bootstrap, ServerAcceptGroupTest) {
   server.getSockets()[0]->getAddress(&address);
 
   boost::barrier barrier(2);
-  auto thread = std::thread([&](){
+  auto thread = std::thread([&]() {
     TestClient client;
     client.pipelineFactory(std::make_shared<TestClientPipelineFactory>());
     client.connect(address);
@@ -195,7 +195,7 @@ TEST(Bootstrap, ServerAcceptGroup2Test) {
     serverSocket->startAccepting();
     serverSocket->setReusePortEnabled(true);
     serverSocket->stopAccepting();
-  } catch(...) {
+  } catch (...) {
     LOG(INFO) << "Reuse port probably not supported";
     return;
   }
@@ -232,7 +232,7 @@ TEST(Bootstrap, SharedThreadPool) {
     serverSocket->startAccepting();
     serverSocket->setReusePortEnabled(true);
     serverSocket->stopAccepting();
-  } catch(...) {
+  } catch (...) {
     LOG(INFO) << "Reuse port probably not supported";
     return;
   }
@@ -317,7 +317,7 @@ TEST(Bootstrap, LoadBalanceHandler) {
   server.childPipeline(factory);
 
   auto pipelinefactory =
-    std::make_shared<TestHandlerPipelineFactory<TestHandlerPipeline>>();
+      std::make_shared<TestHandlerPipelineFactory<TestHandlerPipeline>>();
   server.pipeline(pipelinefactory);
   server.bind(0);
   auto base = EventBaseManager::get()->getEventBase();
@@ -338,14 +338,16 @@ TEST(Bootstrap, LoadBalanceHandler) {
 
 class TestUDPPipeline : public InboundHandler<AcceptPipelineType, Unit> {
  public:
-  void read(Context*, AcceptPipelineType) override { connections++; }
+  void read(Context*, AcceptPipelineType) override {
+    connections++;
+  }
 };
 
 TEST(Bootstrap, UDP) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   auto pipelinefactory =
-    std::make_shared<TestHandlerPipelineFactory<TestUDPPipeline>>();
+      std::make_shared<TestHandlerPipelineFactory<TestUDPPipeline>>();
   server.pipeline(pipelinefactory);
   server.channelFactory(std::make_shared<AsyncUDPServerSocketFactory>());
   server.bind(0);
@@ -357,7 +359,7 @@ TEST(Bootstrap, UDPClientServerTest) {
   TestServer server;
   auto factory = std::make_shared<TestPipelineFactory>();
   auto pipelinefactory =
-    std::make_shared<TestHandlerPipelineFactory<TestUDPPipeline>>();
+      std::make_shared<TestHandlerPipelineFactory<TestUDPPipeline>>();
   server.pipeline(pipelinefactory);
   server.channelFactory(std::make_shared<AsyncUDPServerSocketFactory>());
   server.bind(0);
@@ -425,7 +427,8 @@ TEST(Bootstrap, ServerBindFailure) {
     server.bind(address);
     FAIL() << "shouldn't be allowed to bind to an in-use address";
   } catch (const std::system_error& ex) {
-    EXPECT_EQ(EADDRINUSE, ex.code().value()) << "unexpected error code " <<
-      ex.code().value() << ": " << ex.code().message();
+    EXPECT_EQ(EADDRINUSE, ex.code().value())
+        << "unexpected error code " << ex.code().value() << ": "
+        << ex.code().message();
   }
 }

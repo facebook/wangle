@@ -16,23 +16,21 @@
 
 #pragma once
 
-#include <wangle/channel/Handler.h>
+#include <folly/io/IOBuf.h>
+#include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/EventBaseManager.h>
-#include <folly/io/IOBuf.h>
-#include <folly/io/IOBufQueue.h>
+#include <wangle/channel/Handler.h>
 
 namespace wangle {
 
 // This handler may only be used in a single Pipeline
-class AsyncSocketHandler
-  : public wangle::BytesToBytesHandler,
-    public folly::AsyncTransport::ReadCallback {
+class AsyncSocketHandler : public wangle::BytesToBytesHandler,
+                           public folly::AsyncTransport::ReadCallback {
  public:
-  explicit AsyncSocketHandler(
-      std::shared_ptr<folly::AsyncTransport> socket)
-    : socket_(std::move(socket)) {}
+  explicit AsyncSocketHandler(std::shared_ptr<folly::AsyncTransport> socket)
+      : socket_(std::move(socket)) {}
 
   AsyncSocketHandler(AsyncSocketHandler&&) = default;
 
@@ -43,9 +41,7 @@ class AsyncSocketHandler
       auto evb = socket_->getEventBase();
       if (evb) {
         evb->runImmediatelyOrRunInEventBaseThreadAndWait(
-            [s = std::move(socket_)]() mutable {
-              s.reset();
-            });
+            [s = std::move(socket_)]() mutable { s.reset(); });
       }
     }
   }
@@ -117,14 +113,15 @@ class AsyncSocketHandler
     return future;
   }
 
-  folly::Future<folly::Unit> writeException(Context* ctx,
-                                            folly::exception_wrapper) override {
+  folly::Future<folly::Unit> writeException(
+      Context* ctx,
+      folly::exception_wrapper) override {
     return shutdown(ctx, true);
   }
 
   folly::Future<folly::Unit> close(Context* ctx) override {
-    bool shutdownWriteOnly = isSet(ctx->getWriteFlags(),
-                                   folly::WriteFlags::WRITE_SHUTDOWN);
+    bool shutdownWriteOnly =
+        isSet(ctx->getWriteFlags(), folly::WriteFlags::WRITE_SHUTDOWN);
     if (shutdownWriteOnly) {
       socket_->shutdownWrite();
       return folly::makeFuture();
@@ -142,8 +139,7 @@ class AsyncSocketHandler
   void getReadBuffer(void** bufReturn, size_t* lenReturn) override {
     const auto readBufferSettings = getContext()->getReadBufferSettings();
     const auto ret = bufQueue_.preallocate(
-        readBufferSettings.first,
-        readBufferSettings.second);
+        readBufferSettings.first, readBufferSettings.second);
     *bufReturn = ret.first;
     *lenReturn = ret.second;
   }
@@ -158,8 +154,7 @@ class AsyncSocketHandler
     getContext()->fireReadEOF();
   }
 
-  void readErr(const folly::AsyncSocketException& ex)
-    noexcept override {
+  void readErr(const folly::AsyncSocketException& ex) noexcept override {
     getContext()->fireReadException(
         folly::make_exception_wrapper<folly::AsyncSocketException>(ex));
   }
@@ -194,9 +189,9 @@ class AsyncSocketHandler
       delete this;
     }
 
-    void writeErr(size_t /* bytesWritten */,
-                  const folly::AsyncSocketException& ex)
-      noexcept override {
+    void writeErr(
+        size_t /* bytesWritten */,
+        const folly::AsyncSocketException& ex) noexcept override {
       promise_.setException(ex);
       delete this;
     }

@@ -25,4 +25,4 @@ std::string getPersistentCacheFilename() {
   return file.path().string();
 }
 
-}
+} // namespace wangle

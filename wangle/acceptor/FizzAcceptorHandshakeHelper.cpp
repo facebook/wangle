@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <fizz/record/Types.h>
+#include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 #include <wangle/ssl/SSLContextManager.h>
 

@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <string>
 #include <set>
+#include <string>
 
 #include <folly/Optional.h>
 #include <folly/io/async/PasswordInFile.h>
@@ -97,4 +97,4 @@ class TLSCredProcessor {
   std::vector<std::function<void(wangle::TLSTicketKeySeeds)>> ticketCallbacks_;
   std::vector<std::function<void()>> certCallbacks_;
 };
-}
+} // namespace wangle

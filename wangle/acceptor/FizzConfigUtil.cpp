@@ -50,7 +50,7 @@ std::unique_ptr<fizz::server::CertManager> FizzConfigUtil::createCertManager(
 
           auto pkey = FizzUtil::readPrivateKey(cert.keyPath, pw);
           selfCert =
-            CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
+              CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
         }
         certMgr->addCert(std::move(selfCert), sslConfig.isDefault);
         loadedCert = true;
@@ -79,9 +79,10 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
     return nullptr;
   }
   auto ctx = std::make_shared<fizz::server::FizzServerContext>();
-  ctx->setSupportedVersions({ProtocolVersion::tls_1_3,
-                             ProtocolVersion::tls_1_3_28,
-                             ProtocolVersion::tls_1_3_26});
+  ctx->setSupportedVersions(
+      {ProtocolVersion::tls_1_3,
+       ProtocolVersion::tls_1_3_28,
+       ProtocolVersion::tls_1_3_26});
   ctx->setVersionFallbackEnabled(true);
 
   // Fizz does not yet support randomized next protocols so we use the highest

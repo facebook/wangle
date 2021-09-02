@@ -62,4 +62,4 @@ class SecurityProtocolContextManager {
   size_t numBytes_{0};
 };
 
-}
+} // namespace wangle

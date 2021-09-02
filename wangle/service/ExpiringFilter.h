@@ -28,17 +28,15 @@ namespace wangle {
 template <typename Req, typename Resp = Req>
 class ExpiringFilter : public ServiceFilter<Req, Resp> {
  public:
-  explicit ExpiringFilter(std::shared_ptr<Service<Req, Resp>> service,
-                 std::chrono::milliseconds idleTimeoutTime
-                 = std::chrono::milliseconds(0),
-                  std::chrono::milliseconds maxTime
-                 = std::chrono::milliseconds(0),
-                 folly::Timekeeper* timekeeper = nullptr)
-  : ServiceFilter<Req, Resp>(service)
-  , idleTimeoutTime_(idleTimeoutTime)
-  , maxTime_(maxTime)
-  , timekeeper_(timekeeper) {
-
+  explicit ExpiringFilter(
+      std::shared_ptr<Service<Req, Resp>> service,
+      std::chrono::milliseconds idleTimeoutTime = std::chrono::milliseconds(0),
+      std::chrono::milliseconds maxTime = std::chrono::milliseconds(0),
+      folly::Timekeeper* timekeeper = nullptr)
+      : ServiceFilter<Req, Resp>(service),
+        idleTimeoutTime_(idleTimeoutTime),
+        maxTime_(maxTime),
+        timekeeper_(timekeeper) {
     if (maxTime_ > std::chrono::milliseconds(0)) {
       maxTimeout_ = folly::futures::sleepUnsafe(maxTime_, timekeeper_);
       std::move(maxTimeout_).thenValue([this](auto&&) { this->close(); });
@@ -70,9 +68,9 @@ class ExpiringFilter : public ServiceFilter<Req, Resp> {
       idleTimeout_.cancel();
     }
     requests_++;
-    return (*this->service_)(std::move(req)).ensure([this](){
-        requests_--;
-        startIdleTimer();
+    return (*this->service_)(std::move(req)).ensure([this]() {
+      requests_--;
+      startIdleTimer();
     });
   }
 

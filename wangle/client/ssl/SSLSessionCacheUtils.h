@@ -36,4 +36,4 @@ SSL_SESSION* getSessionFromCacheData(const SSLSessionCacheData& data);
 // Internal links to SSL structs are not kept
 SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone);
 
-}
+} // namespace wangle

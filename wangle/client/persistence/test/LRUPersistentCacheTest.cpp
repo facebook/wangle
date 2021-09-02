@@ -37,7 +37,7 @@ using TestPersistenceLayer = CachePersistence;
 using MutexTypes = ::testing::Types<std::mutex, folly::SharedMutex>;
 TYPED_TEST_CASE(LRUPersistentCacheTest, MutexTypes);
 
-template<typename T>
+template <typename T>
 static shared_ptr<LRUPersistentCache<string, string, T>> createCache(
     size_t capacity,
     uint32_t syncMillis,
@@ -74,49 +74,49 @@ createCacheWithExecutor(
 }
 
 class MockPersistenceLayer : public TestPersistenceLayer {
-  public:
-    ~MockPersistenceLayer() override {
-      LOG(ERROR) << "ok.";
-    }
-    bool persist(const dynamic& obj) noexcept override {
-      return persist_(obj);
-    }
-    folly::Optional<dynamic> load() noexcept override {
-      return load_();
-    }
-    CacheDataVersion getLastPersistedVersionConcrete() const {
-      return TestPersistenceLayer::getLastPersistedVersion();
-    }
-    void setPersistedVersionConcrete(CacheDataVersion version) {
-      TestPersistenceLayer::setPersistedVersion(version);
-    }
-    MOCK_METHOD0(clear, void());
-    MOCK_METHOD1(persist_, bool(const dynamic&));
-    MOCK_METHOD0(load_, folly::Optional<dynamic>());
-    MOCK_CONST_METHOD0(getLastPersistedVersion, CacheDataVersion());
-    GMOCK_METHOD1_(, noexcept, , setPersistedVersion, void(CacheDataVersion));
+ public:
+  ~MockPersistenceLayer() override {
+    LOG(ERROR) << "ok.";
+  }
+  bool persist(const dynamic& obj) noexcept override {
+    return persist_(obj);
+  }
+  folly::Optional<dynamic> load() noexcept override {
+    return load_();
+  }
+  CacheDataVersion getLastPersistedVersionConcrete() const {
+    return TestPersistenceLayer::getLastPersistedVersion();
+  }
+  void setPersistedVersionConcrete(CacheDataVersion version) {
+    TestPersistenceLayer::setPersistedVersion(version);
+  }
+  MOCK_METHOD0(clear, void());
+  MOCK_METHOD1(persist_, bool(const dynamic&));
+  MOCK_METHOD0(load_, folly::Optional<dynamic>());
+  MOCK_CONST_METHOD0(getLastPersistedVersion, CacheDataVersion());
+  GMOCK_METHOD1_(, noexcept, , setPersistedVersion, void(CacheDataVersion));
 };
 
-template<typename MutexT>
+template <typename MutexT>
 class LRUPersistentCacheTest : public Test {
-  protected:
-   void SetUp() override {
-     persistence = make_unique<MockPersistenceLayer>();
-     ON_CALL(*persistence, getLastPersistedVersion())
-         .WillByDefault(Invoke(
-             persistence.get(),
-             &MockPersistenceLayer::getLastPersistedVersionConcrete));
-     ON_CALL(*persistence, setPersistedVersion(_))
-         .WillByDefault(Invoke(
-             persistence.get(),
-             &MockPersistenceLayer::setPersistedVersionConcrete));
-     manualExecutor = std::make_shared<folly::ManualExecutor>();
-     inlineExecutor = std::make_shared<folly::InlineExecutor>();
-   }
+ protected:
+  void SetUp() override {
+    persistence = make_unique<MockPersistenceLayer>();
+    ON_CALL(*persistence, getLastPersistedVersion())
+        .WillByDefault(Invoke(
+            persistence.get(),
+            &MockPersistenceLayer::getLastPersistedVersionConcrete));
+    ON_CALL(*persistence, setPersistedVersion(_))
+        .WillByDefault(Invoke(
+            persistence.get(),
+            &MockPersistenceLayer::setPersistedVersionConcrete));
+    manualExecutor = std::make_shared<folly::ManualExecutor>();
+    inlineExecutor = std::make_shared<folly::InlineExecutor>();
+  }
 
-   unique_ptr<MockPersistenceLayer> persistence;
-   std::shared_ptr<folly::ManualExecutor> manualExecutor;
-   std::shared_ptr<folly::InlineExecutor> inlineExecutor;
+  unique_ptr<MockPersistenceLayer> persistence;
+  std::shared_ptr<folly::ManualExecutor> manualExecutor;
+  std::shared_ptr<folly::InlineExecutor> inlineExecutor;
 };
 
 TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
@@ -124,13 +124,14 @@ TYPED_TEST(LRUPersistentCacheTest, NullPersistence) {
   auto cache = createCache<TypeParam>(10, 1, nullptr);
   cache->init();
   cache->put("k0", "v0");
-  makeFuture().delayed(std::chrono::milliseconds(20)).thenValue(
-    [cache](auto&&) {
-      auto val = cache->get("k0");
-      EXPECT_TRUE(val);
-      EXPECT_EQ(*val, "v0");
-      EXPECT_FALSE(cache->hasPendingUpdates());
-    });
+  makeFuture()
+      .delayed(std::chrono::milliseconds(20))
+      .thenValue([cache](auto&&) {
+        auto val = cache->get("k0");
+        EXPECT_TRUE(val);
+        EXPECT_EQ(*val, "v0");
+        EXPECT_FALSE(cache->hasPendingUpdates());
+      });
 }
 
 MATCHER_P(DynSize, n, "") {
@@ -141,12 +142,10 @@ TYPED_TEST(LRUPersistentCacheTest, SettingPersistenceFromCtor) {
   InSequence seq;
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
   auto rawPersistence = this->persistence.get();
-  EXPECT_CALL(*rawPersistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*rawPersistence, load_()).Times(1).WillOnce(Return(data));
   EXPECT_CALL(*rawPersistence, persist_(DynSize(2)))
-    .Times(1)
-    .WillOnce(Return(true));
+      .Times(1)
+      .WillOnce(Return(true));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
   cache->init();
   cache->put("k0", "v0");
@@ -157,9 +156,7 @@ TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroy) {
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
   cache->init();
   cache->put("k0", "v0");
-  EXPECT_CALL(*persistence, persist_(_))
-    .Times(1)
-    .WillOnce(Return(true));
+  EXPECT_CALL(*persistence, persist_(_)).Times(1).WillOnce(Return(true));
   cache.reset();
 }
 
@@ -173,19 +170,15 @@ TYPED_TEST(LRUPersistentCacheTest, SyncOnDestroyWithExecutor) {
   cache->init();
   cache->put("k0", "v0");
   EXPECT_CALL(*persistence, persist_(_))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(true));
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(true));
   cache.reset();
 }
 
 TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
-  EXPECT_CALL(*this->persistence, persist_(_))
-    .Times(0)
-    .WillOnce(Return(false));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, persist_(_)).Times(0).WillOnce(Return(false));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
   cache->init();
   EXPECT_EQ(cache->size(), 1);
@@ -193,9 +186,8 @@ TYPED_TEST(LRUPersistentCacheTest, PersistNotCalled) {
 
 TYPED_TEST(LRUPersistentCacheTest, PersistentSetBeforeSyncer) {
   EXPECT_CALL(*this->persistence, getLastPersistedVersion())
-    .Times(AtLeast(1))
-    .WillRepeatedly(
-        Invoke(
+      .Times(AtLeast(1))
+      .WillRepeatedly(Invoke(
           this->persistence.get(),
           &MockPersistenceLayer::getLastPersistedVersionConcrete));
   auto cache = createCache<TypeParam>(10, 10, std::move(this->persistence));
@@ -229,9 +221,7 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheDeallocBeforeAdd) {
 
 TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTask) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto rawPersistence = this->persistence.get();
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
@@ -261,9 +251,7 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTask) {
 
 TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTaskInline) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto rawPersistence = this->persistence.get();
   auto cache = createCacheWithExecutor<TypeParam>(
       this->inlineExecutor,
@@ -301,8 +289,8 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRunTaskInline) {
 
 TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRetries) {
   EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(dynamic::array()));
+      .Times(1)
+      .WillOnce(Return(dynamic::array()));
   auto rawPersistence = this->persistence.get();
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
@@ -338,9 +326,7 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheRetries) {
 
 TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheSchduledAndDealloc) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
       std::move(this->persistence),
@@ -358,9 +344,9 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheSchduledAndDealloc) {
 }
 
 TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
- EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(dynamic::array()));
+  EXPECT_CALL(*this->persistence, load_())
+      .Times(1)
+      .WillOnce(Return(dynamic::array()));
   auto rawPersistence = this->persistence.get();
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
@@ -397,9 +383,7 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
 
 TYPED_TEST(LRUPersistentCacheTest, InitCache) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto cache = createCacheWithExecutor<TypeParam>(
       this->inlineExecutor,
       std::move(this->persistence),
@@ -412,9 +396,7 @@ TYPED_TEST(LRUPersistentCacheTest, InitCache) {
 
 TYPED_TEST(LRUPersistentCacheTest, BlockingAccessCanContinueWithExecutor) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
       std::move(this->persistence),
@@ -437,9 +419,7 @@ TYPED_TEST(LRUPersistentCacheTest, BlockingAccessCanContinueWithExecutor) {
 
 TYPED_TEST(LRUPersistentCacheTest, BlockingAccessCanContinueWithThread) {
   folly::dynamic data = dynamic::array(dynamic::array("k1", "v1"));
-  EXPECT_CALL(*this->persistence, load_())
-    .Times(1)
-    .WillOnce(Return(data));
+  EXPECT_CALL(*this->persistence, load_()).Times(1).WillOnce(Return(data));
   auto cache =
       createCache<TypeParam>(10, 10, std::move(this->persistence), false);
   cache->init();

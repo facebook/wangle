@@ -223,13 +223,14 @@ TEST_F(AcceptRoutingHandlerTest, SocketErrorInRoutingPipeline) {
   // Socket exception after routing pipeline had been created
   barrierConnect.wait();
   boost::barrier barrierException(2);
-  std::move(futureClientPipeline).thenValue([](DefaultPipeline* clientPipeline) {
-    clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
-        [clientPipeline]() {
-          clientPipeline->writeException(
-              std::runtime_error("Socket error while expecting routing data."));
-        });
-  });
+  std::move(futureClientPipeline)
+      .thenValue([](DefaultPipeline* clientPipeline) {
+        clientPipeline->getTransport()->getEventBase()->runInEventBaseThread(
+            [clientPipeline]() {
+              clientPipeline->writeException(std::runtime_error(
+                  "Socket error while expecting routing data."));
+            });
+      });
   EXPECT_CALL(*routingDataHandler_, readException(_, _))
       .WillOnce(Invoke([&](MockBytesToBytesHandler::Context* /*ctx*/,
                            folly::exception_wrapper ex) {

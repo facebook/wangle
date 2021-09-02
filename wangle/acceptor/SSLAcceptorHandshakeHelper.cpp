@@ -16,9 +16,9 @@
 
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 
-#include <string>
 #include <wangle/acceptor/Acceptor.h>
 #include <wangle/acceptor/SecureTransportType.h>
+#include <string>
 
 namespace wangle {
 
@@ -38,19 +38,22 @@ void SSLAcceptorHandshakeHelper::start(
 }
 
 void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
-    AsyncSSLSocket* sock, TransportInfo& tinfo) {
+    AsyncSSLSocket* sock,
+    TransportInfo& tinfo) {
   tinfo.secure = true;
   tinfo.securityType = sock->getSecurityProtocol();
   tinfo.sslSetupBytesRead = folly::to_narrow(sock->getRawBytesReceived());
   tinfo.sslSetupBytesWritten = folly::to_narrow(sock->getRawBytesWritten());
-  tinfo.sslServerName = sock->getSSLServerName() ?
-    std::make_shared<std::string>(sock->getSSLServerName()) : nullptr;
-  tinfo.sslCipher = sock->getNegotiatedCipherName() ?
-    std::make_shared<std::string>(sock->getNegotiatedCipherName()) : nullptr;
+  tinfo.sslServerName = sock->getSSLServerName()
+      ? std::make_shared<std::string>(sock->getSSLServerName())
+      : nullptr;
+  tinfo.sslCipher = sock->getNegotiatedCipherName()
+      ? std::make_shared<std::string>(sock->getNegotiatedCipherName())
+      : nullptr;
   tinfo.sslVersion = sock->getSSLVersion();
   const char* sigAlgName = sock->getSSLCertSigAlgName();
   tinfo.sslCertSigAlgName =
-    std::make_shared<std::string>(sigAlgName ? sigAlgName : "");
+      std::make_shared<std::string>(sigAlgName ? sigAlgName : "");
   tinfo.sslCertSize = sock->getSSLCertSize();
   tinfo.sslResume = SSLUtil::getResumeState(sock);
   tinfo.sslClientCiphers = std::make_shared<std::string>();
@@ -62,8 +65,7 @@ void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
   sock->getSSLServerCiphers(*tinfo.sslServerCiphers);
   tinfo.sslClientComprMethods =
       std::make_shared<std::string>(sock->getSSLClientComprMethods());
-  tinfo.sslClientExts =
-      std::make_shared<std::string>(sock->getSSLClientExts());
+  tinfo.sslClientExts = std::make_shared<std::string>(sock->getSSLClientExts());
   tinfo.sslClientSigAlgs =
       std::make_shared<std::string>(sock->getSSLClientSigAlgs());
   tinfo.sslClientSupportedVersions =
@@ -76,8 +78,8 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   sock->getSelectedNextProtocolNoThrow(&nextProto, &nextProtoLength);
   if (VLOG_IS_ON(3)) {
     if (nextProto) {
-      VLOG(3) << "Client selected next protocol " <<
-          std::string((const char*)nextProto, nextProtoLength);
+      VLOG(3) << "Client selected next protocol "
+              << std::string((const char*)nextProto, nextProtoLength);
     } else {
       VLOG(3) << "Client did not select a next protocol";
     }
@@ -87,12 +89,12 @@ void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
   // the other fields like RTT are filled in the Acceptor
   tinfo_.acceptTime = acceptTime_;
   tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::steady_clock::now() - acceptTime_
-  );
+      std::chrono::steady_clock::now() - acceptTime_);
   fillSSLTransportInfoFields(sock, tinfo_);
 
-  auto nextProtocol = nextProto ?
-    std::string((const char*)nextProto, nextProtoLength) : empty_string;
+  auto nextProtocol = nextProto
+      ? std::string((const char*)nextProto, nextProtoLength)
+      : empty_string;
 
   // The callback will delete this.
   callback_->connectionReady(
@@ -119,4 +121,4 @@ void SSLAcceptorHandshakeHelper::handshakeErr(
   callback_->connectionError(socket_.get(), sslEx, sslError_);
 }
 
-}
+} // namespace wangle

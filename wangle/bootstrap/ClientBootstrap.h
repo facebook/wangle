@@ -16,13 +16,13 @@
 
 #pragma once
 
+#include <folly/executors/IOThreadPoolExecutor.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/DestructorCheck.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <wangle/bootstrap/BaseClientBootstrap.h>
 #include <wangle/channel/Pipeline.h>
-#include <folly/executors/IOThreadPoolExecutor.h>
 
 using folly::AsyncSSLSocket;
 
@@ -51,13 +51,12 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
 
     void connectSuccess() noexcept override {
       if (!safety_.destroyed()) {
-
         if (sslSessionEstablishedCallback_) {
           AsyncSSLSocket* sslSocket =
-            dynamic_cast<AsyncSSLSocket*>(socket_.get());
+              dynamic_cast<AsyncSSLSocket*>(socket_.get());
           if (sslSocket && !sslSocket->getSSLSessionReused()) {
             sslSessionEstablishedCallback_->onEstablished(
-              sslSocket->getSSLSession());
+                sslSocket->getSSLSession());
           }
         }
         bootstrap_->makePipeline(std::move(socket_));
@@ -71,9 +70,10 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
 
     void connectErr(const folly::AsyncSocketException& ex) noexcept override {
       promise_.setException(
-        folly::make_exception_wrapper<folly::AsyncSocketException>(ex));
+          folly::make_exception_wrapper<folly::AsyncSocketException>(ex));
       delete this;
     }
+
    private:
     folly::Promise<Pipeline*> promise_;
     ClientBootstrap* bootstrap_;
@@ -83,11 +83,9 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
   };
 
  public:
-  ClientBootstrap() {
-  }
+  ClientBootstrap() {}
 
-  ClientBootstrap* group(
-      std::shared_ptr<folly::IOThreadPoolExecutor> group) {
+  ClientBootstrap* group(std::shared_ptr<folly::IOThreadPoolExecutor> group) {
     group_ = group;
     return this;
   }
@@ -101,17 +99,14 @@ class ClientBootstrap : public BaseClientBootstrap<Pipeline>,
       const folly::SocketAddress& address,
       std::chrono::milliseconds timeout =
           std::chrono::milliseconds(0)) override {
-    auto base = (group_)
-      ? group_->getEventBase()
-      : folly::EventBaseManager::get()->getEventBase();
+    auto base = (group_) ? group_->getEventBase()
+                         : folly::EventBaseManager::get()->getEventBase();
     folly::Future<Pipeline*> retval((Pipeline*)nullptr);
-    base->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
+    base->runImmediatelyOrRunInEventBaseThreadAndWait([&]() {
       std::shared_ptr<folly::AsyncSocket> socket;
       if (this->sslContext_) {
         auto sslSocket = folly::AsyncSSLSocket::newSocket(
-            this->sslContext_,
-            base,
-            this->deferSecurityNegotiation_);
+            this->sslContext_, base, this->deferSecurityNegotiation_);
         if (!this->sni_.empty()) {
           sslSocket->setServerName(this->sni_);
         }

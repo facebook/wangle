@@ -31,11 +31,11 @@ class CloseOnReleaseFilter : public ServiceFilter<Req, Resp> {
       : ServiceFilter<Req, Resp>(service) {}
 
   folly::Future<Resp> operator()(Req req) override {
-    if (!released ){
+    if (!released) {
       return (*this->service_)(std::move(req));
     } else {
       return folly::makeFuture<Resp>(
-        folly::make_exception_wrapper<std::runtime_error>("Service Closed"));
+          folly::make_exception_wrapper<std::runtime_error>("Service Closed"));
     }
   }
 
@@ -46,6 +46,7 @@ class CloseOnReleaseFilter : public ServiceFilter<Req, Resp> {
       return folly::makeFuture();
     }
   }
+
  private:
   std::atomic<bool> released{false};
 };

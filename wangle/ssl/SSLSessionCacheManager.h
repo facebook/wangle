@@ -20,9 +20,9 @@
 #include <wangle/ssl/SSLStats.h>
 
 #include <folly/container/EvictingCacheMap.h>
-#include <mutex>
 #include <folly/hash/Hash.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <mutex>
 
 namespace wangle {
 
@@ -36,7 +36,7 @@ typedef folly::EvictingCacheMap<std::string, SSL_SESSION*> SSLSessionCacheMap;
 /**
  * Holds an SSLSessionCacheMap and associated lock
  */
-class LocalSSLSessionCache{
+class LocalSSLSessionCache {
  public:
   LocalSSLSessionCache(uint32_t maxCacheSize, uint32_t cacheCullSize);
 
@@ -54,8 +54,7 @@ class LocalSSLSessionCache{
   LocalSSLSessionCache(const LocalSSLSessionCache&) = delete;
   LocalSSLSessionCache& operator=(const LocalSSLSessionCache&) = delete;
 
-  void pruneSessionCallback(const std::string& sessionId,
-                            SSL_SESSION* session);
+  void pruneSessionCallback(const std::string& sessionId, SSL_SESSION* session);
 };
 
 /**
@@ -65,13 +64,17 @@ class LocalSSLSessionCache{
  */
 class ShardedLocalSSLSessionCache {
  public:
-  ShardedLocalSSLSessionCache(uint32_t n_buckets, uint32_t maxCacheSize,
-                              uint32_t cacheCullSize);
+  ShardedLocalSSLSessionCache(
+      uint32_t n_buckets,
+      uint32_t maxCacheSize,
+      uint32_t cacheCullSize);
 
   SSL_SESSION* lookupSession(const std::string& sessionId);
 
-  void storeSession(const std::string& sessionId, SSL_SESSION* session,
-                    SSLStats* stats);
+  void storeSession(
+      const std::string& sessionId,
+      SSL_SESSION* session,
+      SSLStats* stats);
 
   void removeSession(const std::string& sessionId);
 
@@ -79,7 +82,7 @@ class ShardedLocalSSLSessionCache {
     return folly::Hash()(key) % caches_.size();
   }
 
-  std::vector< std::unique_ptr<LocalSSLSessionCache> > caches_;
+  std::vector<std::unique_ptr<LocalSSLSessionCache>> caches_;
 
  private:
   ShardedLocalSSLSessionCache(const ShardedLocalSSLSessionCache&) = delete;
@@ -118,12 +121,12 @@ class SSLSessionCacheManager {
    * external cache.
    */
   SSLSessionCacheManager(
-    uint32_t maxCacheSize,
-    uint32_t cacheCullSize,
-    folly::SSLContext* ctx,
-    const std::string& context,
-    SSLStats* stats,
-    const std::shared_ptr<SSLCacheProvider>& externalCache);
+      uint32_t maxCacheSize,
+      uint32_t cacheCullSize,
+      folly::SSLContext* ctx,
+      const std::string& context,
+      SSLStats* stats,
+      const std::shared_ptr<SSLCacheProvider>& externalCache);
 
   virtual ~SSLSessionCacheManager();
 
@@ -138,8 +141,10 @@ class SSLSessionCacheManager {
   SSLSessionCacheManager& operator=(const SSLSessionCacheManager&) = delete;
 
  private:
-  struct ContextSessionCallbacks : public folly::SSLContext::SessionLifecycleCallbacks {
-    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) override;
+  struct ContextSessionCallbacks
+      : public folly::SSLContext::SessionLifecycleCallbacks {
+    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr)
+        override;
   };
 
   folly::SSLContext* ctx_;
@@ -164,8 +169,8 @@ class SSLSessionCacheManager {
    * Triggers a lookup in our local cache and potentially an asynchronous
    * request to an external cache.
    */
-  SSL_SESSION* getSession(SSL* ssl, unsigned char* session_id,
-                          int id_len, int* copyflag);
+  SSL_SESSION*
+  getSession(SSL* ssl, unsigned char* session_id, int id_len, int* copyflag);
 
   /**
    * Store a new session record in the external cache
@@ -176,7 +181,8 @@ class SSLSessionCacheManager {
    * Get or create the LRU cache for the given VIP ID
    */
   static std::shared_ptr<ShardedLocalSSLSessionCache> getLocalCache(
-    uint32_t maxCacheSize, uint32_t cacheCullSize);
+      uint32_t maxCacheSize,
+      uint32_t cacheCullSize);
 
   /**
    * static functions registered as callbacks to openssl via

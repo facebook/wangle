@@ -19,8 +19,8 @@
 #include <memory>
 #include <utility>
 
-#include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 
 namespace wangle {
@@ -215,4 +215,4 @@ class EvbHandshakeHelper : public AcceptorHandshakeHelper,
       HandshakeState expected,
       HandshakeState next);
 };
-}
+} // namespace wangle

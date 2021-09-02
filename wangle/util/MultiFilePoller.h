@@ -64,8 +64,7 @@ class MultiFilePoller {
    */
   class CallbackId final {
    private:
-    explicit CallbackId(size_t id) : id_(id) {
-    }
+    explicit CallbackId(size_t id) : id_(id) {}
     friend class MultiFilePoller;
     size_t id_;
   };
@@ -117,8 +116,7 @@ class MultiFilePoller {
 
   struct CallbackDetail {
     CallbackDetail(StringReferences files, Callback cb)
-        : files_(std::move(files)), cb_(std::move(cb)) {
-    }
+        : files_(std::move(files)), cb_(std::move(cb)) {}
     StringReferences files_;
     Callback cb_;
   };

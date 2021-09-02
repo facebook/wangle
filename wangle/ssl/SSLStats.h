@@ -27,8 +27,8 @@ class SSLStats {
   // downstream
   virtual void recordSSLAcceptLatency(int64_t latency) noexcept = 0;
   virtual void recordTLSTicket(bool ticketNew, bool ticketHit) noexcept = 0;
-  virtual void recordSSLSession(bool sessionNew, bool sessionHit, bool foreign)
-    noexcept = 0;
+  virtual void
+  recordSSLSession(bool sessionNew, bool sessionHit, bool foreign) noexcept = 0;
   virtual void recordSSLSessionRemove() noexcept = 0;
   virtual void recordSSLSessionFree(uint32_t freed) noexcept = 0;
   virtual void recordSSLSessionSetError(uint32_t err) noexcept = 0;
@@ -40,7 +40,6 @@ class SSLStats {
   // upstream
   virtual void recordSSLUpstreamConnection(bool handshake) noexcept = 0;
   virtual void recordSSLUpstreamConnectionError(bool verifyError) noexcept = 0;
-
 };
 
 } // namespace wangle

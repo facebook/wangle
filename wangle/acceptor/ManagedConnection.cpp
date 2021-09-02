@@ -20,9 +20,7 @@
 
 namespace wangle {
 
-ManagedConnection::ManagedConnection()
-  : connectionManager_(nullptr) {
-}
+ManagedConnection::ManagedConnection() : connectionManager_(nullptr) {}
 
 ManagedConnection::~ManagedConnection() {
   if (connectionManager_) {
@@ -30,23 +28,20 @@ ManagedConnection::~ManagedConnection() {
   }
 }
 
-void
-ManagedConnection::resetTimeout() {
+void ManagedConnection::resetTimeout() {
   if (connectionManager_) {
     resetTimeoutTo(connectionManager_->getDefaultTimeout());
   }
 }
 
-void
-ManagedConnection::resetTimeoutTo(std::chrono::milliseconds timeout) {
+void ManagedConnection::resetTimeoutTo(std::chrono::milliseconds timeout) {
   if (connectionManager_) {
     connectionManager_->scheduleTimeout(this, timeout);
   }
 }
 
-void
-ManagedConnection::scheduleTimeout(
-  folly::HHWheelTimer::Callback* callback,
+void ManagedConnection::scheduleTimeout(
+    folly::HHWheelTimer::Callback* callback,
     std::chrono::milliseconds timeout) {
   if (connectionManager_) {
     connectionManager_->scheduleTimeout(callback, timeout);
@@ -55,10 +50,9 @@ ManagedConnection::scheduleTimeout(
 
 ////////////////////// Globals /////////////////////
 
-std::ostream&
-operator<<(std::ostream& os, const ManagedConnection& conn) {
+std::ostream& operator<<(std::ostream& os, const ManagedConnection& conn) {
   conn.describe(os);
   return os;
 }
 
-} // wangle
+} // namespace wangle

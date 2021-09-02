@@ -21,7 +21,7 @@ using namespace std::chrono;
 
 namespace folly {
 
-template<>
+template <>
 folly::dynamic toDynamic(const wangle::SSLSessionCacheData& data) {
   folly::dynamic ret = folly::dynamic::object;
   ret["session_data"] = folly::dynamic(data.sessionData.toStdString());
@@ -31,14 +31,14 @@ folly::dynamic toDynamic(const wangle::SSLSessionCacheData& data) {
   return ret;
 }
 
-template<>
+template <>
 wangle::SSLSessionCacheData convertTo(const dynamic& d) {
   wangle::SSLSessionCacheData data;
   data.sessionData = d["session_data"].asString();
   data.addedTime =
-    system_clock::time_point(system_clock::duration(d["added_time"].asInt()));
+      system_clock::time_point(system_clock::duration(d["added_time"].asInt()));
   data.serviceIdentity = d.getDefault("service_identity", "").asString();
   return data;
 }
 
-} // folly
+} // namespace folly

@@ -54,9 +54,15 @@ class SSLException : public std::runtime_error {
       const std::chrono::milliseconds& latency,
       uint64_t bytesRead);
 
-  SSLErrorEnum getError() const { return error_; }
-  std::chrono::milliseconds getLatency() const { return latency_; }
-  uint64_t getBytesRead() const { return bytesRead_; }
+  SSLErrorEnum getError() const {
+    return error_;
+  }
+  std::chrono::milliseconds getLatency() const {
+    return latency_;
+  }
+  uint64_t getBytesRead() const {
+    return bytesRead_;
+  }
 
  private:
   SSLErrorEnum error_{SSLErrorEnum::NO_ERROR};
@@ -98,8 +104,8 @@ class SSLUtil {
   }
 
  private:
-   // The following typedefs are needed for compatibility across various OpenSSL
-   // versions since each change the dup function param types ever so slightly
+  // The following typedefs are needed for compatibility across various OpenSSL
+  // versions since each change the dup function param types ever so slightly
 #if FOLLY_OPENSSL_IS_110 || defined(OPENSSL_IS_BORINGSSL)
   using ex_data_dup_from_arg_t = const CRYPTO_EX_DATA*;
 #else
@@ -151,11 +157,7 @@ class SSLUtil {
     std::lock_guard<std::mutex> g(sIndexLock_);
     if (*pindex < 0) {
       *pindex = SSL_SESSION_get_ex_new_index(
-          0,
-          nullptr,
-          nullptr,
-          exDataStdStringDup,
-          exDataStdStringFree);
+          0, nullptr, nullptr, exDataStdStringDup, exDataStdStringFree);
     }
   }
 
@@ -166,8 +168,9 @@ class SSLUtil {
     return hex;
   }
 
-  static inline const std::string& hexlify(const std::string& binary,
-                                           std::string& hex) {
+  static inline const std::string& hexlify(
+      const std::string& binary,
+      std::string& hex) {
     folly::hexlify<std::string, std::string>(binary, hex);
 
     return hex;
@@ -176,8 +179,7 @@ class SSLUtil {
   /**
    * Return the SSL resume type for the given socket.
    */
-  static SSLResumeEnum getResumeState(
-    folly::AsyncSSLSocket* sslSocket);
+  static SSLResumeEnum getResumeState(folly::AsyncSSLSocket* sslSocket);
 
   /**
    * Get the Common Name from an X.509 certificate
@@ -194,7 +196,6 @@ class SSLUtil {
    */
   static std::unique_ptr<std::list<std::string>> getSubjectAltName(
       const X509* cert);
-
 
   /**
    * Parse an X509 out of a certificate buffer (usually read from the cert file)

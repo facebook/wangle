@@ -33,8 +33,7 @@ bool TLSPlaintextPeekingCallback::looksLikeTLS(
   return true;
 }
 
-AcceptorHandshakeHelper::UniquePtr
-TLSPlaintextPeekingCallback::getHelper(
+AcceptorHandshakeHelper::UniquePtr TLSPlaintextPeekingCallback::getHelper(
     const std::vector<uint8_t>& bytes,
     const folly::SocketAddress& /* clientAddr */,
     std::chrono::steady_clock::time_point /* acceptTime */,
@@ -47,4 +46,4 @@ TLSPlaintextPeekingCallback::getHelper(
   return nullptr;
 }
 
-}
+} // namespace wangle

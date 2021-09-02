@@ -23,7 +23,6 @@
 #include <folly/Singleton.h>
 #include <sys/stat.h>
 
-
 namespace wangle {
 
 namespace {
@@ -54,13 +53,12 @@ class PollerContext {
 folly::Singleton<PollerContext> contextSingleton([] {
   return new PollerContext();
 });
-}
+} // namespace
 
 bool* FilePoller::ThreadProtector::polling() {
   static thread_local bool sPolling{false};
   return &sPolling;
 }
-
 
 constexpr std::chrono::milliseconds FilePoller::kDefaultPollInterval;
 
@@ -68,7 +66,9 @@ FilePoller::FilePoller(std::chrono::milliseconds pollInterval) {
   init(pollInterval);
 }
 
-FilePoller::~FilePoller() { stop(); }
+FilePoller::~FilePoller() {
+  stop();
+}
 
 void FilePoller::init(std::chrono::milliseconds pollInterval) {
   auto context = contextSingleton.try_get();
@@ -86,8 +86,7 @@ void FilePoller::init(std::chrono::milliseconds pollInterval) {
 
 void FilePoller::stop() {
   if (scheduler_) {
-    scheduler_->cancelFunctionAndWait(
-        folly::to<std::string>(pollerId_));
+    scheduler_->cancelFunctionAndWait(folly::to<std::string>(pollerId_));
   }
 }
 
@@ -159,8 +158,8 @@ FilePoller::FileModificationData FilePoller::getFileModData(
   // nanoseconds portion of the mtime
 #ifndef _WIN32
   auto& mtim =
-#if defined(__APPLE__) || defined(__FreeBSD__) \
- || (defined(__NetBSD__) && (__NetBSD_Version__ < 6099000000))
+#if defined(__APPLE__) || defined(__FreeBSD__) || \
+    (defined(__NetBSD__) && (__NetBSD_Version__ < 6099000000))
       info.st_mtimespec
 #else
       info.st_mtim
@@ -169,9 +168,9 @@ FilePoller::FileModificationData FilePoller::getFileModData(
 
   system_time +=
       std::chrono::duration_cast<std::chrono::system_clock::duration>(
-                         std::chrono::nanoseconds(mtim.tv_nsec));
+          std::chrono::nanoseconds(mtim.tv_nsec));
 #endif
 
   return FileModificationData{true, system_time};
 }
-}
+} // namespace wangle

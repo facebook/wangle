@@ -16,9 +16,9 @@
 
 #include <wangle/util/MultiFilePoller.h>
 
-#include <algorithm>
 #include <folly/FileUtil.h>
 #include <folly/String.h>
+#include <algorithm>
 
 using namespace folly;
 
@@ -64,8 +64,8 @@ MultiFilePoller::CallbackId MultiFilePoller::registerFiles(
     cbPaths.push_back(key);
     poller_.addFileToTrack(key, [=] { onFileUpdated(key); });
   }
-  idsToCallbacks_.emplace(cbId,
-                          CallbackDetail(std::move(cbPaths), std::move(cb)));
+  idsToCallbacks_.emplace(
+      cbId, CallbackDetail(std::move(cbPaths), std::move(cb)));
   return MultiFilePoller::CallbackId(cbId);
 }
 

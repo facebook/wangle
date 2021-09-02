@@ -35,8 +35,8 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
  public:
   class PeekCallback {
    public:
-    explicit PeekCallback(size_t bytesRequired):
-      bytesRequired_(bytesRequired) {}
+    explicit PeekCallback(size_t bytesRequired)
+        : bytesRequired_(bytesRequired) {}
     virtual ~PeekCallback() = default;
 
     size_t getBytesRequired() const {
@@ -92,8 +92,8 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     peeker_ = nullptr;
 
     for (auto& peekCallback : peekCallbacks_) {
-      helper_ = peekCallback->getHelper(
-          peekBytes, clientAddr_, acceptTime_, tinfo_);
+      helper_ =
+          peekCallback->getHelper(peekBytes, clientAddr_, acceptTime_, tinfo_);
       if (helper_) {
         break;
       }
@@ -141,28 +141,24 @@ using PeekingCallbackPtr = PeekingAcceptorHandshakeHelper::PeekCallback*;
 class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
  public:
   PeekingAcceptorHandshakeManager(
-        Acceptor* acceptor,
-        const folly::SocketAddress& clientAddr,
-        std::chrono::steady_clock::time_point acceptTime,
-        TransportInfo tinfo,
-        const std::vector<PeekingCallbackPtr>& peekCallbacks,
-        size_t numBytes):
-      AcceptorHandshakeManager(
-          acceptor,
-          clientAddr,
-          acceptTime,
-          std::move(tinfo)),
-      peekCallbacks_(peekCallbacks),
-      numBytes_(numBytes) {}
+      Acceptor* acceptor,
+      const folly::SocketAddress& clientAddr,
+      std::chrono::steady_clock::time_point acceptTime,
+      TransportInfo tinfo,
+      const std::vector<PeekingCallbackPtr>& peekCallbacks,
+      size_t numBytes)
+      : AcceptorHandshakeManager(
+            acceptor,
+            clientAddr,
+            acceptTime,
+            std::move(tinfo)),
+        peekCallbacks_(peekCallbacks),
+        numBytes_(numBytes) {}
 
  protected:
   void startHelper(folly::AsyncSSLSocket::UniquePtr sock) override {
     helper_.reset(new PeekingAcceptorHandshakeHelper(
-        clientAddr_,
-        acceptTime_,
-        tinfo_,
-        peekCallbacks_,
-        numBytes_));
+        clientAddr_, acceptTime_, tinfo_, peekCallbacks_, numBytes_));
     helper_->start(std::move(sock), this);
   }
 
@@ -170,4 +166,4 @@ class PeekingAcceptorHandshakeManager : public AcceptorHandshakeManager {
   size_t numBytes_;
 };
 
-}
+} // namespace wangle

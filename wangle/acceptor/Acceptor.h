@@ -411,9 +411,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       folly::EventBase* base,
       int fd,
       const folly::SocketAddress* peerAddress) {
-    return folly::AsyncSocket::UniquePtr(
-        new folly::AsyncSocket(
-            base, folly::NetworkSocket::fromFd(fd), 0, peerAddress));
+    return folly::AsyncSocket::UniquePtr(new folly::AsyncSocket(
+        base, folly::NetworkSocket::fromFd(fd), 0, peerAddress));
   }
 
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(

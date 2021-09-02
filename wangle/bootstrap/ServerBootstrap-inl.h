@@ -191,11 +191,12 @@ class ServerAcceptor : public Acceptor,
       const std::string& nextProtocolName,
       SecureTransportType secureTransportType,
       const TransportInfo& tinfo) override {
-    ConnInfo connInfo = {transport.release(),
-                         clientAddr,
-                         nextProtocolName,
-                         secureTransportType,
-                         tinfo};
+    ConnInfo connInfo = {
+        transport.release(),
+        clientAddr,
+        nextProtocolName,
+        secureTransportType,
+        tinfo};
     acceptPipeline_->read(connInfo);
   }
 

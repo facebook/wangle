@@ -49,10 +49,11 @@ namespace wangle {
  */
 class LengthFieldPrepender : public OutboundBytesToBytesHandler {
  public:
-  explicit LengthFieldPrepender(int lengthFieldLength = 4,
-                                int lengthAdjustment = 0,
-                                bool lengthIncludesLengthField = false,
-                                bool networkByteOrder = true);
+  explicit LengthFieldPrepender(
+      int lengthFieldLength = 4,
+      int lengthAdjustment = 0,
+      bool lengthIncludesLengthField = false,
+      bool networkByteOrder = true);
 
   folly::Future<folly::Unit> write(
       Context* ctx,

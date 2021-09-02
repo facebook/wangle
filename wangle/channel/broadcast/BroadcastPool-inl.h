@@ -25,8 +25,8 @@ BroadcastPool<T, R, P>::BroadcastManager::getHandler() {
   // Set the executor to the InlineExecutor because subsequent code depends
   // on the future callback being called inline to ensure that the handler
   // is not garbage collected before use.
-  auto future = sharedPromise_.getFuture().via(
-    &folly::InlineExecutor::instance());
+  auto future =
+      sharedPromise_.getFuture().via(&folly::InlineExecutor::instance());
 
   if (connectStarted_) {
     // Either already connected, in which case the future has the handler,

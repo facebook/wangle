@@ -21,29 +21,24 @@ namespace wangle {
 template <typename T, typename R>
 void BroadcastHandler<T, R>::read(Context*, T data) {
   onData(data);
-  forEachSubscriber([&](Subscriber<T, R>* s) {
-    s->onNext(data);
-  });
+  forEachSubscriber([&](Subscriber<T, R>* s) { s->onNext(data); });
 }
 
 template <typename T, typename R>
 void BroadcastHandler<T, R>::readEOF(Context*) {
-  forEachSubscriber([&](Subscriber<T, R>* s) {
-    s->onCompleted();
-  });
+  forEachSubscriber([&](Subscriber<T, R>* s) { s->onCompleted(); });
   subscribers_.clear();
   closeIfIdle();
 }
 
 template <typename T, typename R>
-void BroadcastHandler<T, R>::readException(Context*,
-                                        folly::exception_wrapper ex) {
+void BroadcastHandler<T, R>::readException(
+    Context*,
+    folly::exception_wrapper ex) {
   LOG(ERROR) << "Error while reading from upstream for broadcast: "
              << exceptionStr(ex);
 
-  forEachSubscriber([&](Subscriber<T, R>* s) {
-    s->onError(ex);
-  });
+  forEachSubscriber([&](Subscriber<T, R>* s) { s->onError(ex); });
   subscribers_.clear();
   closeIfIdle();
 }

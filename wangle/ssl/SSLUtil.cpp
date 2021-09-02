@@ -27,24 +27,25 @@
 namespace wangle {
 
 SSLException::SSLException(
-      SSLErrorEnum const error,
-      std::chrono::milliseconds const& latency,
-      uint64_t const bytesRead)
-      : std::runtime_error(folly::sformat(
-            "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
-            static_cast<int>(error),
-            latency.count(),
-            bytesRead)),
-        error_(error), latency_(latency), bytesRead_(bytesRead) {}
+    SSLErrorEnum const error,
+    std::chrono::milliseconds const& latency,
+    uint64_t const bytesRead)
+    : std::runtime_error(folly::sformat(
+          "SSL error: {}; Elapsed time: {} ms; Bytes read: {}",
+          static_cast<int>(error),
+          latency.count(),
+          bytesRead)),
+      error_(error),
+      latency_(latency),
+      bytesRead_(bytesRead) {}
 
 std::mutex SSLUtil::sIndexLock_;
 
 SSLResumeEnum SSLUtil::getResumeState(folly::AsyncSSLSocket* sslSocket) {
-  return sslSocket->getSSLSessionReused() ?
-    (sslSocket->sessionIDResumed() ?
-     SSLResumeEnum::RESUME_SESSION_ID :
-     SSLResumeEnum::RESUME_TICKET) :
-    SSLResumeEnum::HANDSHAKE;
+  return sslSocket->getSSLSessionReused()
+      ? (sslSocket->sessionIDResumed() ? SSLResumeEnum::RESUME_SESSION_ID
+                                       : SSLResumeEnum::RESUME_TICKET)
+      : SSLResumeEnum::HANDSHAKE;
 }
 
 std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
@@ -53,8 +54,8 @@ std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
     return nullptr;
   }
   char cn[ub_common_name + 1];
-  int res = X509_NAME_get_text_by_NID(subject, NID_commonName,
-                                      cn, ub_common_name);
+  int res =
+      X509_NAME_get_text_by_NID(subject, NID_commonName, cn, ub_common_name);
   if (res <= 0) {
     return nullptr;
   } else {
@@ -98,8 +99,7 @@ folly::ssl::X509UniquePtr SSLUtil::getX509FromCertificate(
   // BIO_new_mem_buf creates a bio pointing to a read-only buffer. However,
   // older versions of OpenSSL fail to mark the first argument `const`.
   DCHECK_LE(certificateData.length(), std::numeric_limits<int>::max());
-  folly::ssl::BioUniquePtr bio(
-    BIO_new_mem_buf(
+  folly::ssl::BioUniquePtr bio(BIO_new_mem_buf(
       (void*)certificateData.data(),
       folly::to_narrow(folly::to_signed(certificateData.length()))));
   if (!bio) {
@@ -183,8 +183,7 @@ folly::Optional<std::string> SSLUtil::decryptOpenSSLEncFilePassString(
     return folly::none;
   }
   auto salt = fileData.substr(magic.size(), PKCS5_SALT_LEN);
-  auto ciphertext =
-      fileData.substr(magic.size() + PKCS5_SALT_LEN);
+  auto ciphertext = fileData.substr(magic.size() + PKCS5_SALT_LEN);
 
   // Construct key and iv from password
   DCHECK_LE(password.size(), std::numeric_limits<int>::max());

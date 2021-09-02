@@ -19,13 +19,12 @@
 #include <exception>
 
 #include <folly/FileUtil.h>
-#include <folly/portability/Unistd.h>
 #include <folly/json.h>
+#include <folly/portability/Unistd.h>
 
 namespace wangle {
 
-bool FilePersistenceLayer::persist(
-  const folly::dynamic& dynObj) noexcept {
+bool FilePersistenceLayer::persist(const folly::dynamic& dynObj) noexcept {
   std::string serializedCache;
   try {
     folly::json::serialization_opts opts;
@@ -37,21 +36,15 @@ bool FilePersistenceLayer::persist(
     return false;
   }
   bool persisted = false;
-  const auto fd = folly::openNoInt(
-    file_.c_str(),
-    O_WRONLY | O_CREAT | O_TRUNC,
-    0600
-  );
+  const auto fd =
+      folly::openNoInt(file_.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
   if (fd == -1) {
     return false;
   }
-  const auto nWritten = folly::writeFull(
-    fd,
-    serializedCache.data(),
-    serializedCache.size()
-  );
+  const auto nWritten =
+      folly::writeFull(fd, serializedCache.data(), serializedCache.size());
   persisted = nWritten >= 0 &&
-    (static_cast<size_t>(nWritten) == serializedCache.size());
+      (static_cast<size_t>(nWritten) == serializedCache.size());
   if (!persisted) {
     LOG(ERROR) << "Failed to write to " << file_ << ":";
     if (nWritten == -1) {
@@ -83,8 +76,8 @@ folly::Optional<folly::dynamic> FilePersistenceLayer::load() noexcept {
     opts.allow_non_string_keys = true;
     return folly::parseJson(serializedCache, opts);
   } catch (...) {
-    LOG(ERROR) << "Deserialization of cache file " << file_ << "failed: "
-               << folly::exceptionStr(std::current_exception());
+    LOG(ERROR) << "Deserialization of cache file " << file_
+               << "failed: " << folly::exceptionStr(std::current_exception());
     return folly::none;
   }
 }
@@ -93,6 +86,5 @@ void FilePersistenceLayer::clear() {
   // This may fail but it's ok
   ::unlink(file_.c_str());
 }
-
 
 } // namespace wangle

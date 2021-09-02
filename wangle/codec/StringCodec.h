@@ -23,12 +23,17 @@ namespace wangle {
 /*
  * StringCodec converts a pipeline from IOBufs to std::strings.
  */
-class StringCodec : public Handler<std::unique_ptr<folly::IOBuf>, std::string,
-                                   std::string, std::unique_ptr<folly::IOBuf>> {
+class StringCodec : public Handler<
+                        std::unique_ptr<folly::IOBuf>,
+                        std::string,
+                        std::string,
+                        std::unique_ptr<folly::IOBuf>> {
  public:
   typedef typename Handler<
-   std::unique_ptr<folly::IOBuf>, std::string,
-   std::string, std::unique_ptr<folly::IOBuf>>::Context Context;
+      std::unique_ptr<folly::IOBuf>,
+      std::string,
+      std::string,
+      std::unique_ptr<folly::IOBuf>>::Context Context;
 
   void read(Context* ctx, std::unique_ptr<folly::IOBuf> buf) override {
     if (buf) {

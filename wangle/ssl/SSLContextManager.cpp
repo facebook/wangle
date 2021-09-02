@@ -537,7 +537,7 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
 
   if (ctxConfig.clientCAFile.empty() &&
       ctxConfig.clientVerification !=
-        SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
+          SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
     LOG(FATAL) << "You can't verify certs without the client ca file";
   }
 

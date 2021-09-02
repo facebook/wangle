@@ -54,7 +54,8 @@ class TelnetPipelineFactory : public PipelineFactory<TelnetPipeline> {
       std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = TelnetPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
-    pipeline->addBack(EventBaseHandler()); // ensure we can write from any thread
+    pipeline->addBack(
+        EventBaseHandler()); // ensure we can write from any thread
     pipeline->addBack(LineBasedFrameDecoder(8192, false));
     pipeline->addBack(StringCodec());
     pipeline->addBack(TelnetHandler());
@@ -70,7 +71,7 @@ int main(int argc, char** argv) {
   ClientBootstrap<TelnetPipeline> client;
   client.group(std::make_shared<folly::IOThreadPoolExecutor>(1));
   client.pipelineFactory(std::make_shared<TelnetPipelineFactory>());
-  auto pipeline = client.connect(SocketAddress(FLAGS_host,FLAGS_port)).get();
+  auto pipeline = client.connect(SocketAddress(FLAGS_host, FLAGS_port)).get();
 
   try {
     while (true) {
@@ -87,7 +88,7 @@ int main(int argc, char** argv) {
         break;
       }
     }
-  } catch(const std::exception& e) {
+  } catch (const std::exception& e) {
     std::cout << exceptionStr(e) << std::endl;
   }
 

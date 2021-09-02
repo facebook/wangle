@@ -18,21 +18,23 @@
 
 namespace wangle {
 
-using folly::io::Cursor;
 using folly::IOBuf;
 using folly::IOBufQueue;
+using folly::io::Cursor;
 
-LineBasedFrameDecoder::LineBasedFrameDecoder(uint32_t maxLength,
-                                             bool stripDelimiter,
-                                             TerminatorType terminatorType)
-    : maxLength_(maxLength)
-    , stripDelimiter_(stripDelimiter)
-    , terminatorType_(terminatorType) {}
+LineBasedFrameDecoder::LineBasedFrameDecoder(
+    uint32_t maxLength,
+    bool stripDelimiter,
+    TerminatorType terminatorType)
+    : maxLength_(maxLength),
+      stripDelimiter_(stripDelimiter),
+      terminatorType_(terminatorType) {}
 
-bool LineBasedFrameDecoder::decode(Context* ctx,
-                                   IOBufQueue& buf,
-                                   std::unique_ptr<IOBuf>& result,
-                                   size_t&) {
+bool LineBasedFrameDecoder::decode(
+    Context* ctx,
+    IOBufQueue& buf,
+    std::unique_ptr<IOBuf>& result,
+    size_t&) {
   int64_t eol = findEndOfLine(buf);
 
   if (!discarding_) {
@@ -85,10 +87,9 @@ bool LineBasedFrameDecoder::decode(Context* ctx,
 }
 
 void LineBasedFrameDecoder::fail(Context* ctx, std::string len) {
-  ctx->fireReadException(
-    folly::make_exception_wrapper<std::runtime_error>(
-      "frame length" + len +
-      " exeeds max " + folly::to<std::string>(maxLength_)));
+  ctx->fireReadException(folly::make_exception_wrapper<std::runtime_error>(
+      "frame length" + len + " exeeds max " +
+      folly::to<std::string>(maxLength_)));
 }
 
 int64_t LineBasedFrameDecoder::findEndOfLine(IOBufQueue& buf) {

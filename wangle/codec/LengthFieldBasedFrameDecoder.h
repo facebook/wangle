@@ -108,10 +108,12 @@ namespace wangle {
  * initialBytesToStrip = 0
  *
  * BEFORE DECODE (17 bytes)                      AFTER DECODE (17 bytes)
- * +----------+----------+----------------+      +----------+----------+----------------+
- * | Header 1 |  Length  | Actual Content |----->| Header 1 |  Length  | Actual Content |
- * |  0xCAFE  | 0x00000C | "HELLO, WORLD" |      |  0xCAFE  | 0x00000C | "HELLO, WORLD" |
- * +----------+----------+----------------+      +----------+----------+----------------+
+ * +----------+----------+----------------+
+ * +----------+----------+----------------+ | Header 1 |  Length  | Actual
+ * Content |----->| Header 1 |  Length  | Actual Content | |  0xCAFE  | 0x00000C
+ * | "HELLO, WORLD" |      |  0xCAFE  | 0x00000C | "HELLO, WORLD" |
+ * +----------+----------+----------------+
+ * +----------+----------+----------------+
  *
  *
  * 3 bytes length field at the beginning of 5 bytes header, do not strip header
@@ -127,10 +129,12 @@ namespace wangle {
  * initialBytesToStrip = 0
  *
  * BEFORE DECODE (17 bytes)                      AFTER DECODE (17 bytes)
- * +----------+----------+----------------+      +----------+----------+----------------+
- * |  Length  | Header 1 | Actual Content |----->|  Length  | Header 1 | Actual Content |
- * | 0x00000C |  0xCAFE  | "HELLO, WORLD" |      | 0x00000C |  0xCAFE  | "HELLO, WORLD" |
- * +----------+----------+----------------+      +----------+----------+----------------+
+ * +----------+----------+----------------+
+ * +----------+----------+----------------+ |  Length  | Header 1 | Actual
+ * Content |----->|  Length  | Header 1 | Actual Content | | 0x00000C |  0xCAFE
+ * | "HELLO, WORLD" |      | 0x00000C |  0xCAFE  | "HELLO, WORLD" |
+ * +----------+----------+----------------+
+ * +----------+----------+----------------+
  *
  *
  * 2 bytes length field at offset 1 in the middle of 4 bytes header,
@@ -182,22 +186,26 @@ namespace wangle {
  */
 class LengthFieldBasedFrameDecoder : public ByteToByteDecoder {
  public:
-  explicit LengthFieldBasedFrameDecoder(uint32_t lengthFieldLength = 4,
-                                        uint32_t maxFrameLength = UINT_MAX,
-                                        uint32_t lengthFieldOffset = 0,
-                                        int32_t lengthAdjustment = 0,
-                                        uint32_t initialBytesToStrip = 4,
-                                        bool networkByteOrder = true);
+  explicit LengthFieldBasedFrameDecoder(
+      uint32_t lengthFieldLength = 4,
+      uint32_t maxFrameLength = UINT_MAX,
+      uint32_t lengthFieldOffset = 0,
+      int32_t lengthAdjustment = 0,
+      uint32_t initialBytesToStrip = 4,
+      bool networkByteOrder = true);
 
-  bool decode(Context* ctx,
-              folly::IOBufQueue& buf,
-              std::unique_ptr<folly::IOBuf>& result,
-              size_t&) override;
+  bool decode(
+      Context* ctx,
+      folly::IOBufQueue& buf,
+      std::unique_ptr<folly::IOBuf>& result,
+      size_t&) override;
 
  private:
-
   uint64_t getUnadjustedFrameLength(
-    folly::IOBufQueue& buf, int offset, int length, bool networkByteOrder);
+      folly::IOBufQueue& buf,
+      int offset,
+      int length,
+      bool networkByteOrder);
 
   uint32_t lengthFieldLength_;
   uint32_t maxFrameLength_;

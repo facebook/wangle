@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include "wangle/bootstrap/ServerBootstrap.h"
 #include "wangle/bootstrap/ClientBootstrap.h"
+#include "wangle/bootstrap/ServerBootstrap.h"
 #include "wangle/channel/Handler.h"
 #include "wangle/channel/broadcast/ObservingHandler.h"
 
-#include <glog/logging.h>
 #include <folly/portability/GTest.h>
+#include <glog/logging.h>
 
 using namespace wangle;
 using namespace folly;
@@ -54,15 +54,15 @@ class TestPipelineFactory : public PipelineFactory<BytesPipeline> {
   std::atomic<int> pipelines_{0};
 };
 
-class CustomPipelineFactory
-    : public TestPipelineFactory,
-      public ObservingPipelineFactory<
-               std::shared_ptr<folly::IOBuf>, TestRoutingData> {
+class CustomPipelineFactory : public TestPipelineFactory,
+                              public ObservingPipelineFactory<
+                                  std::shared_ptr<folly::IOBuf>,
+                                  TestRoutingData> {
  public:
   CustomPipelineFactory()
-  : ObservingPipelineFactory<std::shared_ptr<folly::IOBuf>, TestRoutingData>(
-      nullptr, nullptr) {
-  }
+      : ObservingPipelineFactory<
+            std::shared_ptr<folly::IOBuf>,
+            TestRoutingData>(nullptr, nullptr) {}
 
   TestObsPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransport> socket,
@@ -96,14 +96,10 @@ class CustomPipelineMakerTestClient : public TestClient {
   explicit CustomPipelineMakerTestClient(
       const TestRoutingData& routingData,
       const std::shared_ptr<CustomPipelineFactory>& factory)
-      : routingData_(routingData),
-        factory_(factory) {
-  }
+      : routingData_(routingData), factory_(factory) {}
 
-  void makePipeline(
-      std::shared_ptr<folly::AsyncTransport> socket) override {
-    setPipeline(factory_->newPipeline(
-      socket, routingData_, nullptr, nullptr));
+  void makePipeline(std::shared_ptr<folly::AsyncTransport> socket) override {
+    setPipeline(factory_->newPipeline(socket, routingData_, nullptr, nullptr));
   }
 
   TestRoutingData routingData_;
@@ -123,9 +119,8 @@ TEST(ObservingClientPipelineTest, CustomPipelineMaker) {
   TestRoutingData routingData;
   routingData.data = "Test";
   auto clientPipelineFactory = std::make_shared<CustomPipelineFactory>();
-  auto client =
-    std::make_unique<CustomPipelineMakerTestClient>(
-        routingData, clientPipelineFactory);
+  auto client = std::make_unique<CustomPipelineMakerTestClient>(
+      routingData, clientPipelineFactory);
 
   client->connect(address, std::chrono::milliseconds(0));
   base->loop();

@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <folly/io/async/AsyncTransport.h>
-#include <folly/futures/Future.h>
 #include <folly/ExceptionWrapper.h>
+#include <folly/futures/Future.h>
+#include <folly/io/async/AsyncTransport.h>
 
 namespace wangle {
 
@@ -108,17 +108,13 @@ class OutboundHandlerContext {
 // to nothing, so letting the preprocessor delete each of these symbols, leading
 // to interesting compiler errors around HandlerDir.
 #ifdef IN
-#  undef IN
+#undef IN
 #endif
 #ifdef OUT
-#  undef OUT
+#undef OUT
 #endif
 
-enum class HandlerDir {
-  IN,
-  OUT,
-  BOTH
-};
+enum class HandlerDir { IN, OUT, BOTH };
 
 } // namespace wangle
 

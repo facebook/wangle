@@ -68,10 +68,8 @@ DEFINE_int32(upstream_port, 8081, "Upstream server port");
  */
 class ByteToStringDecoder : public ByteToMessageDecoder<std::string> {
  public:
-  bool decode(Context*,
-              IOBufQueue& buf,
-              std::string& result,
-              size_t&) override {
+  bool decode(Context*, IOBufQueue& buf, std::string& result, size_t&)
+      override {
     if (buf.chainLength() > 0) {
       result = buf.move()->moveToFbString().toStdString();
       return true;
@@ -103,8 +101,8 @@ class ClientIPRoutingDataHandler : public RoutingDataHandler<std::string> {
   ClientIPRoutingDataHandler(uint64_t connId, Callback* cob)
       : RoutingDataHandler<std::string>(connId, cob) {}
 
-  bool parseRoutingData(folly::IOBufQueue& bufQueue,
-                        RoutingData& routingData) override {
+  bool parseRoutingData(folly::IOBufQueue& bufQueue, RoutingData& routingData)
+      override {
     auto transportInfo = getContext()->getPipeline()->getTransportInfo();
     const auto& clientIP = transportInfo->remoteAddr->getAddressStr();
     LOG(INFO) << "Using client IP " << clientIP
@@ -188,7 +186,8 @@ class SimpleObservingPipelineFactory
       std::shared_ptr<SimpleServerPool> serverPool,
       std::shared_ptr<SimpleBroadcastPipelineFactory> broadcastPipelineFactory)
       : ObservingPipelineFactory<std::string, std::string>(
-            serverPool, broadcastPipelineFactory) {}
+            serverPool,
+            broadcastPipelineFactory) {}
 
   SimpleObservingPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransport> socket,

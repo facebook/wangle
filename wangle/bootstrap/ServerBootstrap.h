@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <wangle/bootstrap/ServerBootstrap-inl.h>
 #include <folly/synchronization/Baton.h>
+#include <wangle/bootstrap/ServerBootstrap-inl.h>
 #include <wangle/channel/Pipeline.h>
 #include <iostream>
 #include <thread>
@@ -62,7 +62,7 @@ class ServerBootstrap {
   }
 
   ServerBootstrap* channelFactory(
-    std::shared_ptr<ServerSocketFactory> factory) {
+      std::shared_ptr<ServerSocketFactory> factory) {
     socketFactory_ = factory;
     return this;
   }
@@ -119,7 +119,7 @@ class ServerBootstrap {
       std::shared_ptr<folly::IOThreadPoolExecutor> io_group) {
     if (!accept_group) {
       accept_group = std::make_shared<folly::IOThreadPoolExecutor>(
-        1, std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
+          1, std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
     }
     if (!io_group) {
       auto threads = std::thread::hardware_concurrency();
@@ -128,7 +128,7 @@ class ServerBootstrap {
         threads = 8;
       }
       io_group = std::make_shared<folly::IOThreadPoolExecutor>(
-        threads, std::make_shared<folly::NamedThreadFactory>("IO Thread"));
+          threads, std::make_shared<folly::NamedThreadFactory>("IO Thread"));
     }
 
     // TODO better config checking
@@ -137,17 +137,14 @@ class ServerBootstrap {
 
     if (acceptorFactory_) {
       workerFactory_ = std::make_shared<ServerWorkerPool>(
-        acceptorFactory_, io_group.get(), sockets_, socketFactory_);
+          acceptorFactory_, io_group.get(), sockets_, socketFactory_);
     } else {
       auto acceptorFactory = std::make_shared<ServerAcceptorFactory<Pipeline>>(
-            acceptPipelineFactory_, childPipelineFactory_, accConfig_);
+          acceptPipelineFactory_, childPipelineFactory_, accConfig_);
       acceptorFactory->enableSharedSSLContext(useSharedSSLContextManager_);
       sharedSSLContextManager_ = acceptorFactory->getSharedSSLContextManager();
       workerFactory_ = std::make_shared<ServerWorkerPool>(
-          acceptorFactory,
-          io_group.get(),
-          sockets_,
-          socketFactory_);
+          acceptorFactory, io_group.get(), sockets_, socketFactory_);
     }
 
     io_group->addObserver(workerFactory_);
@@ -173,7 +170,7 @@ class ServerBootstrap {
     CHECK(acceptor_group_->numThreads() == 1);
 
     std::shared_ptr<folly::AsyncServerSocket> socket(
-      s.release(), AsyncServerSocketFactory::ThreadSafeDestructor());
+        s.release(), AsyncServerSocketFactory::ThreadSafeDestructor());
     socket->setMaxNumMessagesInQueue(
         accConfig_.maxNumPendingConnectionsPerWorker);
 
@@ -187,11 +184,11 @@ class ServerBootstrap {
     }).get();
 
     // Startup all the threads
-    workerFactory_->forEachWorker([this, socket](Acceptor* worker){
+    workerFactory_->forEachWorker([this, socket](Acceptor* worker) {
       socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-        [this, worker, socket](){
-          socketFactory_->addAcceptCB(socket, worker, worker->getEventBase());
-      });
+          [this, worker, socket]() {
+            socketFactory_->addAcceptCB(socket, worker, worker->getEventBase());
+          });
     });
 
     sockets_->push_back(socket);
@@ -219,16 +216,15 @@ class ServerBootstrap {
       group(nullptr);
     }
 
-    bool reusePort = reusePort_ || (acceptor_group_->numThreads() > 1)  || accConfig_.reusePort;
+    bool reusePort = reusePort_ || (acceptor_group_->numThreads() > 1) ||
+        accConfig_.reusePort;
 
     std::mutex sock_lock;
     std::vector<std::shared_ptr<folly::AsyncSocketBase>> new_sockets;
 
-
     std::exception_ptr exn;
 
     auto startupFunc = [&](std::shared_ptr<folly::Baton<>> barrier) {
-
       try {
         auto socket = socketFactory_->newSocket(
             address, socketConfig.acceptBacklog, reusePort, socketConfig);
@@ -244,7 +240,6 @@ class ServerBootstrap {
 
         return;
       }
-
     };
 
     auto wait0 = std::make_shared<folly::Baton<>>();
@@ -263,11 +258,12 @@ class ServerBootstrap {
 
     for (auto& socket : new_sockets) {
       // Startup all the threads
-      workerFactory_->forEachWorker([this, socket](Acceptor* worker){
+      workerFactory_->forEachWorker([this, socket](Acceptor* worker) {
         socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-          [this, worker, socket](){
-            socketFactory_->addAcceptCB(socket, worker, worker->getEventBase());
-        });
+            [this, worker, socket]() {
+              socketFactory_->addAcceptCB(
+                  socket, worker, worker->getEventBase());
+            });
       });
 
       sockets_->push_back(socket);
@@ -311,8 +307,8 @@ class ServerBootstrap {
   /*
    * Get the list of listening sockets
    */
-  const std::vector<std::shared_ptr<folly::AsyncSocketBase>>&
-  getSockets() const {
+  const std::vector<std::shared_ptr<folly::AsyncSocketBase>>& getSockets()
+      const {
     return *sockets_;
   }
 
@@ -351,8 +347,8 @@ class ServerBootstrap {
 
   std::shared_ptr<ServerWorkerPool> workerFactory_;
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
-    sockets_{
-    std::make_shared<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>()};
+      sockets_{std::make_shared<
+          std::vector<std::shared_ptr<folly::AsyncSocketBase>>>()};
 
   std::shared_ptr<AcceptorFactory> acceptorFactory_;
   std::shared_ptr<PipelineFactory<Pipeline>> childPipelineFactory_;
@@ -366,7 +362,7 @@ class ServerBootstrap {
   bool reusePort_{false};
 
   std::unique_ptr<folly::Baton<>> stopBaton_{
-    std::make_unique<folly::Baton<>>()};
+      std::make_unique<folly::Baton<>>()};
   bool stopped_{false};
   bool useZeroCopy_{false};
   bool useSharedSSLContextManager_{false};

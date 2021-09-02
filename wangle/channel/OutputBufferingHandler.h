@@ -82,8 +82,8 @@ class OutputBufferingHandler : public OutboundBytesToBytesHandler,
 
     // If there are sends queued, cancel them
     sharedPromise_.setException(
-      folly::make_exception_wrapper<std::runtime_error>(
-        "close() called while sends still pending"));
+        folly::make_exception_wrapper<std::runtime_error>(
+            "close() called while sends still pending"));
     sends_.reset();
     sharedPromise_ = folly::SharedPromise<folly::Unit>();
     return ctx->fireClose();
