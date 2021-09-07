@@ -36,4 +36,7 @@ SSL_SESSION* getSessionFromCacheData(const SSLSessionCacheData& data);
 // Internal links to SSL structs are not kept
 SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone);
 
+folly::Optional<std::string> getSessionPeerIdentities(SSL_SESSION* sess);
+bool setSessionPeerIdentities(SSL_SESSION* sess, const std::string& str);
+
 } // namespace wangle

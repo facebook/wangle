@@ -28,6 +28,7 @@ folly::dynamic toDynamic(const wangle::SSLSessionCacheData& data) {
   system_clock::duration::rep rep = data.addedTime.time_since_epoch().count();
   ret["added_time"] = folly::dynamic(static_cast<uint64_t>(rep));
   ret["service_identity"] = folly::dynamic(data.serviceIdentity.toStdString());
+  ret["peer_identities"] = folly::dynamic(data.peerIdentities.toStdString());
   return ret;
 }
 
@@ -38,6 +39,7 @@ wangle::SSLSessionCacheData convertTo(const dynamic& d) {
   data.addedTime =
       system_clock::time_point(system_clock::duration(d["added_time"].asInt()));
   data.serviceIdentity = d.getDefault("service_identity", "").asString();
+  data.peerIdentities = d.getDefault("peer_identities", "").asString();
   return data;
 }
 

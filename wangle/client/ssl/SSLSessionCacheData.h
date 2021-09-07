@@ -30,6 +30,7 @@ struct SSLSessionCacheData {
   std::chrono::time_point<std::chrono::system_clock> addedTime;
   folly::fbstring serviceIdentity;
   std::shared_ptr<SSL_SESSION> sessionDuplicateTemplate;
+  folly::fbstring peerIdentities;
 };
 
 } // namespace wangle

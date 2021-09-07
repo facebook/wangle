@@ -52,6 +52,7 @@ TEST_F(SSLSessionCacheDataTest, Basic) {
   data.sessionData = folly::fbstring("some session data");
   data.addedTime = system_clock::now();
   data.serviceIdentity = "some service";
+  data.peerIdentities = "svc:serviceId";
 
   auto d = folly::toDynamic(data);
   auto deserializedData = folly::convertTo<SSLSessionCacheData>(d);
@@ -59,6 +60,7 @@ TEST_F(SSLSessionCacheDataTest, Basic) {
   EXPECT_EQ(deserializedData.sessionData, data.sessionData);
   EXPECT_EQ(deserializedData.addedTime, data.addedTime);
   EXPECT_EQ(deserializedData.serviceIdentity, data.serviceIdentity);
+  EXPECT_EQ(deserializedData.peerIdentities, data.peerIdentities);
 }
 
 TEST_F(SSLSessionCacheDataTest, CloneSSLSession) {
@@ -96,4 +98,45 @@ TEST_F(SSLSessionCacheDataTest, ServiceIdentity) {
   ident = getSessionServiceIdentity(deserialized.get());
   EXPECT_TRUE(ident);
   EXPECT_EQ(ident.value(), id);
+}
+
+TEST_F(SSLSessionCacheDataTest, PeerIdentities) {
+  std::string peerIdentities("svc:serviceId");
+  auto sessionPtr = SSLSessionUniquePtr(cloneSSLSession(sessions_[0].first));
+  auto session = sessionPtr.get();
+
+  {
+    auto identities = getSessionPeerIdentities(session);
+    EXPECT_FALSE(identities.has_value());
+  }
+
+  auto success = setSessionPeerIdentities(session, peerIdentities);
+  EXPECT_TRUE(success);
+
+  {
+    auto identities = getSessionPeerIdentities(session);
+    EXPECT_TRUE(identities.has_value());
+    EXPECT_EQ(identities.value(), peerIdentities);
+  }
+
+  {
+    auto cloned = SSLSessionUniquePtr(cloneSSLSession(session));
+    EXPECT_TRUE(cloned);
+    auto identities = getSessionPeerIdentities(cloned.get());
+    EXPECT_TRUE(identities.has_value());
+    EXPECT_EQ(identities.value(), peerIdentities);
+  }
+
+  {
+    auto cacheDataOpt = getCacheDataForSession(session);
+    EXPECT_TRUE(cacheDataOpt.has_value());
+    auto& cacheData = cacheDataOpt.value();
+    EXPECT_EQ(peerIdentities, cacheData.peerIdentities);
+
+    auto deserialized = SSLSessionUniquePtr(getSessionFromCacheData(cacheData));
+    ASSERT_NE(deserialized, nullptr);
+    auto identities = getSessionPeerIdentities(deserialized.get());
+    EXPECT_TRUE(identities.has_value());
+    EXPECT_EQ(identities.value(), peerIdentities);
+  }
 }

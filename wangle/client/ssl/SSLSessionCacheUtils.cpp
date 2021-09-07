@@ -33,6 +33,15 @@ static int32_t getSessionServiceIdentityIdx() {
   return index;
 }
 
+static int32_t getSessionPeerIdentitiesIdx() {
+  static int32_t index = [] {
+    int result = -1;
+    SSLUtil::getSSLSessionExStrIndex(&result);
+    return result;
+  }();
+  return index;
+}
+
 static SSL_SESSION* fbStringToSession(const folly::fbstring& str) {
   auto sessionData = reinterpret_cast<const unsigned char*>(str.c_str());
   // Create a SSL_SESSION and return. In failure it returns nullptr.
@@ -114,6 +123,10 @@ folly::Optional<SSLSessionCacheData> getCacheDataForSession(SSL_SESSION* sess) {
   if (serviceIdentity) {
     result.serviceIdentity = std::move(*serviceIdentity);
   }
+  auto peerIdentities = getSessionPeerIdentities(sess);
+  if (peerIdentities) {
+    result.peerIdentities = std::move(*peerIdentities);
+  }
 #ifdef WANGLE_HAVE_SSL_SESSION_DUP
   result.sessionDuplicateTemplate =
       std::shared_ptr<SSL_SESSION>(SSL_SESSION_dup(sess), SSL_SESSION_free);
@@ -131,7 +144,9 @@ SSL_SESSION* getSessionFromCacheData(const SSLSessionCacheData& data) {
   if (!result) {
     return nullptr;
   }
+
   setSessionServiceIdentity(result, data.serviceIdentity.toStdString());
+  setSessionPeerIdentities(result, data.peerIdentities.toStdString());
   return result;
 }
 
@@ -158,6 +173,34 @@ SSL_SESSION* cloneSSLSession(SSL_SESSION* toClone) {
   }
   return clone;
 #endif
+}
+
+bool setSessionPeerIdentities(SSL_SESSION* session, const std::string& str) {
+  if (!session || str.empty()) {
+    return false;
+  }
+  auto serviceExData = new std::string(str);
+  auto oldExData =
+      SSL_SESSION_get_ex_data(session, getSessionPeerIdentitiesIdx());
+  if (SSL_SESSION_set_ex_data(
+          session, getSessionPeerIdentitiesIdx(), serviceExData) > 0) {
+    delete static_cast<std::string*>(oldExData);
+    return true;
+  }
+
+  delete serviceExData;
+  return false;
+}
+
+folly::Optional<std::string> getSessionPeerIdentities(SSL_SESSION* session) {
+  if (!session) {
+    return folly::none;
+  }
+  auto data = SSL_SESSION_get_ex_data(session, getSessionPeerIdentitiesIdx());
+  if (!data) {
+    return folly::none;
+  }
+  return *(static_cast<std::string*>(data));
 }
 
 } // namespace wangle
