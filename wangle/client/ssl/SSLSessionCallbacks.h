@@ -41,25 +41,33 @@ namespace wangle {
  */
 class SSLSessionCallbacks {
  public:
-  // Store the session data of the specified identity in cache. Note that the
-  // implementation must make it's own memory copy of the session data to put
-  // into the cache.
+  /**
+   * Store the session data of the specified identity in cache. Note that the
+   * implementation must make it's own memory copy of the session data to put
+   * into the cache.
+   */
   virtual void setSSLSession(
       const std::string& identity,
       folly::ssl::SSLSessionUniquePtr session) noexcept = 0;
 
-  // Return a SSL session if the cache contained session information for the
-  // specified identity. It is the caller's responsibility to decrement the
-  // reference count of the returned session pointer.
+  /**
+   * Return a SSL session if the cache contained session information for the
+   * specified identity. It is the caller's responsibility to decrement the
+   * reference count of the returned session pointer.
+   */
   virtual folly::ssl::SSLSessionUniquePtr getSSLSession(
       const std::string& identity) const noexcept = 0;
 
-  // Remove session data of the specified identity from cache. Return true if
-  // there was session data associated with the identity before removal, or
-  // false otherwise.
+  /**
+   * Remove session data of the specified identity from cache. Return true if
+   * there was session data associated with the identity before removal, or
+   * false otherwise.
+   */
   virtual bool removeSSLSession(const std::string& identity) noexcept = 0;
 
-  // Return true if the underlying cache supports persistence
+  /**
+   * Return true if the underlying cache supports persistence
+   */
   virtual bool supportsPersistence() const noexcept {
     return false;
   }
@@ -87,6 +95,13 @@ class SSLSessionCallbacks {
       SSLSessionCallbacks* callbacks);
 
   static SSLSessionCallbacks* getCacheFromContext(SSL_CTX* ctx);
+
+ protected:
+  /**
+   * Called by ContextSessionCallbacks::onNewSession prior to insertion
+   * into the session cache.
+   */
+  virtual void onNewSession(SSL*, SSL_SESSION*) {}
 
  private:
   struct ContextSessionCallbacks

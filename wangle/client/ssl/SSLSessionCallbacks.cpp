@@ -87,6 +87,12 @@ void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(
     folly::ssl::SSLSessionUniquePtr session) {
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
   auto sslSessionCache = SSLSessionCallbacks::getCacheFromContext(ctx);
+
+  // To guarantee that sessionKey that we use as the key in our cache matches
+  // the session key stored in SSL_SESSION, we explicitly invoke any user logic
+  // first, ensuring that we always have control over these fields.
+  sslSessionCache->onNewSession(ssl, session.get());
+
   std::string sessionKey = SSLSessionCallbacks::getSessionKeyFromSSL(ssl);
   if (sessionKey.empty()) {
     const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
