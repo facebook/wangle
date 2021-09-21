@@ -253,7 +253,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * Drains all open connections of their outstanding transactions. When
    * a connection's transaction count reaches zero, the connection closes.
    */
-  void drainAllConnections();
+  virtual void drainAllConnections();
 
   /**
    * Drain defined percentage of connections.
