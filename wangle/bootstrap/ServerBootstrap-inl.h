@@ -44,6 +44,7 @@ class AcceptorException : public std::runtime_error {
     INTERNAL_ERROR = 7,
     ACCEPT_PAUSED = 8,
     ACCEPT_RESUMED = 9,
+    SHUTDOWN_PENDING = 10, // A graceful shutdown has been scheduled.
   };
 
   explicit AcceptorException(ExceptionType type)
@@ -96,7 +97,16 @@ class ServerAcceptor : public Acceptor,
     bool isBusy() const override {
       return true;
     }
-    void notifyPendingShutdown() override {}
+
+    void notifyPendingShutdown() override {
+      if (enableNotifyPendingShutdown_) {
+        auto ew = folly::make_exception_wrapper<AcceptorException>(
+            AcceptorException::ExceptionType::SHUTDOWN_PENDING,
+            "shutdown_pending");
+        pipeline_->readException(ew);
+      }
+    }
+
     void closeWhenIdle() override {}
     void dropConnection(const std::string& /* errorMsg */ = "") override {
       auto ew = folly::make_exception_wrapper<AcceptorException>(
@@ -118,11 +128,16 @@ class ServerAcceptor : public Acceptor,
       resetTimeout();
     }
 
+    void setNotifyPendingShutdown(bool isEnabled) {
+      enableNotifyPendingShutdown_ = isEnabled;
+    }
+
    private:
     ~ServerConnection() override {
       pipeline_->setPipelineManager(nullptr);
     }
     typename Pipeline::Ptr pipeline_;
+    bool enableNotifyPendingShutdown_{false};
   };
 
   explicit ServerAcceptor(
@@ -152,6 +167,10 @@ class ServerAcceptor : public Acceptor,
     acceptPipeline_->finalize();
   }
 
+  void setNotifyPendingShutdown(bool isEnabled) {
+    enableNotifyPendingShutdown_ = isEnabled;
+  }
+
   void read(Context*, AcceptPipelineType conn) override {
     if (conn.type() != typeid(ConnInfo&)) {
       return;
@@ -175,6 +194,7 @@ class ServerAcceptor : public Acceptor,
             transport.release(), folly::DelayedDestruction::Destructor()));
     pipeline->setTransportInfo(tInfoPtr);
     auto connection = new ServerConnection(std::move(pipeline));
+    connection->setNotifyPendingShutdown(enableNotifyPendingShutdown_);
     Acceptor::addConnection(connection);
     connection->init();
   }
@@ -264,6 +284,7 @@ class ServerAcceptor : public Acceptor,
 
  protected:
   std::shared_ptr<AcceptPipeline> acceptPipeline_;
+  bool enableNotifyPendingShutdown_{false};
 
  private:
   std::shared_ptr<AcceptPipelineFactory> acceptPipelineFactory_;
