@@ -19,12 +19,14 @@
 #include <boost/variant.hpp>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Memory.h>
+#include <folly/Optional.h>
 #include <folly/Unit.h>
 #include <folly/futures/Future.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/AsyncUDPSocket.h>
 #include <folly/io/async/DelayedDestruction.h>
+#include <folly/io/async/Request.h>
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>
 #include <wangle/channel/HandlerContext.h>
@@ -218,15 +220,32 @@ class Pipeline : public PipelineBase {
 
   void finalize() override;
 
+  void setRequestContext(
+      const std::shared_ptr<folly::RequestContext>& requestContext) {
+    requestContext_ = requestContext;
+  }
+
+  void setRequestContext(
+      std::shared_ptr<folly::RequestContext>&& requestContext) {
+    requestContext_ = std::move(requestContext);
+  }
+
  protected:
   Pipeline();
   explicit Pipeline(bool isStatic);
 
  private:
+  using OptionalReqCtxScopeGuard =
+      folly::Optional<folly::RequestContextScopeGuard>;
+
+  void fillRequestContextGuard(OptionalReqCtxScopeGuard& optGuard);
+
   bool isStatic_{false};
 
   InboundLink<R>* front_{nullptr};
   OutboundLink<W>* back_{nullptr};
+
+  std::shared_ptr<folly::RequestContext> requestContext_;
 };
 
 } // namespace wangle

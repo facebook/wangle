@@ -181,6 +181,9 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
 Pipeline<R, W>::read(R msg) {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
+
   if (!front_) {
     throw std::invalid_argument("read(): no inbound handler in Pipeline");
   }
@@ -191,6 +194,8 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
 Pipeline<R, W>::readEOF() {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (!front_) {
     throw std::invalid_argument("readEOF(): no inbound handler in Pipeline");
   }
@@ -201,6 +206,8 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
 Pipeline<R, W>::transportActive() {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (front_) {
     front_->transportActive();
   }
@@ -210,6 +217,8 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
 Pipeline<R, W>::transportInactive() {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (front_) {
     front_->transportInactive();
   }
@@ -219,6 +228,8 @@ template <class R, class W>
 template <class T>
 typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
 Pipeline<R, W>::readException(folly::exception_wrapper e) {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (!front_) {
     throw std::invalid_argument(
         "readException(): no inbound handler in Pipeline");
@@ -232,6 +243,8 @@ typename std::enable_if<
     !std::is_same<T, folly::Unit>::value,
     folly::Future<folly::Unit>>::type
 Pipeline<R, W>::write(W msg) {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (!back_) {
     throw std::invalid_argument("write(): no outbound handler in Pipeline");
   }
@@ -244,6 +257,8 @@ typename std::enable_if<
     !std::is_same<T, folly::Unit>::value,
     folly::Future<folly::Unit>>::type
 Pipeline<R, W>::writeException(folly::exception_wrapper e) {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (!back_) {
     throw std::invalid_argument(
         "writeException(): no outbound handler in Pipeline");
@@ -257,6 +272,8 @@ typename std::enable_if<
     !std::is_same<T, folly::Unit>::value,
     folly::Future<folly::Unit>>::type
 Pipeline<R, W>::close() {
+  OptionalReqCtxScopeGuard optGuard;
+  fillRequestContextGuard(optGuard);
   if (!back_) {
     throw std::invalid_argument("close(): no outbound handler in Pipeline");
   }
@@ -297,6 +314,15 @@ void Pipeline<R, W>::finalize() {
 
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     (*it)->attachPipeline();
+  }
+}
+
+template <class R, class W>
+void Pipeline<R, W>::fillRequestContextGuard(
+    OptionalReqCtxScopeGuard& optGuard) {
+  CHECK(!optGuard.has_value());
+  if (requestContext_) {
+    optGuard.emplace(requestContext_);
   }
 }
 
