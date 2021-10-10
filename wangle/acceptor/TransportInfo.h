@@ -197,6 +197,11 @@ struct TransportInfo {
    */
   std::shared_ptr<std::string> appProtocol{nullptr};
 
+  /**
+   * list of next protocols from client hello packet
+   */
+  std::shared_ptr<std::vector<std::string>> clientAlpns{nullptr};
+
   /*
    * total number of bytes sent over the connection
    */

@@ -70,6 +70,7 @@ void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
       std::make_shared<std::string>(sock->getSSLClientSigAlgs());
   tinfo.sslClientSupportedVersions =
       std::make_shared<std::string>(sock->getSSLClientSupportedVersions());
+  tinfo.clientAlpns = folly::copy_to_shared_ptr(sock->getClientAlpns());
 }
 
 void SSLAcceptorHandshakeHelper::handshakeSuc(AsyncSSLSocket* sock) noexcept {
