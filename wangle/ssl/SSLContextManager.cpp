@@ -520,6 +520,9 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   // Important that we do this *after* checking the TLS1.1 ciphers above,
   // since we test their validity by actually setting them.
   sslCtx->ciphers(ctxConfig.sslCiphers);
+#if FOLLY_OPENSSL_PREREQ(1, 1, 1)
+  sslCtx->setCiphersuitesOrThrow(ctxConfig.sslCiphersuites);
+#endif
 
   if (ctxConfig.sigAlgs) {
     sslCtx->setSigAlgsOrThrow(*ctxConfig.sigAlgs);
