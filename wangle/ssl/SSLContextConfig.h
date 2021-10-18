@@ -133,6 +133,8 @@ struct SSLContextConfig {
   bool isDefault{false};
   // File containing trusted CA's to validate client certificates
   std::string clientCAFile;
+  // List of files containing trusted CA's to validate client certificates
+  std::vector<std::string> clientCAFiles;
 
   // Verification method to use for client certificates.
   folly::SSLContext::VerifyClientCertificate clientVerification{

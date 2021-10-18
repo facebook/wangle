@@ -61,7 +61,7 @@ class TestAcceptor : public Acceptor {
   }
 };
 
-enum class TestSSLConfig { NO_SSL, SSL };
+enum class TestSSLConfig { NO_SSL, SSL, SSL_MULTI_CA };
 
 class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
  public:
@@ -70,7 +70,8 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
   std::shared_ptr<AsyncSocket> connectClientSocket(
       const SocketAddress& serverAddress) {
     TestSSLConfig testConfig = GetParam();
-    if (testConfig == TestSSLConfig::SSL) {
+    if (testConfig == TestSSLConfig::SSL ||
+        testConfig == TestSSLConfig::SSL_MULTI_CA) {
       auto clientSocket = AsyncSSLSocket::newSocket(getTestSslContext(), &evb_);
       clientSocket->connect(nullptr, serverAddress);
       return clientSocket;
@@ -84,7 +85,9 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
     TestSSLConfig testConfig = GetParam();
     ServerSocketConfig config;
     if (testConfig == TestSSLConfig::SSL) {
-      config.sslContextConfigs.emplace_back(getTestSslContextConfig());
+      config.sslContextConfigs.emplace_back(getTestSslContextConfig(false));
+    } else if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
+      config.sslContextConfigs.emplace_back(getTestSslContextConfig(true));
     }
     return initTestAcceptorAndSocket(config);
   }
@@ -103,19 +106,33 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
 
   static std::shared_ptr<folly::SSLContext> getTestSslContext() {
     auto sslContext = std::make_shared<folly::SSLContext>();
+    TestSSLConfig testConfig = GetParam();
+    if (testConfig == TestSSLConfig::SSL) {
+      sslContext->loadCertKeyPairFromFiles(folly::kTestCert, folly::kTestKey);
+    } else if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
+      // Use a different cert.
+      sslContext->loadCertKeyPairFromFiles(
+          folly::kClientTestCert, folly::kClientTestKey);
+    }
     sslContext->setOptions(SSL_OP_NO_TICKET);
     sslContext->ciphers("ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
     return sslContext;
   }
 
-  static wangle::SSLContextConfig getTestSslContextConfig() {
+  static wangle::SSLContextConfig getTestSslContextConfig(
+      bool useMultiClientCA) {
     wangle::SSLContextConfig sslCtxConfig;
     sslCtxConfig.setCertificate(folly::kTestCert, folly::kTestKey, "");
-    sslCtxConfig.clientCAFile = folly::kTestCA;
+    if (useMultiClientCA) {
+      sslCtxConfig.clientCAFiles =
+          std::vector<std::string>{folly::kTestCA, folly::kClientTestCA};
+    } else {
+      sslCtxConfig.clientCAFile = folly::kTestCA;
+    }
     sslCtxConfig.sessionContext = "AcceptorTest";
     sslCtxConfig.isDefault = true;
     sslCtxConfig.clientVerification =
-        folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+        folly::SSLContext::VerifyClientCertificate::ALWAYS;
     sslCtxConfig.sessionCacheEnabled = false;
     return sslCtxConfig;
   }
@@ -127,7 +144,10 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
 INSTANTIATE_TEST_CASE_P(
     NoSSLAndSSLTests,
     AcceptorTest,
-    ::testing::Values(TestSSLConfig::NO_SSL, TestSSLConfig::SSL));
+    ::testing::Values(
+        TestSSLConfig::NO_SSL,
+        TestSSLConfig::SSL,
+        TestSSLConfig::SSL_MULTI_CA));
 
 TEST_P(AcceptorTest, Basic) {
   auto [acceptor, serverSocket] = initTestAcceptorAndSocket();
@@ -446,7 +466,8 @@ TEST_P(
         socket->addLifecycleObserver(lifecycleCb.get());
       }));
 
-  if (GetParam() == TestSSLConfig::SSL) {
+  if (GetParam() == TestSSLConfig::SSL ||
+      GetParam() == TestSSLConfig::SSL_MULTI_CA) {
     // AsyncSocket -> AsyncFizzServer
     EXPECT_CALL(*lifecycleCb, fdDetach(_))
         .InSequence(s1)

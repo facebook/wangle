@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include <wangle/ssl/SSLContextManager.h>
-
 #include <folly/io/async/PasswordInFile.h>
 #include <wangle/ssl/ClientHelloExtStats.h>
 #include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLContextManager.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/ssl/ServerSSLContext.h>
@@ -477,6 +476,22 @@ void SSLContextManager::SslContexts::removeSSLContextConfig(
   }
 }
 
+void loadCAFileHelper(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const std::string& caFilePath) {
+  if (!caFilePath.empty()) {
+    try {
+      sslCtx->loadTrustedCertificates(caFilePath.c_str());
+      sslCtx->loadClientCAList(caFilePath.c_str());
+    } catch (const std::exception& ex) {
+      string msg = folly::to<string>(
+          "error loading client CA", caFilePath, ": ", folly::exceptionStr(ex));
+      LOG(ERROR) << msg;
+      throw std::runtime_error(msg);
+    }
+  }
+}
+
 void SSLContextManager::SslContexts::addSSLContextConfig(
     const SSLContextConfig& ctxConfig,
     const SSLCacheOptions& cacheOptions,
@@ -538,7 +553,7 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
     set_key_from_curve(sslCtx->getSSLCtx(), curve);
   }
 
-  if (ctxConfig.clientCAFile.empty() &&
+  if ((ctxConfig.clientCAFile.empty() && ctxConfig.clientCAFiles.empty()) &&
       ctxConfig.clientVerification !=
           SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
     LOG(FATAL) << "You can't verify certs without the client ca file";
@@ -552,20 +567,11 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
         SSLContext::VerifyClientCertificate::DO_NOT_REQUEST);
   }
 
-  if (!ctxConfig.clientCAFile.empty()) {
-    try {
-      sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
-      sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
+  // calls loadTrustedCertificates and loadClientCAList for given CA file
+  loadCAFileHelper(sslCtx, ctxConfig.clientCAFile);
 
-    } catch (const std::exception& ex) {
-      string msg = folly::to<string>(
-          "error loading client CA",
-          ctxConfig.clientCAFile,
-          ": ",
-          folly::exceptionStr(ex));
-      LOG(ERROR) << msg;
-      throw std::runtime_error(msg);
-    }
+  for (auto& clientCAFile : ctxConfig.clientCAFiles) {
+    loadCAFileHelper(sslCtx, clientCAFile);
   }
 
   sslCtx->setAlpnAllowMismatch(ctxConfig.alpnAllowMismatch);
