@@ -64,8 +64,11 @@ AsyncFizzServer::UniquePtr FizzAcceptorHandshakeHelper::createFizzServer(
   folly::AsyncSocket::UniquePtr asyncSock(
       new folly::AsyncSocket(std::move(sslSock)));
   asyncSock->cacheAddresses();
-  return AsyncFizzServer::UniquePtr(
+  AsyncFizzServer::UniquePtr fizzServer(
       new AsyncFizzServer(std::move(asyncSock), fizzContext, extensions));
+  fizzServer->setHandshakeRecordAlignedReads(handshakeRecordAlignedReads_);
+
+  return fizzServer;
 }
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(

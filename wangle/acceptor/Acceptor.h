@@ -491,6 +491,16 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
 
  private:
+  /**
+   * This is an intentionally non-virtual method that base acceptors will use
+   * that is invoked right before the transport is passed to the application.
+   *
+   * This function is an infallible method that is designed to alter the
+   * transport to reflect settings that are managed by wangle.
+   */
+  folly::AsyncTransport::UniquePtr transformTransport(
+      folly::AsyncTransport::UniquePtr sock);
+
   TLSTicketKeySeeds ticketSecrets_;
   std::shared_ptr<fizz::server::CertManager> fizzCertManager_{nullptr};
 

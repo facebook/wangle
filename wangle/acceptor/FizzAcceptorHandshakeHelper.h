@@ -139,10 +139,24 @@ class FizzHandshakeOptions {
     return *this;
   }
 
+  /**
+   * `setHandshakeRecordAlignedReads` configures the Fizz acceptor to use
+   * record aligned reads, which is a prerequisite if attempting to use kTLS.
+   * This is required for kTLS support.
+   *
+   * For more information, refer to
+   * `AsyncFizzBase::setHandshakeRecordAlignedReads`
+   */
+  FizzHandshakeOptions& setHandshakeRecordAlignedReads(bool flag) {
+    handshakeRecordAlignedReads_ = flag;
+    return *this;
+  }
+
  private:
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingCtx_{
       nullptr};
   FizzLoggingCallback* loggingCallback_{nullptr};
+  bool handshakeRecordAlignedReads_{false};
 
   friend class FizzAcceptorHandshakeHelper;
 };
@@ -163,7 +177,8 @@ class FizzAcceptorHandshakeHelper
         clientAddr_(clientAddr),
         acceptTime_(acceptTime),
         tinfo_(tinfo),
-        loggingCallback_(options.loggingCallback_) {}
+        loggingCallback_(options.loggingCallback_),
+        handshakeRecordAlignedReads_(options.handshakeRecordAlignedReads_) {}
 
   void start(
       folly::AsyncSSLSocket::UniquePtr sock,
@@ -183,12 +198,18 @@ class FizzAcceptorHandshakeHelper
   }
 
  protected:
-  virtual fizz::server::AsyncFizzServer::UniquePtr createFizzServer(
+  // These are *explicitly* non virtual. Subclasses should not customize the
+  // behavior of how Fizz servers and AsyncSSLSockets are created. Any
+  // customization of these objects should be done through wangle managed
+  // settings. This is to ensure that any settings on
+  // `FizzAcceptorHandshakeHelper` are properly reflected when these objects are
+  // created.
+  fizz::server::AsyncFizzServer::UniquePtr createFizzServer(
       folly::AsyncSSLSocket::UniquePtr sslSock,
       const std::shared_ptr<const fizz::server::FizzServerContext>& fizzContext,
       const std::shared_ptr<fizz::ServerExtensions>& extensions);
 
-  virtual folly::AsyncSSLSocket::UniquePtr createSSLSocket(
+  folly::AsyncSSLSocket::UniquePtr createSSLSocket(
       const std::shared_ptr<folly::SSLContext>& sslContext,
       folly::AsyncTransport::UniquePtr transport);
 
@@ -220,6 +241,7 @@ class FizzAcceptorHandshakeHelper
   wangle::TransportInfo& tinfo_;
   wangle::SSLErrorEnum sslError_{wangle::SSLErrorEnum::NO_ERROR};
   FizzLoggingCallback* loggingCallback_;
+  bool handshakeRecordAlignedReads_{false};
 };
 
 class DefaultToFizzPeekingCallback
