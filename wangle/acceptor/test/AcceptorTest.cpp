@@ -441,7 +441,7 @@ TEST_P(
   auto lifecycleCb =
       std::make_unique<StrictMock<MockAsyncSocketLifecycleObserver>>();
   auto fizzLoggingCb = std::make_unique<StrictMock<MockFizzLoggingCallback>>();
-  acceptor->getFizzPeeker()->setLoggingCallback(fizzLoggingCb.get());
+  acceptor->getFizzPeeker()->options().setLoggingCallback(fizzLoggingCb.get());
 
   EXPECT_CALL(*onAcceptCb, observerAttach(acceptor.get()));
   acceptor->addAcceptObserver(onAcceptCb.get());

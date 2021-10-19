@@ -109,6 +109,44 @@ class FizzLoggingCallback {
       const folly::exception_wrapper& /*ew*/) noexcept = 0;
 };
 
+class FizzAcceptorHandshakeHelper;
+
+/**
+ * FizzHandshakeOptions supplies *optional* parameters to customize the behavior
+ * of the `FizzAcceptorHandshakeHelper`.
+ */
+class FizzHandshakeOptions {
+ public:
+  /**
+   * `setTokenBindingContext` is used to configure Token Binding (RFC 8472 +
+   * tls1.3) for the accepted connection.
+   */
+  FizzHandshakeOptions& setTokenBindingContext(
+      std::shared_ptr<fizz::extensions::TokenBindingContext> ctx) {
+    tokenBindingCtx_ = std::move(ctx);
+    return *this;
+  }
+
+  /**
+   * `setLoggingCallback` defines the callback that will be invoked upon
+   * fizz connection acceptance or failure.
+   *
+   * FizzHandshakeOptions does not take ownership over the supplied callback. If
+   * define, the caller must guarantee that it outlives `wangle::Acceptor`.
+   */
+  FizzHandshakeOptions& setLoggingCallback(FizzLoggingCallback* callback) {
+    loggingCallback_ = callback;
+    return *this;
+  }
+
+ private:
+  std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingCtx_{
+      nullptr};
+  FizzLoggingCallback* loggingCallback_{nullptr};
+
+  friend class FizzAcceptorHandshakeHelper;
+};
+
 class FizzAcceptorHandshakeHelper
     : public wangle::AcceptorHandshakeHelper,
       public fizz::server::AsyncFizzServer::HandshakeCallback,
@@ -119,15 +157,13 @@ class FizzAcceptorHandshakeHelper
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo,
-      FizzLoggingCallback* loggingCallback,
-      const std::shared_ptr<fizz::extensions::TokenBindingContext>&
-          tokenBindingContext)
+      FizzHandshakeOptions&& options)
       : context_(context),
-        tokenBindingContext_(tokenBindingContext),
+        tokenBindingContext_(std::move(options.tokenBindingCtx_)),
         clientAddr_(clientAddr),
         acceptTime_(acceptTime),
         tinfo_(tinfo),
-        loggingCallback_(loggingCallback) {}
+        loggingCallback_(options.loggingCallback_) {}
 
   void start(
       folly::AsyncSSLSocket::UniquePtr sock,
@@ -201,18 +237,17 @@ class DefaultToFizzPeekingCallback
     context_ = std::move(context);
   }
 
-  std::shared_ptr<fizz::extensions::TokenBindingContext>
-  getTokenBindingContext() const {
-    return tokenBindingContext_;
-  }
-
-  void setTokenBindingContext(
-      std::shared_ptr<fizz::extensions::TokenBindingContext> context) {
-    tokenBindingContext_ = std::move(context);
-  }
-
-  void setLoggingCallback(FizzLoggingCallback* loggingCallback) {
-    loggingCallback_ = loggingCallback;
+  /**
+   * Return a reference to the `FizzHandshakeOptions` class to customize
+   * handshake behavior.
+   *
+   * CALLER BEWARE: These options are initially set by the base
+   * `wangle::Acceptor`'s translation from wangle::ServerSocketConfig. If you
+   * subclass this, ensure to not clobber any of the variables that are directly
+   * managed by the base wangle::Acceptor.
+   */
+  FizzHandshakeOptions& options() {
+    return options_;
   }
 
   wangle::AcceptorHandshakeHelper::UniquePtr getHelper(
@@ -220,19 +255,14 @@ class DefaultToFizzPeekingCallback
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo) override {
+    auto optionsCopy = options_;
     return wangle::AcceptorHandshakeHelper::UniquePtr(
         new FizzAcceptorHandshakeHelper(
-            context_,
-            clientAddr,
-            acceptTime,
-            tinfo,
-            loggingCallback_,
-            tokenBindingContext_));
+            context_, clientAddr, acceptTime, tinfo, std::move(optionsCopy)));
   }
 
  protected:
   std::shared_ptr<const fizz::server::FizzServerContext> context_;
-  std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
-  FizzLoggingCallback* loggingCallback_{nullptr};
+  FizzHandshakeOptions options_;
 };
 } // namespace wangle
