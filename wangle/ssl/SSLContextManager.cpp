@@ -476,7 +476,7 @@ void SSLContextManager::SslContexts::removeSSLContextConfig(
   }
 }
 
-void loadCAFileHelper(
+static void loadCAToSSLContext(
     const std::shared_ptr<folly::SSLContext>& sslCtx,
     const std::string& caFilePath) {
   if (!caFilePath.empty()) {
@@ -568,10 +568,10 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   }
 
   // calls loadTrustedCertificates and loadClientCAList for given CA file
-  loadCAFileHelper(sslCtx, ctxConfig.clientCAFile);
+  loadCAToSSLContext(sslCtx, ctxConfig.clientCAFile);
 
   for (auto& clientCAFile : ctxConfig.clientCAFiles) {
-    loadCAFileHelper(sslCtx, clientCAFile);
+    loadCAToSSLContext(sslCtx, clientCAFile);
   }
 
   sslCtx->setAlpnAllowMismatch(ctxConfig.alpnAllowMismatch);
