@@ -44,31 +44,82 @@ class FizzHandshakeException : public wangle::SSLException {
   folly::exception_wrapper originalException_;
 };
 
+/**
+ * FizzLoggingCallback is used as a logging hook for Fizz handshake events.
+ */
+class FizzLoggingCallback {
+ public:
+  virtual ~FizzLoggingCallback() = default;
+
+  /**
+   * logFizzHandshakeSuccess is invoked when the Fizz successfully accepted
+   * the connection.
+   *
+   * @param server   A valid, non-owning reference to the Fizz server side
+   *                 connection object that handled the connection.
+   * @param tinfo    A filled out `wangle::TransportInfo` object summarizing
+   *                 connection-oriented statistics and properties
+   */
+  virtual void logFizzHandshakeSuccess(
+      const fizz::server::AsyncFizzServer& /*server*/,
+      const wangle::TransportInfo& tinfo) noexcept = 0;
+
+  /**
+   * logFizzHandshakeFallback is invoked when Fizz was unable to accept
+   * the connection. The most common reason for this is that the client does
+   * not support TLS 1.3.
+   *
+   * This is a non-connection-fatal error; while Fizz is unable to handle this
+   * connection, the connection may still be accepted by a separate TLS
+   * implementation (e.g. OpenSSL).
+   *
+   * This can only be invoked when
+   * `FizzServerContext::setVersionFallbackEnabled` has been set.
+   *
+   * @param server   A valid, non-owning reference to the Fizz server side
+   *                 connection object that handled the connection.
+   * @param tinfo    A filled out `wangle::TransportInfo` object summarizing
+   *                 connection-oriented statistics and properties
+   */
+  virtual void logFizzHandshakeFallback(
+      const fizz::server::AsyncFizzServer& /*server*/,
+      const wangle::TransportInfo& tinfo) noexcept = 0;
+
+  /**
+   * logFizzHandshakeError is invoked when Fizz encountered a connection-fatal
+   * error while attempting to handshake with the client. This can be anything
+   * from:
+   *   * A client not sending a client certificate when Fizz was configured
+   *     to require client certificates.
+   *   * A client using a broken TLS 1.3 implementation.
+   *   * Bitflips on the network causing TLS record integrity checks to fail.
+   *   * ... and many more!
+   *
+   * This is a connection-fatal error; the connection is in an unrecoverable
+   * and terminal state, and wangle will close the connection after this logging
+   * hook call.
+   *
+   * @param server   A valid, non-owning reference to the Fizz server side
+   *                 connection object that handled the connection.
+   * @param ew       The exception object containing details on the cause of
+   *                 the handshake failure.
+   */
+  virtual void logFizzHandshakeError(
+      const fizz::server::AsyncFizzServer& /*server*/,
+      const folly::exception_wrapper& /*ew*/) noexcept = 0;
+};
+
 class FizzAcceptorHandshakeHelper
     : public wangle::AcceptorHandshakeHelper,
       public fizz::server::AsyncFizzServer::HandshakeCallback,
       public folly::AsyncSSLSocket::HandshakeCB {
  public:
-  class LoggingCallback {
-   public:
-    virtual ~LoggingCallback() = default;
-    virtual void logFizzHandshakeSuccess(
-        const fizz::server::AsyncFizzServer&,
-        const wangle::TransportInfo* tinfo) noexcept = 0;
-    virtual void logFizzHandshakeFallback(
-        const fizz::server::AsyncFizzServer&,
-        const wangle::TransportInfo* tinfo) noexcept = 0;
-    virtual void logFizzHandshakeError(
-        const fizz::server::AsyncFizzServer&,
-        const folly::exception_wrapper&) noexcept = 0;
-  };
-
   FizzAcceptorHandshakeHelper(
       std::shared_ptr<const fizz::server::FizzServerContext> context,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo,
-      LoggingCallback* loggingCallback,
+      FizzLoggingCallback* loggingCallback,
       const std::shared_ptr<fizz::extensions::TokenBindingContext>&
           tokenBindingContext)
       : context_(context),
@@ -132,7 +183,7 @@ class FizzAcceptorHandshakeHelper
   std::chrono::steady_clock::time_point acceptTime_;
   wangle::TransportInfo& tinfo_;
   wangle::SSLErrorEnum sslError_{wangle::SSLErrorEnum::NO_ERROR};
-  LoggingCallback* loggingCallback_;
+  FizzLoggingCallback* loggingCallback_;
 };
 
 class DefaultToFizzPeekingCallback
@@ -160,8 +211,7 @@ class DefaultToFizzPeekingCallback
     tokenBindingContext_ = std::move(context);
   }
 
-  void setLoggingCallback(
-      FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback) {
+  void setLoggingCallback(FizzLoggingCallback* loggingCallback) {
     loggingCallback_ = loggingCallback;
   }
 
@@ -183,6 +233,6 @@ class DefaultToFizzPeekingCallback
  protected:
   std::shared_ptr<const fizz::server::FizzServerContext> context_;
   std::shared_ptr<fizz::extensions::TokenBindingContext> tokenBindingContext_;
-  FizzAcceptorHandshakeHelper::LoggingCallback* loggingCallback_{nullptr};
+  FizzLoggingCallback* loggingCallback_{nullptr};
 };
 } // namespace wangle

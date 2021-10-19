@@ -186,21 +186,20 @@ class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
   GMOCK_METHOD2_(, noexcept, , evbDetach, void(AsyncTransport*, EventBase*));
 };
 
-class MockFizzLoggingCallback
-    : public FizzAcceptorHandshakeHelper::LoggingCallback {
+class MockFizzLoggingCallback : public FizzLoggingCallback {
  public:
   GMOCK_METHOD2_(
       ,
       noexcept,
       ,
       logFizzHandshakeSuccess,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
+      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&));
   GMOCK_METHOD2_(
       ,
       noexcept,
       ,
       logFizzHandshakeFallback,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
+      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&));
   GMOCK_METHOD2_(
       ,
       noexcept,
@@ -509,7 +508,7 @@ TEST_P(
         .InSequence(s1)
         .WillOnce(Invoke([&remoteSocket](
                              const fizz::server::AsyncFizzServer& transport,
-                             const wangle::TransportInfo* /* tinfo */) {
+                             const wangle::TransportInfo& /* tinfo */) {
           EXPECT_EQ(
               remoteSocket,
               transport.getUnderlyingTransport<folly::AsyncSocket>());

@@ -100,7 +100,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   auto appProto = transport->getApplicationProtocol();
 
   if (loggingCallback_) {
-    loggingCallback_->logFizzHandshakeSuccess(*transport, &tinfo_);
+    loggingCallback_->logFizzHandshakeSuccess(*transport, tinfo_);
   }
 
   callback_->connectionReady(
@@ -149,7 +149,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeAttemptFallback(
     std::unique_ptr<folly::IOBuf> clientHello) {
   VLOG(3) << "Fallback to OpenSSL";
   if (loggingCallback_) {
-    loggingCallback_->logFizzHandshakeFallback(*transport_, &tinfo_);
+    loggingCallback_->logFizzHandshakeFallback(*transport_, tinfo_);
   }
   sslSocket_ = createSSLSocket(sslContext_, std::move(transport_));
 
