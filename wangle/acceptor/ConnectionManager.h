@@ -18,6 +18,7 @@
 
 #include <wangle/acceptor/ManagedConnection.h>
 
+#include <folly/ConstexprMath.h>
 #include <folly/Memory.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/DelayedDestruction.h>
@@ -231,9 +232,9 @@ class ConnectionManager : public folly::DelayedDestruction,
         return manager_.conns_.begin();
       }
       auto it = manager_.conns_.begin();
-      const auto conns_size = manager_.conns_.size();
-      const auto numToDrain =
-          std::max<size_t>(0, std::min<size_t>(conns_size, conns_size * pct_));
+      const size_t conns_size = manager_.conns_.size();
+      const size_t numToDrain =
+          conns_size * folly::constexpr_clamp(pct_, 0., 1.);
       std::advance(it, conns_size - numToDrain);
       return it;
     }

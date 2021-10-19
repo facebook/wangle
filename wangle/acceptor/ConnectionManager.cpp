@@ -16,6 +16,7 @@
 
 #include <wangle/acceptor/ConnectionManager.h>
 
+#include <folly/ConstexprMath.h>
 #include <folly/io/async/EventBase.h>
 #include <glog/logging.h>
 
@@ -288,7 +289,7 @@ void ConnectionManager::dropConnections(double pct) {
   stopDrainingForShutdown();
 
   const size_t N = conns_.size();
-  const size_t numToDrop = std::max<size_t>(0, std::min<size_t>(N, N * pct));
+  const size_t numToDrop = N * folly::constexpr_clamp(pct, 0., 1.);
   for (size_t i = 0; i < numToDrop && !conns_.empty(); i++) {
     ManagedConnection& conn = conns_.front();
     removeConnection(&conn);
