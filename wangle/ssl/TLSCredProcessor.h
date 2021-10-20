@@ -20,6 +20,7 @@
 #include <string>
 
 #include <folly/Optional.h>
+#include <folly/Synchronized.h>
 #include <folly/io/async/PasswordInFile.h>
 #include <wangle/ssl/TLSTicketKeySeeds.h>
 #include <wangle/util/FilePoller.h>
@@ -94,7 +95,10 @@ class TLSCredProcessor {
   std::string ticketFile_;
   folly::Optional<std::string> password_;
   std::set<std::string> certFiles_;
-  std::vector<std::function<void(wangle::TLSTicketKeySeeds)>> ticketCallbacks_;
-  std::vector<std::function<void()>> certCallbacks_;
+  folly::Synchronized<std::vector<
+      std::shared_ptr<std::function<void(wangle::TLSTicketKeySeeds)>>>>
+      ticketCallbacks_;
+  folly::Synchronized<std::vector<std::shared_ptr<std::function<void()>>>>
+      certCallbacks_;
 };
 } // namespace wangle

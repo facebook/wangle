@@ -67,11 +67,13 @@ void TLSCredProcessor::setPollInterval(std::chrono::milliseconds pollInterval) {
 
 void TLSCredProcessor::addTicketCallback(
     std::function<void(TLSTicketKeySeeds)> callback) {
-  ticketCallbacks_.push_back(std::move(callback));
+  ticketCallbacks_.wlock()->push_back(
+      folly::copy_to_shared_ptr(std::move(callback)));
 }
 
 void TLSCredProcessor::addCertCallback(std::function<void()> callback) {
-  certCallbacks_.push_back(std::move(callback));
+  certCallbacks_.wlock()->push_back(
+      folly::copy_to_shared_ptr(std::move(callback)));
 }
 
 void TLSCredProcessor::setTicketPathToWatch(
@@ -108,15 +110,15 @@ void TLSCredProcessor::ticketFileUpdated(
     const folly::Optional<std::string>& password) noexcept {
   auto seeds = processTLSTickets(ticketFile, password);
   if (seeds) {
-    for (auto& callback : ticketCallbacks_) {
-      callback(*seeds);
+    for (auto& callback : ticketCallbacks_.copy()) {
+      (*callback)(*seeds);
     }
   }
 }
 
 void TLSCredProcessor::certFileUpdated() noexcept {
-  for (const auto& callback : certCallbacks_) {
-    callback();
+  for (const auto& callback : certCallbacks_.copy()) {
+    (*callback)();
   }
 }
 
