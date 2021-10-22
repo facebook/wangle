@@ -84,10 +84,9 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
   initTestAcceptorAndSocket() {
     TestSSLConfig testConfig = GetParam();
     ServerSocketConfig config;
-    if (testConfig == TestSSLConfig::SSL) {
-      config.sslContextConfigs.emplace_back(getTestSslContextConfig(false));
-    } else if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
-      config.sslContextConfigs.emplace_back(getTestSslContextConfig(true));
+    if (testConfig == TestSSLConfig::SSL ||
+        testConfig == TestSSLConfig::SSL_MULTI_CA) {
+      config.sslContextConfigs.emplace_back(getTestSslContextConfig());
     }
     return initTestAcceptorAndSocket(config);
   }
@@ -119,11 +118,11 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
     return sslContext;
   }
 
-  static wangle::SSLContextConfig getTestSslContextConfig(
-      bool useMultiClientCA) {
+  static wangle::SSLContextConfig getTestSslContextConfig() {
     wangle::SSLContextConfig sslCtxConfig;
+    TestSSLConfig testConfig = GetParam();
     sslCtxConfig.setCertificate(folly::kTestCert, folly::kTestKey, "");
-    if (useMultiClientCA) {
+    if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
       sslCtxConfig.clientCAFiles =
           std::vector<std::string>{folly::kTestCA, folly::kClientTestCA};
     } else {
