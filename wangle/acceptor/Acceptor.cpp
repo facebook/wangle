@@ -244,7 +244,8 @@ bool Acceptor::canAccept(const SocketAddress& /*address*/) {
 
 void Acceptor::connectionAccepted(
     folly::NetworkSocket fdNetworkSocket,
-    const SocketAddress& clientAddr) noexcept {
+    const SocketAddress& clientAddr,
+    AcceptInfo /* info */) noexcept {
   int fd = fdNetworkSocket.toFd();
 
   namespace fsp = folly::portability::sockets;
