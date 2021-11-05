@@ -228,7 +228,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   virtual void onDoneAcceptingConnection(
       int fd,
       const folly::SocketAddress& clientAddr,
-      std::chrono::steady_clock::time_point acceptTime) noexcept;
+      std::chrono::steady_clock::time_point acceptTime,
+      const AcceptInfo& info) noexcept;
 
   /**
    * Begins either processing HTTP bytes (HTTP) or the SSL handshake (HTTPS)

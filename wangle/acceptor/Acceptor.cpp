@@ -245,7 +245,7 @@ bool Acceptor::canAccept(const SocketAddress& /*address*/) {
 void Acceptor::connectionAccepted(
     folly::NetworkSocket fdNetworkSocket,
     const SocketAddress& clientAddr,
-    AcceptInfo /* info */) noexcept {
+    AcceptInfo info) noexcept {
   int fd = fdNetworkSocket.toFd();
 
   namespace fsp = folly::portability::sockets;
@@ -261,14 +261,16 @@ void Acceptor::connectionAccepted(
     opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
   }
 
-  onDoneAcceptingConnection(fd, clientAddr, acceptTime);
+  onDoneAcceptingConnection(fd, clientAddr, acceptTime, info);
 }
 
 void Acceptor::onDoneAcceptingConnection(
     int fd,
     const SocketAddress& clientAddr,
-    std::chrono::steady_clock::time_point acceptTime) noexcept {
+    std::chrono::steady_clock::time_point acceptTime,
+    const AcceptInfo& info) noexcept {
   TransportInfo tinfo;
+  tinfo.timeBeforeEnqueue = info.timeBeforeEnqueue;
   processEstablishedConnection(fd, clientAddr, acceptTime, tinfo);
 }
 

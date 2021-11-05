@@ -49,6 +49,12 @@ struct TransportInfo {
   std::chrono::steady_clock::time_point acceptTime{};
 
   /*
+   * timestamp of when the socket was accepted
+   * and ready to be pushed into the socket queue
+   */
+  std::chrono::steady_clock::time_point timeBeforeEnqueue{};
+
+  /*
    * connection RTT (Round-Trip Time)
    */
   std::chrono::microseconds rtt{0};
