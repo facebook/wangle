@@ -29,9 +29,8 @@ class ConnectionManagerTest;
 
 class MockConnection : public ManagedConnection {
  public:
-  using UniquePtr = std::unique_ptr<
-      StrictMock<MockConnection>,
-      folly::DelayedDestruction::Destructor>;
+  using Mock = StrictMock<MockConnection>;
+  using UniquePtr = folly::DelayedDestructionUniquePtr<Mock>;
 
   static UniquePtr makeUnique(ConnectionManagerTest* test) {
     UniquePtr p(new StrictMock<MockConnection>(test));

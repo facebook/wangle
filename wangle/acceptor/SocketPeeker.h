@@ -25,8 +25,7 @@ namespace wangle {
 class TransportPeeker : public folly::AsyncTransport::ReadCallback,
                         public folly::DelayedDestruction {
  public:
-  using UniquePtr =
-      std::unique_ptr<TransportPeeker, folly::DelayedDestruction::Destructor>;
+  using UniquePtr = folly::DelayedDestructionUniquePtr<TransportPeeker>;
 
   class Callback {
    public:
@@ -110,8 +109,7 @@ class TransportPeeker : public folly::AsyncTransport::ReadCallback,
 
 class SocketPeeker : public TransportPeeker, private TransportPeeker::Callback {
  public:
-  using UniquePtr =
-      std::unique_ptr<SocketPeeker, folly::DelayedDestruction::Destructor>;
+  using UniquePtr = folly::DelayedDestructionUniquePtr<SocketPeeker>;
 
   using Callback = TransportPeeker::Callback;
 

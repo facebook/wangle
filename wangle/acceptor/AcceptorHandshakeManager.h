@@ -37,9 +37,7 @@ class Acceptor;
 
 class AcceptorHandshakeHelper : public folly::DelayedDestruction {
  public:
-  using UniquePtr = std::unique_ptr<
-      AcceptorHandshakeHelper,
-      folly::DelayedDestruction::Destructor>;
+  using UniquePtr = folly::DelayedDestructionUniquePtr<AcceptorHandshakeHelper>;
 
   class Callback {
    public:

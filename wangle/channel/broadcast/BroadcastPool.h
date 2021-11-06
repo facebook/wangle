@@ -53,8 +53,7 @@ class BroadcastPool {
   class BroadcastManager : public PipelineManager,
                            public folly::DelayedDestruction {
    public:
-    using UniquePtr = std::
-        unique_ptr<BroadcastManager, folly::DelayedDestruction::Destructor>;
+    using UniquePtr = folly::DelayedDestructionUniquePtr<BroadcastManager>;
 
     BroadcastManager(
         BroadcastPool<T, R, P>* broadcastPool,
