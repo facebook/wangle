@@ -18,32 +18,10 @@
 #include <folly/portability/GTest.h>
 #include <wangle/ssl/SSLStats.h>
 #include <wangle/ssl/TLSTicketKeyManager.h>
+#include <wangle/ssl/test/MockSSLStats.h>
 
 using ::testing::InSequence;
-
-class MockSSLStats : public wangle::SSLStats {
- public:
-  MOCK_QUALIFIED_METHOD1(recordTLSTicketRotation, noexcept, void(bool valid));
-
-  // downstream
-  void recordSSLAcceptLatency(int64_t /* unused */) noexcept override {}
-  void recordTLSTicket(bool /* unused */, bool /* unused */) noexcept override {
-  }
-  void recordSSLSession(
-      bool /* unused */,
-      bool /* unused */,
-      bool /* unused */) noexcept override {}
-  void recordSSLSessionRemove() noexcept override {}
-  void recordSSLSessionFree(uint32_t /* unused */) noexcept override {}
-  void recordSSLSessionSetError(uint32_t /* unused */) noexcept override {}
-  void recordSSLSessionGetError(uint32_t /* unused */) noexcept override {}
-  void recordClientRenegotiation() noexcept override {}
-  void recordSSLClientCertificateMismatch() noexcept override {}
-
-  // upstream
-  void recordSSLUpstreamConnection(bool /* unused */) noexcept override {}
-  void recordSSLUpstreamConnectionError(bool /* unused */) noexcept override {}
-};
+using wangle::MockSSLStats;
 
 TEST(TLSTicketKeyManager, TestSetGetTLSTicketKeySeeds) {
   std::vector<std::string> origOld = {"67"};
