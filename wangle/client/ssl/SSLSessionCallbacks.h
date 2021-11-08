@@ -108,11 +108,14 @@ class SSLSessionCallbacks {
       : public folly::SSLContext::SessionLifecycleCallbacks {
     void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr)
         override;
+    // For TLS 1.3 connections, OpenSSL will call the remove session callback
+    // after every TLS 1.3 handshake where it is the client. SSLSessionCallbacks
+    // is intended to manage session caching on the client-side. This function
+    // is empty so that by default, sessions can be reused multiple times.
+    void onRemoveSession(SSL_CTX*, SSL_SESSION*) override {}
   };
 
   static std::string getSessionKeyFromSSL(SSL* ssl);
-
-  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
   static int32_t& getCacheIndex() {
     static int32_t sExDataIndex = -1;
