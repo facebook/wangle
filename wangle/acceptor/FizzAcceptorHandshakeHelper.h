@@ -62,7 +62,21 @@ class FizzLoggingCallback {
    */
   virtual void logFizzHandshakeSuccess(
       const fizz::server::AsyncFizzServer& /*server*/,
-      const wangle::TransportInfo& tinfo) noexcept = 0;
+      const wangle::TransportInfo& /*tinfo*/) noexcept {}
+
+  /**
+   * logFallbackHandshakeSuccess is invoked when Fizz was unable to handle the
+   * connection (e.g. TLS 1.2 connection), but Fizz was able to successfully
+   * handoff the handshake to a fallback implementation.
+   *
+   * @param server   A valid, non-owning reference to the AsyncSSLSocket
+   *                 connection object that handled the connection.
+   * @param tinfo    A filled out `wangle::TransportInfo` object summarizing
+   *                 connection-oriented statistics and properties
+   */
+  virtual void logFallbackHandshakeSuccess(
+      const folly::AsyncSSLSocket& /*server*/,
+      const wangle::TransportInfo& /*tinfo*/) noexcept {}
 
   /**
    * logFizzHandshakeFallback is invoked when Fizz was unable to accept
@@ -83,7 +97,7 @@ class FizzLoggingCallback {
    */
   virtual void logFizzHandshakeFallback(
       const fizz::server::AsyncFizzServer& /*server*/,
-      const wangle::TransportInfo& tinfo) noexcept = 0;
+      const wangle::TransportInfo& /*tinfo*/) noexcept {}
 
   /**
    * logFizzHandshakeError is invoked when Fizz encountered a connection-fatal
@@ -106,7 +120,25 @@ class FizzLoggingCallback {
    */
   virtual void logFizzHandshakeError(
       const fizz::server::AsyncFizzServer& /*server*/,
-      const folly::exception_wrapper& /*ew*/) noexcept = 0;
+      const folly::exception_wrapper& /*ew*/) noexcept {}
+
+  /**
+   * logFallbackHandshakeError is invoked when the fallback OpenSSL
+   * (AsyncSSLSocket) connections from Fizz encountered a connection-fatal
+   * error while attempting to handshake with the client.
+   *
+   * This is a connection-fatal error; the connection is in an unrecoverable
+   * and terminal state, and wangle will close the connection after this logging
+   * hook call.
+   *
+   * @param server   A valid, non-owning reference to AsyncSSLSocket
+   *                 connection object that handled the connection.
+   * @param ew       The exception object containing details on the cause of
+   *                 the handshake failure.
+   */
+  virtual void logFallbackHandshakeError(
+      const folly::AsyncSSLSocket& /*server*/,
+      const folly::AsyncSocketException& /*ex*/) noexcept {}
 };
 
 class FizzAcceptorHandshakeHelper;

@@ -178,6 +178,10 @@ void FizzAcceptorHandshakeHelper::handshakeSuc(
       std::chrono::steady_clock::now() - acceptTime_);
   wangle::SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(sock, tinfo_);
 
+  if (loggingCallback_) {
+    loggingCallback_->logFallbackHandshakeSuccess(*sock, tinfo_);
+  }
+
   // The callback will delete this.
   callback_->connectionReady(
       std::move(sslSocket_),
@@ -189,6 +193,10 @@ void FizzAcceptorHandshakeHelper::handshakeSuc(
 void FizzAcceptorHandshakeHelper::handshakeErr(
     folly::AsyncSSLSocket* sock,
     const folly::AsyncSocketException& ex) noexcept {
+  if (loggingCallback_) {
+    loggingCallback_->logFallbackHandshakeError(*sock, ex);
+  }
+
   auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - acceptTime_);
   VLOG(3) << "SSL handshake error with " << describeAddresses(sock) << " after "

@@ -187,26 +187,35 @@ class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
 
 class MockFizzLoggingCallback : public FizzLoggingCallback {
  public:
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD(
+      void,
       logFizzHandshakeSuccess,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&));
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+      (const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
+      logFallbackHandshakeSuccess,
+      (const folly::AsyncSSLSocket&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
       logFizzHandshakeFallback,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&));
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+      (const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
       logFizzHandshakeError,
-      void(
-          const fizz::server::AsyncFizzServer&,
-          const folly::exception_wrapper&));
+      (const fizz::server::AsyncFizzServer&, const folly::exception_wrapper&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
+      logFallbackHandshakeError,
+      (const folly::AsyncSSLSocket&, const folly::AsyncSocketException&),
+      (noexcept));
 };
 
 TEST_P(AcceptorTest, AcceptObserver) {
@@ -500,6 +509,8 @@ TEST_P(
           // update remoteSocket
           remoteSocket = newSocket;
         }));
+
+    EXPECT_CALL(*fizzLoggingCb, logFallbackHandshakeSuccess(_, _));
 
     // AsyncFizzServer -> AsyncSSLSocket
     // use logFizzHandshakeFallback to verify that fallback occurred
