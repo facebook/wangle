@@ -162,6 +162,8 @@ SSLSessionCacheManager::SSLSessionCacheManager(
 
   SSL_CTX_set_ex_data(sslCtx, sExDataIndex_, this);
   SSL_CTX_sess_set_get_cb(sslCtx, SSLSessionCacheManager::getSessionCallback);
+  SSL_CTX_sess_set_remove_cb(
+      sslCtx, SSLSessionCacheManager::removeSessionCallback);
   ctx->setSessionLifecycleCallbacks(
       std::make_unique<ContextSessionCallbacks>());
   if (!FLAGS_dcache_unit_test && !context.empty()) {
@@ -211,6 +213,18 @@ void SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
             << SSLUtil::hexlify(sessionId);
     storeCacheRecord(sessionId, session);
   }
+}
+
+void SSLSessionCacheManager::removeSessionCallback(
+    SSL_CTX* ctx,
+    SSL_SESSION* session) {
+  SSLSessionCacheManager* manager = nullptr;
+  manager = (SSLSessionCacheManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
+
+  if (manager == nullptr) {
+    LOG(FATAL) << "Null SSLSessionCacheManager in callback";
+  }
+  return manager->removeSession(ctx, session);
 }
 
 void SSLSessionCacheManager::removeSession(SSL_CTX*, SSL_SESSION* session) {
@@ -330,18 +344,6 @@ void SSLSessionCacheManager::ContextSessionCallbacks::onNewSession(
 
   CHECK(manager) << "Null SSLSessionCacheManager in callback";
   manager->newSession(ssl, sessionPtr.release());
-}
-
-void SSLSessionCacheManager::ContextSessionCallbacks::onRemoveSession(
-    SSL_CTX* ctx,
-    SSL_SESSION* session) {
-  SSLSessionCacheManager* manager = nullptr;
-  manager = (SSLSessionCacheManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
-
-  if (manager == nullptr) {
-    LOG(FATAL) << "Null SSLSessionCacheManager in callback";
-  }
-  return manager->removeSession(ctx, session);
 }
 
 } // namespace wangle

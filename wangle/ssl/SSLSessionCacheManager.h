@@ -145,7 +145,6 @@ class SSLSessionCacheManager {
       : public folly::SSLContext::SessionLifecycleCallbacks {
     void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr)
         override;
-    void onRemoveSession(SSL_CTX* ctx, SSL_SESSION* session) override;
   };
 
   folly::SSLContext* ctx_;
@@ -184,6 +183,12 @@ class SSLSessionCacheManager {
   static std::shared_ptr<ShardedLocalSSLSessionCache> getLocalCache(
       uint32_t maxCacheSize,
       uint32_t cacheCullSize);
+
+  /**
+   * static functions registered as callbacks to openssl via
+   * SSL_CTX_sess_set_new/get/remove_cb
+   */
+  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
 #if FOLLY_OPENSSL_IS_110
   using session_callback_arg_session_id_t = const unsigned char*;

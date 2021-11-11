@@ -30,6 +30,7 @@ void SSLSessionCallbacks::attachCallbacksToContext(
   // Only initializes the cache index the first time.
   SSLUtil::getSSLCtxExIndex(&getCacheIndex());
   SSL_CTX_set_ex_data(ctx, getCacheIndex(), callbacks);
+  SSL_CTX_sess_set_remove_cb(ctx, SSLSessionCallbacks::removeSessionCallback);
   context->setSessionLifecycleCallbacks(
       std::make_unique<ContextSessionCallbacks>());
 }
@@ -60,6 +61,25 @@ SSLSessionCallbacks* SSLSessionCallbacks::getCacheFromContext(SSL_CTX* ctx) {
 std::string SSLSessionCallbacks::getSessionKeyFromSSL(SSL* ssl) {
   auto sock = folly::AsyncSSLSocket::getFromSSL(ssl);
   return sock ? sock->getSessionKey() : "";
+}
+
+// static
+void SSLSessionCallbacks::removeSessionCallback(
+    SSL_CTX* ctx,
+    SSL_SESSION* session) {
+  auto sslSessionCache = getCacheFromContext(ctx);
+  auto identity = getSessionServiceIdentity(session);
+  if (identity && !identity->empty()) {
+    sslSessionCache->removeSSLSession(*identity);
+  }
+#if OPENSSL_TICKETS
+  else {
+    auto hostname = SSL_SESSION_get0_hostname(session);
+    if (hostname) {
+      sslSessionCache->removeSSLSession(std::string(hostname));
+    }
+  }
+#endif
 }
 
 void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(
