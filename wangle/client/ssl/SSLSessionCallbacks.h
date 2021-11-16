@@ -112,8 +112,6 @@ class SSLSessionCallbacks {
 
   static std::string getSessionKeyFromSSL(SSL* ssl);
 
-  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
-
   static int32_t& getCacheIndex() {
     static int32_t sExDataIndex = -1;
     return sExDataIndex;
