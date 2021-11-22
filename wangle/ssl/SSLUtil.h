@@ -112,7 +112,7 @@ class SSLUtil {
   using ex_data_dup_from_arg_t = CRYPTO_EX_DATA*;
 #endif
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || FOLLY_OPENSSL_PREREQ(3, 0, 0)
   using ex_data_dup_ptr_arg_t = void**;
 #else
   using ex_data_dup_ptr_arg_t = void*;
