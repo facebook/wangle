@@ -482,7 +482,8 @@ static void loadCAToSSLContext(
   if (!caFilePath.empty()) {
     try {
       sslCtx->loadTrustedCertificates(caFilePath.c_str());
-      sslCtx->loadClientCAList(caFilePath.c_str());
+      sslCtx->setSupportedClientCertificateAuthorityNamesFromFile(
+          caFilePath.c_str());
     } catch (const std::exception& ex) {
       string msg = folly::to<string>(
           "error loading client CA", caFilePath, ": ", folly::exceptionStr(ex));
@@ -570,6 +571,8 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   // calls loadTrustedCertificates and loadClientCAList for given CA file
   loadCAToSSLContext(sslCtx, ctxConfig.clientCAFile);
 
+  // BUG: This will clobber the list of acceptable client certificate authority
+  // names.
   for (auto& clientCAFile : ctxConfig.clientCAFiles) {
     loadCAToSSLContext(sslCtx, clientCAFile);
   }
