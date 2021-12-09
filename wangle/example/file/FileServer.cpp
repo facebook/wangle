@@ -39,17 +39,16 @@ class FileServerHandler : public HandlerAdapter<std::string> {
 
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd == -1) {
-      write(ctx, sformat("Error opening {}: {}\r\n",
-                         filename,
-                         strerror(errno)));
+      write(
+          ctx, sformat("Error opening {}: {}\r\n", filename, strerror(errno)));
       return;
     }
 
     struct stat buf;
     if (fstat(fd, &buf) == -1) {
-      write(ctx, sformat("Could not stat file {}: {}\r\n",
-                         filename,
-                         strerror(errno)));
+      write(
+          ctx,
+          sformat("Could not stat file {}: {}\r\n", filename, strerror(errno)));
       return;
     }
 

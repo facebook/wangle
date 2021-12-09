@@ -61,7 +61,7 @@ TEST(AsyncSocketHandlerTest, TransportActiveInactive) {
   // Transport is currently active. Calling pipeline->close()
   // should result in transportInactive being fired.
   EXPECT_CALL(*handler, mockClose(_))
-    .WillOnce(Return(handler->defaultFuture()));
+      .WillOnce(Return(handler->defaultFuture()));
   EXPECT_CALL(*handler, transportInactive(_)).Times(1);
   pipeline->close();
 
@@ -79,7 +79,7 @@ TEST(AsyncSocketHandlerTest, TransportActiveInactive) {
   // Transport is currently inactive. Calling pipeline->close()
   // should not result in transportInactive being fired.
   EXPECT_CALL(*handler, mockClose(_))
-    .WillOnce(Return(handler->defaultFuture()));
+      .WillOnce(Return(handler->defaultFuture()));
   EXPECT_CALL(*handler, transportInactive(_)).Times(0);
   pipeline->close();
 }

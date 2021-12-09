@@ -29,9 +29,10 @@ class EventBaseHandler : public OutboundBytesToBytesHandler {
     folly::Future<folly::Unit> retval;
     DCHECK(ctx->getTransport());
     DCHECK(ctx->getTransport()->getEventBase());
-    ctx->getTransport()->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
-        retval = ctx->fireWrite(std::move(buf));
-    });
+    ctx->getTransport()
+        ->getEventBase()
+        ->runImmediatelyOrRunInEventBaseThreadAndWait(
+            [&]() { retval = ctx->fireWrite(std::move(buf)); });
     return retval;
   }
 
@@ -39,11 +40,12 @@ class EventBaseHandler : public OutboundBytesToBytesHandler {
     DCHECK(ctx->getTransport());
     DCHECK(ctx->getTransport()->getEventBase());
     folly::Future<folly::Unit> retval;
-    ctx->getTransport()->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait([&](){
-        retval = ctx->fireClose();
-    });
+    ctx->getTransport()
+        ->getEventBase()
+        ->runImmediatelyOrRunInEventBaseThreadAndWait(
+            [&]() { retval = ctx->fireClose(); });
     return retval;
   }
 };
 
-} // namespace
+} // namespace wangle

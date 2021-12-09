@@ -18,17 +18,16 @@
 
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/SSLContext.h>
-#include <wangle/ssl/SSLUtil.h>
 #include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
+#include <wangle/ssl/SSLUtil.h>
 
 #include <openssl/ssl.h>
 
 #ifdef OPENSSL_NO_TLSEXT
 #define OPENSSL_TICKETS 0
 #else
-#define OPENSSL_TICKETS \
-    OPENSSL_VERSION_NUMBER >= 0x1000105fL
+#define OPENSSL_TICKETS OPENSSL_VERSION_NUMBER >= 0x1000105fL
 #endif
 
 namespace wangle {
@@ -42,24 +41,33 @@ namespace wangle {
  */
 class SSLSessionCallbacks {
  public:
-  // Store the session data of the specified identity in cache. Note that the
-  // implementation must make it's own memory copy of the session data to put
-  // into the cache.
+  /**
+   * Store the session data of the specified identity in cache. Note that the
+   * implementation must make it's own memory copy of the session data to put
+   * into the cache.
+   */
   virtual void setSSLSession(
-    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept = 0;
+      const std::string& identity,
+      folly::ssl::SSLSessionUniquePtr session) noexcept = 0;
 
-  // Return a SSL session if the cache contained session information for the
-  // specified identity. It is the caller's responsibility to decrement the
-  // reference count of the returned session pointer.
+  /**
+   * Return a SSL session if the cache contained session information for the
+   * specified identity. It is the caller's responsibility to decrement the
+   * reference count of the returned session pointer.
+   */
   virtual folly::ssl::SSLSessionUniquePtr getSSLSession(
-    const std::string& identity) const noexcept = 0;
+      const std::string& identity) const noexcept = 0;
 
-  // Remove session data of the specified identity from cache. Return true if
-  // there was session data associated with the identity before removal, or
-  // false otherwise.
+  /**
+   * Remove session data of the specified identity from cache. Return true if
+   * there was session data associated with the identity before removal, or
+   * false otherwise.
+   */
   virtual bool removeSSLSession(const std::string& identity) noexcept = 0;
 
-  // Return true if the underlying cache supports persistence
+  /**
+   * Return true if the underlying cache supports persistence
+   */
   virtual bool supportsPersistence() const noexcept {
     return false;
   }
@@ -74,32 +82,40 @@ class SSLSessionCallbacks {
    * Sets up SSL Session callbacks on a context.  The application is
    * responsible for detaching the callbacks from the context.
    */
-  static void attachCallbacksToContext(folly::SSLContext* context,
-                                       SSLSessionCallbacks* callbacks);
+  static void attachCallbacksToContext(
+      folly::SSLContext* context,
+      SSLSessionCallbacks* callbacks);
 
   /**
    * Detach the passed in callbacks from the context.  If the callbacks are not
    * set on the context, it is unchanged.
    */
-  static void detachCallbacksFromContext(folly::SSLContext* context,
-                                         SSLSessionCallbacks* callbacks);
+  static void detachCallbacksFromContext(
+      folly::SSLContext* context,
+      SSLSessionCallbacks* callbacks);
 
   static SSLSessionCallbacks* getCacheFromContext(SSL_CTX* ctx);
 
+ protected:
+  /**
+   * Called by ContextSessionCallbacks::onNewSession prior to insertion
+   * into the session cache.
+   */
+  virtual void onNewSession(SSL*, SSL_SESSION*) {}
+
  private:
-  struct ContextSessionCallbacks : public folly::SSLContext::SessionLifecycleCallbacks {
-    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) override;
+  struct ContextSessionCallbacks
+      : public folly::SSLContext::SessionLifecycleCallbacks {
+    void onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr)
+        override;
   };
 
   static std::string getSessionKeyFromSSL(SSL* ssl);
-
-  static void removeSessionCallback(SSL_CTX* ctx, SSL_SESSION* session);
 
   static int32_t& getCacheIndex() {
     static int32_t sExDataIndex = -1;
     return sExDataIndex;
   }
-
 };
 
-}
+} // namespace wangle

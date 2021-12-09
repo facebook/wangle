@@ -178,4 +178,4 @@ EvbHandshakeHelper::tryTransition(
 EvbHandshakeHelper::~EvbHandshakeHelper() {
   VLOG(5) << "evbhandshakehelper is destroyed";
 }
-}
+} // namespace wangle

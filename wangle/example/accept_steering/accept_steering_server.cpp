@@ -37,8 +37,8 @@ class NaiveRoutingDataHandler : public RoutingDataHandler<char> {
   NaiveRoutingDataHandler(uint64_t connId, Callback* cob)
       : RoutingDataHandler<char>(connId, cob) {}
 
-  bool parseRoutingData(folly::IOBufQueue& bufQueue,
-                        RoutingData& routingData) override {
+  bool parseRoutingData(folly::IOBufQueue& bufQueue, RoutingData& routingData)
+      override {
     if (bufQueue.chainLength() == 0) {
       return false;
     }

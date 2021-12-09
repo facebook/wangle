@@ -44,10 +44,10 @@ class PipelineContext {
     handler->ctx_ = nullptr;
   }
 
-    virtual void setNextIn(PipelineContext * ctx) = 0;
-    virtual void setNextOut(PipelineContext * ctx) = 0;
+  virtual void setNextIn(PipelineContext* ctx) = 0;
+  virtual void setNextOut(PipelineContext* ctx) = 0;
 
-    virtual HandlerDir getDirection() = 0;
+  virtual HandlerDir getDirection() = 0;
 };
 
 template <class In>
@@ -148,13 +148,12 @@ class ContextImplBase : public PipelineContext {
 };
 
 template <class H>
-class ContextImpl
-  : public HandlerContext<typename H::rout,
-                          typename H::wout>,
-    public InboundLink<typename H::rin>,
-    public OutboundLink<typename H::win>,
-    public ContextImplBase<H, HandlerContext<typename H::rout,
-                                             typename H::wout>> {
+class ContextImpl : public HandlerContext<typename H::rout, typename H::wout>,
+                    public InboundLink<typename H::rin>,
+                    public OutboundLink<typename H::win>,
+                    public ContextImplBase<
+                        H,
+                        HandlerContext<typename H::rout, typename H::wout>> {
  public:
   typedef typename H::rin Rin;
   typedef typename H::rout Rout;
@@ -265,9 +264,8 @@ class ContextImpl
     return this->pipelineRaw_->getWriteFlags();
   }
 
-  void setReadBufferSettings(
-      uint64_t minAvailable,
-      uint64_t allocationSize) override {
+  void setReadBufferSettings(uint64_t minAvailable, uint64_t allocationSize)
+      override {
     this->pipelineRaw_->setReadBufferSettings(minAvailable, allocationSize);
   }
 
@@ -321,9 +319,9 @@ class ContextImpl
 
 template <class H>
 class InboundContextImpl
-  : public InboundHandlerContext<typename H::rout>,
-    public InboundLink<typename H::rin>,
-    public ContextImplBase<H, InboundHandlerContext<typename H::rout>> {
+    : public InboundHandlerContext<typename H::rout>,
+      public InboundLink<typename H::rin>,
+      public ContextImplBase<H, InboundHandlerContext<typename H::rout>> {
  public:
   typedef typename H::rin Rin;
   typedef typename H::rout Rout;
@@ -424,9 +422,9 @@ class InboundContextImpl
 
 template <class H>
 class OutboundContextImpl
-  : public OutboundHandlerContext<typename H::wout>,
-    public OutboundLink<typename H::win>,
-    public ContextImplBase<H, OutboundHandlerContext<typename H::wout>> {
+    : public OutboundHandlerContext<typename H::wout>,
+      public OutboundLink<typename H::win>,
+      public ContextImplBase<H, OutboundHandlerContext<typename H::wout>> {
  public:
   typedef typename H::rin Rin;
   typedef typename H::rout Rout;
@@ -509,14 +507,12 @@ class OutboundContextImpl
 template <class Handler>
 struct ContextType {
   typedef typename std::conditional<
-    Handler::dir == HandlerDir::BOTH,
-    ContextImpl<Handler>,
-    typename std::conditional<
-      Handler::dir == HandlerDir::IN,
-      InboundContextImpl<Handler>,
-      OutboundContextImpl<Handler>
-    >::type>::type
-  type;
+      Handler::dir == HandlerDir::BOTH,
+      ContextImpl<Handler>,
+      typename std::conditional<
+          Handler::dir == HandlerDir::IN,
+          InboundContextImpl<Handler>,
+          OutboundContextImpl<Handler>>::type>::type type;
 };
 
 } // namespace wangle

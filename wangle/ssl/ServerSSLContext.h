@@ -26,7 +26,7 @@ namespace folly {
 class EventBase;
 class SocketAddress;
 
-}
+} // namespace folly
 
 namespace wangle {
 
@@ -60,4 +60,4 @@ class ServerSSLContext : public folly::SSLContext {
   std::unique_ptr<SSLSessionCacheManager> sessionCacheManager_;
 };
 
-}
+} // namespace wangle

@@ -17,9 +17,9 @@
 #pragma once
 
 #include <folly/futures/Future.h>
-#include <wangle/channel/Pipeline.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
+#include <wangle/channel/Pipeline.h>
 
 namespace wangle {
 
@@ -72,8 +72,9 @@ class Handler : public HandlerBase<HandlerContext<Rout, Wout>> {
   }
 
   virtual folly::Future<folly::Unit> write(Context* ctx, Win msg) = 0;
-  virtual folly::Future<folly::Unit> writeException(Context* ctx,
-                                                   folly::exception_wrapper e) {
+  virtual folly::Future<folly::Unit> writeException(
+      Context* ctx,
+      folly::exception_wrapper e) {
     return ctx->fireWriteException(std::move(e));
   }
   virtual folly::Future<folly::Unit> close(Context* ctx) {
@@ -147,7 +148,8 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext<Wout>> {
 
   virtual folly::Future<folly::Unit> write(Context* ctx, Win msg) = 0;
   virtual folly::Future<folly::Unit> writeException(
-      Context* ctx, folly::exception_wrapper e) {
+      Context* ctx,
+      folly::exception_wrapper e) {
     return ctx->fireWriteException(std::move(e));
   }
   virtual folly::Future<folly::Unit> close(Context* ctx) {
@@ -170,12 +172,12 @@ class HandlerAdapter : public Handler<R, R, W, W> {
 };
 
 typedef HandlerAdapter<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
-BytesToBytesHandler;
+    BytesToBytesHandler;
 
 typedef InboundHandler<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>
-InboundBytesToBytesHandler;
+    InboundBytesToBytesHandler;
 
 typedef OutboundHandler<std::unique_ptr<folly::IOBuf>>
-OutboundBytesToBytesHandler;
+    OutboundBytesToBytesHandler;
 
 } // namespace wangle

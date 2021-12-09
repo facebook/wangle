@@ -21,9 +21,9 @@
 
 namespace wangle {
 
-  folly::SocketOptionMap filterIPSocketOptions(
-  const folly::SocketOptionMap& allOptions,
-  const int addrFamily) {
+folly::SocketOptionMap filterIPSocketOptions(
+    const folly::SocketOptionMap& allOptions,
+    const int addrFamily) {
   folly::SocketOptionMap opts;
   int exclude;
   if (addrFamily == AF_INET) {
@@ -33,7 +33,7 @@ namespace wangle {
   } else {
     LOG(FATAL) << "Address family " << addrFamily << " was not IPv4 or IPv6";
   }
-  for (const auto& opt: allOptions) {
+  for (const auto& opt : allOptions) {
     if (opt.first.level != exclude) {
       opts[opt.first] = opt.second;
     }

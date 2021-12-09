@@ -26,7 +26,7 @@ using namespace wangle;
 
 using folly::futures::Barrier;
 
-template<typename MutexT>
+template <typename MutexT>
 class FilePersistentCacheTest : public Test {};
 
 using MutexTypes = ::testing::Types<std::mutex, folly::SharedMutex>;
@@ -52,8 +52,8 @@ TYPED_TEST(FilePersistentCacheTest, stringCompositeGetPutTest) {
   using KeyType = string;
   using ValType = list<string>;
   vector<KeyType> keys = {"key1", "key2"};
-  vector<ValType> values =
-    {ValType({"fma", "shijin"}), ValType({"foo", "bar"})};
+  vector<ValType> values = {
+      ValType({"fma", "shijin"}), ValType({"foo", "bar"})};
   testSimplePutGet<KeyType, ValType, TypeParam>(keys, values);
 }
 
@@ -62,14 +62,8 @@ TYPED_TEST(FilePersistentCacheTest, stringNestedValGetPutTest) {
   using ValType = map<string, list<string>>;
   vector<KeyType> keys = {"cool", "not cool"};
   vector<ValType> values = {
-    ValType({
-        {"NYC", {"fma", "shijin"}},
-        {"MPK", {"ranjeeth", "dsp"}}
-        }),
-    ValType({
-        {"MPK", {"subodh", "blake"}},
-        {"STL", {"pgriess"}}
-        }),
+      ValType({{"NYC", {"fma", "shijin"}}, {"MPK", {"ranjeeth", "dsp"}}}),
+      ValType({{"MPK", {"subodh", "blake"}}, {"STL", {"pgriess"}}}),
   };
   testSimplePutGet<KeyType, ValType, TypeParam>(keys, values);
 }
@@ -78,31 +72,21 @@ TYPED_TEST(FilePersistentCacheTest, stringNestedKeyValGetPutTest) {
   using KeyType = pair<string, string>;
   using ValType = map<string, list<string>>;
   vector<KeyType> keys = {
-    make_pair("cool", "what the=?"),
-    make_pair("not_cool", "how on *& earth?")
-  };
+      make_pair("cool", "what the=?"),
+      make_pair("not_cool", "how on *& earth?")};
   vector<ValType> values = {
-    ValType({
-        {"NYC", {"fma", "shijin kong$"}},
-        {"MPK", {"ranjeeth", "dsp"}}
-        }),
-    ValType({
-        {"MPK", {"subodh", "blake"}},
-        {"STL", {"pgriess"}}
-        }),
+      ValType({{"NYC", {"fma", "shijin kong$"}}, {"MPK", {"ranjeeth", "dsp"}}}),
+      ValType({{"MPK", {"subodh", "blake"}}, {"STL", {"pgriess"}}}),
   };
   testSimplePutGet<KeyType, ValType, TypeParam>(keys, values);
 }
 
-template<typename K, typename V, typename MutexT>
+template <typename K, typename V, typename MutexT>
 void testEmptyFile() {
   string filename = getPersistentCacheFilename();
   size_t cacheCapacity = 10;
   int fd = folly::openNoInt(
-              filename.c_str(),
-              O_WRONLY | O_CREAT | O_TRUNC,
-              S_IRUSR | S_IWUSR
-          );
+      filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   EXPECT_TRUE(fd != -1);
   using CacheType = FilePersistentCache<K, V, MutexT>;
   CacheType cache(
@@ -128,21 +112,16 @@ TYPED_TEST(FilePersistentCacheTest, stringNestedValEmptyFile) {
   testEmptyFile<KeyType, ValType, TypeParam>();
 }
 
-//TODO_ranjeeth : integrity, should we sign the file somehow t3623725
-template<typename K, typename V, typename MutexT>
+// TODO_ranjeeth : integrity, should we sign the file somehow t3623725
+template <typename K, typename V, typename MutexT>
 void testInvalidFile(const std::string& content) {
   string filename = getPersistentCacheFilename();
   size_t cacheCapacity = 10;
   int fd = folly::openNoInt(
-              filename.c_str(),
-              O_WRONLY | O_CREAT | O_TRUNC,
-              S_IRUSR | S_IWUSR
-          );
+      filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   EXPECT_TRUE(fd != -1);
   EXPECT_EQ(
-    folly::writeFull(fd, content.data(), content.size()),
-    content.size()
-  );
+      folly::writeFull(fd, content.data(), content.size()), content.size());
   using CacheType = FilePersistentCache<K, V, MutexT>;
   CacheType cache(
       filename,
@@ -167,25 +146,19 @@ TYPED_TEST(FilePersistentCacheTest, stringNestedValInvalidFile) {
   testInvalidFile<KeyType, ValType, TypeParam>(string("{\"k1\":\"v1\"}"));
 }
 
-//TODO_ranjeeth : integrity, should we sign the file somehow t3623725
-template<typename K, typename V, typename MutexT>
+// TODO_ranjeeth : integrity, should we sign the file somehow t3623725
+template <typename K, typename V, typename MutexT>
 void testValidFile(
     const std::string& content,
     const vector<K>& keys,
-    const vector<V>& values
-  ) {
+    const vector<V>& values) {
   string filename = getPersistentCacheFilename();
   size_t cacheCapacity = 10;
   int fd = folly::openNoInt(
-              filename.c_str(),
-              O_WRONLY | O_CREAT | O_TRUNC,
-              S_IRUSR | S_IWUSR
-          );
+      filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   EXPECT_TRUE(fd != -1);
   EXPECT_EQ(
-    folly::writeFull(fd, content.data(), content.size()),
-    content.size()
-  );
+      folly::writeFull(fd, content.data(), content.size()), content.size());
   using CacheType = FilePersistentCache<K, V, MutexT>;
   CacheType cache(
       filename,
@@ -221,7 +194,7 @@ TYPED_TEST(FilePersistentCacheTest, basicEvictionTest) {
             .setSyncInterval(chrono::seconds(1))
             .build());
     for (int i = 0; i < 10; ++i) {
-        cache.put(i, i);
+      cache.put(i, i);
     }
     EXPECT_EQ(cache.size(), 10); // MRU to LRU : 9, 8, ...1, 0
 
@@ -253,15 +226,10 @@ TYPED_TEST(FilePersistentCacheTest, backwardCompatiblityTest) {
   string filename = getPersistentCacheFilename();
   size_t cacheCapacity = 10;
   int fd = folly::openNoInt(
-              filename.c_str(),
-              O_WRONLY | O_CREAT | O_TRUNC,
-              S_IRUSR | S_IWUSR
-          );
+      filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   EXPECT_TRUE(fd != -1);
   EXPECT_EQ(
-    folly::writeFull(fd, content.data(), content.size()),
-    content.size()
-  );
+      folly::writeFull(fd, content.data(), content.size()), content.size());
   EXPECT_TRUE(folly::closeNoInt(fd) != -1);
 
   {
@@ -318,11 +286,9 @@ TYPED_TEST(FilePersistentCacheTest, destroyAfterLoaded) {
                     .setCapacity(10)
                     .setSyncInterval(std::chrono::seconds(3))
                     .build();
-  auto cache1 =
-      std::make_unique<CacheType>(cacheFile, config);
+  auto cache1 = std::make_unique<CacheType>(cacheFile, config);
   cache1.reset();
-  auto cache2 =
-      std::make_unique<CacheType>(cacheFile, config);
+  auto cache2 = std::make_unique<CacheType>(cacheFile, config);
   cache2.reset();
 }
 

@@ -18,18 +18,17 @@
 
 #include <wangle/client/ssl/SSLSessionCacheUtils.h>
 
-#include <folly/io/IOBuf.h>
 #include <folly/Memory.h>
+#include <folly/io/IOBuf.h>
 #include <folly/portability/OpenSSL.h>
 #include <wangle/client/persistence/FilePersistentCache.h>
 
 namespace wangle {
 
-template<typename K>
+template <typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
-    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache) :
-  persistentCache_(cache),
-  timeUtil_(new TimeUtil()) {}
+    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache)
+    : persistentCache_(cache), timeUtil_(new TimeUtil()) {}
 
 template <typename K>
 SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
@@ -40,9 +39,10 @@ SSLSessionPersistentCacheBase<K>::SSLSessionPersistentCacheBase(
               filename,
               std::move(config))) {}
 
-template<typename K>
+template <typename K>
 void SSLSessionPersistentCacheBase<K>::setSSLSession(
-    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept {
+    const std::string& identity,
+    folly::ssl::SSLSessionUniquePtr session) noexcept {
   if (!session) {
     return;
   }
@@ -57,7 +57,7 @@ void SSLSessionPersistentCacheBase<K>::setSSLSession(
   }
 }
 
-template<typename K>
+template <typename K>
 folly::ssl::SSLSessionUniquePtr SSLSessionPersistentCacheBase<K>::getSSLSession(
     const std::string& identity) const noexcept {
   auto key = getKey(identity);
@@ -71,13 +71,13 @@ folly::ssl::SSLSessionUniquePtr SSLSessionPersistentCacheBase<K>::getSSLSession(
   auto sess = folly::ssl::SSLSessionUniquePtr(getSessionFromCacheData(value));
 
 #if OPENSSL_TICKETS
-  if (sess &&
-      SSL_SESSION_has_ticket(sess.get()) &&
+  if (sess && SSL_SESSION_has_ticket(sess.get()) &&
       SSL_SESSION_get_ticket_lifetime_hint(sess.get()) > 0) {
     auto now = timeUtil_->now();
     auto secsBetween =
-      std::chrono::duration_cast<std::chrono::seconds>(now - value.addedTime);
-    if (secsBetween >= std::chrono::seconds(SSL_SESSION_get_ticket_lifetime_hint(sess.get()))) {
+        std::chrono::duration_cast<std::chrono::seconds>(now - value.addedTime);
+    if (secsBetween >= std::chrono::seconds(
+                           SSL_SESSION_get_ticket_lifetime_hint(sess.get()))) {
       return nullptr;
     }
   }
@@ -86,16 +86,16 @@ folly::ssl::SSLSessionUniquePtr SSLSessionPersistentCacheBase<K>::getSSLSession(
   return sess;
 }
 
-template<typename K>
+template <typename K>
 bool SSLSessionPersistentCacheBase<K>::removeSSLSession(
-  const std::string& identity) noexcept {
+    const std::string& identity) noexcept {
   auto key = getKey(identity);
   return persistentCache_->remove(key);
 }
 
-template<typename K>
+template <typename K>
 size_t SSLSessionPersistentCacheBase<K>::size() const {
   return persistentCache_->size();
 }
 
-}
+} // namespace wangle

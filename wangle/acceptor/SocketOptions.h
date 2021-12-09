@@ -26,7 +26,7 @@ namespace wangle {
  * level.
  */
 folly::SocketOptionMap filterIPSocketOptions(
-  const folly::SocketOptionMap& allOptions,
-  const int addrFamily);
+    const folly::SocketOptionMap& allOptions,
+    const int addrFamily);
 
 } // namespace wangle

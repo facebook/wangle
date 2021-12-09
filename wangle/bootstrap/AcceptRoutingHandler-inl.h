@@ -99,7 +99,7 @@ void AcceptRoutingHandler<Pipeline, R>::onRoutingData(
 
   // Switch to the new acceptor's thread
   acceptor->getEventBase()->runInEventBaseThread(
-      [ =, routingData = std::move(routingData) ]() mutable {
+      [=, routingData = std::move(routingData)]() mutable {
         socket->attachEventBase(acceptor->getEventBase());
 
         auto routingHandler =

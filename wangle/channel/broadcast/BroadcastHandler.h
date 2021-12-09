@@ -28,9 +28,11 @@ namespace wangle {
  * of subscribers.
  */
 template <typename T, typename R>
-class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>> {
+class BroadcastHandler
+    : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>> {
  public:
-  typedef typename HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>::Context Context;
+  typedef typename HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>::Context
+      Context;
 
   ~BroadcastHandler() override {
     CHECK(subscribers_.empty());
@@ -101,8 +103,7 @@ class BroadcastHandler : public HandlerAdapter<T, std::unique_ptr<folly::IOBuf>>
 };
 
 template <typename T, typename R>
-class BroadcastPipelineFactory
-    : public PipelineFactory<DefaultPipeline> {
+class BroadcastPipelineFactory : public PipelineFactory<DefaultPipeline> {
  public:
   DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<folly::AsyncTransport> socket) override = 0;
@@ -110,8 +111,9 @@ class BroadcastPipelineFactory
   virtual BroadcastHandler<T, R>* getBroadcastHandler(
       DefaultPipeline* pipeline) noexcept = 0;
 
-  virtual void setRoutingData(DefaultPipeline* pipeline,
-                              const R& routingData) = 0;
+  virtual void setRoutingData(
+      DefaultPipeline* pipeline,
+      const R& routingData) = 0;
 };
 
 } // namespace wangle

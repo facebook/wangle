@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-#include <wangle/channel/StaticPipeline.h>
-#include <wangle/channel/OutputBufferingHandler.h>
-#include <wangle/channel/test/MockHandler.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
+#include <wangle/channel/OutputBufferingHandler.h>
+#include <wangle/channel/StaticPipeline.h>
+#include <wangle/channel/test/MockHandler.h>
 
 using namespace folly;
 using namespace wangle;
 using namespace testing;
 
-typedef StrictMock<MockHandlerAdapter<
-  IOBufQueue&,
-  std::unique_ptr<IOBuf>>>
-MockBytesHandler;
+typedef StrictMock<MockHandlerAdapter<IOBufQueue&, std::unique_ptr<IOBuf>>>
+    MockBytesHandler;
 
-MATCHER_P(IOBufContains, str, "") { return arg->moveToFbString() == str; }
+MATCHER_P(IOBufContains, str, "") {
+  return arg->moveToFbString() == str;
+}
 
 TEST(OutputBufferingHandlerTest, Basic) {
   MockBytesHandler mockHandler;
   EXPECT_CALL(mockHandler, attachPipeline(_));
-  auto pipeline = StaticPipeline<IOBufQueue&, std::unique_ptr<IOBuf>,
-    MockBytesHandler,
-    OutputBufferingHandler>::create(
-      &mockHandler,
-      OutputBufferingHandler());
+  auto pipeline = StaticPipeline<
+      IOBufQueue&,
+      std::unique_ptr<IOBuf>,
+      MockBytesHandler,
+      OutputBufferingHandler>::create(&mockHandler, OutputBufferingHandler());
 
   EventBase eb;
   auto socket = AsyncSocket::newSocket(&eb);
@@ -57,7 +57,7 @@ TEST(OutputBufferingHandlerTest, Basic) {
   EXPECT_TRUE(f2.isReady());
   EXPECT_CALL(mockHandler, detachPipeline(_));
 
- // Make sure the SharedPromise resets correctly
+  // Make sure the SharedPromise resets correctly
   auto f = pipeline->write(IOBuf::copyBuffer("foo"));
   EXPECT_FALSE(f.isReady());
   EXPECT_CALL(mockHandler, write_(_, IOBufContains("foo")));

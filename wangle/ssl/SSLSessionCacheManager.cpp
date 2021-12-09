@@ -26,10 +26,10 @@
 #include <folly/portability/GFlags.h>
 #include <folly/portability/OpenSSL.h>
 
-using folly::SSLContext;
 using folly::AsyncSSLSocket;
-using std::string;
+using folly::SSLContext;
 using std::shared_ptr;
+using std::string;
 
 namespace {
 
@@ -39,29 +39,30 @@ const uint32_t NUM_CACHE_BUCKETS = 16;
 // for the protocol.  16 bytes for SSLv2 or 32 for SSLv3+
 const int MIN_SESSION_ID_LENGTH = 16;
 
-}
+} // namespace
 
 DEFINE_bool(dcache_unit_test, false, "All VIPs share one session cache");
 
 namespace wangle {
 
-
-
 int SSLSessionCacheManager::sExDataIndex_ = -1;
 shared_ptr<ShardedLocalSSLSessionCache> SSLSessionCacheManager::sCache_;
 std::mutex SSLSessionCacheManager::sCacheLock_;
 
-LocalSSLSessionCache::LocalSSLSessionCache(uint32_t maxCacheSize,
-                                           uint32_t cacheCullSize)
+LocalSSLSessionCache::LocalSSLSessionCache(
+    uint32_t maxCacheSize,
+    uint32_t cacheCullSize)
     : sessionCache(maxCacheSize, cacheCullSize) {
   sessionCache.setPruneHook(std::bind(
-                              &LocalSSLSessionCache::pruneSessionCallback,
-                              this, std::placeholders::_1,
-                              std::placeholders::_2));
+      &LocalSSLSessionCache::pruneSessionCallback,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2));
 }
 
-void LocalSSLSessionCache::pruneSessionCallback(const string& sessionId,
-                                                SSL_SESSION* session) {
+void LocalSSLSessionCache::pruneSessionCallback(
+    const string& sessionId,
+    SSL_SESSION* session) {
   VLOG(4) << "Free SSL session from local cache; id="
           << SSLUtil::hexlify(sessionId);
   SSL_SESSION_free(session);
@@ -148,39 +149,36 @@ void ShardedLocalSSLSessionCache::removeSession(const std::string& sessionId) {
 // SSLSessionCacheManager implementation
 
 SSLSessionCacheManager::SSLSessionCacheManager(
-  uint32_t maxCacheSize,
-  uint32_t cacheCullSize,
-  SSLContext* ctx,
-  const string& context,
-  SSLStats* stats,
-  const std::shared_ptr<SSLCacheProvider>& externalCache):
-    ctx_(ctx),
-    stats_(stats),
-    externalCache_(externalCache) {
-
+    uint32_t maxCacheSize,
+    uint32_t cacheCullSize,
+    SSLContext* ctx,
+    const string& context,
+    SSLStats* stats,
+    const std::shared_ptr<SSLCacheProvider>& externalCache)
+    : ctx_(ctx), stats_(stats), externalCache_(externalCache) {
   SSL_CTX* sslCtx = ctx->getSSLCtx();
 
   SSLUtil::getSSLCtxExIndex(&sExDataIndex_);
 
   SSL_CTX_set_ex_data(sslCtx, sExDataIndex_, this);
   SSL_CTX_sess_set_get_cb(sslCtx, SSLSessionCacheManager::getSessionCallback);
-  SSL_CTX_sess_set_remove_cb(sslCtx,
-                             SSLSessionCacheManager::removeSessionCallback);
-  ctx->setSessionLifecycleCallbacks(std::make_unique<ContextSessionCallbacks>());
+  SSL_CTX_sess_set_remove_cb(
+      sslCtx, SSLSessionCacheManager::removeSessionCallback);
+  ctx->setSessionLifecycleCallbacks(
+      std::make_unique<ContextSessionCallbacks>());
   if (!FLAGS_dcache_unit_test && !context.empty()) {
     // Use the passed in context
     ctx->setSessionCacheContext(context);
   }
 
-  SSL_CTX_set_session_cache_mode(sslCtx, SSL_SESS_CACHE_NO_INTERNAL
-                                 | SSL_SESS_CACHE_SERVER);
+  SSL_CTX_set_session_cache_mode(
+      sslCtx, SSL_SESS_CACHE_NO_INTERNAL | SSL_SESS_CACHE_SERVER);
 
-  localCache_ = SSLSessionCacheManager::getLocalCache(maxCacheSize,
-                                                      cacheCullSize);
+  localCache_ =
+      SSLSessionCacheManager::getLocalCache(maxCacheSize, cacheCullSize);
 }
 
-SSLSessionCacheManager::~SSLSessionCacheManager() {
-}
+SSLSessionCacheManager::~SSLSessionCacheManager() {}
 
 void SSLSessionCacheManager::shutdown() {
   std::lock_guard<std::mutex> g(sCacheLock_);
@@ -188,14 +186,12 @@ void SSLSessionCacheManager::shutdown() {
 }
 
 shared_ptr<ShardedLocalSSLSessionCache> SSLSessionCacheManager::getLocalCache(
-  uint32_t maxCacheSize,
-  uint32_t cacheCullSize) {
-
+    uint32_t maxCacheSize,
+    uint32_t cacheCullSize) {
   std::lock_guard<std::mutex> g(sCacheLock_);
   if (!sCache_) {
-    sCache_.reset(new ShardedLocalSSLSessionCache(NUM_CACHE_BUCKETS,
-                                                  maxCacheSize,
-                                                  cacheCullSize));
+    sCache_.reset(new ShardedLocalSSLSessionCache(
+        NUM_CACHE_BUCKETS, maxCacheSize, cacheCullSize));
   }
   return sCache_;
 }
@@ -203,7 +199,7 @@ shared_ptr<ShardedLocalSSLSessionCache> SSLSessionCacheManager::getLocalCache(
 void SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
   unsigned int sessIdLen = 0;
   const unsigned char* sessId = SSL_SESSION_get_id(session, &sessIdLen);
-  string sessionId((char*) sessId, sessIdLen);
+  string sessionId((char*)sessId, sessIdLen);
   VLOG(4) << "New SSL session; id=" << SSLUtil::hexlify(sessionId);
 
   if (stats_) {
@@ -213,16 +209,17 @@ void SSLSessionCacheManager::newSession(SSL*, SSL_SESSION* session) {
   localCache_->storeSession(sessionId, session, stats_);
 
   if (externalCache_) {
-    VLOG(4) << "New SSL session: send session to external cache; id=" <<
-      SSLUtil::hexlify(sessionId);
+    VLOG(4) << "New SSL session: send session to external cache; id="
+            << SSLUtil::hexlify(sessionId);
     storeCacheRecord(sessionId, session);
   }
 }
 
-void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
-                                                   SSL_SESSION* session) {
+void SSLSessionCacheManager::removeSessionCallback(
+    SSL_CTX* ctx,
+    SSL_SESSION* session) {
   SSLSessionCacheManager* manager = nullptr;
-  manager = (SSLSessionCacheManager *)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
+  manager = (SSLSessionCacheManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
 
   if (manager == nullptr) {
     LOG(FATAL) << "Null SSLSessionCacheManager in callback";
@@ -230,11 +227,10 @@ void SSLSessionCacheManager::removeSessionCallback(SSL_CTX* ctx,
   return manager->removeSession(ctx, session);
 }
 
-void SSLSessionCacheManager::removeSession(SSL_CTX*,
-                                           SSL_SESSION* session) {
+void SSLSessionCacheManager::removeSession(SSL_CTX*, SSL_SESSION* session) {
   unsigned int sessIdLen = 0;
   const unsigned char* sessId = SSL_SESSION_get_id(session, &sessIdLen);
-  string sessionId((char*) sessId, sessIdLen);
+  string sessionId((char*)sessId, sessIdLen);
 
   // This hook is only called from SSL when the internal session cache needs to
   // flush sessions.  Since we run with the internal cache disabled, this should
@@ -326,26 +322,28 @@ SSL_SESSION* SSLSessionCacheManager::getSession(
   return session.release();
 }
 
-bool SSLSessionCacheManager::storeCacheRecord(const string& sessionId,
-                                              SSL_SESSION* session) {
+bool SSLSessionCacheManager::storeCacheRecord(
+    const string& sessionId,
+    SSL_SESSION* session) {
   std::string sessionString;
   uint32_t sessionLen = i2d_SSL_SESSION(session, nullptr);
   sessionString.resize(sessionLen);
-  uint8_t* cp = (uint8_t *)sessionString.data();
+  uint8_t* cp = (uint8_t*)sessionString.data();
   i2d_SSL_SESSION(session, &cp);
   size_t expiration = SSL_CTX_get_timeout(ctx_->getSSLCtx());
-  return externalCache_->setAsync(sessionId, sessionString,
-                                  std::chrono::seconds(expiration));
+  return externalCache_->setAsync(
+      sessionId, sessionString, std::chrono::seconds(expiration));
 }
 
-void SSLSessionCacheManager::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr sessionPtr) {
+void SSLSessionCacheManager::ContextSessionCallbacks::onNewSession(
+    SSL* ssl,
+    folly::ssl::SSLSessionUniquePtr sessionPtr) {
   SSLSessionCacheManager* manager = nullptr;
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
-  manager = (SSLSessionCacheManager *)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
+  manager = (SSLSessionCacheManager*)SSL_CTX_get_ex_data(ctx, sExDataIndex_);
 
   CHECK(manager) << "Null SSLSessionCacheManager in callback";
   manager->newSession(ssl, sessionPtr.release());
 }
-
 
 } // namespace wangle

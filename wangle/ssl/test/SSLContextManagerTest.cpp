@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include <wangle/ssl/SSLContextManager.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/SSLContext.h>
 #include <folly/portability/GTest.h>
 #include <glog/logging.h>
 #include <wangle/acceptor/SSLContextSelectionMisc.h>
 #include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLContextManager.h>
 #include <wangle/ssl/ServerSSLContext.h>
 #include <wangle/ssl/TLSTicketKeyManager.h>
 
@@ -31,83 +31,77 @@ using namespace folly;
 
 namespace wangle {
 
-static const std::string kTestCert1PEM {
-  "-----BEGIN CERTIFICATE-----\n"
-  "MIICFzCCAb6gAwIBAgIJAO6xBdXUFQqgMAkGByqGSM49BAEwaDELMAkGA1UEBhMC\n"
-  "VVMxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UECgwTRGVmYXVsdCBDb21w\n"
-  "YW55IEx0ZDERMA8GA1UECwwIdGVzdC5jb20xETAPBgNVBAMMCHRlc3QuY29tMCAX\n"
-  "DTE2MDMxNjE4MDg1M1oYDzQ3NTQwMjExMTgwODUzWjBoMQswCQYDVQQGEwJVUzEV\n"
-  "MBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkg\n"
-  "THRkMREwDwYDVQQLDAh0ZXN0LmNvbTERMA8GA1UEAwwIdGVzdC5jb20wWTATBgcq\n"
-  "hkjOPQIBBggqhkjOPQMBBwNCAARZ4vDgSPwytxU2HfQG/wxhsk0uHfr1eUmheqoC\n"
-  "yiQPB7aXZPbFs3JtvhzKc8DZ0rrZIQpkVLAGEIAa5UbuCy32o1AwTjAdBgNVHQ4E\n"
-  "FgQU05wwrHKWuyGM0qAIzeprza/FM9UwHwYDVR0jBBgwFoAU05wwrHKWuyGM0qAI\n"
-  "zeprza/FM9UwDAYDVR0TBAUwAwEB/zAJBgcqhkjOPQQBA0gAMEUCIBofo+kW0kxn\n"
-  "wzvNvopVKr/cFuDzwRKHdozoiZ492g6QAiEAo55BTcbSwBeszWR6Cr8gOCS4Oq7Z\n"
-  "Mt8v4GYjd1KT4fE=\n"
-  "-----END CERTIFICATE-----\n"
-};
+static const std::string kTestCert1PEM{
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIICFzCCAb6gAwIBAgIJAO6xBdXUFQqgMAkGByqGSM49BAEwaDELMAkGA1UEBhMC\n"
+    "VVMxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UECgwTRGVmYXVsdCBDb21w\n"
+    "YW55IEx0ZDERMA8GA1UECwwIdGVzdC5jb20xETAPBgNVBAMMCHRlc3QuY29tMCAX\n"
+    "DTE2MDMxNjE4MDg1M1oYDzQ3NTQwMjExMTgwODUzWjBoMQswCQYDVQQGEwJVUzEV\n"
+    "MBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkg\n"
+    "THRkMREwDwYDVQQLDAh0ZXN0LmNvbTERMA8GA1UEAwwIdGVzdC5jb20wWTATBgcq\n"
+    "hkjOPQIBBggqhkjOPQMBBwNCAARZ4vDgSPwytxU2HfQG/wxhsk0uHfr1eUmheqoC\n"
+    "yiQPB7aXZPbFs3JtvhzKc8DZ0rrZIQpkVLAGEIAa5UbuCy32o1AwTjAdBgNVHQ4E\n"
+    "FgQU05wwrHKWuyGM0qAIzeprza/FM9UwHwYDVR0jBBgwFoAU05wwrHKWuyGM0qAI\n"
+    "zeprza/FM9UwDAYDVR0TBAUwAwEB/zAJBgcqhkjOPQQBA0gAMEUCIBofo+kW0kxn\n"
+    "wzvNvopVKr/cFuDzwRKHdozoiZ492g6QAiEAo55BTcbSwBeszWR6Cr8gOCS4Oq7Z\n"
+    "Mt8v4GYjd1KT4fE=\n"
+    "-----END CERTIFICATE-----\n"};
 
-static const std::string kTestCert1Key {
-  "-----BEGIN EC PARAMETERS-----\n"
-  "BggqhkjOPQMBBw==\n"
-  "-----END EC PARAMETERS-----\n"
-  "-----BEGIN EC PRIVATE KEY-----\n"
-  "MHcCAQEEIKhuz+7RoCLvsXzcD1+Bq5ahrOViFJmgHiGR3w3OmXEroAoGCCqGSM49\n"
-  "AwEHoUQDQgAEWeLw4Ej8MrcVNh30Bv8MYbJNLh369XlJoXqqAsokDwe2l2T2xbNy\n"
-  "bb4cynPA2dK62SEKZFSwBhCAGuVG7gst9g==\n"
-  "-----END EC PRIVATE KEY-----\n"
-};
+static const std::string kTestCert1Key{
+    "-----BEGIN EC PARAMETERS-----\n"
+    "BggqhkjOPQMBBw==\n"
+    "-----END EC PARAMETERS-----\n"
+    "-----BEGIN EC PRIVATE KEY-----\n"
+    "MHcCAQEEIKhuz+7RoCLvsXzcD1+Bq5ahrOViFJmgHiGR3w3OmXEroAoGCCqGSM49\n"
+    "AwEHoUQDQgAEWeLw4Ej8MrcVNh30Bv8MYbJNLh369XlJoXqqAsokDwe2l2T2xbNy\n"
+    "bb4cynPA2dK62SEKZFSwBhCAGuVG7gst9g==\n"
+    "-----END EC PRIVATE KEY-----\n"};
 
-static const std::string kTestCert2PEM {
-  "-----BEGIN CERTIFICATE-----\n"
-  "MIICHDCCAcOgAwIBAgIJAMXIoAvQSr5HMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
-  "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
-  "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QyLmNvbTESMBAGA1UEAwwJdGVzdDIuY29t\n"
-  "MCAXDTIwMDMxODIwNDI1NFoYDzMwMTkwNzIwMjA0MjU0WjBqMQswCQYDVQQGEwJV\n"
-  "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
-  "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0Mi5jb20xEjAQBgNVBAMMCXRlc3QyLmNvbTBZ\n"
-  "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABLY1a1jMILAhlIvJS+G30h52LDnaeOvJ\n"
-  "SZf8SBV4kk0cx2/11wuA/Dw9auBOqadkhRI06cdT1SMfkxU+j0/Sh96jUDBOMB0G\n"
-  "A1UdDgQWBBRmOoWWWQR840qg207DzbHtUfmLZzAfBgNVHSMEGDAWgBRmOoWWWQR8\n"
-  "40qg207DzbHtUfmLZzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIBYI\n"
-  "7R2QG2aBXqXi5YUkDYH140ZvWSVO72Ny8Vv0fHNUAiA8khaQGXyhSmg5XtdYf+95\n"
-  "FMG3ZdzUrVbeGa66iTqsKA==\n"
-  "-----END CERTIFICATE-----\n"
-};
+static const std::string kTestCert2PEM{
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIICHDCCAcOgAwIBAgIJAMXIoAvQSr5HMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
+    "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
+    "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QyLmNvbTESMBAGA1UEAwwJdGVzdDIuY29t\n"
+    "MCAXDTIwMDMxODIwNDI1NFoYDzMwMTkwNzIwMjA0MjU0WjBqMQswCQYDVQQGEwJV\n"
+    "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
+    "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0Mi5jb20xEjAQBgNVBAMMCXRlc3QyLmNvbTBZ\n"
+    "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABLY1a1jMILAhlIvJS+G30h52LDnaeOvJ\n"
+    "SZf8SBV4kk0cx2/11wuA/Dw9auBOqadkhRI06cdT1SMfkxU+j0/Sh96jUDBOMB0G\n"
+    "A1UdDgQWBBRmOoWWWQR840qg207DzbHtUfmLZzAfBgNVHSMEGDAWgBRmOoWWWQR8\n"
+    "40qg207DzbHtUfmLZzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIBYI\n"
+    "7R2QG2aBXqXi5YUkDYH140ZvWSVO72Ny8Vv0fHNUAiA8khaQGXyhSmg5XtdYf+95\n"
+    "FMG3ZdzUrVbeGa66iTqsKA==\n"
+    "-----END CERTIFICATE-----\n"};
 
-static const std::string kTestCert2Key {
-  "-----BEGIN PRIVATE KEY-----\n"
-  "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgzgBUbZOZgJPOvfmZ\n"
-  "kfkqXA0kjCv+q9Mn4mSvnFZQ02ihRANCAAS2NWtYzCCwIZSLyUvht9Iediw52njr\n"
-  "yUmX/EgVeJJNHMdv9dcLgPw8PWrgTqmnZIUSNOnHU9UjH5MVPo9P0ofe\n"
-  "-----END PRIVATE KEY-----\n"
-};
+static const std::string kTestCert2Key{
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgzgBUbZOZgJPOvfmZ\n"
+    "kfkqXA0kjCv+q9Mn4mSvnFZQ02ihRANCAAS2NWtYzCCwIZSLyUvht9Iediw52njr\n"
+    "yUmX/EgVeJJNHMdv9dcLgPw8PWrgTqmnZIUSNOnHU9UjH5MVPo9P0ofe\n"
+    "-----END PRIVATE KEY-----\n"};
 
-static const std::string kTestCert3PEM {
-  "-----BEGIN CERTIFICATE-----\n"
-  "MIICHTCCAcOgAwIBAgIJANhD01ZIjSaYMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
-  "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
-  "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QzLmNvbTESMBAGA1UEAwwJdGVzdDMuY29t\n"
-  "MCAXDTIwMDMxODIwNDM1M1oYDzMwMTkwNzIwMjA0MzUzWjBqMQswCQYDVQQGEwJV\n"
-  "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
-  "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0My5jb20xEjAQBgNVBAMMCXRlc3QzLmNvbTBZ\n"
-  "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABPnM70rusTOR2a/6pp9ySifIak6E8OjG\n"
-  "OTInCWJinpcIL6/84dKkBbvnxoEnCac9D91Qn/DMS0SbFR+Ffy3eaJSjUDBOMB0G\n"
-  "A1UdDgQWBBSsgk2YknDXsMVAmPcNvmnsdQRe4DAfBgNVHSMEGDAWgBSsgk2YknDX\n"
-  "sMVAmPcNvmnsdQRe4DAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIHbT\n"
-  "lKFFkvhZk8ZA/R44o9uuUonJm5Gc4GrIU8FhprPyAiEA7X7y9w0wqBsRnqHY69/M\n"
-  "P1ay9D55cC8ZtIHW9Ioz4tU=\n"
-  "-----END CERTIFICATE-----\n"
-};
+static const std::string kTestCert3PEM{
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIICHTCCAcOgAwIBAgIJANhD01ZIjSaYMAoGCCqGSM49BAMCMGoxCzAJBgNVBAYT\n"
+    "AlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQgQ29t\n"
+    "cGFueSBMdGQxEjAQBgNVBAsMCXRlc3QzLmNvbTESMBAGA1UEAwwJdGVzdDMuY29t\n"
+    "MCAXDTIwMDMxODIwNDM1M1oYDzMwMTkwNzIwMjA0MzUzWjBqMQswCQYDVQQGEwJV\n"
+    "UzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBh\n"
+    "bnkgTHRkMRIwEAYDVQQLDAl0ZXN0My5jb20xEjAQBgNVBAMMCXRlc3QzLmNvbTBZ\n"
+    "MBMGByqGSM49AgEGCCqGSM49AwEHA0IABPnM70rusTOR2a/6pp9ySifIak6E8OjG\n"
+    "OTInCWJinpcIL6/84dKkBbvnxoEnCac9D91Qn/DMS0SbFR+Ffy3eaJSjUDBOMB0G\n"
+    "A1UdDgQWBBSsgk2YknDXsMVAmPcNvmnsdQRe4DAfBgNVHSMEGDAWgBSsgk2YknDX\n"
+    "sMVAmPcNvmnsdQRe4DAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIHbT\n"
+    "lKFFkvhZk8ZA/R44o9uuUonJm5Gc4GrIU8FhprPyAiEA7X7y9w0wqBsRnqHY69/M\n"
+    "P1ay9D55cC8ZtIHW9Ioz4tU=\n"
+    "-----END CERTIFICATE-----\n"};
 
-static const std::string kTestCert3Key {
-  "-----BEGIN PRIVATE KEY-----\n"
-  "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgVTwC3zm6JwlDVi/J\n"
-  "scDGImwGGxlgzHchexWJAsM/YNWhRANCAAT5zO9K7rEzkdmv+qafckonyGpOhPDo\n"
-  "xjkyJwliYp6XCC+v/OHSpAW758aBJwmnPQ/dUJ/wzEtEmxUfhX8t3miU\n"
-  "-----END PRIVATE KEY-----\n"
-};
+static const std::string kTestCert3Key{
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgVTwC3zm6JwlDVi/J\n"
+    "scDGImwGGxlgzHchexWJAsM/YNWhRANCAAT5zO9K7rEzkdmv+qafckonyGpOhPDo\n"
+    "xjkyJwliYp6XCC+v/OHSpAW758aBJwmnPQ/dUJ/wzEtEmxUfhX8t3miU\n"
+    "-----END PRIVATE KEY-----\n"};
 
 static const std::string kCertWithNoCNButWithSAN{
     "-----BEGIN CERTIFICATE-----\n"
@@ -161,13 +155,12 @@ static const std::string kCertWithNoCNButWithSANKey{
 
 class SSLContextManagerForTest : public SSLContextManager {
  public:
-  using SSLContextManager::SSLContextManager;
-  using SSLContextManager::insertSSLCtxByDomainName;
   using SSLContextManager::addServerContext;
+  using SSLContextManager::insertSSLCtxByDomainName;
+  using SSLContextManager::SSLContextManager;
 };
 
-TEST(SSLContextManagerTest, Test1)
-{
+TEST(SSLContextManagerTest, Test1) {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   auto www_example_com_ctx = std::make_shared<SSLContext>();
@@ -178,30 +171,16 @@ TEST(SSLContextManagerTest, Test1)
   auto www_example_org_ctx_sha1 = std::make_shared<SSLContext>();
 
   sslCtxMgr.insertSSLCtxByDomainName(
-    "*.example.com",
-    start_example_com_ctx_sha1,
-    CertCrypto::SHA1_SIGNATURE);
+      "*.example.com", start_example_com_ctx_sha1, CertCrypto::SHA1_SIGNATURE);
+  sslCtxMgr.insertSSLCtxByDomainName("www.example.com", www_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName("www.example.com", www_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName("*.example.com", start_example_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
-    "www.example.com",
-    www_example_com_ctx);
+      "*.abc.example.com", start_abc_example_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
-    "www.example.com",
-    www_example_com_ctx);
+      "www.example.com", www_example_com_ctx_sha1, CertCrypto::SHA1_SIGNATURE);
   sslCtxMgr.insertSSLCtxByDomainName(
-    "*.example.com",
-    start_example_com_ctx);
-  sslCtxMgr.insertSSLCtxByDomainName(
-    "*.abc.example.com",
-    start_abc_example_com_ctx);
-  sslCtxMgr.insertSSLCtxByDomainName(
-    "www.example.com",
-    www_example_com_ctx_sha1,
-    CertCrypto::SHA1_SIGNATURE);
-  sslCtxMgr.insertSSLCtxByDomainName(
-    "www.example.org",
-    www_example_org_ctx_sha1,
-    CertCrypto::SHA1_SIGNATURE);
-
+      "www.example.org", www_example_org_ctx_sha1, CertCrypto::SHA1_SIGNATURE);
 
   shared_ptr<SSLContext> retCtx;
   retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com"));
@@ -224,25 +203,24 @@ TEST(SSLContextManagerTest, Test1)
   // ensure "Xexample.com" does not match "*.example.com"
   EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("Xexample.com")));
   // ensure wildcard name only matches one domain up
-  EXPECT_FALSE(sslCtxMgr.getSSLCtxBySuffix(
-        SSLContextKey("abc.xyz.example.com")));
+  EXPECT_FALSE(
+      sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("abc.xyz.example.com")));
 
-  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.com",
-        CertCrypto::SHA1_SIGNATURE));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(
+      SSLContextKey("www.example.com", CertCrypto::SHA1_SIGNATURE));
   EXPECT_EQ(retCtx, www_example_com_ctx_sha1);
-  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("abc.example.com",
-        CertCrypto::SHA1_SIGNATURE));
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(
+      SSLContextKey("abc.example.com", CertCrypto::SHA1_SIGNATURE));
   EXPECT_EQ(retCtx, start_example_com_ctx_sha1);
-  retCtx = sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("xyz.abc.example.com",
-        CertCrypto::SHA1_SIGNATURE));
+  retCtx = sslCtxMgr.getSSLCtxBySuffix(
+      SSLContextKey("xyz.abc.example.com", CertCrypto::SHA1_SIGNATURE));
   EXPECT_FALSE(retCtx);
 
-  retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.org",
-        CertCrypto::SHA1_SIGNATURE));
+  retCtx = sslCtxMgr.getSSLCtxByExactDomain(
+      SSLContextKey("www.example.org", CertCrypto::SHA1_SIGNATURE));
   EXPECT_EQ(retCtx, www_example_org_ctx_sha1);
   retCtx = sslCtxMgr.getSSLCtxByExactDomain(SSLContextKey("www.example.org"));
   EXPECT_EQ(retCtx, www_example_org_ctx_sha1);
-
 }
 
 // This test uses multiple contexts, which requires SNI support to work at all.
@@ -259,31 +237,25 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
 
   SSLContextConfig ctxConfig1;
   ctxConfig1.sessionContext = "ctx1";
-  ctxConfig1.setCertificateBuf(
-      kTestCert1PEM,
-      kTestCert1Key);
+  ctxConfig1.setCertificateBuf(kTestCert1PEM, kTestCert1Key);
   ctxConfig1.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig1Default = ctxConfig1;
   ctxConfig1Default.isDefault = true;
 
   SSLContextConfig ctxConfig2;
   ctxConfig2.sessionContext = "ctx2";
-  ctxConfig2.setCertificateBuf(
-      kTestCert2PEM,
-      kTestCert2Key);
+  ctxConfig2.setCertificateBuf(kTestCert2PEM, kTestCert2Key);
   ctxConfig2.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig2Default = ctxConfig2;
   ctxConfig2Default.isDefault = true;
 
   SSLContextConfig ctxConfig3;
   ctxConfig3.sessionContext = "ctx3";
-  ctxConfig3.setCertificateBuf(
-      kTestCert3PEM,
-      kTestCert3Key);
+  ctxConfig3.setCertificateBuf(kTestCert3PEM, kTestCert3Key);
   ctxConfig3.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLContextConfig ctxConfig3Default = ctxConfig3;
   ctxConfig3Default.isDefault = true;
 
@@ -366,15 +338,12 @@ TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
 #endif
 
 #if !(FOLLY_OPENSSL_IS_110) && !defined(OPENSSL_IS_BORINGSSL)
-TEST(SSLContextManagerTest, TestSessionContextIfSupplied)
-{
+TEST(SSLContextManagerTest, TestSessionContextIfSupplied) {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
-  ctxConfig.addCertificateBuf(
-      kTestCert1PEM,
-      kTestCert1Key);
+  ctxConfig.addCertificateBuf(kTestCert1PEM, kTestCert1Key);
 
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
@@ -391,16 +360,13 @@ TEST(SSLContextManagerTest, TestSessionContextIfSupplied)
   EXPECT_EQ(*ctxConfig.sessionContext, sessCtxFromCtx);
 }
 
-TEST(SSLContextManagerTest, TestSessionContextIfSessionCacheAbsent)
-{
+TEST(SSLContextManagerTest, TestSessionContextIfSessionCacheAbsent) {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   SSLContextConfig ctxConfig;
   ctxConfig.sessionContext = "test";
   ctxConfig.sessionCacheEnabled = false;
-  ctxConfig.addCertificateBuf(
-      kTestCert1PEM,
-      kTestCert1Key);
+  ctxConfig.addCertificateBuf(kTestCert1PEM, kTestCert1Key);
 
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
@@ -418,8 +384,7 @@ TEST(SSLContextManagerTest, TestSessionContextIfSessionCacheAbsent)
 }
 #endif
 
-TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
-{
+TEST(SSLContextManagerTest, TestSessionContextCertRemoval) {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", true, nullptr);
   auto www_example_com_ctx = std::make_shared<ServerSSLContext>();
@@ -427,17 +392,12 @@ TEST(SSLContextManagerTest, TestSessionContextCertRemoval)
   auto start_abc_example_com_ctx = std::make_shared<ServerSSLContext>();
   auto www_abc_example_com_ctx = std::make_shared<ServerSSLContext>();
 
-  sslCtxMgr.insertSSLCtxByDomainName(
-    "www.example.com",
-    www_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName("www.example.com", www_example_com_ctx);
   sslCtxMgr.addServerContext(www_example_com_ctx);
-  sslCtxMgr.insertSSLCtxByDomainName(
-    "*.example.com",
-    start_example_com_ctx);
+  sslCtxMgr.insertSSLCtxByDomainName("*.example.com", start_example_com_ctx);
   sslCtxMgr.addServerContext(start_example_com_ctx);
   sslCtxMgr.insertSSLCtxByDomainName(
-    "*.abc.example.com",
-    start_abc_example_com_ctx);
+      "*.abc.example.com", start_abc_example_com_ctx);
   sslCtxMgr.addServerContext(start_abc_example_com_ctx);
 
   shared_ptr<SSLContext> retCtx;
@@ -493,7 +453,7 @@ TEST(SSLContextManagerTest, TestCertificateWithNoCN) {
       kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
   ctxConfig.isDefault = true;
   ctxConfig.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
   sslCtxMgr.addSSLContextConfig(
@@ -513,7 +473,7 @@ TEST(SSLContextManagerTest, TestAlpnAllowMismatch) {
       kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
   ctxConfig.isDefault = true;
   ctxConfig.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
   sslCtxMgr.addSSLContextConfig(
@@ -534,7 +494,7 @@ TEST(SSLContextManagerTest, TestAlpnNotAllowMismatch) {
       kCertWithNoCNButWithSAN, kCertWithNoCNButWithSANKey);
   ctxConfig.isDefault = true;
   ctxConfig.clientVerification =
-    folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
   SSLCacheOptions cacheOptions;
   SocketAddress addr;
   sslCtxMgr.addSSLContextConfig(
@@ -543,6 +503,86 @@ TEST(SSLContextManagerTest, TestAlpnNotAllowMismatch) {
   auto ctx = sslCtxMgr.getSSLCtx(key);
   ASSERT_NE(ctx, nullptr);
   ASSERT_FALSE(ctx->getAlpnAllowMismatch());
+}
+
+TEST(SSLContextManagerTest, TestSingleClientCAFileSet) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  const std::string clientCAFile = "folly/io/async/test/certs/client_chain.pem";
+
+  SSLContextConfig ctxConfig;
+  ctxConfig.clientCAFile = clientCAFile;
+  ctxConfig.clientVerification =
+      folly::SSLContext::VerifyClientCertificate::ALWAYS;
+  ctxConfig.sessionContext = "test";
+  ctxConfig.isDefault = true;
+  ctxConfig.setCertificateBuf(kTestCert1PEM, kTestCert1Key);
+
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+  auto ctx = sslCtxMgr.getDefaultSSLCtx();
+  ASSERT_NE(ctx, nullptr);
+
+  STACK_OF(X509_NAME)* names = SSL_CTX_get_client_CA_list(ctx->getSSLCtx());
+  EXPECT_EQ(2, sk_X509_NAME_num(names));
+
+  static const char* kExpectedCNs[] = {"Leaf Certificate", "Intermediate CA"};
+  for (int i = 0; i < sk_X509_NAME_num(names); i++) {
+    auto name = sk_X509_NAME_value(names, i);
+    int indexCN = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
+    EXPECT_NE(indexCN, -1);
+
+    auto entry = X509_NAME_get_entry(name, indexCN);
+    ASSERT_NE(entry, nullptr);
+    auto asnStringCN = X509_NAME_ENTRY_get_data(entry);
+    std::string commonName(
+        reinterpret_cast<const char*>(ASN1_STRING_get0_data(asnStringCN)),
+        ASN1_STRING_length(asnStringCN));
+    EXPECT_EQ(commonName, std::string(kExpectedCNs[i]));
+  }
+}
+
+TEST(SSLContextManagerTest, TestMultipleClientCAsSet) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", true, nullptr);
+  const std::vector<std::string> clientCAFiles{
+      "folly/io/async/test/certs/client_cert.pem",
+      "folly/io/async/test/certs/tests-cert.pem"};
+
+  SSLContextConfig ctxConfig;
+  ctxConfig.clientCAFiles = clientCAFiles;
+  ctxConfig.clientVerification =
+      folly::SSLContext::VerifyClientCertificate::ALWAYS;
+  ctxConfig.sessionContext = "test";
+  ctxConfig.isDefault = true;
+  ctxConfig.setCertificateBuf(kTestCert1PEM, kTestCert1Key);
+
+  SSLCacheOptions cacheOptions;
+  SocketAddress addr;
+  sslCtxMgr.addSSLContextConfig(
+      ctxConfig, cacheOptions, nullptr, addr, nullptr);
+  auto ctx = sslCtxMgr.getDefaultSSLCtx();
+  ASSERT_NE(ctx, nullptr);
+
+  STACK_OF(X509_NAME)* names = SSL_CTX_get_client_CA_list(ctx->getSSLCtx());
+  EXPECT_EQ(2, sk_X509_NAME_num(names));
+
+  static const char* kExpectedCNs[] = {"testuser1", "Asox Company"};
+  for (int i = 0; i < sk_X509_NAME_num(names); i++) {
+    auto name = sk_X509_NAME_value(names, i);
+    int indexCN = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
+    EXPECT_NE(indexCN, -1);
+
+    auto entry = X509_NAME_get_entry(name, indexCN);
+    ASSERT_NE(entry, nullptr);
+    auto asnStringCN = X509_NAME_ENTRY_get_data(entry);
+    std::string commonName(
+        reinterpret_cast<const char*>(ASN1_STRING_get0_data(asnStringCN)),
+        ASN1_STRING_length(asnStringCN));
+    EXPECT_EQ(commonName, std::string(kExpectedCNs[i]));
+  }
 }
 
 } // namespace wangle

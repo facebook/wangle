@@ -18,9 +18,9 @@
 
 #include <folly/Executor.h>
 #include <folly/Memory.h>
+#include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/persistence/PersistentCache.h>
 #include <wangle/client/persistence/PersistentCacheCommon.h>
-#include <folly/ssl/OpenSSLPtrTypes.h>
 #include <wangle/client/ssl/SSLSessionCacheData.h>
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
@@ -36,21 +36,20 @@ namespace wangle {
  * This cache is as threadsafe as the underlying PersistentCache used.
  * Multiple instances may delegate to the same persistence layer
  */
-template<typename K>
-class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
-
+template <typename K>
+class SSLSessionPersistentCacheBase : public SSLSessionCallbacks {
  public:
   class TimeUtil {
    public:
-     virtual ~TimeUtil() {}
+    virtual ~TimeUtil() {}
 
-     virtual std::chrono::time_point<std::chrono::system_clock> now() const {
-       return std::chrono::system_clock::now();
-     }
+    virtual std::chrono::time_point<std::chrono::system_clock> now() const {
+      return std::chrono::system_clock::now();
+    }
   };
 
   explicit SSLSessionPersistentCacheBase(
-    std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache);
+      std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> cache);
 
   SSLSessionPersistentCacheBase(
       const std::string& filename,
@@ -60,13 +59,14 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
   // implementation must make it's own memory copy of the session data to put
   // into the cache.
   void setSSLSession(
-    const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept override;
+      const std::string& identity,
+      folly::ssl::SSLSessionUniquePtr session) noexcept override;
 
   // Return a SSL session if the cache contained session information for the
   // specified identity. It is the caller's responsibility to decrement the
   // reference count of the returned session pointer.
   folly::ssl::SSLSessionUniquePtr getSSLSession(
-    const std::string& identity) const noexcept override;
+      const std::string& identity) const noexcept override;
 
   // Remove session data of the specified identity from cache. Return true if
   // there was session data associated with the identity before removal, or
@@ -89,13 +89,12 @@ class SSLSessionPersistentCacheBase: public SSLSessionCallbacks {
   // Get the persistence key from the session's identity
   virtual K getKey(const std::string& identity) const = 0;
 
-  std::shared_ptr<PersistentCache<K, SSLSessionCacheData>>
-    persistentCache_;
+  std::shared_ptr<PersistentCache<K, SSLSessionCacheData>> persistentCache_;
   std::unique_ptr<TimeUtil> timeUtil_;
 };
 
-class SSLSessionPersistentCache :
-      public SSLSessionPersistentCacheBase<std::string> {
+class SSLSessionPersistentCache
+    : public SSLSessionPersistentCacheBase<std::string> {
  public:
   SSLSessionPersistentCache(
       const std::string& filename,
@@ -106,8 +105,7 @@ class SSLSessionPersistentCache :
   std::string getKey(const std::string& identity) const override {
     return identity;
   }
-
 };
-}
+} // namespace wangle
 
 #include <wangle/client/ssl/SSLSessionPersistentCache-inl.h>

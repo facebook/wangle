@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include <wangle/ssl/SSLContextManager.h>
-
 #include <folly/io/async/PasswordInFile.h>
 #include <wangle/ssl/ClientHelloExtStats.h>
 #include <wangle/ssl/SSLCacheOptions.h>
+#include <wangle/ssl/SSLContextManager.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
 #include <wangle/ssl/SSLUtil.h>
 #include <wangle/ssl/ServerSSLContext.h>
@@ -477,6 +476,63 @@ void SSLContextManager::SslContexts::removeSSLContextConfig(
   }
 }
 
+static void loadCAFiles(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const std::vector<std::string>& caFilePaths) {
+  for (const auto& caFilePath : caFilePaths) {
+    try {
+      sslCtx->loadTrustedCertificates(caFilePath.c_str());
+    } catch (const std::exception& ex) {
+      const auto msg = folly::to<std::string>(
+          "error loading client CA ",
+          caFilePath,
+          ": ",
+          folly::exceptionStr(ex));
+      LOG(ERROR) << msg;
+      throw std::runtime_error(msg);
+    }
+  }
+}
+
+static void setSupportedClientCANames(
+    const std::shared_ptr<folly::SSLContext>& sslCtx,
+    const std::vector<std::string>& caFilePaths) {
+  std::vector<folly::ssl::X509NameUniquePtr> certBuf{};
+  // build x509 buffer
+  for (const auto& caFilePath : caFilePaths) {
+    try {
+      auto tempCertBuf =
+          folly::ssl::OpenSSLUtils::subjectNamesInPEMFile(caFilePath.c_str());
+      certBuf.insert(
+          certBuf.end(),
+          std::make_move_iterator(tempCertBuf.begin()),
+          std::make_move_iterator(tempCertBuf.end()));
+
+    } catch (const std::exception& ex) {
+      const auto msg = folly::to<std::string>(
+          "error reading subject names from CA file ",
+          caFilePath,
+          ": ",
+          folly::exceptionStr(ex));
+      LOG(ERROR) << msg;
+      throw std::runtime_error(msg);
+    }
+  }
+  // set supported CAs using built up x509 buff
+  if (certBuf.empty()) {
+    return;
+  }
+  try {
+    sslCtx->setSupportedClientCertificateAuthorityNames(std::move(certBuf));
+  } catch (const std::exception& ex) {
+    std::string msg = folly::to<std::string>(
+        "error setting supported client certificate authority names: ",
+        folly::exceptionStr(ex));
+    LOG(ERROR) << msg;
+    throw std::runtime_error(msg);
+  }
+}
+
 void SSLContextManager::SslContexts::addSSLContextConfig(
     const SSLContextConfig& ctxConfig,
     const SSLCacheOptions& cacheOptions,
@@ -520,6 +576,9 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   // Important that we do this *after* checking the TLS1.1 ciphers above,
   // since we test their validity by actually setting them.
   sslCtx->ciphers(ctxConfig.sslCiphers);
+#if FOLLY_OPENSSL_PREREQ(1, 1, 1)
+  sslCtx->setCiphersuitesOrThrow(ctxConfig.sslCiphersuites);
+#endif
 
   if (ctxConfig.sigAlgs) {
     sslCtx->setSigAlgsOrThrow(*ctxConfig.sigAlgs);
@@ -535,9 +594,9 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
     set_key_from_curve(sslCtx->getSSLCtx(), curve);
   }
 
-  if (ctxConfig.clientCAFile.empty() &&
+  if ((ctxConfig.clientCAFile.empty() && ctxConfig.clientCAFiles.empty()) &&
       ctxConfig.clientVerification !=
-        SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
+          SSLContext::VerifyClientCertificate::DO_NOT_REQUEST) {
     LOG(FATAL) << "You can't verify certs without the client ca file";
   }
 
@@ -549,21 +608,15 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
         SSLContext::VerifyClientCertificate::DO_NOT_REQUEST);
   }
 
-  if (!ctxConfig.clientCAFile.empty()) {
-    try {
-      sslCtx->loadTrustedCertificates(ctxConfig.clientCAFile.c_str());
-      sslCtx->loadClientCAList(ctxConfig.clientCAFile.c_str());
-
-    } catch (const std::exception& ex) {
-      string msg = folly::to<string>(
-          "error loading client CA",
-          ctxConfig.clientCAFile,
-          ": ",
-          folly::exceptionStr(ex));
-      LOG(ERROR) << msg;
-      throw std::runtime_error(msg);
-    }
+  // Loads in certs from CA file(s), then sets SSL context with them.
+  std::vector<std::string> clientCAFiles{};
+  if (ctxConfig.clientCAFiles.size() > 0) {
+    clientCAFiles = ctxConfig.clientCAFiles;
+  } else if (!ctxConfig.clientCAFile.empty()) {
+    clientCAFiles.push_back(ctxConfig.clientCAFile);
   }
+  loadCAFiles(sslCtx, clientCAFiles);
+  setSupportedClientCANames(sslCtx, clientCAFiles);
 
   sslCtx->setAlpnAllowMismatch(ctxConfig.alpnAllowMismatch);
 

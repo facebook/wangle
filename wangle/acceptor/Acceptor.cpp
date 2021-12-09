@@ -16,19 +16,21 @@
 
 #include <wangle/acceptor/Acceptor.h>
 
+#include <fizz/experimental/ktls/AsyncFizzBaseKTLS.h>
 #include <fizz/server/TicketTypes.h>
-#include <folly/io/async/AsyncTransport.h>
+#include <fmt/format.h>
+#include <folly/GLog.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GFlags.h>
 #include <folly/portability/Sockets.h>
 #include <folly/portability/Unistd.h>
-#include <folly/GLog.h>
+#include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/FizzConfigUtil.h>
 #include <wangle/acceptor/ManagedConnection.h>
-#include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/SecurityProtocolContextManager.h>
 #include <wangle/ssl/SSLContextManager.h>
 
@@ -63,9 +65,10 @@ void Acceptor::init(
     }
 
     if (accConfig_.fizzConfig.enableFizz) {
-      ticketSecrets_ = {accConfig_.initialTicketSeeds.oldSeeds,
-                        accConfig_.initialTicketSeeds.currentSeeds,
-                        accConfig_.initialTicketSeeds.newSeeds};
+      ticketSecrets_ = {
+          accConfig_.initialTicketSeeds.oldSeeds,
+          accConfig_.initialTicketSeeds.currentSeeds,
+          accConfig_.initialTicketSeeds.newSeeds};
 
       if (!fizzCertManager_) {
         fizzCertManager_ = createFizzCertManager();
@@ -75,6 +78,8 @@ void Acceptor::init(
 
       auto* peeker = getFizzPeeker();
       peeker->setContext(std::move(context));
+      peeker->options().setHandshakeRecordAlignedReads(
+          accConfig_.fizzConfig.preferKTLS);
       securityProtocolCtxManager_.addPeeker(peeker);
     } else {
       securityProtocolCtxManager_.addPeeker(&defaultPeekingCallback_);
@@ -239,7 +244,8 @@ bool Acceptor::canAccept(const SocketAddress& /*address*/) {
 
 void Acceptor::connectionAccepted(
     folly::NetworkSocket fdNetworkSocket,
-    const SocketAddress& clientAddr) noexcept {
+    const SocketAddress& clientAddr,
+    AcceptInfo info) noexcept {
   int fd = fdNetworkSocket.toFd();
 
   namespace fsp = folly::portability::sockets;
@@ -255,14 +261,16 @@ void Acceptor::connectionAccepted(
     opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
   }
 
-  onDoneAcceptingConnection(fd, clientAddr, acceptTime);
+  onDoneAcceptingConnection(fd, clientAddr, acceptTime, info);
 }
 
 void Acceptor::onDoneAcceptingConnection(
     int fd,
     const SocketAddress& clientAddr,
-    std::chrono::steady_clock::time_point acceptTime) noexcept {
+    std::chrono::steady_clock::time_point acceptTime,
+    const AcceptInfo& info) noexcept {
   TransportInfo tinfo;
+  tinfo.timeBeforeEnqueue = info.timeBeforeEnqueue;
   processEstablishedConnection(fd, clientAddr, acceptTime, tinfo);
 }
 
@@ -277,9 +285,8 @@ void Acceptor::processEstablishedConnection(
     shouldDoSSL = sslCtxManager_->getDefaultSSLCtx() != nullptr;
   }
   if (shouldDoSSL) {
-    AsyncSSLSocket::UniquePtr sslSock(
-        makeNewAsyncSSLSocket(
-            sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
+    AsyncSSLSocket::UniquePtr sslSock(makeNewAsyncSSLSocket(
+        sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
     ++numPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name
@@ -307,10 +314,7 @@ void Acceptor::processEstablishedConnection(
     for (const auto& cb : observerList_.getAll()) {
       cb->accept(sock.get());
     }
-    plaintextConnectionReady(
-        std::move(sock),
-        clientAddr,
-        tinfo);
+    plaintextConnectionReady(std::move(sock), clientAddr, tinfo);
   }
 }
 
@@ -325,12 +329,70 @@ void Acceptor::startHandshakeManager(
   manager->start(std::move(sslSock));
 }
 
+static std::string logContext(folly::AsyncTransport& transport) {
+  std::string localAddr;
+  std::string remoteAddr;
+  int socketFd = -1;
+  try {
+    localAddr = transport.getLocalAddress().describe();
+  } catch (folly::AsyncSocketException& ex) {
+    localAddr = "(unknown)";
+  }
+  try {
+    remoteAddr = transport.getPeerAddress().describe();
+  } catch (folly::AsyncSocketException& ex) {
+    remoteAddr = "(unknown)";
+  }
+
+  if (auto sock = transport.getUnderlyingTransport<folly::AsyncSocket>()) {
+    socketFd = sock->getNetworkSocket().toFd();
+  }
+  return fmt::format(
+      "local={}, remote={}, fd={}", localAddr, remoteAddr, socketFd);
+}
+
+AsyncTransport::UniquePtr Acceptor::transformTransport(
+    AsyncTransport::UniquePtr sock) {
+  if constexpr (fizz::platformCapableOfKTLS) {
+    if (accConfig_.fizzConfig.preferKTLS) {
+      std::string sockLogContext;
+      if (VLOG_IS_ON(5)) {
+        sockLogContext = logContext(*sock);
+      }
+
+      auto fizzSocket =
+          sock->getUnderlyingTransport<fizz::server::AsyncFizzServer>();
+      if (!fizzSocket) {
+        VLOG(5) << "Acceptor configured to prefer kTLS, but peer is not fizz. "
+                << sockLogContext;
+        return sock;
+      }
+      auto ktlsSockResult = fizz::tryConvertKTLS(*fizzSocket);
+      if (ktlsSockResult.hasValue()) {
+        VLOG(5) << "Upgraded socket to kTLS. " << sockLogContext;
+        return std::move(ktlsSockResult).value();
+      } else {
+        VLOG(5) << "Failed to upgrade to kTLS. ex="
+                << folly::exceptionStr(ktlsSockResult.error()) << " "
+                << sockLogContext;
+        return sock;
+      }
+    }
+  }
+
+  return sock;
+}
+
 void Acceptor::connectionReady(
     AsyncTransport::UniquePtr sock,
     const SocketAddress& clientAddr,
     const string& nextProtocolName,
     SecureTransportType secureTransportType,
     TransportInfo& tinfo) {
+  if (state_ >= State::kDraining) {
+    return;
+  }
+
   // Limit the number of reads from the socket per poll loop iteration,
   // both to keep memory usage under control and to prevent one fast-
   // writing client from starving other connections.
@@ -338,17 +400,20 @@ void Acceptor::connectionReady(
   asyncSocket->setMaxReadsPerEvent(accConfig_.socketMaxReadsPerEvent);
   tinfo.initWithSocket(asyncSocket);
   tinfo.appProtocol = std::make_shared<std::string>(nextProtocolName);
-  if (state_ < State::kDraining) {
-    for (const auto& cb : observerList_.getAll()) {
-      cb->ready(sock.get());
-    }
-    onNewConnection(
-        std::move(sock),
-        &clientAddr,
-        nextProtocolName,
-        secureTransportType,
-        tinfo);
+
+  for (const auto& cb : observerList_.getAll()) {
+    cb->ready(sock.get());
   }
+
+  folly::AsyncTransport::UniquePtr transformed =
+      transformTransport(std::move(sock));
+
+  onNewConnection(
+      std::move(transformed),
+      &clientAddr,
+      nextProtocolName,
+      secureTransportType,
+      tinfo);
 }
 
 void Acceptor::plaintextConnectionReady(
@@ -356,11 +421,7 @@ void Acceptor::plaintextConnectionReady(
     const SocketAddress& clientAddr,
     TransportInfo& tinfo) {
   connectionReady(
-      std::move(sock),
-      clientAddr,
-      {},
-      SecureTransportType::NONE,
-      tinfo);
+      std::move(sock), clientAddr, {}, SecureTransportType::NONE, tinfo);
 }
 
 void Acceptor::sslConnectionReady(
@@ -391,8 +452,8 @@ void Acceptor::acceptError(const std::exception& ex) noexcept {
   // The most likely error is out of FDs.  AsyncServerSocket will back off
   // briefly if we are out of FDs, then continue accepting later.
   // Just log a message here.
-  FB_LOG_EVERY_MS(ERROR, 1000) << "error accepting on acceptor socket: "
-                               << ex.what();
+  FB_LOG_EVERY_MS(ERROR, 1000)
+      << "error accepting on acceptor socket: " << ex.what();
 }
 
 void Acceptor::acceptStopped() noexcept {
@@ -495,7 +556,7 @@ Acceptor::AcceptObserverList::AcceptObserverList(Acceptor* acceptor)
 
 Acceptor::AcceptObserverList::~AcceptObserverList() {
   for (const auto& cb : observers_) {
-  cb->acceptorDestroy(acceptor_);
+    cb->acceptorDestroy(acceptor_);
   }
 }
 

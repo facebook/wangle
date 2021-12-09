@@ -23,7 +23,7 @@
 namespace wangle {
 
 template <typename K, typename V>
-class MockPersistentCache: public PersistentCache<K, V> {
+class MockPersistentCache : public PersistentCache<K, V> {
  public:
   MOCK_METHOD1_T(get, folly::Optional<V>(const K&));
   MOCK_METHOD2_T(put, void(const K&, const V&));
@@ -32,4 +32,4 @@ class MockPersistentCache: public PersistentCache<K, V> {
   MOCK_METHOD0_T(size, size_t());
 };
 
-}
+} // namespace wangle

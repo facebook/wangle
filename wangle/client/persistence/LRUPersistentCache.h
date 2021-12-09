@@ -45,7 +45,8 @@ class CachePersistence {
    * specified version.  Returns true if persistence succeeded.
    */
   bool persistVersionedData(
-      const folly::dynamic& kvPairs, const CacheDataVersion& version) {
+      const folly::dynamic& kvPairs,
+      const CacheDataVersion& version) {
     auto result = persist(kvPairs);
     if (result) {
       persistedVersion_ = version;
@@ -271,6 +272,6 @@ class LRUPersistentCache
   const bool inlinePersistenceLoading_;
 };
 
-}
+} // namespace wangle
 
 #include <wangle/client/persistence/LRUPersistentCache-inl.h>

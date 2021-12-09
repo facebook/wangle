@@ -56,7 +56,7 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
   rtx = tcpinfo.tcpi_total_retrans;
 #else
   rtx = -1;
-#endif  // __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
+#endif // __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 17
   validTcpinfo = true;
 #else
   (sock); // unused
@@ -144,8 +144,9 @@ int64_t TransportInfo::readRTT(const folly::AsyncSocket* sock) {
 #endif
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
-bool TransportInfo::readTcpInfo(tcp_info* tcpinfo,
-                                const folly::AsyncSocket* sock) {
+bool TransportInfo::readTcpInfo(
+    tcp_info* tcpinfo,
+    const folly::AsyncSocket* sock) {
   socklen_t len = sizeof(tcp_info);
   if (!sock) {
     return false;

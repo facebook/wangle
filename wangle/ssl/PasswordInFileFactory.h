@@ -36,6 +36,7 @@ class PasswordInFileFactory {
       const std::string& passwordPath);
 
  private:
-  std::unordered_map<std::string, std::shared_ptr<folly::PasswordInFile>> collectors_;
+  std::unordered_map<std::string, std::shared_ptr<folly::PasswordInFile>>
+      collectors_;
 };
 } // namespace wangle

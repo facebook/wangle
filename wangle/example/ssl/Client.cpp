@@ -18,15 +18,15 @@
 
 #include <folly/init/Init.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/SSLOptions.h>
 #include <folly/portability/GFlags.h>
 #include <folly/ssl/Init.h>
-#include <folly/io/async/DelayedDestruction.h>
 #include <wangle/bootstrap/ClientBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
-#include <wangle/client/ssl/SSLSessionPersistentCache.h>
 #include <wangle/client/persistence/LRUPersistentCache.h>
+#include <wangle/client/ssl/SSLSessionPersistentCache.h>
 #include <wangle/codec/LineBasedFrameDecoder.h>
 #include <wangle/codec/StringCodec.h>
 
@@ -75,8 +75,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 // chains the handlers together to define the response pipeline
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
-  EchoPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransport> sock) override {
+  EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(
@@ -91,8 +90,7 @@ class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
 
 class EchoClientBootstrap : public ClientBootstrap<EchoPipeline> {
  public:
-  void makePipeline(
-      std::shared_ptr<folly::AsyncTransport> socket) override {
+  void makePipeline(std::shared_ptr<folly::AsyncTransport> socket) override {
     auto sslSock = socket->getUnderlyingTransport<AsyncSSLSocket>();
     if (sslSock) {
       sslSock->setSessionKey(SESSION_KEY);
@@ -146,7 +144,7 @@ int main(int argc, char** argv) {
     // attach the context to the cache
     if (cache) {
       wangle::SSLSessionCallbacks::attachCallbacksToContext(
-        ctx.get(), cache.get());
+          ctx.get(), cache.get());
     }
     client.sslContext(ctx);
   }

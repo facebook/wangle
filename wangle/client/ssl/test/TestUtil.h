@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <string>
-#include <glog/logging.h>
 #include <folly/ssl/OpenSSLPtrTypes.h>
+#include <glog/logging.h>
+#include <string>
 
 namespace wangle {
 
@@ -35,4 +35,4 @@ bool isSameSession(
     std::pair<SSL_SESSION*, size_t> lhs,
     std::pair<SSL_SESSION*, size_t> rhs);
 
-}
+} // namespace wangle

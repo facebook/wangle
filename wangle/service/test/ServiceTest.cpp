@@ -16,13 +16,13 @@
 
 #include <folly/portability/GTest.h>
 
-#include <wangle/codec/StringCodec.h>
 #include <wangle/codec/ByteToMessageDecoder.h>
+#include <wangle/codec/StringCodec.h>
 #include <wangle/service/ClientDispatcher.h>
-#include <wangle/service/ServerDispatcher.h>
-#include <wangle/service/Service.h>
 #include <wangle/service/CloseOnReleaseFilter.h>
 #include <wangle/service/ExpiringFilter.h>
+#include <wangle/service/ServerDispatcher.h>
+#include <wangle/service/Service.h>
 
 namespace wangle {
 
@@ -32,10 +32,11 @@ typedef Pipeline<IOBufQueue&, std::string> ServicePipeline;
 
 class SimpleDecode : public ByteToByteDecoder {
  public:
-  bool decode(Context*,
-              IOBufQueue& buf,
-              std::unique_ptr<IOBuf>& result,
-              size_t&) override {
+  bool decode(
+      Context*,
+      IOBufQueue& buf,
+      std::unique_ptr<IOBuf>& result,
+      size_t&) override {
     result = buf.move();
     return result != nullptr;
   }
@@ -43,7 +44,9 @@ class SimpleDecode : public ByteToByteDecoder {
 
 class EchoService : public Service<std::string, std::string> {
  public:
-  Future<std::string> operator()(std::string req) override { return req; }
+  Future<std::string> operator()(std::string req) override {
+    return req;
+  }
 };
 
 class EchoIntService : public Service<std::string, int> {
@@ -54,10 +57,8 @@ class EchoIntService : public Service<std::string, int> {
 };
 
 template <typename Req, typename Resp>
-class ServerPipelineFactory
-    : public PipelineFactory<ServicePipeline> {
+class ServerPipelineFactory : public PipelineFactory<ServicePipeline> {
  public:
-
   typename ServicePipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransport> socket) override {
     auto pipeline = ServicePipeline::create();
@@ -76,7 +77,6 @@ class ServerPipelineFactory
 template <typename Req, typename Resp>
 class ClientPipelineFactory : public PipelineFactory<ServicePipeline> {
  public:
-
   typename ServicePipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransport> socket) override {
     auto pipeline = ServicePipeline::create();
@@ -85,7 +85,7 @@ class ClientPipelineFactory : public PipelineFactory<ServicePipeline> {
     pipeline->addBack(StringCodec());
     pipeline->finalize();
     return pipeline;
-   }
+  }
 };
 
 template <typename Pipeline, typename Req, typename Resp>
@@ -99,14 +99,15 @@ class ClientServiceFactory : public ServiceFactory<Pipeline, Req, Resp> {
     Future<Resp> operator()(Req request) override {
       return dispatcher_(std::move(request));
     }
+
    private:
     SerialClientDispatcher<Pipeline, Req, Resp> dispatcher_;
   };
 
-  Future<std::shared_ptr<Service<Req, Resp>>> operator() (
-    std::shared_ptr<ClientBootstrap<Pipeline>> client) override {
+  Future<std::shared_ptr<Service<Req, Resp>>> operator()(
+      std::shared_ptr<ClientBootstrap<Pipeline>> client) override {
     return Future<std::shared_ptr<Service<Req, Resp>>>(
-      std::make_shared<ClientService>(client->getPipeline()));
+        std::make_shared<ClientService>(client->getPipeline()));
   }
 };
 
@@ -114,14 +115,15 @@ TEST(Wangle, ClientServerTest) {
   // server
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
-    std::make_shared<ServerPipelineFactory<std::string, std::string>>());
+      std::make_shared<ServerPipelineFactory<std::string, std::string>>());
   server.bind(0);
 
   // client
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();
-  ClientServiceFactory<ServicePipeline, std::string, std::string> serviceFactory;
+  ClientServiceFactory<ServicePipeline, std::string, std::string>
+      serviceFactory;
   client->pipelineFactory(
-    std::make_shared<ClientPipelineFactory<std::string, std::string>>());
+      std::make_shared<ClientPipelineFactory<std::string, std::string>>());
   SocketAddress addr;
   server.getSockets()[0]->getAddress(&addr);
   client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
@@ -140,8 +142,8 @@ TEST(Wangle, ClientServerTest) {
 class AppendFilter : public ServiceFilter<std::string, std::string> {
  public:
   explicit AppendFilter(
-    std::shared_ptr<Service<std::string, std::string>> service) :
-      ServiceFilter<std::string, std::string>(service) {}
+      std::shared_ptr<Service<std::string, std::string>> service)
+      : ServiceFilter<std::string, std::string>(service) {}
 
   Future<std::string> operator()(std::string req) override {
     return (*service_)(req + "\n");
@@ -152,8 +154,8 @@ class IntToStringFilter
     : public ServiceFilter<int, int, std::string, std::string> {
  public:
   explicit IntToStringFilter(
-    std::shared_ptr<Service<std::string, std::string>> service) :
-      ServiceFilter<int, int, std::string, std::string>(service) {}
+      std::shared_ptr<Service<std::string, std::string>> service)
+      : ServiceFilter<int, int, std::string, std::string>(service) {}
 
   Future<int> operator()(int req) override {
     return (*service_)(folly::to<std::string>(req))
@@ -178,9 +180,8 @@ TEST(Wangle, ComplexFilterTest) {
 class ChangeTypeFilter
     : public ServiceFilter<int, std::string, std::string, int> {
  public:
-  explicit ChangeTypeFilter(
-    std::shared_ptr<Service<std::string, int>> service) :
-      ServiceFilter<int, std::string, std::string, int>(service) {}
+  explicit ChangeTypeFilter(std::shared_ptr<Service<std::string, int>> service)
+      : ServiceFilter<int, std::string, std::string, int>(service) {}
 
   Future<std::string> operator()(int req) override {
     return (*service_)(folly::to<std::string>(req)).thenValue([](int resp) {
@@ -200,14 +201,14 @@ template <typename Pipeline, typename Req, typename Resp>
 class ConnectionCountFilter : public ServiceFactoryFilter<Pipeline, Req, Resp> {
  public:
   explicit ConnectionCountFilter(
-    std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
+      std::shared_ptr<ServiceFactory<Pipeline, Req, Resp>> factory)
       : ServiceFactoryFilter<Pipeline, Req, Resp>(factory) {}
 
   Future<std::shared_ptr<Service<Req, Resp>>> operator()(
       std::shared_ptr<ClientBootstrap<Pipeline>> client) override {
-      connectionCount++;
-      return (*this->serviceFactory_)(client);
-    }
+    connectionCount++;
+    return (*this->serviceFactory_)(client);
+  }
 
   int connectionCount{0};
 };
@@ -216,21 +217,19 @@ TEST(Wangle, ServiceFactoryFilter) {
   // server
   ServerBootstrap<ServicePipeline> server;
   server.childPipeline(
-    std::make_shared<ServerPipelineFactory<std::string, std::string>>());
+      std::make_shared<ServerPipelineFactory<std::string, std::string>>());
   server.bind(0);
 
   // client
-  auto clientFactory =
-    std::make_shared<
-    ClientServiceFactory<ServicePipeline, std::string, std::string>>();
-  auto countingFactory =
-    std::make_shared<
-    ConnectionCountFilter<ServicePipeline, std::string, std::string>>(
+  auto clientFactory = std::make_shared<
+      ClientServiceFactory<ServicePipeline, std::string, std::string>>();
+  auto countingFactory = std::make_shared<
+      ConnectionCountFilter<ServicePipeline, std::string, std::string>>(
       clientFactory);
 
   auto client = std::make_shared<ClientBootstrap<ServicePipeline>>();
   client->pipelineFactory(
-    std::make_shared<ClientPipelineFactory<std::string, std::string>>());
+      std::make_shared<ClientPipelineFactory<std::string, std::string>>());
   SocketAddress addr;
   server.getSockets()[0]->getAddress(&addr);
   client->connect(addr).waitVia(EventBaseManager::get()->getEventBase());
@@ -246,10 +245,10 @@ TEST(Wangle, ServiceFactoryFilter) {
 
 TEST(Wangle, FactoryToService) {
   auto constfactory =
-    std::make_shared<ConstFactory<ServicePipeline, std::string, std::string>>(
-    std::make_shared<EchoService>());
+      std::make_shared<ConstFactory<ServicePipeline, std::string, std::string>>(
+          std::make_shared<EchoService>());
   FactoryToService<ServicePipeline, std::string, std::string> service(
-    constfactory);
+      constfactory);
 
   EXPECT_EQ("test", service("test").value());
 }
@@ -276,15 +275,15 @@ TEST(ServiceFilter, ExpiringMax) {
   TimekeeperTester timekeeper;
 
   std::shared_ptr<Service<std::string, std::string>> service =
-    std::make_shared<EchoService>();
+      std::make_shared<EchoService>();
   std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
-    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+      std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
   std::shared_ptr<Service<std::string, std::string>> expiringService =
-    std::make_shared<ExpiringFilter<std::string, std::string>>(
-      closeOnReleaseService,
-      std::chrono::milliseconds(0),
-      std::chrono::milliseconds(400),
-      &timekeeper);
+      std::make_shared<ExpiringFilter<std::string, std::string>>(
+          closeOnReleaseService,
+          std::chrono::milliseconds(0),
+          std::chrono::milliseconds(400),
+          &timekeeper);
 
   EXPECT_EQ("test", (*expiringService)("test").get());
   timekeeper.promises_[0].setValue();
@@ -295,15 +294,15 @@ TEST(ServiceFilter, ExpiringIdle) {
   TimekeeperTester timekeeper;
 
   std::shared_ptr<Service<std::string, std::string>> service =
-    std::make_shared<EchoService>();
+      std::make_shared<EchoService>();
   std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
-    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+      std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
   std::shared_ptr<Service<std::string, std::string>> expiringService =
-    std::make_shared<ExpiringFilter<std::string, std::string>>(
-      closeOnReleaseService,
-      std::chrono::milliseconds(100),
-      std::chrono::milliseconds(0),
-      &timekeeper);
+      std::make_shared<ExpiringFilter<std::string, std::string>>(
+          closeOnReleaseService,
+          std::chrono::milliseconds(100),
+          std::chrono::milliseconds(0),
+          &timekeeper);
 
   EXPECT_EQ(1, timekeeper.promises_.size());
 }
@@ -312,15 +311,15 @@ TEST(ServiceFilter, NoIdleDuringRequests) {
   TimekeeperTester timekeeper;
 
   std::shared_ptr<Service<std::string, std::string>> service =
-    std::make_shared<EchoService>();
+      std::make_shared<EchoService>();
   std::shared_ptr<Service<std::string, std::string>> closeOnReleaseService =
-    std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
+      std::make_shared<CloseOnReleaseFilter<std::string, std::string>>(service);
   std::shared_ptr<Service<std::string, std::string>> expiringService =
-    std::make_shared<ExpiringFilter<std::string, std::string>>(
-      closeOnReleaseService,
-      std::chrono::milliseconds(1),
-      std::chrono::milliseconds(0),
-      &timekeeper);
+      std::make_shared<ExpiringFilter<std::string, std::string>>(
+          closeOnReleaseService,
+          std::chrono::milliseconds(1),
+          std::chrono::milliseconds(0),
+          &timekeeper);
 
   auto f = (*expiringService)("2000");
   EXPECT_EQ(2, timekeeper.promises_.size());

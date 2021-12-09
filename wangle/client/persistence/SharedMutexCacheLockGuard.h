@@ -22,10 +22,10 @@
 namespace wangle {
 
 // A CacheLockGuard specialization for a folly::SharedMutex
-template<>
+template <>
 struct CacheLockGuard<folly::SharedMutex> {
   using Read = folly::SharedMutex::ReadHolder;
   using Write = folly::SharedMutex::WriteHolder;
 };
 
-}
+} // namespace wangle

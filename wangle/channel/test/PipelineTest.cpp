@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include <wangle/channel/Handler.h>
-#include <wangle/channel/Pipeline.h>
-#include <wangle/channel/StaticPipeline.h>
-#include <wangle/channel/AsyncSocketHandler.h>
-#include <wangle/channel/OutputBufferingHandler.h>
-#include <wangle/channel/test/MockHandler.h>
+#include <boost/thread/barrier.hpp>
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
-#include <boost/thread/barrier.hpp>
+#include <wangle/channel/AsyncSocketHandler.h>
+#include <wangle/channel/Handler.h>
+#include <wangle/channel/OutputBufferingHandler.h>
+#include <wangle/channel/Pipeline.h>
+#include <wangle/channel/StaticPipeline.h>
+#include <wangle/channel/test/MockHandler.h>
 
 using namespace folly;
 using namespace wangle;
@@ -57,11 +57,12 @@ TEST(PipelineTest, RealHandlersCompile) {
   auto socket = folly::to_shared_ptr(AsyncSocket::newSocket(&eb));
   // static
   {
-    auto pipeline = StaticPipeline<IOBufQueue&, std::unique_ptr<IOBuf>,
-      AsyncSocketHandler,
-      OutputBufferingHandler>::create(
-        AsyncSocketHandler(socket),
-        OutputBufferingHandler());
+    auto pipeline = StaticPipeline<
+        IOBufQueue&,
+        std::unique_ptr<IOBuf>,
+        AsyncSocketHandler,
+        OutputBufferingHandler>::
+        create(AsyncSocketHandler(socket), OutputBufferingHandler());
     EXPECT_TRUE(pipeline->getHandler<AsyncSocketHandler>());
     EXPECT_TRUE(pipeline->getHandler<OutputBufferingHandler>());
   }
@@ -69,9 +70,9 @@ TEST(PipelineTest, RealHandlersCompile) {
   {
     auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
     (*pipeline)
-      .addBack(AsyncSocketHandler(socket))
-      .addBack(OutputBufferingHandler())
-      .finalize();
+        .addBack(AsyncSocketHandler(socket))
+        .addBack(OutputBufferingHandler())
+        .finalize();
     EXPECT_TRUE(pipeline->getHandler<AsyncSocketHandler>());
     EXPECT_TRUE(pipeline->getHandler<OutputBufferingHandler>());
   }
@@ -174,17 +175,13 @@ TEST(PipelineTest, DynamicFireActions) {
   EXPECT_CALL(handler2, attachPipeline(_));
   auto pipeline = StaticPipeline<int, int, IntHandler>::create(&handler2);
 
-
   {
     InSequence sequence;
     EXPECT_CALL(handler3, attachPipeline(_));
     EXPECT_CALL(handler1, attachPipeline(_));
   }
 
-  (*pipeline)
-    .addFront(&handler1)
-    .addBack(&handler3)
-    .finalize();
+  (*pipeline).addFront(&handler1).addBack(&handler3).finalize();
 
   EXPECT_TRUE(pipeline->getHandler<IntHandler>(0));
   EXPECT_TRUE(pipeline->getHandler<IntHandler>(1));
@@ -216,10 +213,7 @@ TEST(PipelineTest, DynamicAttachDetachOrder) {
     EXPECT_CALL(handler2, attachPipeline(_));
     EXPECT_CALL(handler1, attachPipeline(_));
   }
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
   {
     InSequence sequence;
     EXPECT_CALL(handler1, detachPipeline(_));
@@ -265,9 +259,12 @@ TEST(PipelineTest, NoDetachOnOwner) {
 template <class Rin, class Rout = Rin, class Win = Rout, class Wout = Rin>
 class ConcreteHandler : public Handler<Rin, Rout, Win, Wout> {
   typedef typename Handler<Rin, Rout, Win, Wout>::Context Context;
+
  public:
   void read(Context*, Rin /* msg */) override {}
-  Future<Unit> write(Context*, Win /* msg */) override { return makeFuture(); }
+  Future<Unit> write(Context*, Win /* msg */) override {
+    return makeFuture();
+  }
 };
 
 typedef HandlerAdapter<std::string, std::string> StringHandler;
@@ -276,9 +273,7 @@ typedef ConcreteHandler<std::string, int> StringToIntHandler;
 
 TEST(Pipeline, MissingInboundOrOutbound) {
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(HandlerAdapter<std::string, std::string>{})
-    .finalize();
+  (*pipeline).addBack(HandlerAdapter<std::string, std::string>{}).finalize();
   EXPECT_THROW(pipeline->read(0), std::invalid_argument);
   EXPECT_THROW(pipeline->readEOF(), std::invalid_argument);
   EXPECT_THROW(
@@ -296,13 +291,12 @@ TEST(Pipeline, DynamicConstruction) {
 
     // Exercise both addFront and addBack. Final pipeline is
     // StI <-> ItS <-> StS <-> StS <-> StI <-> ItS
-    EXPECT_NO_THROW(
-      (*pipeline)
-        .addFront(IntToStringHandler{})
-        .addFront(StringToIntHandler{})
-        .addBack(StringToIntHandler{})
-        .addBack(IntToStringHandler{})
-        .finalize());
+    EXPECT_NO_THROW((*pipeline)
+                        .addFront(IntToStringHandler{})
+                        .addFront(StringToIntHandler{})
+                        .addBack(StringToIntHandler{})
+                        .addBack(IntToStringHandler{})
+                        .finalize());
   }
 }
 
@@ -311,15 +305,10 @@ TEST(Pipeline, RemovePointer) {
   EXPECT_CALL(handler1, attachPipeline(_));
   EXPECT_CALL(handler2, attachPipeline(_));
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
 
   EXPECT_CALL(handler1, detachPipeline(_));
-  (*pipeline)
-    .remove(&handler1)
-    .finalize();
+  (*pipeline).remove(&handler1).finalize();
 
   EXPECT_CALL(handler2, read_(_, _));
   pipeline->read(1);
@@ -332,15 +321,10 @@ TEST(Pipeline, RemoveFront) {
   EXPECT_CALL(handler1, attachPipeline(_));
   EXPECT_CALL(handler2, attachPipeline(_));
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
 
   EXPECT_CALL(handler1, detachPipeline(_));
-  (*pipeline)
-    .removeFront()
-    .finalize();
+  (*pipeline).removeFront().finalize();
 
   EXPECT_CALL(handler2, read_(_, _));
   pipeline->read(1);
@@ -353,15 +337,10 @@ TEST(Pipeline, RemoveBack) {
   EXPECT_CALL(handler1, attachPipeline(_));
   EXPECT_CALL(handler2, attachPipeline(_));
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
 
   EXPECT_CALL(handler2, detachPipeline(_));
-  (*pipeline)
-    .removeBack()
-    .finalize();
+  (*pipeline).removeBack().finalize();
 
   EXPECT_CALL(handler1, read_(_, _));
   pipeline->read(1);
@@ -375,15 +354,10 @@ TEST(Pipeline, RemoveType) {
   EXPECT_CALL(handler1, attachPipeline(_));
   EXPECT_CALL(handler2, attachPipeline(_));
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
 
   EXPECT_CALL(handler1, detachPipeline(_));
-  (*pipeline)
-    .remove<IntHandler>()
-    .finalize();
+  (*pipeline).remove<IntHandler>().finalize();
 
   EXPECT_CALL(handler2, read_(_, _));
   pipeline->read(1);
@@ -397,13 +371,10 @@ TEST(Pipeline, RemoveType) {
 TEST(Pipeline, Concurrent) {
   NiceMock<MockHandlerAdapter<int, int>> handler1, handler2;
   auto pipeline = Pipeline<int, int>::create();
-  (*pipeline)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline).addBack(&handler1).addBack(&handler2).finalize();
   boost::barrier b{2};
-  auto spam = [&]{
-    for  (int i = 0; i < 100000; i++) {
+  auto spam = [&] {
+    for (int i = 0; i < 100000; i++) {
       b.wait();
       pipeline->read(i);
     }
@@ -434,16 +405,12 @@ TEST(PipelineTest, NumHandler) {
   EXPECT_EQ(0, pipeline->numHandlers());
 }
 
-
 TEST(PipelineTest, HandlerReuse) {
   NiceMock<MockHandlerAdapter<int, int>> handler1, handler2, handler3;
   auto pipeline1 = Pipeline<int, int>::create();
 
   // pipeline1 contains the first two handlers
-  (*pipeline1)
-    .addBack(&handler1)
-    .addBack(&handler2)
-    .finalize();
+  (*pipeline1).addBack(&handler1).addBack(&handler2).finalize();
   pipeline1->read(42);
   EXPECT_NE(nullptr, handler2.getContext());
 
@@ -453,10 +420,7 @@ TEST(PipelineTest, HandlerReuse) {
   ASSERT_EQ(nullptr, handler2.getContext());
 
   auto pipeline2 = Pipeline<int, int>::create();
-  (*pipeline2)
-    .addBack(&handler2)
-    .addBack(&handler3)
-    .finalize();
+  (*pipeline2).addBack(&handler2).addBack(&handler3).finalize();
   pipeline2->read(24);
   EXPECT_NE(nullptr, handler2.getContext());
 
@@ -467,10 +431,7 @@ TEST(PipelineTest, HandlerReuse) {
   ASSERT_EQ(nullptr, handler3.getContext());
 
   auto pipeline3 = Pipeline<int, int>::create();
-  (*pipeline3)
-    .addBack(&handler2)
-    .addBack(&handler3)
-    .finalize();
+  (*pipeline3).addBack(&handler2).addBack(&handler3).finalize();
   pipeline3->read(1);
   EXPECT_NE(nullptr, handler2.getContext());
 }

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <fizz/record/Types.h>
+#include <wangle/acceptor/FizzAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 #include <wangle/ssl/SSLContextManager.h>
 
@@ -64,8 +64,11 @@ AsyncFizzServer::UniquePtr FizzAcceptorHandshakeHelper::createFizzServer(
   folly::AsyncSocket::UniquePtr asyncSock(
       new folly::AsyncSocket(std::move(sslSock)));
   asyncSock->cacheAddresses();
-  return AsyncFizzServer::UniquePtr(
+  AsyncFizzServer::UniquePtr fizzServer(
       new AsyncFizzServer(std::move(asyncSock), fizzContext, extensions));
+  fizzServer->setHandshakeRecordAlignedReads(handshakeRecordAlignedReads_);
+
+  return fizzServer;
 }
 
 void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
@@ -100,7 +103,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeSuccess(
   auto appProto = transport->getApplicationProtocol();
 
   if (loggingCallback_) {
-    loggingCallback_->logFizzHandshakeSuccess(*transport, &tinfo_);
+    loggingCallback_->logFizzHandshakeSuccess(*transport, tinfo_);
   }
 
   callback_->connectionReady(
@@ -149,7 +152,7 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeAttemptFallback(
     std::unique_ptr<folly::IOBuf> clientHello) {
   VLOG(3) << "Fallback to OpenSSL";
   if (loggingCallback_) {
-    loggingCallback_->logFizzHandshakeFallback(*transport_, &tinfo_);
+    loggingCallback_->logFizzHandshakeFallback(*transport_, tinfo_);
   }
   sslSocket_ = createSSLSocket(sslContext_, std::move(transport_));
 
@@ -175,6 +178,10 @@ void FizzAcceptorHandshakeHelper::handshakeSuc(
       std::chrono::steady_clock::now() - acceptTime_);
   wangle::SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(sock, tinfo_);
 
+  if (loggingCallback_) {
+    loggingCallback_->logFallbackHandshakeSuccess(*sock, tinfo_);
+  }
+
   // The callback will delete this.
   callback_->connectionReady(
       std::move(sslSocket_),
@@ -186,6 +193,10 @@ void FizzAcceptorHandshakeHelper::handshakeSuc(
 void FizzAcceptorHandshakeHelper::handshakeErr(
     folly::AsyncSSLSocket* sock,
     const folly::AsyncSocketException& ex) noexcept {
+  if (loggingCallback_) {
+    loggingCallback_->logFallbackHandshakeError(*sock, ex);
+  }
+
   auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - acceptTime_);
   VLOG(3) << "SSL handshake error with " << describeAddresses(sock) << " after "

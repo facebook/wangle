@@ -56,8 +56,7 @@ class BroadcastPoolTest : public Test {
  protected:
   class ServerPipelineFactory : public PipelineFactory<DefaultPipeline> {
    public:
-    DefaultPipeline::Ptr newPipeline(
-        std::shared_ptr<AsyncTransport>) override {
+    DefaultPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransport>) override {
       auto pipeline = DefaultPipeline::create();
       pipeline->addBack(new BytesToBytesHandler());
       pipeline->finalize();
@@ -349,10 +348,9 @@ TEST_F(BroadcastPoolTest, RoutingDataPipelineDeletion) {
       });
   EXPECT_TRUE(handler == nullptr);
   EXPECT_CALL(*pipelineFactory, setRoutingData(_, "url"))
-      .WillOnce(Invoke(
-          [&](DefaultPipeline* pipeline, const std::string&) {
-            pipeline->readException(std::runtime_error("upstream error"));
-          }));
+      .WillOnce(Invoke([&](DefaultPipeline* pipeline, const std::string&) {
+        pipeline->readException(std::runtime_error("upstream error"));
+      }));
   base->loopOnce(); // Do async connect
   EXPECT_TRUE(handler == nullptr);
   EXPECT_TRUE(handlerError);

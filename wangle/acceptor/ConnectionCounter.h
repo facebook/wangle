@@ -43,16 +43,24 @@ class IConnectionCounter {
   virtual ~IConnectionCounter() = default;
 };
 
-class SimpleConnectionCounter: public IConnectionCounter {
+class SimpleConnectionCounter : public IConnectionCounter {
  public:
-  uint64_t getNumConnections() const override { return numConnections_; }
-  uint64_t getMaxConnections() const override { return maxConnections_; }
+  uint64_t getNumConnections() const override {
+    return numConnections_;
+  }
+  uint64_t getMaxConnections() const override {
+    return maxConnections_;
+  }
   void setMaxConnections(uint64_t maxConnections) {
     maxConnections_ = maxConnections;
   }
 
-  void onConnectionAdded() override { numConnections_++; }
-  void onConnectionRemoved() override { numConnections_--; }
+  void onConnectionAdded() override {
+    numConnections_++;
+  }
+  void onConnectionRemoved() override {
+    numConnections_--;
+  }
   ~SimpleConnectionCounter() override = default;
 
  protected:

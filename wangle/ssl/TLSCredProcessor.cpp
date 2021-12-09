@@ -16,10 +16,10 @@
 
 #include <wangle/ssl/TLSCredProcessor.h>
 
-#include <folly/dynamic.h>
-#include <folly/json.h>
 #include <folly/FileUtil.h>
 #include <folly/Memory.h>
+#include <folly/dynamic.h>
+#include <folly/json.h>
 #include <wangle/ssl/SSLUtil.h>
 
 using namespace folly;
@@ -30,8 +30,9 @@ constexpr std::chrono::milliseconds kCredentialPollInterval =
     std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::seconds(10));
 
-void insertSeeds(const folly::dynamic& keyConfig,
-                 std::vector<std::string>& seedList) {
+void insertSeeds(
+    const folly::dynamic& keyConfig,
+    std::vector<std::string>& seedList) {
   if (!keyConfig.isArray()) {
     return;
   }
@@ -39,7 +40,7 @@ void insertSeeds(const folly::dynamic& keyConfig,
     seedList.push_back(seed.asString());
   }
 }
-}
+} // namespace
 
 namespace wangle {
 
@@ -53,7 +54,9 @@ void TLSCredProcessor::stop() {
   poller_->stop();
 }
 
-TLSCredProcessor::~TLSCredProcessor() { stop(); }
+TLSCredProcessor::~TLSCredProcessor() {
+  stop();
+}
 
 void TLSCredProcessor::setPollInterval(std::chrono::milliseconds pollInterval) {
   poller_->stop();
@@ -64,12 +67,13 @@ void TLSCredProcessor::setPollInterval(std::chrono::milliseconds pollInterval) {
 
 void TLSCredProcessor::addTicketCallback(
     std::function<void(TLSTicketKeySeeds)> callback) {
-  ticketCallbacks_.push_back(std::move(callback));
+  ticketCallbacks_.wlock()->push_back(
+      folly::copy_to_shared_ptr(std::move(callback)));
 }
 
-void TLSCredProcessor::addCertCallback(
-    std::function<void()> callback) {
-  certCallbacks_.push_back(std::move(callback));
+void TLSCredProcessor::addCertCallback(std::function<void()> callback) {
+  certCallbacks_.wlock()->push_back(
+      folly::copy_to_shared_ptr(std::move(callback)));
 }
 
 void TLSCredProcessor::setTicketPathToWatch(
@@ -89,13 +93,13 @@ void TLSCredProcessor::setTicketPathToWatch(
 }
 
 void TLSCredProcessor::setCertPathsToWatch(std::set<std::string> certFiles) {
-  for (const auto& path: certFiles_) {
+  for (const auto& path : certFiles_) {
     poller_->removeFileToTrack(path);
   }
   certFiles_ = std::move(certFiles);
   if (!certFiles_.empty()) {
     auto certChangedCob = [this]() { certFileUpdated(); };
-    for (const auto& path: certFiles_) {
+    for (const auto& path : certFiles_) {
       poller_->addFileToTrack(path, certChangedCob);
     }
   }
@@ -106,15 +110,15 @@ void TLSCredProcessor::ticketFileUpdated(
     const folly::Optional<std::string>& password) noexcept {
   auto seeds = processTLSTickets(ticketFile, password);
   if (seeds) {
-    for (auto& callback : ticketCallbacks_) {
-      callback(*seeds);
+    for (auto& callback : ticketCallbacks_.copy()) {
+      (*callback)(*seeds);
     }
   }
 }
 
 void TLSCredProcessor::certFileUpdated() noexcept {
-  for (const auto& callback: certCallbacks_) {
-    callback();
+  for (const auto& callback : certCallbacks_.copy()) {
+    (*callback)();
   }
 }
 
@@ -125,10 +129,7 @@ void TLSCredProcessor::certFileUpdated() noexcept {
     std::string jsonData;
     if (password.has_value()) {
       auto wrappedData = SSLUtil::decryptOpenSSLEncFilePassString(
-          fileName,
-          password.value(),
-          EVP_aes_256_cbc(),
-          EVP_sha256());
+          fileName, password.value(), EVP_aes_256_cbc(), EVP_sha256());
       if (wrappedData.has_value()) {
         jsonData = wrappedData.value();
       } else {
@@ -168,4 +169,4 @@ void TLSCredProcessor::certFileUpdated() noexcept {
   }
 }
 
-}
+} // namespace wangle

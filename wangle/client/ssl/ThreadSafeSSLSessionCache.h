@@ -24,28 +24,29 @@
 namespace wangle {
 
 /**
-  * A SSL session cache that can be used safely across threads.
-  * This is useful for clients who cannot avoid sharing the cache
-  * across threads. It uses a read/write lock for efficiency.
-  */
+ * A SSL session cache that can be used safely across threads.
+ * This is useful for clients who cannot avoid sharing the cache
+ * across threads. It uses a read/write lock for efficiency.
+ */
 class ThreadSafeSSLSessionCache : public SSLSessionCallbacks {
  public:
-   explicit ThreadSafeSSLSessionCache(
-       std::unique_ptr<SSLSessionCallbacks> delegate) :
-     delegate_(std::move(delegate)) {}
+  explicit ThreadSafeSSLSessionCache(
+      std::unique_ptr<SSLSessionCallbacks> delegate)
+      : delegate_(std::move(delegate)) {}
 
-   // From SSLSessionCallbacks
-   void setSSLSession(
-     const std::string& identity, folly::ssl::SSLSessionUniquePtr session) noexcept override;
-   folly::ssl::SSLSessionUniquePtr getSSLSession(
-       const std::string& identity) const noexcept override;
-   bool removeSSLSession(const std::string& identity) noexcept override;
-   bool supportsPersistence() const noexcept override;
-   size_t size() const override;
+  // From SSLSessionCallbacks
+  void setSSLSession(
+      const std::string& identity,
+      folly::ssl::SSLSessionUniquePtr session) noexcept override;
+  folly::ssl::SSLSessionUniquePtr getSSLSession(
+      const std::string& identity) const noexcept override;
+  bool removeSSLSession(const std::string& identity) noexcept override;
+  bool supportsPersistence() const noexcept override;
+  size_t size() const override;
 
  private:
-   std::unique_ptr<SSLSessionCallbacks> delegate_;
-   mutable folly::SharedMutex mutex_;
+  std::unique_ptr<SSLSessionCallbacks> delegate_;
+  mutable folly::SharedMutex mutex_;
 };
 
-}
+} // namespace wangle

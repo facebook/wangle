@@ -231,12 +231,11 @@ TEST_F(ObservingHandlerTest, ReadEOF) {
   // Broadcast some data
   observingHandler->onNext(1);
 
-  EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([&] {
-        // Delete the pipeline
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*observingHandler, mockClose(_)).WillOnce(InvokeWithoutArgs([&] {
+    // Delete the pipeline
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Client closes connection
@@ -271,17 +270,16 @@ TEST_F(ObservingHandlerTest, ReadError) {
   // Broadcast some data
   observingHandler->onNext(1);
 
-  EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([&] {
-        // Delete the pipeline
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*observingHandler, mockClose(_)).WillOnce(InvokeWithoutArgs([&] {
+    // Delete the pipeline
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Inject read error
-  observingHandler->readException(nullptr,
-                                  make_exception_wrapper<std::exception>());
+  observingHandler->readException(
+      nullptr, make_exception_wrapper<std::exception>());
 }
 
 TEST_F(ObservingHandlerTest, WriteError) {
@@ -310,12 +308,11 @@ TEST_F(ObservingHandlerTest, WriteError) {
   EXPECT_CALL(*observingHandler, mockWrite(_, _))
       .WillOnce(Return(
           MoveWrapper<Future<Unit>>(make_exception_wrapper<std::exception>())));
-  EXPECT_CALL(*observingHandler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([&] {
-        // Delete the pipeline
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*observingHandler, mockClose(_)).WillOnce(InvokeWithoutArgs([&] {
+    // Delete the pipeline
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
   EXPECT_CALL(*broadcastHandler, unsubscribe(_)).Times(1);
 
   // Broadcast some data

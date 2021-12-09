@@ -21,7 +21,6 @@
 #include <wangle/ssl/SSLContextConfig.h>
 #include <wangle/ssl/SSLSessionCacheManager.h>
 
-
 namespace wangle {
 
 ServerSSLContext::ServerSSLContext(SSLVersion version)
@@ -39,19 +38,18 @@ void ServerSSLContext::setupSessionCache(
   // Disable it.  SSLSessionCacheManager will set it appropriately.
   SSL_CTX_set_session_cache_mode(getSSLCtx(), SSL_SESS_CACHE_OFF);
   SSL_CTX_set_timeout(getSSLCtx(), cacheOptions.sslCacheTimeout.count());
-  if (ctxConfig.sessionCacheEnabled &&
-      cacheOptions.maxSSLCacheSize > 0 &&
+  if (ctxConfig.sessionCacheEnabled && cacheOptions.maxSSLCacheSize > 0 &&
       cacheOptions.sslCacheFlushSize > 0) {
     sessionCacheManager_ = std::make_unique<SSLSessionCacheManager>(
-      cacheOptions.maxSSLCacheSize,
-      cacheOptions.sslCacheFlushSize,
-      this,
-      sessionIdContext,
-      stats,
-      externalCache);
+        cacheOptions.maxSSLCacheSize,
+        cacheOptions.sslCacheFlushSize,
+        this,
+        sessionIdContext,
+        stats,
+        externalCache);
   } else {
     sessionCacheManager_.reset();
   }
 }
 
-}
+} // namespace wangle

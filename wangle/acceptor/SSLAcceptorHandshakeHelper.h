@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include <chrono>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/ManagedConnection.h>
 #include <wangle/acceptor/PeekingAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/TransportInfo.h>
+#include <chrono>
 
 namespace wangle {
 
@@ -32,10 +32,8 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   SSLAcceptorHandshakeHelper(
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
-      TransportInfo& tinfo) :
-    clientAddr_(clientAddr),
-    acceptTime_(acceptTime),
-    tinfo_(tinfo) {}
+      TransportInfo& tinfo)
+      : clientAddr_(clientAddr), acceptTime_(acceptTime), tinfo_(tinfo) {}
 
   void start(
       folly::AsyncSSLSocket::UniquePtr sock,
@@ -49,13 +47,15 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   }
 
   static void fillSSLTransportInfoFields(
-      folly::AsyncSSLSocket* sock, TransportInfo& tinfo);
+      folly::AsyncSSLSocket* sock,
+      TransportInfo& tinfo);
 
  protected:
   // AsyncSSLSocket::HandshakeCallback API
   void handshakeSuc(folly::AsyncSSLSocket* sock) noexcept override;
-  void handshakeErr(folly::AsyncSSLSocket* sock,
-                    const folly::AsyncSocketException& ex) noexcept override;
+  void handshakeErr(
+      folly::AsyncSSLSocket* sock,
+      const folly::AsyncSocketException& ex) noexcept override;
 
   folly::AsyncSSLSocket::UniquePtr socket_;
   AcceptorHandshakeHelper::Callback* callback_;
@@ -65,20 +65,20 @@ class SSLAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   SSLErrorEnum sslError_{SSLErrorEnum::NO_ERROR};
 };
 
-class DefaultToSSLPeekingCallback :
-  public PeekingAcceptorHandshakeHelper::PeekCallback {
+class DefaultToSSLPeekingCallback
+    : public PeekingAcceptorHandshakeHelper::PeekCallback {
  public:
-  DefaultToSSLPeekingCallback():
-    PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
+  DefaultToSSLPeekingCallback()
+      : PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
 
   AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& /* bytes */,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       TransportInfo& tinfo) override {
-    return AcceptorHandshakeHelper::UniquePtr(new SSLAcceptorHandshakeHelper(
-        clientAddr, acceptTime, tinfo));
+    return AcceptorHandshakeHelper::UniquePtr(
+        new SSLAcceptorHandshakeHelper(clientAddr, acceptTime, tinfo));
   }
 };
 
-}
+} // namespace wangle

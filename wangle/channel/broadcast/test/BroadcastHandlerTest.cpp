@@ -26,8 +26,9 @@ class BroadcastHandlerTest : public Test {
   class MockBroadcastHandler
       : public BroadcastHandler<std::string, std::string> {
    public:
-    MOCK_METHOD1(mockClose,
-                 folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
+    MOCK_METHOD1(
+        mockClose,
+        folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
 
     folly::Future<folly::Unit> close(Context* ctx) override {
       return mockClose(ctx).move();
@@ -127,11 +128,10 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   pipeline->read(q);
   q.clear();
 
-  EXPECT_CALL(*handler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
 
   // Unsubscribe the other subscriber. The handler should be deleted now.
   handler->unsubscribe(1);
@@ -201,11 +201,10 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   pipeline->read(q);
   q.clear();
 
-  EXPECT_CALL(*handler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
 
   // Unsubscribe all subscribers. The handler should be deleted now.
   handler->unsubscribe(0);
@@ -258,11 +257,10 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
 
   EXPECT_CALL(subscriber1, onCompleted()).Times(1);
 
-  EXPECT_CALL(*handler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
 
   // The handler should be deleted now
   handler->readEOF(nullptr);
@@ -312,11 +310,10 @@ TEST_F(BroadcastHandlerTest, OnError) {
   EXPECT_CALL(subscriber0, onError(_)).Times(1);
   EXPECT_CALL(subscriber1, onError(_)).Times(1);
 
-  EXPECT_CALL(*handler, mockClose(_))
-      .WillOnce(InvokeWithoutArgs([this] {
-        pipeline.reset();
-        return makeMoveWrapper(makeFuture());
-      }));
+  EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
+    pipeline.reset();
+    return makeMoveWrapper(makeFuture());
+  }));
 
   // The handler should be deleted now
   handler->readException(nullptr, make_exception_wrapper<std::exception>());

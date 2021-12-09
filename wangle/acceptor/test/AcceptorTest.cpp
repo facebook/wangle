@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include <wangle/acceptor/Acceptor.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/test/AsyncSSLSocketTest.h>
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 #include <glog/logging.h>
 #include <wangle/acceptor/AcceptObserver.h>
+#include <wangle/acceptor/Acceptor.h>
 
 using namespace folly;
 using namespace wangle;
@@ -61,7 +61,7 @@ class TestAcceptor : public Acceptor {
   }
 };
 
-enum class TestSSLConfig { NO_SSL, SSL };
+enum class TestSSLConfig { NO_SSL, SSL, SSL_MULTI_CA };
 
 class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
  public:
@@ -70,7 +70,8 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
   std::shared_ptr<AsyncSocket> connectClientSocket(
       const SocketAddress& serverAddress) {
     TestSSLConfig testConfig = GetParam();
-    if (testConfig == TestSSLConfig::SSL) {
+    if (testConfig == TestSSLConfig::SSL ||
+        testConfig == TestSSLConfig::SSL_MULTI_CA) {
       auto clientSocket = AsyncSSLSocket::newSocket(getTestSslContext(), &evb_);
       clientSocket->connect(nullptr, serverAddress);
       return clientSocket;
@@ -83,7 +84,8 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
   initTestAcceptorAndSocket() {
     TestSSLConfig testConfig = GetParam();
     ServerSocketConfig config;
-    if (testConfig == TestSSLConfig::SSL) {
+    if (testConfig == TestSSLConfig::SSL ||
+        testConfig == TestSSLConfig::SSL_MULTI_CA) {
       config.sslContextConfigs.emplace_back(getTestSslContextConfig());
     }
     return initTestAcceptorAndSocket(config);
@@ -103,6 +105,14 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
 
   static std::shared_ptr<folly::SSLContext> getTestSslContext() {
     auto sslContext = std::make_shared<folly::SSLContext>();
+    TestSSLConfig testConfig = GetParam();
+    if (testConfig == TestSSLConfig::SSL) {
+      sslContext->loadCertKeyPairFromFiles(folly::kTestCert, folly::kTestKey);
+    } else if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
+      // Use a different cert.
+      sslContext->loadCertKeyPairFromFiles(
+          folly::kClientTestCert, folly::kClientTestKey);
+    }
     sslContext->setOptions(SSL_OP_NO_TICKET);
     sslContext->ciphers("ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
     return sslContext;
@@ -110,12 +120,18 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
 
   static wangle::SSLContextConfig getTestSslContextConfig() {
     wangle::SSLContextConfig sslCtxConfig;
+    TestSSLConfig testConfig = GetParam();
     sslCtxConfig.setCertificate(folly::kTestCert, folly::kTestKey, "");
-    sslCtxConfig.clientCAFile = folly::kTestCA;
+    if (testConfig == TestSSLConfig::SSL_MULTI_CA) {
+      sslCtxConfig.clientCAFiles =
+          std::vector<std::string>{folly::kTestCA, folly::kClientTestCA};
+    } else {
+      sslCtxConfig.clientCAFile = folly::kTestCA;
+    }
     sslCtxConfig.sessionContext = "AcceptorTest";
     sslCtxConfig.isDefault = true;
     sslCtxConfig.clientVerification =
-      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+        folly::SSLContext::VerifyClientCertificate::ALWAYS;
     sslCtxConfig.sessionCacheEnabled = false;
     return sslCtxConfig;
   }
@@ -127,7 +143,10 @@ class AcceptorTest : public ::testing::TestWithParam<TestSSLConfig> {
 INSTANTIATE_TEST_CASE_P(
     NoSSLAndSSLTests,
     AcceptorTest,
-    ::testing::Values(TestSSLConfig::NO_SSL, TestSSLConfig::SSL));
+    ::testing::Values(
+        TestSSLConfig::NO_SSL,
+        TestSSLConfig::SSL,
+        TestSSLConfig::SSL_MULTI_CA));
 
 TEST_P(AcceptorTest, Basic) {
   auto [acceptor, serverSocket] = initTestAcceptorAndSocket();
@@ -166,29 +185,37 @@ class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
   GMOCK_METHOD2_(, noexcept, , evbDetach, void(AsyncTransport*, EventBase*));
 };
 
-class MockFizzLoggingCallback
-    : public FizzAcceptorHandshakeHelper::LoggingCallback {
+class MockFizzLoggingCallback : public FizzLoggingCallback {
  public:
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+  MOCK_METHOD(
+      void,
       logFizzHandshakeSuccess,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+      (const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
+      logFallbackHandshakeSuccess,
+      (const folly::AsyncSSLSocket&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
       logFizzHandshakeFallback,
-      void(const fizz::server::AsyncFizzServer&, const wangle::TransportInfo*));
-  GMOCK_METHOD2_(
-      ,
-      noexcept,
-      ,
+      (const fizz::server::AsyncFizzServer&, const wangle::TransportInfo&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
       logFizzHandshakeError,
-      void(
-          const fizz::server::AsyncFizzServer&,
-          const folly::exception_wrapper&));
+      (const fizz::server::AsyncFizzServer&, const folly::exception_wrapper&),
+      (noexcept));
+
+  MOCK_METHOD(
+      void,
+      logFallbackHandshakeError,
+      (const folly::AsyncSSLSocket&, const folly::AsyncSocketException&),
+      (noexcept));
 };
 
 TEST_P(AcceptorTest, AcceptObserver) {
@@ -422,7 +449,7 @@ TEST_P(
   auto lifecycleCb =
       std::make_unique<StrictMock<MockAsyncSocketLifecycleObserver>>();
   auto fizzLoggingCb = std::make_unique<StrictMock<MockFizzLoggingCallback>>();
-  acceptor->getFizzPeeker()->setLoggingCallback(fizzLoggingCb.get());
+  acceptor->getFizzPeeker()->options().setLoggingCallback(fizzLoggingCb.get());
 
   EXPECT_CALL(*onAcceptCb, observerAttach(acceptor.get()));
   acceptor->addAcceptObserver(onAcceptCb.get());
@@ -446,7 +473,8 @@ TEST_P(
         socket->addLifecycleObserver(lifecycleCb.get());
       }));
 
-  if (GetParam() == TestSSLConfig::SSL) {
+  if (GetParam() == TestSSLConfig::SSL ||
+      GetParam() == TestSSLConfig::SSL_MULTI_CA) {
     // AsyncSocket -> AsyncFizzServer
     EXPECT_CALL(*lifecycleCb, fdDetach(_))
         .InSequence(s1)
@@ -482,13 +510,15 @@ TEST_P(
           remoteSocket = newSocket;
         }));
 
+    EXPECT_CALL(*fizzLoggingCb, logFallbackHandshakeSuccess(_, _));
+
     // AsyncFizzServer -> AsyncSSLSocket
     // use logFizzHandshakeFallback to verify that fallback occurred
     EXPECT_CALL(*fizzLoggingCb, logFizzHandshakeFallback(_, _))
         .InSequence(s1)
         .WillOnce(Invoke([&remoteSocket](
                              const fizz::server::AsyncFizzServer& transport,
-                             const wangle::TransportInfo* /* tinfo */) {
+                             const wangle::TransportInfo& /* tinfo */) {
           EXPECT_EQ(
               remoteSocket,
               transport.getUnderlyingTransport<folly::AsyncSocket>());

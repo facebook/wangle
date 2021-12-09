@@ -56,5 +56,5 @@ class BytesReflector : public wangle::BytesToBytesHandler {
     return folly::makeFuture();
   }
 };
-}
-}
+} // namespace test
+} // namespace wangle

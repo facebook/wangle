@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <folly/Format.h>
 #include <folly/DynamicConverter.h>
+#include <folly/Format.h>
 #include <folly/Memory.h>
 
 #include <folly/portability/GMock.h>
@@ -24,8 +24,8 @@
 
 #include <vector>
 
-#include <wangle/client/ssl/SSLSessionPersistentCache.h>
 #include <wangle/client/persistence/test/TestUtil.h>
+#include <wangle/client/ssl/SSLSessionPersistentCache.h>
 #include <wangle/client/ssl/test/TestUtil.h>
 
 using namespace testing;
@@ -34,23 +34,22 @@ using namespace std::chrono;
 namespace wangle {
 
 class MockTimeUtil : public SSLSessionPersistentCache::TimeUtil {
-  public:
-    void advance(std::chrono::milliseconds ms) {
-      t_ += ms;
-    }
+ public:
+  void advance(std::chrono::milliseconds ms) {
+    t_ += ms;
+  }
 
-    std::chrono::time_point<std::chrono::system_clock> now() const override {
-      return t_;
-    }
+  std::chrono::time_point<std::chrono::system_clock> now() const override {
+    return t_;
+  }
 
-  private:
-    std::chrono::time_point<std::chrono::system_clock> t_;
+ private:
+  std::chrono::time_point<std::chrono::system_clock> t_;
 };
 
 class SSLSessionPersistentCacheTest : public Test {
-  public:
-  SSLSessionPersistentCacheTest():
-    filename_(getPersistentCacheFilename()) {}
+ public:
+  SSLSessionPersistentCacheTest() : filename_(getPersistentCacheFilename()) {}
 
   void SetUp() override {
     for (auto& it : getSessions()) {
@@ -81,16 +80,15 @@ class SSLSessionPersistentCacheTest : public Test {
   }
 
  protected:
-  void verifyEntryInCache(const std::string& hostname,
+  void verifyEntryInCache(
+      const std::string& hostname,
       std::pair<SSL_SESSION*, size_t> session,
       bool inCache = true) {
     auto s = cache_->getSSLSession(hostname);
     if (inCache) {
       ASSERT_TRUE(s != nullptr);
       ASSERT_TRUE(
-          isSameSession(
-            session,
-            std::make_pair(s.get(), session.second)));
+          isSameSession(session, std::make_pair(s.get(), session.second)));
     } else {
       ASSERT_FALSE(s);
     }
@@ -98,7 +96,7 @@ class SSLSessionPersistentCacheTest : public Test {
 
  protected:
   std::string filename_;
-  MockTimeUtil *mockTimeUtil_;
+  MockTimeUtil* mockTimeUtil_;
   std::unique_ptr<SSLSessionPersistentCache> cache_;
   std::vector<std::pair<SSL_SESSION*, size_t>> sessions_;
   std::pair<SSL_SESSION*, size_t> sessionWithTicket_;
@@ -166,14 +164,12 @@ TEST_F(SSLSessionPersistentCacheTest, Overwrite) {
     verifyEntryInCache("host0", sessions_[0]);
     verifyEntryInCache("host1", sessions_[3]);
   }
-
 }
 
 TEST_F(SSLSessionPersistentCacheTest, SessionTicketTimeout) {
   std::string myhost("host3");
   cache_->setSSLSession(
-      myhost,
-      createPersistentTestSession(sessionWithTicket_));
+      myhost, createPersistentTestSession(sessionWithTicket_));
 
   // First verify element is successfully added to the cache
   auto s = cache_->getSSLSession(myhost);
@@ -198,4 +194,4 @@ TEST_F(SSLSessionPersistentCacheTest, SessionTicketTimeout) {
   ASSERT_FALSE(cache_->getSSLSession(myhost));
 }
 
-}
+} // namespace wangle

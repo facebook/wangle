@@ -17,12 +17,12 @@
 #pragma once
 
 #include <folly/Singleton.h>
-#include <folly/io/async/AsyncTransport.h>
-#include <folly/io/async/AsyncSocket.h>
-#include <folly/io/async/NotificationQueue.h>
+#include <folly/executors/IOThreadPoolExecutor.h>
 #include <folly/futures/Future.h>
 #include <folly/futures/Promise.h>
-#include <folly/executors/IOThreadPoolExecutor.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
+#include <folly/io/async/NotificationQueue.h>
 
 #ifdef SPLICE_F_NONBLOCK
 namespace wangle {
@@ -30,12 +30,11 @@ namespace wangle {
 class FileRegion {
  public:
   FileRegion(int fd, loff_t offset, size_t count)
-    : fd_(fd), offset_(offset), count_(count) {}
+      : fd_(fd), offset_(offset), count_(count) {}
 
   folly::Future<folly::Unit> transferTo(
       std::shared_ptr<folly::AsyncTransport> transport) {
-    auto socket = std::dynamic_pointer_cast<folly::AsyncSocket>(
-        transport);
+    auto socket = std::dynamic_pointer_cast<folly::AsyncSocket>(transport);
     CHECK(socket);
     auto cb = new WriteCallback();
     auto f = cb->promise_.getFuture();
@@ -51,9 +50,9 @@ class FileRegion {
       delete this;
     }
 
-    void writeErr(size_t /* bytesWritten */,
-                  const folly::AsyncSocketException& ex)
-      noexcept override {
+    void writeErr(
+        size_t /* bytesWritten */,
+        const folly::AsyncSocketException& ex) noexcept override {
       promise_.setException(ex);
       delete this;
     }
@@ -69,8 +68,12 @@ class FileRegion {
   class FileWriteRequest : public folly::AsyncSocket::WriteRequest,
                            public folly::NotificationQueue<size_t>::Consumer {
    public:
-    FileWriteRequest(folly::AsyncSocket* socket, WriteCallback* callback,
-                     int fd, loff_t offset, size_t count);
+    FileWriteRequest(
+        folly::AsyncSocket* socket,
+        WriteCallback* callback,
+        int fd,
+        loff_t offset,
+        size_t count);
 
     void destroy() override;
 
@@ -116,5 +119,5 @@ class FileRegion {
   };
 };
 
-} // wangle
+} // namespace wangle
 #endif

@@ -18,6 +18,7 @@
 
 #include <fizz/protocol/DefaultCertificateVerifier.h>
 #include <folly/Format.h>
+#include <folly/String.h>
 
 using fizz::CertUtils;
 using fizz::DefaultCertificateVerifier;
@@ -52,7 +53,7 @@ std::unique_ptr<fizz::server::CertManager> FizzConfigUtil::createCertManager(
 
           auto pkey = FizzUtil::readPrivateKey(cert.keyPath, pw);
           selfCert =
-            CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
+              CertUtils::makeSelfCert(std::move(x509Chain), std::move(pkey));
         }
         certMgr->addCert(std::move(selfCert), sslConfig.isDefault);
         loadedCert = true;
@@ -81,9 +82,10 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
     return nullptr;
   }
   auto ctx = std::make_shared<fizz::server::FizzServerContext>();
-  ctx->setSupportedVersions({ProtocolVersion::tls_1_3,
-                             ProtocolVersion::tls_1_3_28,
-                             ProtocolVersion::tls_1_3_26});
+  ctx->setSupportedVersions(
+      {ProtocolVersion::tls_1_3,
+       ProtocolVersion::tls_1_3_28,
+       ProtocolVersion::tls_1_3_26});
   ctx->setVersionFallbackEnabled(true);
 
   // Fizz does not yet support randomized next protocols so we use the highest
@@ -111,14 +113,29 @@ FizzConfigUtil::createFizzContext(const ServerSocketConfig& config) {
       ctx->setClientAuthMode(ClientAuthMode::None);
   }
 
-  auto caFile = config.sslContextConfigs.front().clientCAFile;
+  std::string& caFile = config.sslContextConfigs.front().clientCAFile;
+  std::vector<std::string>& caFiles =
+      config.sslContextConfigs.front().clientCAFiles;
+
+  std::vector<std::string> combinedCAFiles = {};
+
   if (!caFile.empty()) {
+    combinedCAFiles.push_back(caFile);
+  }
+  for (std::string& singleCAFile : caFiles) {
+    if (!singleCAFile.empty()) {
+      combinedCAFiles.push_back((singleCAFile));
+    }
+  }
+
+  if (!combinedCAFiles.empty()) {
     try {
-      auto verifier = DefaultCertificateVerifier::createFromCAFile(
-          VerificationContext::Server, caFile);
+      auto verifier = DefaultCertificateVerifier::createFromCAFiles(
+          VerificationContext::Server, combinedCAFiles);
       ctx->setClientCertVerifier(std::move(verifier));
     } catch (const std::runtime_error& ex) {
-      auto msg = folly::sformat(" Failed to load ca file at {}", caFile);
+      auto msg = folly::sformat(
+          " Failed to load ca file at {}", folly::join(", ", combinedCAFiles));
       if (config.strictSSL) {
         throw std::runtime_error(ex.what() + msg);
       } else {

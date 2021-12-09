@@ -228,7 +228,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   virtual void onDoneAcceptingConnection(
       int fd,
       const folly::SocketAddress& clientAddr,
-      std::chrono::steady_clock::time_point acceptTime) noexcept;
+      std::chrono::steady_clock::time_point acceptTime,
+      const AcceptInfo& info) noexcept;
 
   /**
    * Begins either processing HTTP bytes (HTTP) or the SSL handshake (HTTPS)
@@ -253,7 +254,7 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    * Drains all open connections of their outstanding transactions. When
    * a connection's transaction count reaches zero, the connection closes.
    */
-  void drainAllConnections();
+  virtual void drainAllConnections();
 
   /**
    * Drain defined percentage of connections.
@@ -411,9 +412,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       folly::EventBase* base,
       int fd,
       const folly::SocketAddress* peerAddress) {
-    return folly::AsyncSocket::UniquePtr(
-        new folly::AsyncSocket(
-            base, folly::NetworkSocket::fromFd(fd), 0, peerAddress));
+    return folly::AsyncSocket::UniquePtr(new folly::AsyncSocket(
+        base, folly::NetworkSocket::fromFd(fd), 0, peerAddress));
   }
 
   virtual folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
@@ -442,7 +442,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   // AsyncServerSocket::AcceptCallback methods
   void connectionAccepted(
       folly::NetworkSocket fdNetworkSocket,
-      const folly::SocketAddress& clientAddr) noexcept override;
+      const folly::SocketAddress& clientAddr,
+      AcceptInfo /* info */) noexcept override;
   // TODO(T81599451): Remove the 'using' statement below after
   // eliminating the old AcceptCallback::acceptError callback
   using folly::AsyncServerSocket::AcceptCallback::acceptError;
@@ -492,6 +493,16 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
   std::shared_ptr<SSLCacheProvider> cacheProvider_;
 
  private:
+  /**
+   * This is an intentionally non-virtual method that base acceptors will use
+   * that is invoked right before the transport is passed to the application.
+   *
+   * This function is an infallible method that is designed to alter the
+   * transport to reflect settings that are managed by wangle.
+   */
+  folly::AsyncTransport::UniquePtr transformTransport(
+      folly::AsyncTransport::UniquePtr sock);
+
   TLSTicketKeySeeds ticketSecrets_;
   std::shared_ptr<fizz::server::CertManager> fizzCertManager_{nullptr};
 

@@ -16,11 +16,11 @@
 
 #include <wangle/util/MultiFilePoller.h>
 
-#include <folly/futures/Future.h>
 #include <folly/FileUtil.h>
 #include <folly/MapUtil.h>
 #include <folly/String.h>
 #include <folly/experimental/TestUtil.h>
+#include <folly/futures/Future.h>
 #include <folly/portability/GTest.h>
 #include <folly/synchronization/SaturatingSemaphore.h>
 
@@ -87,8 +87,8 @@ TEST_F(MultiFilePollerTest, BasicTest) {
   delayedWrite(f, d2);
 
   // Check whether the callback is triggered by acquiring the semaphore.
-  ASSERT_TRUE(sem.try_wait_until(std::chrono::steady_clock::now() +
-                                 kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem.reset();
   ASSERT_EQ(1, count);
 
@@ -98,8 +98,8 @@ TEST_F(MultiFilePollerTest, BasicTest) {
   // Write to the file again. The callback should not run.
   delayedWrite(f, d3);
 
-  ASSERT_FALSE(sem.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_FALSE(sem.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   // If the callback runs, the assertion inside callback will also fail.
 }
 
@@ -181,8 +181,8 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // Create f2 to trigger cb2.
   ASSERT_TRUE(folly::writeFile(d2, f2.c_str()));
-  ASSERT_TRUE(sem2.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem2.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem2.reset();
   EXPECT_EQ(1, count2); // +1.
   EXPECT_EQ(0, count1); // No change.
@@ -191,8 +191,8 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // Create f3 to trigger cb3. Note that cb1 should not run.
   ASSERT_TRUE(folly::writeFile(d3, f3.c_str()));
-  ASSERT_TRUE(sem3.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem3.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem3.reset();
   EXPECT_EQ(1, count3); // +1.
   EXPECT_EQ(0, count1); // No change.
@@ -201,15 +201,15 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // Create f1 to trigger cb3 and cb1. Order doesn't matter.
   ASSERT_TRUE(folly::writeFile(d1, f1.c_str()));
-  ASSERT_TRUE(sem1.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem1.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem1.reset();
   EXPECT_EQ(1, count1); // +1.
   EXPECT_EQ(1, count2); // No change.
-  ASSERT_TRUE(sem3.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem3.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem3.reset();
-  EXPECT_EQ(2, count3);              // +1.
+  EXPECT_EQ(2, count3); // +1.
   EXPECT_EQ(std::vector<std::string>({d3, d1}), data3);
 
   // cb4 is the same as cb2 except that it's another callback.
@@ -223,27 +223,27 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
   // Write to f2 to trigger second callback.
   delayedWrite(f2, d21);
 
-  ASSERT_TRUE(sem2.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem2.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem2.reset();
-  ASSERT_TRUE(sem4.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem4.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem4.reset();
-  EXPECT_EQ(2, count2);  // +1.
-  EXPECT_EQ(1, count4);  // +1.
-  EXPECT_EQ(1, count1);  // No change.
-  EXPECT_EQ(2, count3);  // No change.
+  EXPECT_EQ(2, count2); // +1.
+  EXPECT_EQ(1, count4); // +1.
+  EXPECT_EQ(1, count1); // No change.
+  EXPECT_EQ(2, count3); // No change.
   EXPECT_EQ(d21, data2); // Both data2 and data4 got what was written.
   EXPECT_EQ(d21, data4);
 
   // f1 is in two different callbacks. Cancel cb1 should not affect cb3.
   updater_->cancelCallback(cb1);
   ASSERT_TRUE(folly::writeFile(d11, f1.c_str())); // Last write to f1 > 1s ago.
-  ASSERT_TRUE(sem3.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem3.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem3.reset();
-  ASSERT_FALSE(sem1.try_wait_until(std::chrono::steady_clock::now() +
-                                   kMaxSemaphoreWaitMs));
+  ASSERT_FALSE(sem1.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   EXPECT_EQ(3, count3); // +1.
   EXPECT_EQ(1, count1); // No change.
   EXPECT_EQ(2, count2); // No change.
@@ -253,21 +253,21 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
   // cb2 and cb4 use and only use f2. Cancel cb2 should not affect cb4.
   updater_->cancelCallback(cb2);
   ASSERT_TRUE(folly::writeFile(d22, f2.c_str())); // Last write to f2 > 1s ago.
-  ASSERT_TRUE(sem4.try_wait_until(std::chrono::steady_clock::now() +
-                                  kMaxSemaphoreWaitMs));
+  ASSERT_TRUE(sem4.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem4.reset();
-  ASSERT_FALSE(sem2.try_wait_until(std::chrono::steady_clock::now() +
-                                   kMaxSemaphoreWaitMs));
+  ASSERT_FALSE(sem2.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   EXPECT_EQ(d21, data2); // cb2 should not run, so not updated.
   EXPECT_EQ(d22, data4); // cb4 should run, so updated to d22.
-  EXPECT_EQ(2, count2);  // No change.
-  EXPECT_EQ(2, count4);  // +1
+  EXPECT_EQ(2, count2); // No change.
+  EXPECT_EQ(2, count4); // +1
 
   // Now we cancel cb4. Record of f2 should be cleaned up.
   updater_->cancelCallback(cb4);
   ASSERT_TRUE(folly::writeFile(d1, f2.c_str()));
-  ASSERT_FALSE(sem4.try_wait_until(std::chrono::steady_clock::now() +
-                                   kMaxSemaphoreWaitMs));
+  ASSERT_FALSE(sem4.try_wait_until(
+      std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   EXPECT_EQ(d21, data2); // cb2 should not run, so not updated to d1.
   EXPECT_EQ(d22, data4); // cb4 should not run, so not updated to d1.
 }

@@ -35,10 +35,7 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
       folly::AsyncSSLSocket::UniquePtr sock,
       AcceptorHandshakeHelper::Callback* callback) noexcept override {
     callback->connectionReady(
-      std::move(sock),
-      "",
-      SecureTransportType::NONE,
-      folly::none);
+        std::move(sock), "", SecureTransportType::NONE, folly::none);
   }
 
   void dropConnection(
@@ -47,4 +44,4 @@ class UnencryptedAcceptorHandshakeHelper : public AcceptorHandshakeHelper {
   }
 };
 
-}
+} // namespace wangle

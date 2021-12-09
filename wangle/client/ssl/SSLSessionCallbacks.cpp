@@ -17,7 +17,6 @@
 //
 #include <wangle/client/ssl/SSLSessionCallbacks.h>
 
-
 namespace wangle {
 // static
 void SSLSessionCallbacks::attachCallbacksToContext(
@@ -31,8 +30,8 @@ void SSLSessionCallbacks::attachCallbacksToContext(
   // Only initializes the cache index the first time.
   SSLUtil::getSSLCtxExIndex(&getCacheIndex());
   SSL_CTX_set_ex_data(ctx, getCacheIndex(), callbacks);
-  SSL_CTX_sess_set_remove_cb(ctx, SSLSessionCallbacks::removeSessionCallback);
-  context->setSessionLifecycleCallbacks(std::make_unique<ContextSessionCallbacks>());
+  context->setSessionLifecycleCallbacks(
+      std::make_unique<ContextSessionCallbacks>());
 }
 
 // static
@@ -63,28 +62,17 @@ std::string SSLSessionCallbacks::getSessionKeyFromSSL(SSL* ssl) {
   return sock ? sock->getSessionKey() : "";
 }
 
-// static
-void SSLSessionCallbacks::removeSessionCallback(
-    SSL_CTX* ctx,
-    SSL_SESSION* session) {
-  auto sslSessionCache = getCacheFromContext(ctx);
-  auto identity = getSessionServiceIdentity(session);
-  if (identity && !identity->empty()) {
-    sslSessionCache->removeSSLSession(*identity);
-  }
-#if OPENSSL_TICKETS
-  else {
-    auto hostname = SSL_SESSION_get0_hostname(session);
-    if (hostname) {
-      sslSessionCache->removeSSLSession(std::string(hostname));
-    }
-  }
-#endif
-}
-
-void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly::ssl::SSLSessionUniquePtr session) {
+void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(
+    SSL* ssl,
+    folly::ssl::SSLSessionUniquePtr session) {
   SSL_CTX* ctx = SSL_get_SSL_CTX(ssl);
   auto sslSessionCache = SSLSessionCallbacks::getCacheFromContext(ctx);
+
+  // To guarantee that sessionKey that we use as the key in our cache matches
+  // the session key stored in SSL_SESSION, we explicitly invoke any user logic
+  // first, ensuring that we always have control over these fields.
+  sslSessionCache->onNewSession(ssl, session.get());
+
   std::string sessionKey = SSLSessionCallbacks::getSessionKeyFromSSL(ssl);
   if (sessionKey.empty()) {
     const char* name = folly::AsyncSSLSocket::getSSLServerNameFromSSL(ssl);
@@ -95,4 +83,4 @@ void SSLSessionCallbacks::ContextSessionCallbacks::onNewSession(SSL* ssl, folly:
     sslSessionCache->setSSLSession(sessionKey, std::move(session));
   }
 }
-} // wangle
+} // namespace wangle

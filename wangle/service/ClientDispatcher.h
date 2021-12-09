@@ -22,8 +22,8 @@
 namespace wangle {
 
 template <typename Pipeline, typename Req, typename Resp = Req>
-class ClientDispatcherBase : public HandlerAdapter<Resp, Req>
-                             , public Service<Req, Resp> {
+class ClientDispatcherBase : public HandlerAdapter<Resp, Req>,
+                             public Service<Req, Resp> {
  public:
   typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
@@ -100,7 +100,6 @@ template <typename Pipeline, typename Req, typename Resp = Req>
 class PipelinedClientDispatcher
     : public ClientDispatcherBase<Pipeline, Req, Resp> {
  public:
-
   typedef typename HandlerAdapter<Resp, Req>::Context Context;
 
   void read(Context*, Resp in) override {

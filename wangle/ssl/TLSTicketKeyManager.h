@@ -24,41 +24,16 @@ namespace wangle {
 
 class SSLStats;
 struct TLSTicketKeySeeds;
+
 /**
- * The TLSTicketKeyManager handles TLS ticket key encryption and decryption in
- * a way that facilitates sharing the ticket keys across a range of servers.
- * Hash chaining is employed to achieve frequent key rotation with minimal
- * configuration change.  The scheme is as follows:
+ * The TLSTicketKeyManager handles TLS ticket encryption and decryption in a
+ * way that facilitates sharing of ticket keys across a range of servers. This
+ * implements the OpenSSLTicketHandler interface and is meant to be attached to
+ * an SSLContext via setTicketHandler() and should therefore only be used in
+ * one thread.
  *
- * The manager is supplied with three lists of seeds (old, current and new).
- * The config should be updated with new seeds periodically (e.g., daily).
- * 3 config changes are recommended to achieve the smoothest seed rotation
- * eg:
- *     1. Introduce new seed in the push prior to rotation
- *     2. Rotation push
- *     3. Remove old seeds in the push following rotation
- *
- * Multiple seeds are supported but only a single seed is required.
- *
- * Generating encryption keys from the seed works as follows.  For a given
- * seed, hash forward N times where N is currently the constant 1.
- * This is the base key.  The name of the base key is the first 4
- * bytes of hash(hash(seed), N).  This is copied into the first 4 bytes of the
- * TLS ticket key name field.
- *
- * For each new ticket encryption, the manager generates a random 12 byte salt.
- * Hash the salt and the base key together to form the encryption key for
- * that ticket.  The salt is included in the ticket's 'key name' field so it
- * can be used to derive the decryption key.  The salt is copied into the second
- * 8 bytes of the TLS ticket key name field.
- *
- * A key is valid for decryption for the lifetime of the instance.
- * Sessions will be valid for less time than that, which results in an extra
- * symmetric decryption to discover the session is expired.
- *
- * A TLSTicketKeyManager should be used in only one thread, and should have
- * a 1:1 relationship with the SSLContext provided.
- *
+ * Ticket seeds should be updated periodically (e.g., daily) via the
+ * setTLSTicketKeySeeds() API.
  */
 class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
  public:
@@ -69,6 +44,18 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
 
   virtual ~TLSTicketKeyManager();
 
+  /**
+   * Callback invoked by OpenSSL to prepare for ticket encryption/decryption.
+   *
+   * During encryption, keyName will be populated by a "real" keyname derived
+   * from the encryption key, and a 12 byte, randomly generated salt (i.e.
+   * {<4-byte-name> <12-byte-salt>}). During decryption, the keyName field is
+   * interpreted similarly. The salt is combined with the ticket key to create
+   * a unique key per ticket.
+   *
+   * For more details on how these fields are used, consult the OpenSSL
+   * documentation for SSL_CTX_set_tlsext_ticket_key_cb.
+   */
   int ticketCallback(
       SSL* ssl,
       unsigned char* keyName,
@@ -78,8 +65,19 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
       int encrypt) override;
 
   /**
-   * Initialize the manager with three sets of seeds.  There must be at least
-   * one current seed, or the manager will revert to the default SSL behavior.
+   * The manager is supplied with three lists of seeds (old, current, and new).
+   * The current seed is used for encryption, while the old, current, and new
+   * seeds are used for decryption. By loading a seed in as a new seed for a
+   * while before promoting it to the current seed, and similarly leaving it
+   * as an old seed for a while after it leaves the current seed slot, you can
+   * minimize the number of session ticket decryption failures.
+   *
+   * If more than one current seed is provided, only the last one is used as an
+   * encryption key. This interface should really be something like (string
+   * encryption_key, vector<string> decryption_keys), but for now we have to
+   * live with this API given the number of callsites that would need to be
+   * migrated. All seed strings are expected to be in hexadecimal, otherwise
+   * they will not be stored.
    *
    * @param oldSeeds Seeds previously used which can still decrypt.
    * @param currentSeeds Seeds to use for new ticket encryptions.
@@ -91,6 +89,11 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
       const std::vector<std::string>& currentSeeds,
       const std::vector<std::string>& newSeeds);
 
+  /**
+   * Used to retrieve the secrets previously set above. The order of seeds
+   * within a vector is not guaranteed to be the same as the order in which
+   * they were set.
+   */
   bool getTLSTicketKeySeeds(
       std::vector<std::string>& oldSeeds,
       std::vector<std::string>& currentSeeds,
@@ -119,62 +122,61 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
       EVP_CIPHER_CTX* cipherCtx,
       HMAC_CTX* hmacCtx);
 
+  /**
+   * Because the ticket seed getter exposes the concept of old, current, and
+   * new seeds, we need a way to tag the type of seeds in internal data
+   * structures here...
+   */
   enum TLSTicketSeedType { SEED_OLD = 0, SEED_CURRENT, SEED_NEW };
 
-  /* The seeds supplied by the configuration */
-  struct TLSTicketSeed {
+  class TLSTicketKey {
+   public:
+    explicit TLSTicketKey(std::string seed, TLSTicketSeedType type);
+
+    // Following two methods needed to support existing
+    // get/setTLSTickeKeyManager interface.
+    const std::string& seed() const {
+      return seed_;
+    }
+
+    TLSTicketSeedType type() const {
+      return type_;
+    }
+
+    // Needed by OpenSSL API when encoding session tickets.
+    const std::string name() const {
+      return name_;
+    }
+
+    const unsigned char* value() const {
+      return keyValue_;
+    }
+
+    static constexpr uint32_t VALUE_LENGTH = SHA256_DIGEST_LENGTH;
+
+   private:
+    const std::string computeName() const;
+
+    // We need to store the seed and key type in addition to the keyValue
+    // itself (which is derived from the seed), because getTLSTicketKeySeeds()
+    // expects this information to be preserved from setTLSTicketKeySeeds().
     std::string seed_;
     TLSTicketSeedType type_;
-    unsigned char seedName_[SHA256_DIGEST_LENGTH];
+    std::string name_;
+    unsigned char keyValue_[SHA256_DIGEST_LENGTH];
   };
 
-  struct TLSTicketKeySource {
-    int32_t hashCount_;
-    std::string keyName_;
-    TLSTicketSeedType type_;
-    unsigned char keySource_[SHA256_DIGEST_LENGTH];
-  };
-
-  // Creates the name for the nth key generated from seed
-  std::string
-  makeKeyName(TLSTicketSeed* seed, uint32_t n, unsigned char* nameBuf);
+  bool insertSeed(const std::string& seedInput, TLSTicketSeedType type);
 
   /**
-   * Creates the key hashCount hashes from the given seed and inserts it in
-   * ticketKeys.  A naked pointer to the key is returned for additional
-   * processing if needed.
+   * Locate the key for encrypting a new ticket
    */
-  TLSTicketKeySource* insertNewKey(
-      TLSTicketSeed* seed,
-      uint32_t hashCount,
-      TLSTicketKeySource* prevKeySource);
-
-  /**
-   * hashes input N times placing result in output, which must be at least
-   * SHA256_DIGEST_LENGTH long.
-   */
-  void hashNth(
-      const unsigned char* input,
-      size_t input_len,
-      unsigned char* output,
-      uint32_t n);
-
-  /**
-   * Adds the given seed to the manager
-   */
-  TLSTicketSeed* insertSeed(
-      const std::string& seedInput,
-      TLSTicketSeedType type);
-
-  /**
-   * Locate a key for encrypting a new ticket
-   */
-  TLSTicketKeySource* findEncryptionKey();
+  TLSTicketKey* findEncryptionKey();
 
   /**
    * Locate a key for decrypting a ticket with the given keyName
    */
-  TLSTicketKeySource* findDecryptionKey(unsigned char* keyName);
+  TLSTicketKey* findDecryptionKey(const std::string& keyName);
 
   /**
    * Record the rotation of the ticket seeds with a new set
@@ -184,26 +186,8 @@ class TLSTicketKeyManager : public folly::OpenSSLTicketHandler {
       const std::vector<std::string>& currentSeeds,
       const std::vector<std::string>& newSeeds);
 
-  /**
-   * Derive a unique key from the parent key and the salt via hashing
-   */
-  void makeUniqueKeys(
-      unsigned char* parentKey,
-      size_t keyLen,
-      unsigned char* salt,
-      unsigned char* output);
-
-  typedef std::vector<std::unique_ptr<TLSTicketSeed>> TLSTicketSeedList;
-  using TLSTicketKeyMap =
-      std::map<std::string, std::unique_ptr<TLSTicketKeySource>>;
-  using TLSActiveKeyList = std::vector<TLSTicketKeySource*>;
-
-  TLSTicketSeedList ticketSeeds_;
-  // All key sources that can be used for decryption
-  TLSTicketKeyMap ticketKeys_;
-  // Key sources that can be used for encryption
-  TLSActiveKeyList activeKeys_;
-
+  std::string encryptionKeyName_;
+  std::unordered_map<std::string, std::unique_ptr<TLSTicketKey>> ticketKeyMap_;
   SSLStats* stats_{nullptr};
 };
 using TicketSeedHandler = TLSTicketKeyManager;

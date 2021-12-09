@@ -41,7 +41,7 @@ def get_linux_type():
     if name:
         name = name.lower()
         name = re.sub("linux", "", name)
-        name = name.strip()
+        name = name.strip().replace(" ", "_")
 
     version_id = os_vars.get("VERSION_ID")
     if version_id:
@@ -99,9 +99,9 @@ class HostType(object):
     def get_package_manager(self):
         if not self.is_linux():
             return None
-        if self.distro in ("fedora", "centos"):
+        if self.distro in ("fedora", "centos", "centos_stream"):
             return "rpm"
-        if self.distro in ("debian", "ubuntu"):
+        if self.distro.startswith(("debian", "ubuntu")):
             return "deb"
         return None
 

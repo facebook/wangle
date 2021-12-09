@@ -16,9 +16,9 @@
 
 #include <wangle/acceptor/SocketPeeker.h>
 
-#include <thread>
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
+#include <thread>
 
 #include <folly/io/async/test/MockAsyncSocket.h>
 
@@ -43,18 +43,18 @@ class MockSocketPeekerCallback : public SocketPeeker::Callback {
 };
 
 class SocketPeekerTest : public Test {
-  public:
-    void SetUp() override {
-      sock = new MockAsyncSocket(&base);
-    }
+ public:
+  void SetUp() override {
+    sock = new MockAsyncSocket(&base);
+  }
 
-    void TearDown() override {
-      sock->destroy();
-    }
+  void TearDown() override {
+    sock->destroy();
+  }
 
-    MockAsyncSocket* sock;
-    MockSocketPeekerCallback callback;
-    EventBase base;
+  MockAsyncSocket* sock;
+  MockSocketPeekerCallback callback;
+  EventBase base;
 };
 
 MATCHER_P2(BufMatches, buf, len, "") {

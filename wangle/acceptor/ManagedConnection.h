@@ -17,8 +17,8 @@
 #pragma once
 
 #include <folly/IntrusiveList.h>
-#include <folly/io/async/HHWheelTimer.h>
 #include <folly/io/async/DelayedDestruction.h>
+#include <folly/io/async/HHWheelTimer.h>
 
 #include <ostream>
 #include <string>
@@ -31,15 +31,13 @@ class ConnectionManager;
  * Interface describing a connection that can be managed by a
  * container such as an Acceptor.
  */
-class ManagedConnection:
-    public folly::HHWheelTimer::Callback,
-    public folly::DelayedDestruction {
+class ManagedConnection : public folly::HHWheelTimer::Callback,
+                          public folly::DelayedDestruction {
  public:
-
   ManagedConnection();
 
   class Callback {
-  public:
+   public:
     virtual ~Callback() = default;
 
     /* Invoked when this connection becomes busy */
@@ -129,8 +127,8 @@ class ManagedConnection:
 
   // Schedule an arbitrary timeout on the HHWheelTimer
   virtual void scheduleTimeout(
-    folly::HHWheelTimer::Callback* callback,
-    std::chrono::milliseconds timeout);
+      folly::HHWheelTimer::Callback* callback,
+      std::chrono::milliseconds timeout);
 
   ConnectionManager* getConnectionManager() {
     return connectionManager_;
@@ -157,9 +155,8 @@ class ManagedConnection:
   ConnectionManager* connectionManager_;
 
   folly::SafeIntrusiveListHook listHook_;
-
 };
 
 std::ostream& operator<<(std::ostream& os, const ManagedConnection& conn);
 
-} // wangle
+} // namespace wangle

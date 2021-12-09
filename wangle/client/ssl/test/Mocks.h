@@ -45,4 +45,4 @@ class MockSSLSessionCallbacks : public SSLSessionCallbacks {
   }
 };
 
-}
+} // namespace wangle

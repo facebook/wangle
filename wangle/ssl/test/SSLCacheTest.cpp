@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include <folly/io/async/EventBase.h>
-#include <folly/portability/GFlags.h>
-#include <iostream>
-#include <thread>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/EventBase.h>
+#include <folly/portability/GFlags.h>
 #include <folly/ssl/SSLSession.h>
+#include <iostream>
+#include <thread>
 #include <vector>
 
 using namespace std;
@@ -31,8 +31,11 @@ DEFINE_int32(clients, 1, "Number of simulated SSL clients");
 DEFINE_int32(threads, 1, "Number of threads to spread clients across");
 DEFINE_int32(requests, 2, "Total number of requests per client");
 DEFINE_int32(port, 9423, "Server port");
-DEFINE_bool(sticky, false, "A given client sends all reqs to one "
-            "(random) server");
+DEFINE_bool(
+    sticky,
+    false,
+    "A given client sends all reqs to one "
+    "(random) server");
 DEFINE_bool(global, false, "All clients in a thread use the same SSL session");
 DEFINE_bool(handshakes, false, "Force 100% handshakes");
 
@@ -42,8 +45,7 @@ int tnum = 0;
 
 class ClientRunner {
  public:
-
-  ClientRunner(): reqs(0), hits(0), miss(0), num(tnum++) {}
+  ClientRunner() : reqs(0), hits(0), miss(0), num(tnum++) {}
   void run();
 
   int reqs;
@@ -53,9 +55,8 @@ class ClientRunner {
 };
 
 class SSLCacheClient : public AsyncSocket::ConnectCallback,
-                       public AsyncSSLSocket::HandshakeCB
-{
-private:
+                       public AsyncSSLSocket::HandshakeCB {
+ private:
   EventBase* eventBase_;
   int currReq_;
   int serverIdx_;
@@ -66,8 +67,11 @@ private:
   std::shared_ptr<SSLContext> ctx_;
   ClientRunner* cr_;
 
-public:
-  SSLCacheClient(EventBase* eventBase, std::shared_ptr<SSLSession> pSess, ClientRunner* cr);
+ public:
+  SSLCacheClient(
+      EventBase* eventBase,
+      std::shared_ptr<SSLSession> pSess,
+      ClientRunner* cr);
   ~SSLCacheClient() override {
     if (socket_ != nullptr) {
       if (sslSocket_ != nullptr) {
@@ -87,16 +91,15 @@ public:
 
   void handshakeSuc(AsyncSSLSocket* sock) noexcept override;
 
-  void handshakeErr(AsyncSSLSocket* sock,
-                    const AsyncSocketException& ex) noexcept override;
+  void handshakeErr(
+      AsyncSSLSocket* sock,
+      const AsyncSocketException& ex) noexcept override;
 };
 
-int
-main(int argc, char* argv[])
-{
-  gflags::SetUsageMessage(std::string("\n\n"
-"usage: sslcachetest [options] -c <clients> -t <threads> servers\n"
-));
+int main(int argc, char* argv[]) {
+  gflags::SetUsageMessage(std::string(
+      "\n\n"
+      "usage: sslcachetest [options] -c <clients> -t <threads> servers\n"));
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   int reqs = 0;
   int hits = 0;
@@ -123,21 +126,18 @@ main(int argc, char* argv[])
     reqs = r.reqs;
     hits = r.hits;
     miss = r.miss;
-  }
-  else {
+  } else {
     std::vector<ClientRunner> clients;
     std::vector<std::thread> threads;
     for (int t = 0; t < FLAGS_threads; t++) {
-      threads.emplace_back([&] {
-          clients[t].run();
-        });
+      threads.emplace_back([&] { clients[t].run(); });
     }
-    for (auto& thr: threads) {
+    for (auto& thr : threads) {
       thr.join();
     }
     gettimeofday(&end, nullptr);
 
-    for (const auto& client: clients) {
+    for (const auto& client : clients) {
       reqs += client.reqs;
       hits += client.hits;
       miss += client.miss;
@@ -149,20 +149,20 @@ main(int argc, char* argv[])
   cout << "Requests: " << reqs << endl;
   cout << "Handshakes: " << miss << endl;
   cout << "Resumes: " << hits << endl;
-  cout << "Runtime(ms): " << result.tv_sec << "." << result.tv_usec / 1000 <<
-    endl;
+  cout << "Runtime(ms): " << result.tv_sec << "." << result.tv_usec / 1000
+       << endl;
 
-  cout << "ops/sec: " << (reqs * 1.0) /
-    ((double)result.tv_sec * 1.0 + (double)result.tv_usec / 1000000.0) << endl;
+  cout << "ops/sec: "
+       << (reqs * 1.0) /
+          ((double)result.tv_sec * 1.0 + (double)result.tv_usec / 1000000.0)
+       << endl;
 
   return 0;
 }
 
-void
-ClientRunner::run()
-{
+void ClientRunner::run() {
   EventBase eb;
-  std::list<SSLCacheClient *> clients;
+  std::list<SSLCacheClient*> clients;
   std::shared_ptr<SSLSession> session = nullptr;
 
   for (int i = 0; i < FLAGS_clients; i++) {
@@ -174,15 +174,16 @@ ClientRunner::run()
   eb.loop();
 
   for (auto it = clients.begin(); it != clients.end(); it++) {
-    delete* it;
+    delete *it;
   }
 
   reqs += hits + miss;
 }
 
-SSLCacheClient::SSLCacheClient(EventBase* eb,
-                               std::shared_ptr<SSLSession> pSess,
-                               ClientRunner* cr)
+SSLCacheClient::SSLCacheClient(
+    EventBase* eb,
+    std::shared_ptr<SSLSession> pSess,
+    ClientRunner* cr)
     : eventBase_(eb),
       currReq_(0),
       serverIdx_(0),
@@ -190,15 +191,12 @@ SSLCacheClient::SSLCacheClient(EventBase* eb,
       sslSocket_(nullptr),
       session_(nullptr),
       pSess_(pSess),
-      cr_(cr)
-{
+      cr_(cr) {
   ctx_.reset(new SSLContext());
   ctx_->setOptions(SSL_OP_NO_TICKET);
 }
 
-void
-SSLCacheClient::start()
-{
+void SSLCacheClient::start() {
   if (currReq_ >= FLAGS_requests) {
     cout << "+";
     return;
@@ -219,9 +217,7 @@ SSLCacheClient::start()
   socket_->connect(this, f_servers[serverIdx_], (uint16_t)FLAGS_port);
 }
 
-void
-SSLCacheClient::connectSuccess() noexcept
-{
+void SSLCacheClient::connectSuccess() noexcept {
   sslSocket_ = new AsyncSSLSocket(
       ctx_, eventBase_, socket_->detachNetworkSocket(), false);
 
@@ -234,16 +230,11 @@ SSLCacheClient::connectSuccess() noexcept
   sslSocket_->sslConn(this);
 }
 
-void
-SSLCacheClient::connectErr(const AsyncSocketException& ex)
-  noexcept
-{
+void SSLCacheClient::connectErr(const AsyncSocketException& ex) noexcept {
   cout << "connectError: " << ex.what() << endl;
 }
 
-void
-SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept
-{
+void SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept {
   if (sslSocket_->getSSLSessionReused()) {
     cr_->hits++;
   } else {
@@ -253,7 +244,7 @@ SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept
       pSess_ = session_;
     }
   }
-  if ( ((cr_->hits + cr_->miss) % 100) == ((100 / FLAGS_threads) * cr_->num)) {
+  if (((cr_->hits + cr_->miss) % 100) == ((100 / FLAGS_threads) * cr_->num)) {
     cout << ".";
     cout.flush();
   }
@@ -262,11 +253,8 @@ SSLCacheClient::handshakeSuc(AsyncSSLSocket*) noexcept
   this->start();
 }
 
-void
-SSLCacheClient::handshakeErr(
-  AsyncSSLSocket*,
-  const AsyncSocketException& ex)
-  noexcept
-{
+void SSLCacheClient::handshakeErr(
+    AsyncSSLSocket*,
+    const AsyncSocketException& ex) noexcept {
   cout << "handshakeError: " << ex.what() << endl;
 }

@@ -48,22 +48,17 @@ class MockHandler : public Handler<Rin, Rout, Win, Wout> {
   }
 
   folly::Future<folly::Unit> write(Context* ctx, Win msg) override {
-    return folly::makeFutureWith([&](){
-      write_(ctx, msg);
-    });
+    return folly::makeFutureWith([&]() { write_(ctx, msg); });
   }
 
   folly::Future<folly::Unit> close(Context* ctx) override {
-    return folly::makeFutureWith([&](){
-      close_(ctx);
-    });
+    return folly::makeFutureWith([&]() { close_(ctx); });
   }
 
   folly::Future<folly::Unit> writeException(
-    Context* ctx, folly::exception_wrapper ex) override {
-    return folly::makeFutureWith([&](){
-        writeException_(ctx, ex);
-    });
+      Context* ctx,
+      folly::exception_wrapper ex) override {
+    return folly::makeFutureWith([&]() { writeException_(ctx, ex); });
   }
 };
 
@@ -81,18 +76,23 @@ class MockBytesToBytesHandler : public BytesToBytesHandler {
   MOCK_METHOD2(read, void(Context*, folly::IOBufQueue&));
   MOCK_METHOD1(readEOF, void(Context*));
   MOCK_METHOD2(readException, void(Context*, folly::exception_wrapper));
-  MOCK_METHOD2(write,
-               folly::MoveWrapper<folly::Future<folly::Unit>>(
-                 Context*,
-                 std::shared_ptr<folly::IOBuf>));
-  MOCK_METHOD1(mockClose,
-               folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
-  MOCK_METHOD2(mockWriteException,
-               folly::MoveWrapper<folly::Future<folly::Unit>>(
-                   Context*, folly::exception_wrapper));
+  MOCK_METHOD2(
+      write,
+      folly::MoveWrapper<folly::Future<folly::Unit>>(
+          Context*,
+          std::shared_ptr<folly::IOBuf>));
+  MOCK_METHOD1(
+      mockClose,
+      folly::MoveWrapper<folly::Future<folly::Unit>>(Context*));
+  MOCK_METHOD2(
+      mockWriteException,
+      folly::MoveWrapper<folly::Future<folly::Unit>>(
+          Context*,
+          folly::exception_wrapper));
 
-  folly::Future<folly::Unit> write(Context* ctx,
-                                   std::unique_ptr<folly::IOBuf> buf) override {
+  folly::Future<folly::Unit> write(
+      Context* ctx,
+      std::unique_ptr<folly::IOBuf> buf) override {
     std::shared_ptr<folly::IOBuf> sbuf(buf.release());
     return write(ctx, sbuf).move();
   }
@@ -102,7 +102,8 @@ class MockBytesToBytesHandler : public BytesToBytesHandler {
   }
 
   folly::Future<folly::Unit> writeException(
-      Context* ctx, folly::exception_wrapper ex) override {
+      Context* ctx,
+      folly::exception_wrapper ex) override {
     return mockWriteException(ctx, ex).move();
   }
 };

@@ -23,7 +23,7 @@
 
 namespace wangle {
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 folly::Optional<V> LRUInMemoryCache<K, V, M>::get(const K& key) {
   // need to take a write lock since get modifies the LRU
   typename wangle::CacheLockGuard<M>::Write writeLock(cacheLock_);
@@ -34,14 +34,14 @@ folly::Optional<V> LRUInMemoryCache<K, V, M>::get(const K& key) {
   return folly::none;
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 void LRUInMemoryCache<K, V, M>::put(const K& key, const V& val) {
   typename wangle::CacheLockGuard<M>::Write writeLock(cacheLock_);
   cache_.set(key, val);
   incrementVersion();
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 bool LRUInMemoryCache<K, V, M>::remove(const K& key) {
   typename wangle::CacheLockGuard<M>::Write writeLock(cacheLock_);
   size_t nErased = cache_.erase(key);
@@ -52,13 +52,13 @@ bool LRUInMemoryCache<K, V, M>::remove(const K& key) {
   return false;
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 size_t LRUInMemoryCache<K, V, M>::size() const {
   typename wangle::CacheLockGuard<M>::Read readLock(cacheLock_);
   return cache_.size();
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 void LRUInMemoryCache<K, V, M>::clear() {
   typename wangle::CacheLockGuard<M>::Write writeLock(cacheLock_);
   if (cache_.empty()) {
@@ -68,33 +68,28 @@ void LRUInMemoryCache<K, V, M>::clear() {
   incrementVersion();
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 CacheDataVersion LRUInMemoryCache<K, V, M>::getVersion() const {
   typename wangle::CacheLockGuard<M>::Read readLock(cacheLock_);
   return version_;
 }
 
-template<typename K, typename V, typename M>
-CacheDataVersion
-LRUInMemoryCache<K, V, M>::loadData(const folly::dynamic& data) noexcept {
+template <typename K, typename V, typename M>
+CacheDataVersion LRUInMemoryCache<K, V, M>::loadData(
+    const folly::dynamic& data) noexcept {
   bool updated = false;
   typename wangle::CacheLockGuard<M>::Write writeLock(cacheLock_);
   try {
     for (const auto& kv : data) {
-      cache_.set(
-        folly::convertTo<K>(kv[0]),
-        folly::convertTo<V>(kv[1]));
+      cache_.set(folly::convertTo<K>(kv[0]), folly::convertTo<V>(kv[1]));
       updated = true;
     }
   } catch (const folly::TypeError& err) {
-    LOG(ERROR) << "Load cache failed with type error: "
-                << err.what();
+    LOG(ERROR) << "Load cache failed with type error: " << err.what();
   } catch (const std::out_of_range& err) {
-    LOG(ERROR) << "Load cache failed with key error: "
-                << err.what();
+    LOG(ERROR) << "Load cache failed with key error: " << err.what();
   } catch (const std::exception& err) {
-    LOG(ERROR) << "Load cache failed with error: "
-                << err.what();
+    LOG(ERROR) << "Load cache failed with error: " << err.what();
   }
   if (updated) {
     // we still need to increment the version
@@ -103,7 +98,7 @@ LRUInMemoryCache<K, V, M>::loadData(const folly::dynamic& data) noexcept {
   return version_;
 }
 
-template<typename K, typename V, typename M>
+template <typename K, typename V, typename M>
 folly::Optional<std::pair<folly::dynamic, CacheDataVersion>>
 LRUInMemoryCache<K, V, M>::convertToKeyValuePairs() noexcept {
   typename wangle::CacheLockGuard<M>::Read readLock(cacheLock_);
@@ -120,4 +115,4 @@ LRUInMemoryCache<K, V, M>::convertToKeyValuePairs() noexcept {
   return folly::none;
 }
 
-}
+} // namespace wangle

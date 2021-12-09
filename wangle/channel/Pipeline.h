@@ -19,12 +19,14 @@
 #include <boost/variant.hpp>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Memory.h>
-#include <folly/futures/Future.h>
+#include <folly/Optional.h>
 #include <folly/Unit.h>
+#include <folly/futures/Future.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/AsyncUDPSocket.h>
 #include <folly/io/async/DelayedDestruction.h>
+#include <folly/io/async/Request.h>
 #include <wangle/acceptor/SecureTransportType.h>
 #include <wangle/acceptor/TransportInfo.h>
 #include <wangle/channel/HandlerContext.h>
@@ -150,7 +152,7 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
   PipelineBase& removeHelper(H* handler, bool checkEqual);
 
   typedef std::vector<std::shared_ptr<PipelineContext>>::iterator
-    ContextIterator;
+      ContextIterator;
 
   ContextIterator removeAt(const ContextIterator& it);
 
@@ -180,12 +182,11 @@ class Pipeline : public PipelineBase {
   ~Pipeline() override;
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
-  read(R msg);
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type read(
+      R msg);
 
   template <class T = R>
-  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
-  readEOF();
+  typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type readEOF();
 
   template <class T = R>
   typename std::enable_if<!std::is_same<T, folly::Unit>::value>::type
@@ -200,31 +201,51 @@ class Pipeline : public PipelineBase {
   transportInactive();
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                          folly::Future<folly::Unit>>::type
+  typename std::enable_if<
+      !std::is_same<T, folly::Unit>::value,
+      folly::Future<folly::Unit>>::type
   write(W msg);
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                          folly::Future<folly::Unit>>::type
+  typename std::enable_if<
+      !std::is_same<T, folly::Unit>::value,
+      folly::Future<folly::Unit>>::type
   writeException(folly::exception_wrapper e);
 
   template <class T = W>
-  typename std::enable_if<!std::is_same<T, folly::Unit>::value,
-                          folly::Future<folly::Unit>>::type
+  typename std::enable_if<
+      !std::is_same<T, folly::Unit>::value,
+      folly::Future<folly::Unit>>::type
   close();
 
   void finalize() override;
+
+  void setRequestContext(
+      const std::shared_ptr<folly::RequestContext>& requestContext) {
+    requestContext_ = requestContext;
+  }
+
+  void setRequestContext(
+      std::shared_ptr<folly::RequestContext>&& requestContext) {
+    requestContext_ = std::move(requestContext);
+  }
 
  protected:
   Pipeline();
   explicit Pipeline(bool isStatic);
 
  private:
+  using OptionalReqCtxScopeGuard =
+      folly::Optional<folly::RequestContextScopeGuard>;
+
+  void fillRequestContextGuard(OptionalReqCtxScopeGuard& optGuard);
+
   bool isStatic_{false};
 
   InboundLink<R>* front_{nullptr};
   OutboundLink<W>* back_{nullptr};
+
+  std::shared_ptr<folly::RequestContext> requestContext_;
 };
 
 } // namespace wangle
@@ -291,6 +312,6 @@ class AcceptPipelineFactory {
   virtual ~AcceptPipelineFactory() = default;
 };
 
-}
+} // namespace wangle
 
 #include <wangle/channel/Pipeline-inl.h>

@@ -33,20 +33,20 @@ auto createZeroedBuffer(size_t size) {
   std::memset(ret->writableData(), 0x00, size);
   return ret;
 }
-}
+} // namespace
 
 TEST(FixedLengthFrameDecoder, FailWhenLengthFieldEndOffset) {
   auto pipeline = Pipeline<IOBufQueue&, std::unique_ptr<IOBuf>>::create();
   int called = 0;
 
   (*pipeline)
-    .addBack(FixedLengthFrameDecoder(10))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(FixedLengthFrameDecoder(10))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 10);
       }))
-    .finalize();
+      .finalize();
 
   auto buf3 = createZeroedBuffer(3);
   auto buf11 = createZeroedBuffer(11);
@@ -72,15 +72,15 @@ TEST(LengthFieldFramePipeline, SimpleTest) {
   int called = 0;
 
   (*pipeline)
-    .addBack(test::BytesReflector())
-    .addBack(LengthFieldPrepender())
-    .addBack(LengthFieldBasedFrameDecoder())
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(test::BytesReflector())
+      .addBack(LengthFieldPrepender())
+      .addBack(LengthFieldBasedFrameDecoder())
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 2);
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(2);
   pipeline->write(std::move(buf));
@@ -92,15 +92,15 @@ TEST(LengthFieldFramePipeline, LittleEndian) {
   int called = 0;
 
   (*pipeline)
-    .addBack(test::BytesReflector())
-    .addBack(LengthFieldBasedFrameDecoder(4, 100, 0, 0, 4, false))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(test::BytesReflector())
+      .addBack(LengthFieldBasedFrameDecoder(4, 100, 0, 0, 4, false))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
       }))
-    .addBack(LengthFieldPrepender(4, 0, false, false))
-    .finalize();
+      .addBack(LengthFieldPrepender(4, 0, false, false))
+      .finalize();
 
   auto buf = createZeroedBuffer(1);
   pipeline->write(std::move(buf));
@@ -112,13 +112,13 @@ TEST(LengthFieldFrameDecoder, Simple) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder())
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder())
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
@@ -141,13 +141,13 @@ TEST(LengthFieldFrameDecoder, NoStrip) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 0, 0))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 0, 0))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(2);
   RWPrivateCursor c(bufFrame.get());
@@ -170,13 +170,13 @@ TEST(LengthFieldFrameDecoder, Adjustment) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, -2, 0))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, -2, 0))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(2);
   RWPrivateCursor c(bufFrame.get());
@@ -199,13 +199,13 @@ TEST(LengthFieldFrameDecoder, PreHeader) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 0, 0))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 0, 0))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 5);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
@@ -229,13 +229,13 @@ TEST(LengthFieldFrameDecoder, PostHeader) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 2, 0))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 0, 2, 0))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 5);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(4);
   RWPrivateCursor c(bufFrame.get());
@@ -259,13 +259,13 @@ TEST(LengthFieldFrameDecoderStrip, PrePostHeader) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 2, 4))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, 2, 4))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(6);
   RWPrivateCursor c(bufFrame.get());
@@ -290,13 +290,13 @@ TEST(LengthFieldFrameDecoder, StripPrePostHeaderFrameInclHeader) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, -2, 4))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(2, 10, 2, -2, 4))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(6);
   RWPrivateCursor c(bufFrame.get());
@@ -321,12 +321,12 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldEndOffset) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(4, 10, 4, -2, 4))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(4, 10, 4, -2, 4))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(8);
   RWPrivateCursor c(bufFrame.get());
@@ -345,12 +345,12 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldFrameSize) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 4))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 4))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(16);
   RWPrivateCursor c(bufFrame.get());
@@ -371,12 +371,12 @@ TEST(LengthFieldFrameDecoder, FailTestLengthFieldInitialBytes) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 10))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 10))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(16);
   RWPrivateCursor c(bufFrame.get());
@@ -397,12 +397,12 @@ TEST(LengthFieldFrameDecoder, FailTestNotEnoughBytes) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 0))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LengthFieldBasedFrameDecoder(4, 10, 0, 0, 0))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
-    .finalize();
+      .finalize();
 
   auto bufFrame = createZeroedBuffer(16);
   RWPrivateCursor c(bufFrame.get());
@@ -423,13 +423,13 @@ TEST(LineBasedFrameDecoder, Simple) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LineBasedFrameDecoder(10))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LineBasedFrameDecoder(10))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 3);
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(3);
 
@@ -470,13 +470,13 @@ TEST(LineBasedFrameDecoder, SaveDelimiter) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LineBasedFrameDecoder(10, false))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LineBasedFrameDecoder(10, false))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 4);
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(3);
 
@@ -515,12 +515,12 @@ TEST(LineBasedFrameDecoder, Fail) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LineBasedFrameDecoder(10))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LineBasedFrameDecoder(10))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         ASSERT_EQ(nullptr, buf);
         called++;
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(11);
 
@@ -559,14 +559,14 @@ TEST(LineBasedFrameDecoder, NewLineOnly) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LineBasedFrameDecoder(
-               10, true, LineBasedFrameDecoder::TerminatorType::NEWLINE))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LineBasedFrameDecoder(
+          10, true, LineBasedFrameDecoder::TerminatorType::NEWLINE))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(2);
   RWPrivateCursor c(buf.get());
@@ -585,14 +585,14 @@ TEST(LineBasedFrameDecoder, CarriageNewLineOnly) {
   int called = 0;
 
   (*pipeline)
-    .addBack(LineBasedFrameDecoder(
-              10, true, LineBasedFrameDecoder::TerminatorType::CARRIAGENEWLINE))
-    .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
+      .addBack(LineBasedFrameDecoder(
+          10, true, LineBasedFrameDecoder::TerminatorType::CARRIAGENEWLINE))
+      .addBack(test::FrameTester([&](std::unique_ptr<IOBuf> buf) {
         auto sz = buf->computeChainDataLength();
         called++;
         EXPECT_EQ(sz, 1);
       }))
-    .finalize();
+      .finalize();
 
   auto buf = createZeroedBuffer(3);
   RWPrivateCursor c(buf.get());

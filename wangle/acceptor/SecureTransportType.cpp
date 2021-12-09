@@ -20,11 +20,11 @@ namespace wangle {
 
 std::string getSecureTransportName(const SecureTransportType& type) {
   switch (type) {
-  case SecureTransportType::TLS:
-    return "TLS";
-  default:
-    return "";
+    case SecureTransportType::TLS:
+      return "TLS";
+    default:
+      return "";
   }
 }
 
-}
+} // namespace wangle

@@ -17,8 +17,8 @@
 #pragma once
 
 #include <folly/io/async/AsyncServerSocket.h>
-#include <folly/io/async/EventBaseManager.h>
 #include <folly/io/async/AsyncUDPServerSocket.h>
+#include <folly/io/async/EventBaseManager.h>
 #include <wangle/acceptor/Acceptor.h>
 
 namespace wangle {
@@ -26,18 +26,20 @@ namespace wangle {
 class ServerSocketFactory {
  public:
   virtual std::shared_ptr<folly::AsyncSocketBase> newSocket(
-      folly::SocketAddress address, int backlog,
-      bool reuse, const ServerSocketConfig& config) = 0;
+      folly::SocketAddress address,
+      int backlog,
+      bool reuse,
+      const ServerSocketConfig& config) = 0;
 
   virtual void removeAcceptCB(
       std::shared_ptr<folly::AsyncSocketBase> sock,
-      Acceptor *callback,
+      Acceptor* callback,
       folly::EventBase* base) = 0;
 
   virtual void addAcceptCB(
       std::shared_ptr<folly::AsyncSocketBase> sock,
       Acceptor* callback,
-      folly::EventBase* base) = 0 ;
+      folly::EventBase* base) = 0;
 
   virtual ~ServerSocketFactory() = default;
 };
@@ -45,18 +47,17 @@ class ServerSocketFactory {
 class AsyncServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<folly::AsyncSocketBase> newSocket(
-      folly::SocketAddress address, int /*backlog*/, bool reuse,
+      folly::SocketAddress address,
+      int /*backlog*/,
+      bool reuse,
       const ServerSocketConfig& config) override {
-
     auto* evb = folly::EventBaseManager::get()->getEventBase();
     std::shared_ptr<folly::AsyncServerSocket> socket(
-        new folly::AsyncServerSocket(evb),
-        ThreadSafeDestructor());
+        new folly::AsyncServerSocket(evb), ThreadSafeDestructor());
     if (config.useZeroCopy) {
       socket->setZeroCopy(true);
     }
-    socket->setMaxNumMessagesInQueue(
-        config.maxNumPendingConnectionsPerWorker);
+    socket->setMaxNumMessagesInQueue(config.maxNumPendingConnectionsPerWorker);
     socket->setReusePortEnabled(reuse);
     if (config.enableTCPFastOpen) {
       socket->setTFOEnabled(true, config.fastOpenQueueSize);
@@ -69,15 +70,19 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
     return socket;
   }
 
-  void removeAcceptCB(std::shared_ptr<folly::AsyncSocketBase> s,
-                      Acceptor *callback, folly::EventBase* base) override {
+  void removeAcceptCB(
+      std::shared_ptr<folly::AsyncSocketBase> s,
+      Acceptor* callback,
+      folly::EventBase* base) override {
     auto socket = std::dynamic_pointer_cast<folly::AsyncServerSocket>(s);
     CHECK(socket);
     socket->removeAcceptCallback(callback, base);
   }
 
-  void addAcceptCB(std::shared_ptr<folly::AsyncSocketBase> s,
-                   Acceptor* callback, folly::EventBase* base) override {
+  void addAcceptCB(
+      std::shared_ptr<folly::AsyncSocketBase> s,
+      Acceptor* callback,
+      folly::EventBase* base) override {
     auto socket = std::dynamic_pointer_cast<folly::AsyncServerSocket>(s);
     CHECK(socket);
     socket->addAcceptCallback(callback, base);
@@ -88,9 +93,8 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
     void operator()(folly::AsyncServerSocket* socket) const {
       folly::EventBase* evb = socket->getEventBase();
       if (evb) {
-        evb->runImmediatelyOrRunInEventBaseThreadAndWait([socket]() {
-          socket->destroy();
-        });
+        evb->runImmediatelyOrRunInEventBaseThreadAndWait(
+            [socket]() { socket->destroy(); });
       } else {
         socket->destroy();
       }
@@ -101,13 +105,13 @@ class AsyncServerSocketFactory : public ServerSocketFactory {
 class AsyncUDPServerSocketFactory : public ServerSocketFactory {
  public:
   std::shared_ptr<folly::AsyncSocketBase> newSocket(
-      folly::SocketAddress address, int /*backlog*/, bool reuse,
+      folly::SocketAddress address,
+      int /*backlog*/,
+      bool reuse,
       const ServerSocketConfig& /*config*/) override {
-
     folly::EventBase* evb = folly::EventBaseManager::get()->getEventBase();
     std::shared_ptr<folly::AsyncUDPServerSocket> socket(
-        new folly::AsyncUDPServerSocket(evb),
-        ThreadSafeDestructor());
+        new folly::AsyncUDPServerSocket(evb), ThreadSafeDestructor());
     socket->setReusePort(reuse);
     socket->bind(address);
     socket->listen();
@@ -115,13 +119,15 @@ class AsyncUDPServerSocketFactory : public ServerSocketFactory {
     return socket;
   }
 
-  void removeAcceptCB(std::shared_ptr<folly::AsyncSocketBase> /*s*/,
-                      Acceptor* /*callback*/,
-                      folly::EventBase* /*base*/) override {
-  }
+  void removeAcceptCB(
+      std::shared_ptr<folly::AsyncSocketBase> /*s*/,
+      Acceptor* /*callback*/,
+      folly::EventBase* /*base*/) override {}
 
-  void addAcceptCB(std::shared_ptr<folly::AsyncSocketBase> s,
-                   Acceptor* callback, folly::EventBase* base) override {
+  void addAcceptCB(
+      std::shared_ptr<folly::AsyncSocketBase> s,
+      Acceptor* callback,
+      folly::EventBase* base) override {
     auto socket = std::dynamic_pointer_cast<folly::AsyncUDPServerSocket>(s);
     DCHECK(socket);
     socket->addListener(base, callback);
@@ -131,10 +137,7 @@ class AsyncUDPServerSocketFactory : public ServerSocketFactory {
    public:
     void operator()(folly::AsyncUDPServerSocket* socket) const {
       socket->getEventBase()->runImmediatelyOrRunInEventBaseThreadAndWait(
-        [socket]() {
-          delete socket;
-        }
-      );
+          [socket]() { delete socket; });
     }
   };
 };

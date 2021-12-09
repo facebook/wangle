@@ -30,46 +30,46 @@ namespace wangle {
  */
 template <typename K, typename V>
 class PersistentCache {
-  public:
-    virtual ~PersistentCache() {}
+ public:
+  virtual ~PersistentCache() {}
 
-    /**
-     * Get a value corresponding to a key
-     * @param key string, the key to lookup
-     *
-     * @returns value associated with key
-     */
-    virtual folly::Optional<V> get(const K& key) = 0;
+  /**
+   * Get a value corresponding to a key
+   * @param key string, the key to lookup
+   *
+   * @returns value associated with key
+   */
+  virtual folly::Optional<V> get(const K& key) = 0;
 
-    /**
-     * Set a value corresponding to a key
-     * @param key string, the key to set
-     * @param val string, the value to set
-     *
-     * overwrites value if key has a value associated in the cache
-     */
-    virtual void put(const K& key, const V& val) = 0;
+  /**
+   * Set a value corresponding to a key
+   * @param key string, the key to set
+   * @param val string, the value to set
+   *
+   * overwrites value if key has a value associated in the cache
+   */
+  virtual void put(const K& key, const V& val) = 0;
 
-    /**
-     * Clear a cache entry associated with a key
-     * @param key string, the key to lookup and clear
-     *
-     * @return boolean true if any elements are removed, else false
-     */
-    virtual bool remove(const K& key) = 0;
+  /**
+   * Clear a cache entry associated with a key
+   * @param key string, the key to lookup and clear
+   *
+   * @return boolean true if any elements are removed, else false
+   */
+  virtual bool remove(const K& key) = 0;
 
-    /**
-     * Empty the contents of the cache
-     */
-    virtual void clear(bool clearPersistence = false) = 0;
+  /**
+   * Empty the contents of the cache
+   */
+  virtual void clear(bool clearPersistence = false) = 0;
 
-    /**
-     * return the size of the cache
-     *
-     * @returns size_t, the size of the cache
-     */
+  /**
+   * return the size of the cache
+   *
+   * @returns size_t, the size of the cache
+   */
 
-    virtual size_t size() = 0;
+  virtual size_t size() = 0;
 };
 
-}
+} // namespace wangle

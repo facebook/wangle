@@ -18,30 +18,30 @@
 
 #include <wangle/acceptor/ManagedConnection.h>
 
+#include <folly/ConstexprMath.h>
+#include <folly/Memory.h>
+#include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/DelayedDestruction.h>
+#include <folly/io/async/EventBase.h>
+#include <folly/io/async/HHWheelTimer.h>
 #include <chrono>
 #include <iterator>
 #include <utility>
-#include <folly/Memory.h>
-#include <folly/io/async/AsyncTimeout.h>
-#include <folly/io/async/HHWheelTimer.h>
-#include <folly/io/async/DelayedDestruction.h>
-#include <folly/io/async/EventBase.h>
 
 namespace wangle {
 
 /**
  * A ConnectionManager keeps track of ManagedConnections.
  */
-class ConnectionManager: public folly::DelayedDestruction,
-                         private ManagedConnection::Callback {
+class ConnectionManager : public folly::DelayedDestruction,
+                          private ManagedConnection::Callback {
  public:
-
   /**
    * Interface for an optional observer that's notified about
    * various events in a ConnectionManager
    */
   class Callback {
-  public:
+   public:
     virtual ~Callback() = default;
 
     /**
@@ -64,11 +64,12 @@ class ConnectionManager: public folly::DelayedDestruction,
   typedef std::unique_ptr<ConnectionManager, Destructor> UniquePtr;
 
   typedef folly::CountedIntrusiveList<
-    ManagedConnection, &ManagedConnection::listHook_>::iterator ConnectionIterator;
+      ManagedConnection,
+      &ManagedConnection::listHook_>::iterator ConnectionIterator;
   /**
    * Returns a new instance of ConnectionManager wrapped in a unique_ptr
    */
-  template<typename... Args>
+  template <typename... Args>
   static UniquePtr makeUnique(Args&&... args) {
     return UniquePtr(new ConnectionManager(std::forward<Args>(args)...));
   }
@@ -76,9 +77,10 @@ class ConnectionManager: public folly::DelayedDestruction,
   /**
    * Constructor not to be used by itself.
    */
-  ConnectionManager(folly::EventBase* eventBase,
-                    std::chrono::milliseconds timeout,
-                    Callback* callback = nullptr);
+  ConnectionManager(
+      folly::EventBase* eventBase,
+      std::chrono::milliseconds timeout,
+      Callback* callback = nullptr);
 
   /**
    * Add a connection to the set of connections managed by this
@@ -88,20 +90,21 @@ class ConnectionManager: public folly::DelayedDestruction,
    * @param timeout        Whether to immediately register this connection
    *                         for an idle timeout callback.
    */
-  void addConnection(ManagedConnection* connection,
-      bool timeout = false);
+  void addConnection(ManagedConnection* connection, bool timeout = false);
 
   /**
    * Schedule a timeout callback for a connection.
    */
-  void scheduleTimeout(ManagedConnection* const connection,
-                       std::chrono::milliseconds timeout);
+  void scheduleTimeout(
+      ManagedConnection* const connection,
+      std::chrono::milliseconds timeout);
 
   /*
    * Schedule a callback on the wheel timer
    */
-  void scheduleTimeout(folly::HHWheelTimer::Callback* callback,
-                       std::chrono::milliseconds timeout);
+  void scheduleTimeout(
+      folly::HHWheelTimer::Callback* callback,
+      std::chrono::milliseconds timeout);
 
   /**
    * Remove a connection from this ConnectionManager and, if
@@ -136,7 +139,9 @@ class ConnectionManager: public folly::DelayedDestruction,
    */
   void dropConnections(double pct);
 
-  size_t getNumConnections() const { return conns_.size(); }
+  size_t getNumConnections() const {
+    return conns_.size();
+  }
 
   template <typename F>
   void forEachConnection(F func) {
@@ -173,26 +178,23 @@ class ConnectionManager: public folly::DelayedDestruction,
   void onDeactivated(ManagedConnection& conn) override;
 
  private:
+  enum class ShutdownState : uint8_t {
+    NONE = 0,
+    // All ManagedConnections receive notifyPendingShutdown
+    NOTIFY_PENDING_SHUTDOWN = 1,
+    // All ManagedConnections have received notifyPendingShutdown
+    NOTIFY_PENDING_SHUTDOWN_COMPLETE = 2,
+    // All ManagedConnections receive closeWhenIdle
+    CLOSE_WHEN_IDLE = 3,
+    // All ManagedConnections have received closeWhenIdle
+    CLOSE_WHEN_IDLE_COMPLETE = 4,
+  };
 
-   enum class ShutdownState : uint8_t {
-     NONE = 0,
-     // All ManagedConnections receive notifyPendingShutdown
-     NOTIFY_PENDING_SHUTDOWN = 1,
-     // All ManagedConnections have received notifyPendingShutdown
-     NOTIFY_PENDING_SHUTDOWN_COMPLETE = 2,
-     // All ManagedConnections receive closeWhenIdle
-     CLOSE_WHEN_IDLE = 3,
-     // All ManagedConnections have received closeWhenIdle
-     CLOSE_WHEN_IDLE_COMPLETE = 4,
-   };
-
-  class DrainHelper :
-      public folly::EventBase::LoopCallback,
-      public folly::AsyncTimeout {
+  class DrainHelper : public folly::EventBase::LoopCallback,
+                      public folly::AsyncTimeout {
    public:
     explicit DrainHelper(ConnectionManager& manager)
-        : folly::AsyncTimeout(manager.eventBase_),
-          manager_(manager) {}
+        : folly::AsyncTimeout(manager.eventBase_), manager_(manager) {}
 
     ShutdownState getShutdownState() {
       // only cares about full shutdown state
@@ -230,9 +232,9 @@ class ConnectionManager: public folly::DelayedDestruction,
         return manager_.conns_.begin();
       }
       auto it = manager_.conns_.begin();
-      const auto conns_size = manager_.conns_.size();
-      const auto numToDrain =
-        std::max<size_t>(0, std::min<size_t>(conns_size, conns_size * pct_));
+      const size_t conns_size = manager_.conns_.size();
+      const size_t numToDrain =
+          conns_size * folly::constexpr_clamp(pct_, 0., 1.);
       std::advance(it, conns_size - numToDrain);
       return it;
     }
@@ -268,8 +270,8 @@ class ConnectionManager: public folly::DelayedDestruction,
    * idle and busy ones.  [conns_.begin(), idleIterator_) are the busy ones,
    * while [idleIterator_, conns_.end()) are the idle one. Moreover, the idle
    * ones are organized in the decreasing idle time order. */
-  folly::CountedIntrusiveList<
-    ManagedConnection,&ManagedConnection::listHook_> conns_;
+  folly::CountedIntrusiveList<ManagedConnection, &ManagedConnection::listHook_>
+      conns_;
 
   /** Optional callback to notify of state changes */
   Callback* callback_;
@@ -301,4 +303,4 @@ class ConnectionManager: public folly::DelayedDestruction,
   std::chrono::milliseconds idleConnEarlyDropThreshold_;
 };
 
-} // wangle
+} // namespace wangle

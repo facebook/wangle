@@ -42,8 +42,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 // where we define the chain of handlers for each messeage received
 class EchoPipelineFactory : public PipelineFactory<EchoPipeline> {
  public:
-  EchoPipeline::Ptr newPipeline(
-      std::shared_ptr<AsyncTransport> sock) override {
+  EchoPipeline::Ptr newPipeline(std::shared_ptr<AsyncTransport> sock) override {
     auto pipeline = EchoPipeline::create();
     pipeline->addBack(AsyncSocketHandler(sock));
     pipeline->addBack(LineBasedFrameDecoder(8192));

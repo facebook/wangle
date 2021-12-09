@@ -16,16 +16,13 @@
 
 #pragma once
 
-#include <string>
-#include <folly/hash/Hash.h>
 #include <folly/String.h>
+#include <folly/hash/Hash.h>
+#include <string>
 
 namespace wangle {
 
-enum class CertCrypto {
-  BEST_AVAILABLE,
-  SHA1_SIGNATURE
-};
+enum class CertCrypto { BEST_AVAILABLE, SHA1_SIGNATURE };
 
 struct dn_char_traits : public std::char_traits<char> {
   static bool eq(char c1, char c2) {
@@ -42,10 +39,10 @@ struct dn_char_traits : public std::char_traits<char> {
 
   static int compare(const char* s1, const char* s2, size_t n) {
     while (n--) {
-      if(::tolower(*s1) < ::tolower(*s2) ) {
+      if (::tolower(*s1) < ::tolower(*s2)) {
         return -1;
       }
-      if(::tolower(*s1) > ::tolower(*s2) ) {
+      if (::tolower(*s1) > ::tolower(*s2)) {
         return 1;
       }
       ++s1;
@@ -57,7 +54,7 @@ struct dn_char_traits : public std::char_traits<char> {
   static const char* find(const char* s, size_t n, char a) {
     char la = ::tolower(a);
     while (n--) {
-      if(::tolower(*s) == la) {
+      if (::tolower(*s) == la) {
         return s;
       } else {
         ++s;
@@ -74,8 +71,9 @@ struct SSLContextKey {
   DNString dnString;
   CertCrypto certCrypto;
 
-  explicit SSLContextKey(DNString dns,
-                         CertCrypto crypto = CertCrypto::BEST_AVAILABLE)
+  explicit SSLContextKey(
+      DNString dns,
+      CertCrypto crypto = CertCrypto::BEST_AVAILABLE)
       : dnString(dns), certCrypto(crypto) {}
 
   bool operator==(const SSLContextKey& rhs) const {
@@ -85,8 +83,8 @@ struct SSLContextKey {
 
 struct SSLContextKeyHash {
   size_t operator()(const SSLContextKey& sslContextKey) const noexcept {
-    std::string lowercase(sslContextKey.dnString.data(),
-                          sslContextKey.dnString.size());
+    std::string lowercase(
+        sslContextKey.dnString.data(), sslContextKey.dnString.size());
     folly::toLowerAscii(lowercase);
     return folly::hash::hash_combine(
         lowercase, static_cast<int>(sslContextKey.certCrypto));

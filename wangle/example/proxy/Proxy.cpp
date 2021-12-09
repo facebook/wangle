@@ -30,8 +30,8 @@ DEFINE_int32(remote_port, 23, "remote port");
 
 class ProxyBackendHandler : public InboundBytesToBytesHandler {
  public:
-  explicit ProxyBackendHandler(DefaultPipeline* frontendPipeline) :
-      frontendPipeline_(frontendPipeline) {}
+  explicit ProxyBackendHandler(DefaultPipeline* frontendPipeline)
+      : frontendPipeline_(frontendPipeline) {}
 
   void read(Context*, IOBufQueue& q) override {
     frontendPipeline_->write(q.move());
@@ -53,8 +53,8 @@ class ProxyBackendHandler : public InboundBytesToBytesHandler {
 
 class ProxyBackendPipelineFactory : public PipelineFactory<DefaultPipeline> {
  public:
-  explicit ProxyBackendPipelineFactory(DefaultPipeline* frontendPipeline) :
-      frontendPipeline_(frontendPipeline) {}
+  explicit ProxyBackendPipelineFactory(DefaultPipeline* frontendPipeline)
+      : frontendPipeline_(frontendPipeline) {}
 
   DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransport> sock) override {
@@ -65,14 +65,15 @@ class ProxyBackendPipelineFactory : public PipelineFactory<DefaultPipeline> {
 
     return pipeline;
   }
+
  private:
   DefaultPipeline* frontendPipeline_;
 };
 
 class ProxyFrontendHandler : public BytesToBytesHandler {
  public:
-  explicit ProxyFrontendHandler(SocketAddress remoteAddress) :
-      remoteAddress_(remoteAddress) {}
+  explicit ProxyFrontendHandler(SocketAddress remoteAddress)
+      : remoteAddress_(remoteAddress) {}
 
   void read(Context*, IOBufQueue& q) override {
     buffer_.append(q);
@@ -88,9 +89,8 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
     if (!backendPipeline_) {
       return;
     }
-    backendPipeline_->close().thenValue([this, ctx](auto&&){
-      this->close(ctx);
-    });
+    backendPipeline_->close().thenValue(
+        [this, ctx](auto&&) { this->close(ctx); });
   }
 
   void readException(Context* ctx, exception_wrapper e) override {
@@ -98,9 +98,8 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
     if (!backendPipeline_) {
       return;
     }
-    backendPipeline_->close().thenValue([this, ctx](auto&&){
-      this->close(ctx);
-    });
+    backendPipeline_->close().thenValue(
+        [this, ctx](auto&&) { this->close(ctx); });
   }
 
   void transportActive(Context* ctx) override {
@@ -138,8 +137,8 @@ class ProxyFrontendHandler : public BytesToBytesHandler {
 
 class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
  public:
-  explicit ProxyFrontendPipelineFactory(SocketAddress remoteAddress) :
-      remoteAddress_(remoteAddress) {}
+  explicit ProxyFrontendPipelineFactory(SocketAddress remoteAddress)
+      : remoteAddress_(remoteAddress) {}
 
   DefaultPipeline::Ptr newPipeline(
       std::shared_ptr<AsyncTransport> sock) override {
@@ -150,6 +149,7 @@ class ProxyFrontendPipelineFactory : public PipelineFactory<DefaultPipeline> {
 
     return pipeline;
   }
+
  private:
   SocketAddress remoteAddress_;
 };

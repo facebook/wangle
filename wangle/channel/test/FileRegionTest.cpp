@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <wangle/channel/FileRegion.h>
 #include <folly/io/async/test/AsyncSocketTest.h>
 #include <folly/portability/GTest.h>
+#include <wangle/channel/FileRegion.h>
 
 #ifdef SPLICE_F_NONBLOCK
 using namespace folly;
@@ -108,6 +108,6 @@ TEST_F(FileRegionTest, Repeated) {
   for (auto& buf : rcb.buffers) {
     receivedBytes += buf.length;
   }
-  ASSERT_EQ(receivedBytes, sendCount*count);
+  ASSERT_EQ(receivedBytes, sendCount * count);
 }
 #endif

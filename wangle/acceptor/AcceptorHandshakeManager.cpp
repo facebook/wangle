@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <wangle/acceptor/AcceptorHandshakeManager.h>
 #include <wangle/acceptor/Acceptor.h>
+#include <wangle/acceptor/AcceptorHandshakeManager.h>
 
 namespace wangle {
 
@@ -92,6 +92,41 @@ std::chrono::milliseconds AcceptorHandshakeManager::timeSinceAcceptMs() const {
 void AcceptorHandshakeManager::startHandshakeTimeout() {
   auto handshake_timeout = acceptor_->getSSLHandshakeTimeout();
   acceptor_->getConnectionManager()->scheduleTimeout(this, handshake_timeout);
+}
+
+void AcceptorHandshakeManager::timeoutExpired() noexcept {
+  handshakeAborted(SSLErrorEnum::TIMEOUT);
+}
+
+void AcceptorHandshakeManager::handshakeAborted(SSLErrorEnum reason) {
+  // If we are aborting the handshake for any reason, we should still be
+  // in the middle of awaiting the result of the handshake.
+  VLOG(10) << "Dropping in progress handshake for " << clientAddr_;
+
+  // The helper guarantees that it will synchronously fire a `connectionReady`
+  // or `connectionError` callback, which will destroy us
+  //
+  // The helper guarantees that there will be no future callbacks after this
+  // call returns.
+  //
+  // The helper guarantees that it will not destroy itself; we are responsible
+  // for its destruction.
+  DestructorGuard guard(this);
+  helper_->dropConnection(reason);
+
+  // Safe to still access `this` because of the DestructorGuard above.
+
+  // If you are hitting this DCHECK, this indicates that the underlying helper
+  // you are using did not properly fulfill its contract. The helper needs
+  // to synchronously invoke `connectionError` or `connectionSuccess` when it
+  // is told to `dropConnection()`.
+  DCHECK(getDestroyPending())
+      << "Handshake helper implementation did not fulfill its cancellation contract";
+}
+
+void AcceptorHandshakeManager::dropConnection(
+    const std::string& /* errorMsg */) {
+  handshakeAborted(SSLErrorEnum::NO_ERROR);
 }
 
 } // namespace wangle
