@@ -102,10 +102,10 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
   q.append(IOBuf::copyBuffer("data2"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Add another subscriber
   EXPECT_EQ(handler->subscribe(&subscriber1), 1);
@@ -116,7 +116,7 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   // Push more data
   q.append(IOBuf::copyBuffer("data3"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Unsubscribe one of the subscribers
   handler->unsubscribe(0);
@@ -126,7 +126,7 @@ TEST_F(BroadcastHandlerTest, SubscribeUnsubscribe) {
   // Push more data
   q.append(IOBuf::copyBuffer("data4"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
     pipeline.reset();
@@ -168,18 +168,18 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("da"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
   q.append(IOBuf::copyBuffer("ta1"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Push more fragmented data. onNext shouldn't be called yet.
   q.append(IOBuf::copyBuffer("dat"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
   q.append(IOBuf::copyBuffer("a"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Add another subscriber
   EXPECT_EQ(handler->subscribe(&subscriber1), 1);
@@ -191,7 +191,7 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   // to both subscribers.
   q.append(IOBuf::copyBuffer("3data4"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   EXPECT_CALL(subscriber0, onNext("data2")).Times(1);
   EXPECT_CALL(subscriber1, onNext("data2")).Times(1);
@@ -199,7 +199,7 @@ TEST_F(BroadcastHandlerTest, BufferedRead) {
   // Push some unfragmented data
   q.append(IOBuf::copyBuffer("data2"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   EXPECT_CALL(*handler, mockClose(_)).WillOnce(InvokeWithoutArgs([this] {
     pipeline.reset();
@@ -239,7 +239,7 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Add another subscriber
   EXPECT_EQ(handler->subscribe(&subscriber1), 1);
@@ -250,7 +250,7 @@ TEST_F(BroadcastHandlerTest, OnCompleted) {
   // Push more data
   q.append(IOBuf::copyBuffer("data2"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Unsubscribe one of the subscribers
   handler->unsubscribe(0);
@@ -294,7 +294,7 @@ TEST_F(BroadcastHandlerTest, OnError) {
   IOBufQueue q;
   q.append(IOBuf::copyBuffer("data1"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   // Add another subscriber
   EXPECT_EQ(handler->subscribe(&subscriber1), 1);
@@ -305,7 +305,7 @@ TEST_F(BroadcastHandlerTest, OnError) {
   // Push more data
   q.append(IOBuf::copyBuffer("data2"));
   pipeline->read(q);
-  q.clear();
+  q.reset();
 
   EXPECT_CALL(subscriber0, onError(_)).Times(1);
   EXPECT_CALL(subscriber1, onError(_)).Times(1);
