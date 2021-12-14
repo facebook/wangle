@@ -120,7 +120,7 @@ class SocketPeeker : public TransportPeeker, private TransportPeeker::Callback {
 
  private:
   void peekSuccess(std::vector<uint8_t> data) noexcept override {
-    socket_.setPreReceivedData(folly::IOBuf::copyBuffer(folly::range(data)));
+    socket_.setPreReceivedData(folly::IOBuf::copyBuffer(data));
     socketCallback_->peekSuccess(std::move(data));
   }
 
