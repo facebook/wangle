@@ -39,9 +39,12 @@ std::string describeAddresses(const folly::AsyncTransport* transport) {
 
 void AcceptorHandshakeManager::start(
     folly::AsyncSSLSocket::UniquePtr sock) noexcept {
+  DestructorGuard dg(this);
   acceptor_->getConnectionManager()->addConnection(this, true);
   startHelper(std::move(sock));
-  startHandshakeTimeout();
+  if (!getDestroyPending()) {
+    startHandshakeTimeout();
+  } // otherwise startHelper invoked connectionError
 }
 
 void AcceptorHandshakeManager::connectionReady(
@@ -91,7 +94,8 @@ std::chrono::milliseconds AcceptorHandshakeManager::timeSinceAcceptMs() const {
 
 void AcceptorHandshakeManager::startHandshakeTimeout() {
   auto handshake_timeout = acceptor_->getSSLHandshakeTimeout();
-  acceptor_->getConnectionManager()->scheduleTimeout(this, handshake_timeout);
+  auto connMgr = CHECK_NOTNULL(acceptor_->getConnectionManager());
+  connMgr->scheduleTimeout(this, handshake_timeout);
 }
 
 void AcceptorHandshakeManager::timeoutExpired() noexcept {
