@@ -48,6 +48,20 @@ void ManagedConnection::scheduleTimeout(
   }
 }
 
+void ManagedConnection::reportActivity() {
+  latestActivity_ = std::chrono::steady_clock::now();
+}
+
+folly::Optional<std::chrono::milliseconds>
+ManagedConnection::getLastActivityElapsedTime() const {
+  if (latestActivity_) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - *latestActivity_);
+  } else {
+    return folly::none;
+  }
+}
+
 ////////////////////// Globals /////////////////////
 
 std::ostream& operator<<(std::ostream& os, const ManagedConnection& conn) {

@@ -62,8 +62,8 @@ class ManagedConnection : public folly::HHWheelTimer::Callback,
   virtual bool isBusy() const = 0;
 
   /**
-   * Get the idle time of the connection. If it returning 0, that means the idle
-   * connections will never be dropped during pre load shedding stage.
+   * Get the idle time of the connection. If it returning 0, that means this
+   * idle connection will never be dropped during pre load shedding stage.
    */
   virtual std::chrono::milliseconds getIdleTime() const {
     return std::chrono::milliseconds(0);
@@ -134,6 +134,11 @@ class ManagedConnection : public folly::HHWheelTimer::Callback,
     return connectionManager_;
   }
 
+  virtual void reportActivity();
+
+  virtual folly::Optional<std::chrono::milliseconds>
+  getLastActivityElapsedTime() const;
+
  protected:
   ~ManagedConnection() override;
 
@@ -153,6 +158,7 @@ class ManagedConnection : public folly::HHWheelTimer::Callback,
   }
 
   ConnectionManager* connectionManager_;
+  folly::Optional<std::chrono::steady_clock::time_point> latestActivity_;
 
   folly::SafeIntrusiveListHook listHook_;
 };

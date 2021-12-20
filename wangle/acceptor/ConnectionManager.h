@@ -171,6 +171,25 @@ class ConnectionManager : public folly::DelayedDestruction,
   size_t dropIdleConnections(size_t num);
 
   /**
+   * dropActiveConnections is meant to be used when the host is under memory
+   * constraints. It drops active connections based on their last activity
+   * time. The idea is to prefer connections which are less active. A good
+   * example scenario of when this is useful is slowloris attack or in general
+   * connections which read/write at a very slow pace.
+   * Return the actual number of dropped idle connections.
+   */
+  size_t dropActiveConnections(
+      size_t num,
+      std::chrono::milliseconds inActivityThresholdTimeMs);
+
+  /**
+   * reportActivity is meant to be called when significant activity occurred on
+   * the connection. reportActivity puts the connection in the front of the
+   * active connections list and captures the current timestamp. For more
+   * context, see dropActiveConnections.
+   */
+  void reportActivity(ManagedConnection& conn);
+  /**
    * ManagedConnection::Callbacks
    */
   void onActivated(ManagedConnection& conn) override;
@@ -266,10 +285,18 @@ class ConnectionManager : public folly::DelayedDestruction,
   void idleGracefulTimeoutExpired();
 
   /**
-   * All the managed connections. idleIterator_ seperates them into two parts:
+   * All the managed connections. Connections begin in the idle state and move
+   * to busy via 'onActivated'.  The move back to idle via 'onDeactivated'.
+   * idleIterator_ seperates them into two parts:
    * idle and busy ones.  [conns_.begin(), idleIterator_) are the busy ones,
    * while [idleIterator_, conns_.end()) are the idle one. Moreover, the idle
-   * ones are organized in the decreasing idle time order. */
+   * ones are organized in the decreasing idle time order. Busy connections are
+   * sorted by their activity time and are organized in increasing reported
+   * activity time order. Each ManagedConnection decides what constitutes
+   * activity and reports it via 'reportActivity'. For example, it could be
+   * after a certain amount of data is read or written.  the busy in increasing
+   * reported activity time order.
+   */
   folly::CountedIntrusiveList<ManagedConnection, &ManagedConnection::listHook_>
       conns_;
 

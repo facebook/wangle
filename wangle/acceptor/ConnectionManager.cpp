@@ -297,6 +297,11 @@ void ConnectionManager::dropConnections(double pct) {
   }
 }
 
+void ConnectionManager::reportActivity(ManagedConnection& conn) {
+  conn.reportActivity();
+  onActivated(conn);
+}
+
 void ConnectionManager::onActivated(ManagedConnection& conn) {
   auto it = conns_.iterator_to(conn);
   if (it == idleIterator_) {
@@ -323,6 +328,9 @@ void ConnectionManager::onDeactivated(ManagedConnection& conn) {
   }
 }
 
+/**
+ * Note that the idle ones are organized in the decreasing idle time order
+ */
 size_t ConnectionManager::dropIdleConnections(size_t num) {
   VLOG(4) << "attempt to drop " << num << " idle connections";
   if (idleConnEarlyDropThreshold_ >= timeout_) {
@@ -330,18 +338,16 @@ size_t ConnectionManager::dropIdleConnections(size_t num) {
   }
 
   size_t count = 0;
-  while (count < num) {
+  while (count < num && idleIterator_ != conns_.end()) {
     auto it = idleIterator_;
-    if (it == conns_.end()) {
-      return count; // no more idle session
-    }
-    auto idleTime = it->getIdleTime();
-    if (idleTime == std::chrono::milliseconds(0) ||
-        idleTime <= idleConnEarlyDropThreshold_) {
-      VLOG(4) << "conn's idletime: " << idleTime.count()
-              << ", earlyDropThreshold: " << idleConnEarlyDropThreshold_.count()
-              << ", attempt to drop " << count << "/" << num;
-      return count; // idleTime cannot be further reduced
+    auto idleTimeMs = it->getIdleTime();
+    if (idleTimeMs == std::chrono::milliseconds(0) ||
+        idleTimeMs <= idleConnEarlyDropThreshold_) {
+      VLOG(4) << "conn's idletime: " << idleTimeMs.count()
+              << ", in-activity threshold: "
+              << idleConnEarlyDropThreshold_.count() << ", dropped " << count
+              << "/" << num;
+      return count;
     }
     ManagedConnection& conn = *it;
     idleIterator_++;
@@ -349,6 +355,33 @@ size_t ConnectionManager::dropIdleConnections(size_t num) {
     count++;
   }
 
+  return count;
+}
+
+/**
+ * Note that the active ones are organized in the increasing reported activity
+ * time order
+ */
+size_t ConnectionManager::dropActiveConnections(
+    size_t num,
+    std::chrono::milliseconds inActivityThresholdTimeMs) {
+  VLOG(4) << "attempt to drop " << num << " active connections";
+  size_t count = 0;
+  while (count < num && conns_.begin() != idleIterator_) {
+    auto it = --idleIterator_;
+    if (!it->getLastActivityElapsedTime() ||
+        *it->getLastActivityElapsedTime() <= inActivityThresholdTimeMs) {
+      VLOG(4) << "conn's idletime: "
+              << it->getLastActivityElapsedTime()->count()
+              << ", in-activity threshold: "
+              << inActivityThresholdTimeMs.count() << ", dropped " << count
+              << "/" << num;
+      return count;
+    }
+    ManagedConnection& conn = *it;
+    conn.dropConnection();
+    count++;
+  }
   return count;
 }
 
