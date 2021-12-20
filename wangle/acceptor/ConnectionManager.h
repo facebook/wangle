@@ -178,7 +178,7 @@ class ConnectionManager : public folly::DelayedDestruction,
    * connections which read/write at a very slow pace.
    * Return the actual number of dropped idle connections.
    */
-  size_t dropActiveConnections(
+  virtual size_t dropActiveConnections(
       size_t num,
       std::chrono::milliseconds inActivityThresholdTimeMs);
 
@@ -195,6 +195,9 @@ class ConnectionManager : public folly::DelayedDestruction,
   void onActivated(ManagedConnection& conn) override;
 
   void onDeactivated(ManagedConnection& conn) override;
+
+ protected:
+  ~ConnectionManager() override = default;
 
  private:
   enum class ShutdownState : uint8_t {
@@ -264,8 +267,6 @@ class ConnectionManager : public folly::DelayedDestruction,
     ConnectionManager& manager_;
     ShutdownState shutdownState_{ShutdownState::NONE};
   };
-
-  ~ConnectionManager() override = default;
 
   ConnectionManager(const ConnectionManager&) = delete;
   ConnectionManager& operator=(ConnectionManager&) = delete;
