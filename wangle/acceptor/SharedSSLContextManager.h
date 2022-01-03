@@ -102,7 +102,7 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
   /*
    * Reloads tls secrets
    */
-  void updateTLSTicketKeys(TLSTicketKeySeeds seeds) {
+  void updateTLSTicketKeys(TLSTicketKeySeeds seeds) override {
     try {
       seeds_ = seeds;
       reloadContexts();
@@ -118,7 +118,7 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
   /*
    * Updates the config and reloads shared fizz, SSL contexts data
    */
-  void updateSSLConfigAndReloadContexts(SSLContextConfig ssl) {
+  void updateSSLConfigAndReloadContexts(SSLContextConfig ssl) override {
     for (auto& sslContext : config_.sslContextConfigs) {
       sslContext = ssl;
     }
@@ -128,7 +128,7 @@ class SharedSSLContextManagerImpl : public SharedSSLContextManager {
   /*
    * Reloads shared fizz and SSL contexts data
    */
-  void reloadSSLContextConfigs() {
+  void reloadSSLContextConfigs() override {
     try {
       reloadContexts();
       updateAcceptors();
