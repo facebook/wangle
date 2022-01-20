@@ -103,7 +103,7 @@ PipelineBase& PipelineBase::remove(H* handler) {
 }
 
 template <class H>
-H* PipelineBase::getHandler(int i) {
+H* PipelineBase::getHandler(size_t i) {
   return getContext<H>(i)->getHandler();
 }
 
@@ -114,7 +114,7 @@ H* PipelineBase::getHandler() {
 }
 
 template <class H>
-typename ContextType<H>::type* PipelineBase::getContext(int i) {
+typename ContextType<H>::type* PipelineBase::getContext(size_t i) {
   auto ctx = dynamic_cast<typename ContextType<H>::type*>(ctxs_[i].get());
   CHECK(ctx);
   return ctx;

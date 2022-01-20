@@ -108,13 +108,13 @@ class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
   PipelineBase& removeBack();
 
   template <class H>
-  H* getHandler(int i);
+  H* getHandler(size_t i);
 
   template <class H>
   H* getHandler();
 
   template <class H>
-  typename ContextType<H>::type* getContext(int i);
+  typename ContextType<H>::type* getContext(size_t i);
 
   template <class H>
   typename ContextType<H>::type* getContext();
