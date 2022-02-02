@@ -46,7 +46,11 @@ bool TransportInfo::initWithSocket(const folly::AsyncSocket* sock) {
   rtt = microseconds(tcpinfo.tcpi_rtt);
   rtt_var = tcpinfo.tcpi_rttvar;
   rto = tcpinfo.tcpi_rto;
+#ifdef __FreeBSD__
+  rtx_tm = tcpinfo.__tcpi_retransmits;
+#else
   rtx_tm = tcpinfo.tcpi_retransmits;
+#endif
   mss = tcpinfo.tcpi_snd_mss;
   cwnd = tcpinfo.tcpi_snd_cwnd;
   cwndBytes = cwnd * mss;
