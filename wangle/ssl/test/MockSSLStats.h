@@ -23,7 +23,7 @@ namespace wangle {
 
 class MockSSLStats : public wangle::SSLStats {
  public:
-  MOCK_QUALIFIED_METHOD1(recordTLSTicketRotation, noexcept, void(bool valid));
+  MOCK_METHOD(void, recordTLSTicketRotation, (bool valid), (noexcept));
 
   // downstream
   void recordSSLAcceptLatency(int64_t /* unused */) noexcept override {}
@@ -41,10 +41,7 @@ class MockSSLStats : public wangle::SSLStats {
   void recordSSLClientCertificateMismatch() noexcept override {}
 
   // upstream
-  MOCK_QUALIFIED_METHOD1(
-      recordSSLUpstreamConnection,
-      noexcept,
-      void(bool handshake));
+  MOCK_METHOD(void, recordSSLUpstreamConnection, (bool handshake), (noexcept));
   void recordSSLUpstreamConnectionError(bool /* unused */) noexcept override {}
 };
 

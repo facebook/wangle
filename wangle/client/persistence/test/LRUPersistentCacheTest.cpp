@@ -94,7 +94,7 @@ class MockPersistenceLayer : public TestPersistenceLayer {
   MOCK_METHOD1(persist_, bool(const dynamic&));
   MOCK_METHOD0(load_, folly::Optional<dynamic>());
   MOCK_CONST_METHOD0(getLastPersistedVersion, CacheDataVersion());
-  GMOCK_METHOD1_(, noexcept, , setPersistedVersion, void(CacheDataVersion));
+  MOCK_METHOD(void, setPersistedVersion, (CacheDataVersion), (noexcept));
 };
 
 template <typename MutexT>

@@ -165,24 +165,24 @@ TEST_P(AcceptorTest, Basic) {
 
 class MockAcceptObserver : public AcceptObserver {
  public:
-  GMOCK_METHOD1_(, noexcept, , accept, void(folly::AsyncTransport* const));
-  GMOCK_METHOD1_(, noexcept, , ready, void(folly::AsyncTransport* const));
-  GMOCK_METHOD1_(, noexcept, , acceptorDestroy, void(Acceptor* const));
-  GMOCK_METHOD1_(, noexcept, , observerAttach, void(Acceptor* const));
-  GMOCK_METHOD1_(, noexcept, , observerDetach, void(Acceptor* const));
+  MOCK_METHOD(void, accept, (folly::AsyncTransport* const), (noexcept));
+  MOCK_METHOD(void, ready, (folly::AsyncTransport* const), (noexcept));
+  MOCK_METHOD(void, acceptorDestroy, (Acceptor* const), (noexcept));
+  MOCK_METHOD(void, observerAttach, (Acceptor* const), (noexcept));
+  MOCK_METHOD(void, observerDetach, (Acceptor* const), (noexcept));
 };
 
 class MockAsyncSocketLifecycleObserver : public AsyncSocket::LifecycleObserver {
  public:
-  GMOCK_METHOD1_(, noexcept, , observerAttach, void(AsyncTransport*));
-  GMOCK_METHOD1_(, noexcept, , observerDetach, void(AsyncTransport*));
-  GMOCK_METHOD1_(, noexcept, , destroy, void(AsyncTransport*));
-  GMOCK_METHOD1_(, noexcept, , close, void(AsyncTransport*));
-  GMOCK_METHOD1_(, noexcept, , connect, void(AsyncTransport*));
-  GMOCK_METHOD1_(, noexcept, , fdDetach, void(AsyncSocket*));
-  GMOCK_METHOD2_(, noexcept, , move, void(AsyncSocket*, AsyncSocket*));
-  GMOCK_METHOD2_(, noexcept, , evbAttach, void(AsyncTransport*, EventBase*));
-  GMOCK_METHOD2_(, noexcept, , evbDetach, void(AsyncTransport*, EventBase*));
+  MOCK_METHOD(void, observerAttach, (AsyncTransport*), (noexcept));
+  MOCK_METHOD(void, observerDetach, (AsyncTransport*), (noexcept));
+  MOCK_METHOD(void, destroy, (AsyncTransport*), (noexcept));
+  MOCK_METHOD(void, close, (AsyncTransport*), (noexcept));
+  MOCK_METHOD(void, connect, (AsyncTransport*), (noexcept));
+  MOCK_METHOD(void, fdDetach, (AsyncSocket*), (noexcept));
+  MOCK_METHOD(void, move, (AsyncSocket*, AsyncSocket*), (noexcept));
+  MOCK_METHOD(void, evbAttach, (AsyncTransport*, EventBase*), (noexcept));
+  MOCK_METHOD(void, evbDetach, (AsyncTransport*, EventBase*), (noexcept));
 };
 
 class MockFizzLoggingCallback : public FizzLoggingCallback {
