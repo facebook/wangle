@@ -134,7 +134,7 @@ int TLSTicketKeyManager::encryptCallback(
   auto key = findEncryptionKey();
   if (key == nullptr) {
     // no keys available to encrypt
-    FB_LOG_EVERY_MS(ERROR, 1000)
+    FB_LOG_EVERY_MS(WARNING, 1000)
         << "No TLS ticket key available for encryption. Either set a ticket "
         << "key or uninstall TLSTicketKeyManager from this SSLContext.";
     return 0;
