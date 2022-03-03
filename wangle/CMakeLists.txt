@@ -18,10 +18,6 @@ if (NOT DEFINED PACKAGE_VERSION)
   set(PACKAGE_VERSION "1.0.0")
 endif()
 
-if (NOT DEFINED SO_VERSION)
-  set(SO_VERSION 1)
-endif()
-
 project("wangle" VERSION ${PACKAGE_VERSION} LANGUAGES CXX C)
 
 if (NOT DEFINED CPACK_GENERATOR)
@@ -153,7 +149,7 @@ endif()
 
 if (BUILD_SHARED_LIBS)
   set_target_properties(wangle
-    PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${SO_VERSION})
+    PROPERTIES VERSION ${PACKAGE_VERSION})
 endif()
 
 target_include_directories(
