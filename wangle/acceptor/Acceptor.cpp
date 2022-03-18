@@ -487,7 +487,7 @@ void Acceptor::checkDrained() {
     return;
   }
 
-  VLOG(2) << "All connections drained from Acceptor=" << this << " in thread "
+  VLOG(3) << "All connections drained from Acceptor=" << this << " in thread "
           << base_;
 
   downstreamConnectionManager_.reset();
@@ -499,9 +499,8 @@ void Acceptor::checkDrained() {
 
 void Acceptor::drainConnections(double pctToDrain) {
   if (downstreamConnectionManager_) {
-    LOG(INFO) << "Draining " << pctToDrain * 100 << "% of "
-              << getNumConnections() << " connections from Acceptor=" << this
-              << " in thread " << base_;
+    VLOG(3) << "Draining " << pctToDrain * 100 << "% of " << getNumConnections()
+            << " connections from Acceptor=" << this << " in thread " << base_;
     assert(base_->isInEventBaseThread());
     downstreamConnectionManager_->drainConnections(
         pctToDrain, gracefulShutdownTimeout_);
@@ -524,8 +523,8 @@ void Acceptor::forceStop() {
 
 void Acceptor::dropAllConnections() {
   if (downstreamConnectionManager_) {
-    LOG(INFO) << "Dropping all connections from Acceptor=" << this
-              << " in thread " << base_;
+    VLOG(3) << "Dropping all connections from Acceptor=" << this
+            << " in thread " << base_;
     assert(base_->isInEventBaseThread());
     forceShutdownInProgress_ = true;
     downstreamConnectionManager_->dropAllConnections();
@@ -541,9 +540,9 @@ void Acceptor::dropAllConnections() {
 void Acceptor::dropConnections(double pctToDrop) {
   base_->runInEventBaseThread([&, pctToDrop] {
     if (downstreamConnectionManager_) {
-      LOG(INFO) << "Dropping " << pctToDrop * 100 << "% of "
-                << getNumConnections() << " connections from Acceptor=" << this
-                << " in thread " << base_;
+      VLOG(3) << "Dropping " << pctToDrop * 100 << "% of "
+              << getNumConnections() << " connections from Acceptor=" << this
+              << " in thread " << base_;
       assert(base_->isInEventBaseThread());
       forceShutdownInProgress_ = true;
       downstreamConnectionManager_->dropConnections(pctToDrop);
