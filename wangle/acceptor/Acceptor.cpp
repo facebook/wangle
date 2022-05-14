@@ -246,10 +246,21 @@ void Acceptor::connectionAccepted(
     folly::NetworkSocket fdNetworkSocket,
     const SocketAddress& clientAddr,
     AcceptInfo info) noexcept {
+  acceptConnection(fdNetworkSocket, clientAddr, info, nullptr);
+}
+
+void Acceptor::acceptConnection(
+    folly::NetworkSocket fdNetworkSocket,
+    const SocketAddress& clientAddr,
+    AcceptInfo info,
+    folly::AsyncTransport::LifecycleObserver* observer) noexcept {
   int fd = fdNetworkSocket.toFd();
 
   namespace fsp = folly::portability::sockets;
   if (!canAccept(clientAddr)) {
+    if (observer) {
+      observer->destroy(nullptr);
+    }
     // Send a RST to free kernel memory faster
     struct linger optLinger = {1, 0};
     fsp::setsockopt(fd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
@@ -261,24 +272,26 @@ void Acceptor::connectionAccepted(
     opt.first.apply(folly::NetworkSocket::fromFd(fd), opt.second);
   }
 
-  onDoneAcceptingConnection(fd, clientAddr, acceptTime, info);
+  onDoneAcceptingConnection(fd, clientAddr, acceptTime, info, observer);
 }
 
 void Acceptor::onDoneAcceptingConnection(
     int fd,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
-    const AcceptInfo& info) noexcept {
+    const AcceptInfo& info,
+    folly::AsyncTransport::LifecycleObserver* observer) noexcept {
   TransportInfo tinfo;
   tinfo.timeBeforeEnqueue = info.timeBeforeEnqueue;
-  processEstablishedConnection(fd, clientAddr, acceptTime, tinfo);
+  processEstablishedConnection(fd, clientAddr, acceptTime, tinfo, observer);
 }
 
 void Acceptor::processEstablishedConnection(
     int fd,
     const SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
-    TransportInfo& tinfo) noexcept {
+    TransportInfo& tinfo,
+    folly::AsyncTransport::LifecycleObserver* observer) noexcept {
   bool shouldDoSSL = false;
   if (accConfig_.isSSL()) {
     CHECK(sslCtxManager_);
@@ -287,6 +300,9 @@ void Acceptor::processEstablishedConnection(
   if (shouldDoSSL) {
     AsyncSSLSocket::UniquePtr sslSock(makeNewAsyncSSLSocket(
         sslCtxManager_->getDefaultSSLCtx(), base_, fd, &clientAddr));
+    if (observer) {
+      sslSock->addLifecycleObserver(observer);
+    }
     ++numPendingSSLConns_;
     if (numPendingSSLConns_ > accConfig_.maxConcurrentSSLHandshakes) {
       VLOG(2) << "dropped SSL handshake on " << accConfig_.name
@@ -310,6 +326,9 @@ void Acceptor::processEstablishedConnection(
     tinfo.secure = false;
     tinfo.acceptTime = acceptTime;
     AsyncSocket::UniquePtr sock(makeNewAsyncSocket(base_, fd, &clientAddr));
+    if (observer) {
+      sock->addLifecycleObserver(observer);
+    }
     tinfo.tfoSucceded = sock->getTFOSucceded();
     for (const auto& cb : observerList_.getAll()) {
       cb->accept(sock.get());

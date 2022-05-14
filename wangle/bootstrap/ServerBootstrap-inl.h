@@ -358,6 +358,9 @@ class ServerWorkerPool : public folly::ThreadPoolExecutor::Observer {
   template <typename F>
   void forEachWorker(F&& f) const;
 
+  template <typename F>
+  void forRandomWorker(F&& f) const;
+
   void threadStarted(folly::ThreadPoolExecutor::ThreadHandle*) override;
   void threadStopped(folly::ThreadPoolExecutor::ThreadHandle*) override;
   void threadPreviouslyStarted(
@@ -370,8 +373,9 @@ class ServerWorkerPool : public folly::ThreadPoolExecutor::Observer {
   }
 
  private:
-  using WorkerMap = std::
-      map<folly::ThreadPoolExecutor::ThreadHandle*, std::shared_ptr<Acceptor>>;
+  using WorkerMap = std::vector<std::pair<
+      folly::ThreadPoolExecutor::ThreadHandle*,
+      std::shared_ptr<Acceptor>>>;
   using Mutex = folly::SharedMutexReadPriority;
 
   std::shared_ptr<WorkerMap> workers_;
@@ -389,6 +393,13 @@ void ServerWorkerPool::forEachWorker(F&& f) const {
   for (const auto& kv : *workers_) {
     f(kv.second.get());
   }
+}
+
+template <typename F>
+void ServerWorkerPool::forRandomWorker(F&& f) const {
+  Mutex::ReadHolder holder(workersMutex_.get());
+  DCHECK(workers_->size());
+  f((*workers_)[folly::Random::rand32(workers_->size())].second.get());
 }
 
 class DefaultAcceptPipelineFactory : public AcceptPipelineFactory {

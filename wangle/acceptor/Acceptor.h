@@ -229,7 +229,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       int fd,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
-      const AcceptInfo& info) noexcept;
+      const AcceptInfo& info,
+      folly::AsyncTransport::LifecycleObserver* observer) noexcept;
 
   /**
    * Begins either processing HTTP bytes (HTTP) or the SSL handshake (HTTPS)
@@ -238,7 +239,8 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       int fd,
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
-      TransportInfo& tinfo) noexcept;
+      TransportInfo& tinfo,
+      folly::AsyncTransport::LifecycleObserver* observer = nullptr) noexcept;
 
   /**
    * Creates and starts the handshake manager.
@@ -444,6 +446,15 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
       folly::NetworkSocket fdNetworkSocket,
       const folly::SocketAddress& clientAddr,
       AcceptInfo /* info */) noexcept override;
+
+ public:
+  void acceptConnection(
+      folly::NetworkSocket fdNetworkSocket,
+      const folly::SocketAddress& clientAddr,
+      AcceptInfo /* info */,
+      folly::AsyncTransport::LifecycleObserver* lifeCycleObserver) noexcept;
+
+ protected:
   // TODO(T81599451): Remove the 'using' statement below after
   // eliminating the old AcceptCallback::acceptError callback
   using folly::AsyncServerSocket::AcceptCallback::acceptError;

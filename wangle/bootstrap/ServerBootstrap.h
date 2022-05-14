@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/synchronization/Baton.h>
 #include <wangle/bootstrap/ServerBootstrap-inl.h>
 #include <wangle/channel/Pipeline.h>
@@ -338,6 +339,18 @@ class ServerBootstrap {
   ServerBootstrap* setUseSharedSSLContextManager(bool enabled) {
     useSharedSSLContextManager_ = enabled;
     return this;
+  }
+
+ protected:
+  void acceptConnection(
+      folly::NetworkSocket fd,
+      const folly::SocketAddress& clientAddr,
+      folly::AsyncServerSocket::AcceptCallback::AcceptInfo info,
+      folly::AsyncTransport::LifecycleObserver* observer) {
+    workerFactory_->forRandomWorker([&](Acceptor* acceptor) {
+      acceptor->getEventBase()->runInEventBaseThread(
+          [=] { acceptor->acceptConnection(fd, clientAddr, info, observer); });
+    });
   }
 
  private:
