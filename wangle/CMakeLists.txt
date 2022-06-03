@@ -164,7 +164,7 @@ target_include_directories(
     ${GLOG_INCLUDE_DIRS}
     ${GFLAGS_INCLUDE_DIRS}
     ${LIBEVENT_INCLUDE_DIR}
-    ${DOUBLE_CONVERSION_INCLUDE_DIRS}
+    ${DOUBLE_CONVERSION_INCLUDE_DIR}
 )
 target_link_libraries(wangle PUBLIC
   ${FOLLY_LIBRARIES}
@@ -174,7 +174,7 @@ target_link_libraries(wangle PUBLIC
   ${GLOG_LIBRARIES}
   ${GFLAGS_LIBRARIES}
   ${LIBEVENT_LIB}
-  ${DOUBLE_CONVERSION_LIBRARIES}
+  ${DOUBLE_CONVERSION_LIBRARY}
   ${CMAKE_DL_LIBS}
   ${LIBRT_LIBRARIES}
   Threads::Threads)
