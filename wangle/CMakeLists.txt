@@ -53,9 +53,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(INCLUDE_INSTALL_DIR include CACHE STRING
     "The subdirectory where header files should be installed")
-set(LIB_INSTALL_DIR lib CACHE STRING
+set(LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR} CACHE STRING
     "The subdirectory where libraries should be installed")
-set(CMAKE_INSTALL_DIR lib/cmake/wangle CACHE STRING
+set(CMAKE_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/wangle CACHE STRING
     "The subdirectory where CMake package config files should be installed")
 
 # Try finding folly via its installed CMake configuration file.
