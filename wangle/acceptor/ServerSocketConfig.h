@@ -117,6 +117,11 @@ struct ServerSocketConfig {
   std::chrono::milliseconds connectionIdleTimeout{600000};
 
   /**
+   * The number of milliseconds a connection can remain alive for (0 = infinity)
+   */
+  std::chrono::milliseconds connectionAgeTimeout{0};
+
+  /**
    * The number of milliseconds a ssl handshake can timeout (60s)
    */
   std::chrono::milliseconds sslHandshakeTimeout{60000};

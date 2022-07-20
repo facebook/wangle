@@ -79,7 +79,13 @@ class ConnectionManager : public folly::DelayedDestruction,
    */
   ConnectionManager(
       folly::EventBase* eventBase,
-      std::chrono::milliseconds timeout,
+      std::chrono::milliseconds idleTimeout,
+      Callback* callback = nullptr);
+
+  ConnectionManager(
+      folly::EventBase* eventBase,
+      std::chrono::milliseconds idleTimeout,
+      std::chrono::milliseconds connAgeTimeout,
       Callback* callback = nullptr);
 
   /**
@@ -90,7 +96,17 @@ class ConnectionManager : public folly::DelayedDestruction,
    * @param timeout        Whether to immediately register this connection
    *                         for an idle timeout callback.
    */
-  void addConnection(ManagedConnection* connection, bool timeout = false);
+  void addConnection(
+      ManagedConnection* connection,
+      bool idleTimeout = false,
+      bool connectionAgeTimeout = false);
+
+  /**
+   * Schedule a timeout callback for a connection age callback object.
+   */
+  void scheduleTimeout(
+      ConnectionAgeTimeout* callback,
+      std::chrono::milliseconds timeout);
 
   /**
    * Schedule a timeout callback for a connection.
@@ -151,7 +167,7 @@ class ConnectionManager : public folly::DelayedDestruction,
   }
 
   std::chrono::milliseconds getDefaultTimeout() const {
-    return timeout_;
+    return idleTimeout_;
   }
 
   std::chrono::milliseconds getIdleConnEarlyDropThreshold() const {
@@ -160,7 +176,7 @@ class ConnectionManager : public folly::DelayedDestruction,
 
   void setLoweredIdleTimeout(std::chrono::milliseconds timeout) {
     CHECK(timeout >= std::chrono::milliseconds(0));
-    CHECK(timeout <= timeout_);
+    CHECK(timeout <= idleTimeout_);
     idleConnEarlyDropThreshold_ = timeout;
   }
 
@@ -317,7 +333,12 @@ class ConnectionManager : public folly::DelayedDestruction,
    * the default idle timeout for downstream sessions when no system resource
    * limit is reached
    */
-  std::chrono::milliseconds timeout_;
+  std::chrono::milliseconds idleTimeout_;
+
+  /**
+   * connection age timeout
+   */
+  std::chrono::milliseconds connectionAgeTimeout_;
 
   /**
    * The idle connections can be closed earlier that their idle timeout when any
@@ -330,5 +351,4 @@ class ConnectionManager : public folly::DelayedDestruction,
    */
   std::chrono::milliseconds idleConnEarlyDropThreshold_;
 };
-
 } // namespace wangle

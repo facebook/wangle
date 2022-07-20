@@ -26,7 +26,17 @@
 namespace wangle {
 
 class ConnectionManager;
+class ManagedConnection;
 
+class ConnectionAgeTimeout : public folly::HHWheelTimer::Callback {
+ public:
+  void timeoutExpired() noexcept override;
+  explicit ConnectionAgeTimeout(ManagedConnection& connection)
+      : connection_{connection} {}
+
+ private:
+  ManagedConnection& connection_;
+};
 /**
  * Interface describing a connection that can be managed by a
  * container such as an Acceptor.
@@ -158,6 +168,7 @@ class ManagedConnection : public folly::HHWheelTimer::Callback,
   }
 
   ConnectionManager* connectionManager_;
+  ConnectionAgeTimeout connectionAgeTimeout_;
   folly::Optional<std::chrono::steady_clock::time_point> latestActivity_;
 
   folly::SafeIntrusiveListHook listHook_;

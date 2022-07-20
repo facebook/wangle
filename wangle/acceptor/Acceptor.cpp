@@ -135,7 +135,10 @@ void Acceptor::initDownstreamConnectionManager(EventBase* eventBase) {
   base_ = eventBase;
   state_ = State::kRunning;
   downstreamConnectionManager_ = ConnectionManager::makeUnique(
-      eventBase, accConfig_.connectionIdleTimeout, this);
+      eventBase,
+      accConfig_.connectionIdleTimeout,
+      accConfig_.connectionAgeTimeout,
+      this);
 }
 
 std::shared_ptr<fizz::server::FizzServerContext> Acceptor::createFizzContext() {
@@ -533,7 +536,7 @@ milliseconds Acceptor::getConnTimeout() const {
 void Acceptor::addConnection(ManagedConnection* conn) {
   // Add the socket to the timeout manager so that it can be cleaned
   // up after being left idle for a long time.
-  downstreamConnectionManager_->addConnection(conn, true);
+  downstreamConnectionManager_->addConnection(conn, true, true);
 }
 
 void Acceptor::forceStop() {

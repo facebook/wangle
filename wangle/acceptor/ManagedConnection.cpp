@@ -20,12 +20,14 @@
 
 namespace wangle {
 
-ManagedConnection::ManagedConnection() : connectionManager_(nullptr) {}
+ManagedConnection::ManagedConnection()
+    : connectionManager_(nullptr), connectionAgeTimeout_{*this} {}
 
 ManagedConnection::~ManagedConnection() {
   if (connectionManager_) {
     connectionManager_->removeConnection(this);
   }
+  connectionAgeTimeout_.cancelTimeout();
 }
 
 void ManagedConnection::resetTimeout() {
@@ -60,6 +62,13 @@ ManagedConnection::getLastActivityElapsedTime() const {
   } else {
     return folly::none;
   }
+}
+
+void ConnectionAgeTimeout::timeoutExpired() noexcept {
+  if (auto connectionManager = connection_.getConnectionManager()) {
+    connectionManager->removeConnection(&connection_);
+  }
+  connection_.closeWhenIdle();
 }
 
 ////////////////////// Globals /////////////////////

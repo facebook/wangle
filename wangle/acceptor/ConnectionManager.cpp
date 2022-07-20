@@ -19,6 +19,8 @@
 #include <folly/ConstexprMath.h>
 #include <folly/io/async/EventBase.h>
 #include <glog/logging.h>
+#include <wangle/acceptor/ManagedConnection.h>
+#include <chrono>
 
 using std::chrono::milliseconds;
 
@@ -26,19 +28,35 @@ namespace wangle {
 
 ConnectionManager::ConnectionManager(
     folly::EventBase* eventBase,
-    milliseconds timeout,
+    milliseconds idleTimeout,
     Callback* callback)
     : callback_(callback),
       eventBase_(eventBase),
       drainIterator_(conns_.end()),
       idleIterator_(conns_.end()),
       drainHelper_(*this),
-      timeout_(timeout),
-      idleConnEarlyDropThreshold_(timeout_ / 2) {}
+      idleTimeout_(idleTimeout),
+      connectionAgeTimeout_(std::chrono::milliseconds(0)),
+      idleConnEarlyDropThreshold_(idleTimeout / 2) {}
+
+ConnectionManager::ConnectionManager(
+    folly::EventBase* eventBase,
+    milliseconds idleTimeout,
+    milliseconds connAgeTimeout,
+    Callback* callback)
+    : callback_(callback),
+      eventBase_(eventBase),
+      drainIterator_(conns_.end()),
+      idleIterator_(conns_.end()),
+      drainHelper_(*this),
+      idleTimeout_(idleTimeout),
+      connectionAgeTimeout_(connAgeTimeout),
+      idleConnEarlyDropThreshold_(idleTimeout / 2) {}
 
 void ConnectionManager::addConnection(
     ManagedConnection* connection,
-    bool timeout) {
+    bool idleTimeout,
+    bool connectionAgeTimeout) {
   CHECK_NOTNULL(connection);
   ConnectionManager* oldMgr = connection->getConnectionManager();
   if (oldMgr != this) {
@@ -58,8 +76,11 @@ void ConnectionManager::addConnection(
       callback_->onConnectionAdded(connection);
     }
   }
-  if (timeout) {
-    scheduleTimeout(connection, timeout_);
+  if (idleTimeout) {
+    scheduleTimeout(connection, idleTimeout_);
+  }
+  if (connectionAgeTimeout) {
+    scheduleTimeout(&connection->connectionAgeTimeout_, connectionAgeTimeout_);
   }
 
   if (drainHelper_.getShutdownState() >=
@@ -83,6 +104,14 @@ void ConnectionManager::addConnection(
         connection->fireCloseWhenIdle(!notifyPendingShutdown_);
       }
     });
+  }
+}
+
+void ConnectionManager::scheduleTimeout(
+    ConnectionAgeTimeout* connection,
+    std::chrono::milliseconds timeout) {
+  if (timeout > std::chrono::milliseconds(0)) {
+    eventBase_->timer().scheduleTimeout(connection, timeout);
   }
 }
 
@@ -333,7 +362,7 @@ void ConnectionManager::onDeactivated(ManagedConnection& conn) {
  */
 size_t ConnectionManager::dropIdleConnections(size_t num) {
   VLOG(4) << "attempt to drop " << num << " idle connections";
-  if (idleConnEarlyDropThreshold_ >= timeout_) {
+  if (idleConnEarlyDropThreshold_ >= idleTimeout_) {
     return 0;
   }
 
