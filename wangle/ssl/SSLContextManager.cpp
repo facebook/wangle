@@ -611,7 +611,11 @@ void SSLContextManager::SslContexts::addSSLContextConfig(
   // Loads in certs from CA file(s), then sets SSL context with them.
   std::vector<std::string> clientCAFiles{};
   if (ctxConfig.clientCAFiles.size() > 0) {
-    clientCAFiles = ctxConfig.clientCAFiles;
+    for (const auto& path : ctxConfig.clientCAFiles) {
+      if (!path.empty()) {
+        clientCAFiles.push_back(path);
+      }
+    }
   } else if (!ctxConfig.clientCAFile.empty()) {
     clientCAFiles.push_back(ctxConfig.clientCAFile);
   }
