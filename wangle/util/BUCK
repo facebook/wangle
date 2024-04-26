@@ -1,0 +1,40 @@
+load("@fbcode_macros//build_defs:cpp_library.bzl", "cpp_library")
+
+oncall("fbcode_entropy_wardens_folly")
+
+cpp_library(
+    name = "file_poller",
+    srcs = ["FilePoller.cpp"],
+    headers = ["FilePoller.h"],
+    deps = [
+        "//folly:conv",
+        "//folly:memory",
+        "//folly:singleton",
+    ],
+    exported_deps = [
+        "//folly:shared_mutex",
+        "//folly:thread_local",
+        "//folly/experimental:function_scheduler",
+        "//folly/io/async:async_base",
+        "//folly/io/async:scoped_event_base_thread",
+    ],
+)
+
+cpp_library(
+    name = "multi_file_poller",
+    srcs = [
+        "MultiFilePoller.cpp",
+    ],
+    headers = [
+        "MultiFilePoller.h",
+    ],
+    deps = [
+        "//folly:file_util",
+        "//folly:string",
+    ],
+    exported_deps = [
+        ":file_poller",
+        "//folly:function",
+        "//folly:shared_mutex",
+    ],
+)

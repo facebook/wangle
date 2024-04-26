@@ -1,0 +1,38 @@
+load("@fbcode_macros//build_defs:cpp_unittest.bzl", "cpp_unittest")
+
+oncall("fbcode_entropy_wardens_folly")
+
+cpp_unittest(
+    name = "file_poller_test",
+    srcs = ["FilePollerTest.cpp"],
+    deps = [
+        "//folly:file",
+        "//folly:file_util",
+        "//folly:singleton",
+        "//folly/experimental:test_util",
+        "//folly/portability:gtest",
+        "//folly/portability:sys_stat",
+        "//folly/synchronization:baton",
+        "//wangle/util:file_poller",
+    ],
+    external_deps = [
+        "glog",
+    ],
+)
+
+cpp_unittest(
+    name = "multi_file_poller_test",
+    srcs = [
+        "MultiFilePollerTest.cpp",
+    ],
+    deps = [
+        "//folly:file_util",
+        "//folly:map_util",
+        "//folly:string",
+        "//folly/experimental:test_util",
+        "//folly/futures:core",
+        "//folly/portability:gtest",
+        "//folly/synchronization:saturating_semaphore",
+        "//wangle/util:multi_file_poller",
+    ],
+)

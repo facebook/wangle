@@ -1,0 +1,12 @@
+load("@fbcode_macros//build_defs:cpp_library.bzl", "cpp_library")
+
+oncall("traffic_protocols")
+
+cpp_library(
+    name = "http",
+    srcs = [],
+    headers = ["Http.h"],
+    exported_deps = [
+        "//proxygen/facebook/lib/http/client:http_service",
+    ],
+)

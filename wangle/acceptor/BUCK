@@ -1,0 +1,265 @@
+load("@fbcode_macros//build_defs:cpp_library.bzl", "cpp_library")
+
+oncall("fbcode_entropy_wardens_folly")
+
+cpp_library(
+    name = "acceptor",
+    srcs = [
+        "Acceptor.cpp",
+        "AcceptorHandshakeManager.cpp",
+        "FizzAcceptorHandshakeHelper.cpp",
+        "SSLAcceptorHandshakeHelper.cpp",
+        "TLSPlaintextPeekingCallback.cpp",
+    ],
+    headers = [
+        "Acceptor.h",
+        "AcceptorHandshakeManager.h",
+        "FizzAcceptorHandshakeHelper.h",
+        "PeekingAcceptorHandshakeHelper.h",
+        "SSLAcceptorHandshakeHelper.h",
+        "SecurityProtocolContextManager.h",
+        "SharedSSLContextManager.h",
+        "TLSPlaintextPeekingCallback.h",
+        "UnencryptedAcceptorHandshakeHelper.h",
+    ],
+    deps = [
+        "fbsource//third-party/fmt:fmt",
+        ":accept_observer",
+        "//fizz/experimental/ktls:ktls",
+        "//fizz/record:record",
+        "//fizz/server:protocol",
+        "//folly:glog",
+        "//folly/io/async:async_base",
+        "//folly/io/async:async_transport",
+        "//folly/portability:gflags",
+        "//folly/portability:sockets",
+        "//folly/portability:unistd",
+        "//wangle/ssl:client_hello_ext_stats",
+    ] + select({
+        "DEFAULT": ["//folly/io/async/fdsock:async_fd_socket"],
+        "ovr_config//os:windows": [],
+    }),
+    exported_deps = [
+        ":fizz_config_util",
+        ":load_shed_configuration",
+        ":managed",
+        ":secure_transport_type",
+        ":server_socket_config",
+        ":socket_peeker",
+        ":transport_info",
+        "//fizz/extensions/tokenbinding:token_binding_context",
+        "//fizz/extensions/tokenbinding:token_binding_server_extension",
+        "//fizz/server:async_fizz_server",
+        "//fizz/server:cert_manager",
+        "//fizz/server:ticket_cipher",
+        "//fizz/server:ticket_codec",
+        "//fizz/server:ticket_types",
+        "//folly:exception_wrapper",
+        "//folly:network_address",
+        "//folly:optional",
+        "//folly/experimental/io:async_io_uring_socket",
+        "//folly/io:socket_option_map",
+        "//folly/io/async:async_socket",
+        "//folly/io/async:async_ssl_socket",
+        "//folly/io/async:async_udp_server_socket",
+        "//folly/io/async:server_socket",
+        "//wangle/ssl:ssl_cache_provider",
+        "//wangle/ssl:ssl_context_manager",
+        "//wangle/ssl:ssl_stats",
+        "//wangle/ssl:tls_ticket_key_seeds",
+    ],
+)
+
+cpp_library(
+    name = "connection_counter",
+    headers = ["ConnectionCounter.h"],
+)
+
+cpp_library(
+    name = "evb_handshake_helper",
+    srcs = ["EvbHandshakeHelper.cpp"],
+    headers = ["EvbHandshakeHelper.h"],
+    exported_deps = [
+        ":acceptor",
+        "//folly/io/async:async_socket",
+        "//folly/io/async:async_ssl_socket",
+    ],
+)
+
+cpp_library(
+    name = "load_shed_configuration",
+    srcs = ["LoadShedConfiguration.cpp"],
+    headers = ["LoadShedConfiguration.h"],
+    deps = [
+        "//folly:conv",
+        "//folly/portability:openssl",
+    ],
+    exported_deps = [
+        ":network_address",
+        "//folly:network_address",
+        "//folly:range",
+    ],
+    exported_external_deps = [
+        "glog",
+    ],
+)
+
+cpp_library(
+    name = "managed",
+    srcs = [
+        "ConnectionManager.cpp",
+        "ManagedConnection.cpp",
+    ],
+    headers = [
+        "ConnectionManager.h",
+        "ManagedConnection.h",
+    ],
+    exported_deps = [
+        "//folly:constexpr_math",
+        "//folly:intrusive_list",
+        "//folly:memory",
+        "//folly:network_address",
+        "//folly/io/async:async_base",
+        "//folly/io/async:delayed_destruction",
+    ],
+    external_deps = [
+        "glog",
+    ],
+)
+
+cpp_library(
+    name = "network_address",
+    headers = ["NetworkAddress.h"],
+    exported_deps = [
+        "//folly:network_address",
+    ],
+)
+
+cpp_library(
+    name = "accept_observer",
+    headers = ["AcceptObserver.h"],
+)
+
+cpp_library(
+    name = "secure_transport_type",
+    srcs = ["SecureTransportType.cpp"],
+    headers = ["SecureTransportType.h"],
+)
+
+cpp_library(
+    name = "server_socket_config",
+    headers = ["ServerSocketConfig.h"],
+    exported_deps = [
+        ":fizz_config",
+        ":socket_options",
+        "//folly:network_address",
+        "//folly:random",
+        "//folly:string",
+        "//folly/io:socket_option_map",
+        "//folly/io/async:async_socket",
+        "//folly/io/async:ssl_context",
+        "//wangle/ssl:sni_config",
+        "//wangle/ssl:ssl_cache_options",
+        "//wangle/ssl:ssl_context_config",
+        "//wangle/ssl:ssl_util",
+        "//wangle/ssl:tls_ticket_key_seeds",
+    ],
+    exported_external_deps = [
+        ("boost", None, "boost_optional"),
+    ],
+)
+
+cpp_library(
+    name = "shared_ssl_context_manager",
+    headers = ["SharedSSLContextManager.h"],
+    exported_deps = [
+        ":acceptor",
+        ":fizz_config_util",
+        ":server_socket_config",
+        "//fizz/server:async_fizz_server",
+        "//fizz/server:cert_manager",
+        "//fizz/server:ticket_cipher",
+        "//fizz/server:ticket_codec",
+        "//fizz/server:ticket_types",
+        "//wangle/ssl:ssl_context_manager",
+        "//wangle/ssl:tls_ticket_key_seeds",
+    ],
+)
+
+cpp_library(
+    name = "fizz_config_util",
+    srcs = ["FizzConfigUtil.cpp"],
+    headers = ["FizzConfigUtil.h"],
+    deps = [
+        "//fizz/backend:openssl",
+        "//fizz/protocol:default_certificate_verifier",
+        "//folly:format",
+        "//folly:string",
+    ],
+    exported_deps = [
+        ":server_socket_config",
+        "//fizz/server:fizz_server_context",
+        "//fizz/server:ticket_types",
+        "//fizz/util:fizz_util",
+        "//wangle/ssl:password_in_file_factory",
+    ],
+)
+
+cpp_library(
+    name = "socket_options",
+    srcs = ["SocketOptions.cpp"],
+    headers = ["SocketOptions.h"],
+    deps = [
+        "//folly/portability:sockets",
+    ],
+    exported_deps = [
+        "//folly/io:socket_option_map",
+        "//folly/io/async:async_socket",
+    ],
+)
+
+cpp_library(
+    name = "socket_peeker",
+    headers = ["SocketPeeker.h"],
+    exported_deps = [
+        "//folly/io/async:async_socket",
+        "//folly/io/async:async_transport",
+    ],
+)
+
+cpp_library(
+    name = "transport_info",
+    srcs = ["TransportInfo.cpp"],
+    headers = ["TransportInfo.h"],
+    deps = [
+        "//folly:string",
+        "//folly/io/async:async_socket",
+    ],
+    exported_deps = [
+        ":secure_transport_type",
+        "//folly:network_address",
+        "//folly:optional",
+        "//folly/portability:sockets",
+        "//wangle/ssl:ssl_util",
+    ],
+)
+
+cpp_library(
+    name = "fizz_config",
+    headers = [
+        "FizzConfig.h",
+    ],
+    exported_deps = [
+        "//fizz/extensions/tokenbinding:token_binding",
+        "//fizz/protocol:async_fizz_base",
+        "//fizz/record:record",
+    ],
+)
+
+cpp_library(
+    name = "util",
+    headers = ["SSLContextSelectionMisc.h"],
+    exported_deps = [
+        "//folly:string",
+    ],
+)
