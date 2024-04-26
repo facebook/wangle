@@ -173,6 +173,21 @@ cpp_library(
 )
 
 cpp_library(
+    name = "tls_in_memory_ticket_processor",
+    srcs = ["TLSInMemoryTicketProcessor.cpp"],
+    headers = ["TLSInMemoryTicketProcessor.h"],
+    deps = [
+        ":ssl_util",
+        "//folly:random",
+    ],
+    exported_deps = [
+        ":tls_ticket_key_seeds",
+        "//folly:synchronized",
+        "//folly/experimental:function_scheduler",
+    ],
+)
+
+cpp_library(
     name = "tls_ticket_key_manager",
     srcs = ["TLSTicketKeyManager.cpp"],
     headers = ["TLSTicketKeyManager.h"],

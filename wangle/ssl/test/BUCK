@@ -115,3 +115,13 @@ cpp_unittest(
         ("boost", None, "boost_filesystem"),
     ],
 )
+
+cpp_unittest(
+    name = "tls_in_memory_ticket_processor_test",
+    srcs = ["TLSInMemoryTicketProcessorTest.cpp"],
+    deps = [
+        "//folly/portability:gtest",
+        "//folly/synchronization:baton",
+        "//wangle/ssl:tls_in_memory_ticket_processor",
+    ],
+)
