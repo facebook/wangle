@@ -8,6 +8,7 @@ cpp_unittest(
     srcs = ["ConnectionManagerTest.cpp"],
     remote_execution = re_test_utils.remote_execution_linux_default(),
     deps = [
+        "//folly:network_address",
         "//folly/portability:gflags",
         "//folly/portability:gmock",
         "//folly/portability:gtest",
