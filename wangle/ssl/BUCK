@@ -100,9 +100,7 @@ cpp_library(
     headers = ["SSLSessionCacheManager.h"],
     deps = [
         ":ssl_util",
-        "//folly/fibers:core",
         "//folly/fibers:core_manager",
-        "//folly/io/async:async_base",
         "//folly/portability:gflags",
         "//folly/portability:openssl",
     ],
@@ -146,7 +144,6 @@ cpp_library(
         ":ssl_cache_options",
         ":ssl_context_config",
         ":ssl_session_cache_manager",
-        "//folly:memory",
     ],
     exported_deps = [
         "//folly/io/async:ssl_context",
