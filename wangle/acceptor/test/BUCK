@@ -97,3 +97,18 @@ cpp_unittest(
         "//wangle/acceptor:socket_peeker",
     ],
 )
+
+cpp_unittest(
+    name = "SharedSSLContextManagerTest",
+    srcs = ["SharedSSLContextManagerTest.cpp"],
+    remote_execution = re_test_utils.remote_execution_linux_default(),
+    deps = [
+        "//folly:file_util",
+        "//folly/experimental:test_util",
+        "//folly/io/async:async_base",
+        "//folly/portability:gmock",
+        "//folly/portability:gtest",
+        "//wangle/acceptor:fizz_config_util",
+        "//wangle/acceptor:shared_ssl_context_manager",
+    ],
+)
