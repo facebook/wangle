@@ -14,7 +14,7 @@ cpp_library(
     exported_deps = [
         "//folly:shared_mutex",
         "//folly:thread_local",
-        "//folly/experimental:function_scheduler",
+        "//folly/executors:function_scheduler",
         "//folly/io/async:async_base",
         "//folly/io/async:scoped_event_base_thread",
     ],

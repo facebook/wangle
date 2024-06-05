@@ -180,7 +180,7 @@ cpp_library(
     exported_deps = [
         ":tls_ticket_key_seeds",
         "//folly:synchronized",
-        "//folly/experimental:function_scheduler",
+        "//folly/executors:function_scheduler",
     ],
 )
 
