@@ -164,9 +164,6 @@ cpp_library(
         "//wangle/ssl:ssl_util",
         "//wangle/ssl:tls_ticket_key_seeds",
     ],
-    exported_external_deps = [
-        ("boost", None, "boost_optional"),
-    ],
 )
 
 cpp_library(
