@@ -113,7 +113,6 @@ cpp_library(
     ],
     exported_external_deps = [
         "glog",
-        ("boost", None, "boost_variant"),
     ],
 )
 
