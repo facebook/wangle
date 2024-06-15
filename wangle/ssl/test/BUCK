@@ -111,9 +111,6 @@ cpp_unittest(
         "//folly/synchronization:baton",
         "//wangle/ssl:tls_cred_processor",
     ],
-    external_deps = [
-        ("boost", None, "boost_filesystem"),
-    ],
 )
 
 cpp_unittest(
