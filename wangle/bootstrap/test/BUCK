@@ -25,7 +25,6 @@ cpp_unittest(
         "//wangle/channel:handler",
     ],
     external_deps = [
-        ("boost", None, "boost_thread"),
         "glog",
     ],
 )
@@ -42,8 +41,5 @@ cpp_library(
         "//wangle/bootstrap:server_bootstrap",
         "//wangle/channel:pipeline",
         "//wangle/channel/test:mocks",
-    ],
-    exported_external_deps = [
-        ("boost", None, "boost_thread"),
     ],
 )
