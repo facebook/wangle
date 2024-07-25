@@ -69,4 +69,7 @@ cpp_unittest(
         "//wangle/channel:pipeline",
         "//wangle/channel:static_pipeline",
     ],
+    external_deps = [
+        ("boost", None, "boost_thread"),
+    ],
 )
