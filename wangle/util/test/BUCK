@@ -9,10 +9,10 @@ cpp_unittest(
         "//folly:file",
         "//folly:file_util",
         "//folly:singleton",
-        "//folly/experimental:test_util",
         "//folly/portability:gtest",
         "//folly/portability:sys_stat",
         "//folly/synchronization:baton",
+        "//folly/testing:test_util",
         "//wangle/util:file_poller",
     ],
     external_deps = [
@@ -29,10 +29,10 @@ cpp_unittest(
         "//folly:file_util",
         "//folly:map_util",
         "//folly:string",
-        "//folly/experimental:test_util",
         "//folly/futures:core",
         "//folly/portability:gtest",
         "//folly/synchronization:saturating_semaphore",
+        "//folly/testing:test_util",
         "//wangle/util:multi_file_poller",
     ],
 )

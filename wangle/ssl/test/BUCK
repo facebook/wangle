@@ -13,11 +13,11 @@ cpp_unittest(
     ],
     remote_execution = re_test_utils.remote_execution_linux_default(),
     deps = [
-        "//folly/experimental:test_util",
         "//folly/io/async:async_base",
         "//folly/io/async:ssl_context",
         "//folly/io/async/test:test_ssl_server",
         "//folly/portability:gtest",
+        "//folly/testing:test_util",
         "//wangle/acceptor:util",
         "//wangle/ssl:server_ssl_context",
         "//wangle/ssl:ssl_cache_options",
@@ -38,7 +38,6 @@ cpp_unittest(
     remote_execution = re_test_utils.remote_execution_linux_default(),
     deps = [
         ":mock_ssl_stats",
-        "//folly/experimental:test_util",
         "//folly/io/async:async_base",
         "//folly/io/async:async_ssl_socket",
         "//folly/io/async:ssl_context",
@@ -46,6 +45,7 @@ cpp_unittest(
         "//folly/io/async/test:test_ssl_server",
         "//folly/portability:gmock",
         "//folly/portability:gtest",
+        "//folly/testing:test_util",
         "//wangle/ssl:ssl_stats",
         "//wangle/ssl:tls_ticket_key_manager",
     ],

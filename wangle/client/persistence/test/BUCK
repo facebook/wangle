@@ -39,7 +39,7 @@ cpp_library(
         "TestUtil.h",
     ],
     deps = [
-        "//folly/experimental:test_util",
+        "//folly/testing:test_util",
     ],
     exported_deps = [
         "//folly:memory",

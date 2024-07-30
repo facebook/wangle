@@ -19,9 +19,9 @@ cpp_unittest(
     srcs = ["BootstrapTest.cpp"],
     remote_execution = re_test_utils.remote_execution_linux_default(),
     deps = [
-        "//folly/experimental:test_util",
         "//folly/portability:gtest",
         "//folly/synchronization:latch",
+        "//folly/testing:test_util",
         "//wangle/bootstrap:client_bootstrap",
         "//wangle/bootstrap:server_bootstrap",
         "//wangle/channel:handler",
