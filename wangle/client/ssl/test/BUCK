@@ -25,7 +25,6 @@ cpp_unittest(
     remote_execution = re_test_utils.remote_execution_linux_default(),
     test_main = "fbsource//third-party/googletest:gtest_main",
     deps = [
-        ":TestUtil",
         "//folly/io/async:ssl_context",
         "//folly/portability:gtest",
         "//wangle/client/ssl:ssl_session_callbacks",
