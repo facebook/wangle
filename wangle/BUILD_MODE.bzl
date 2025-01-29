@@ -19,7 +19,6 @@ _tags = [
 
 _modes = extend_build_modes(
     get_parent_modes(),
-    cxx_modular_headers = True,
     lsan_suppressions = _lsan_suppressions,
     tags = _tags,
 )
