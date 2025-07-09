@@ -79,7 +79,6 @@ def wangle_cxx_library(
         fbobjc_compiler_flags = fbobjc_compiler_flags + FBOBJC_CXXFLAGS,
         windows_compiler_flags = windows_compiler_flags + WINDOWS_CLANG_CXX_FLAGS,
         windows_msvc_compiler_flags_override = windows_msvc_compiler_flags_override + WINDOWS_MSVC_CXXFLAGS,
-        contacts = ["oncall+wangle@xmail.facebook.com"],
         visibility = ["PUBLIC"],
         **kwargs
     )
@@ -88,7 +87,6 @@ def wangle_cxx_binary(name, **kwargs):
     fb_xplat_cxx_binary(
         name = name,
         platforms = (CXX,),
-        contacts = ["oncall+wangle@xmail.facebook.com"],
         **kwargs
     )
 
@@ -96,6 +94,5 @@ def wangle_cxx_test(name, **kwargs):
     fb_xplat_cxx_test(
         name = name,
         platforms = (CXX,),
-        contacts = ["oncall+wangle@xmail.facebook.com"],
         **kwargs
     )
