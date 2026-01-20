@@ -46,10 +46,12 @@ bool FizzConfigUtil::addCertsToManager(
         } else {
           auto x509Chain = FizzUtil::readChainFile(cert.certPath);
           std::shared_ptr<folly::PasswordInFile> pw;
-          if (pwFactory) {
-            pw = pwFactory->getPasswordCollector(cert.passwordPath);
-          } else {
-            pw = std::make_shared<folly::PasswordInFile>(cert.passwordPath);
+          if (!cert.passwordPath.empty()) {
+            if (pwFactory) {
+              pw = pwFactory->getPasswordCollector(cert.passwordPath);
+            } else {
+              pw = std::make_shared<folly::PasswordInFile>(cert.passwordPath);
+            }
           }
 
           auto pkey = FizzUtil::readPrivateKey(cert.keyPath, pw);
