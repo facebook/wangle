@@ -70,7 +70,6 @@ def wangle_cxx_library(
         name = name,
         header_namespace = "",
         public_include_directories = _compute_include_directories(),
-        enable_static_variant = True,
         apple_sdks = DEFAULT_APPLE_SDKS,
         compiler_flags = compiler_flags + CXXFLAGS,
         platforms = DEFAULT_PLATFORMS,
