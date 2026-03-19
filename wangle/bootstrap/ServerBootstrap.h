@@ -163,6 +163,9 @@ class ServerBootstrap {
     }
 
     io_group->addObserver(workerFactory_);
+    if (auto ex = workerFactory_->getInitException()) {
+      std::rethrow_exception(ex);
+    }
 
     acceptor_group_ = accept_group;
     io_group_ = io_group;

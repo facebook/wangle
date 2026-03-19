@@ -408,6 +408,12 @@ class ServerWorkerPool : public folly::IOThreadPoolExecutorBase::IOObserver {
   std::shared_ptr<std::vector<std::shared_ptr<folly::AsyncSocketBase>>>
       sockets_;
   std::shared_ptr<ServerSocketFactory> socketFactory_;
+  std::exception_ptr initException_;
+
+ public:
+  std::exception_ptr getInitException() const {
+    return initException_;
+  }
 };
 
 template <typename F>

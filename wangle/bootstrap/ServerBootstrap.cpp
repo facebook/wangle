@@ -21,7 +21,13 @@
 namespace wangle {
 
 void ServerWorkerPool::registerEventBase(folly::EventBase& evb) {
-  auto worker = acceptorFactory_->newAcceptor(&evb);
+  std::shared_ptr<Acceptor> worker;
+  try {
+    worker = acceptorFactory_->newAcceptor(&evb);
+  } catch (...) {
+    initException_ = std::current_exception();
+    return;
+  }
   {
     std::unique_lock holder(workersMutex_);
     workers_->emplace_back(&evb, worker);
