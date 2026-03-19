@@ -148,20 +148,22 @@ install(
 # =============================================================================
 
 # Collect all headers via recursive glob (like folly/fizz does)
-file(GLOB_RECURSE WANGLE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+file(GLOB_RECURSE WANGLE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 # Filter out test, facebook, and other non-public directories
-list(FILTER WANGLE_HEADERS EXCLUDE REGEX "/test/")
-list(FILTER WANGLE_HEADERS EXCLUDE REGEX "/facebook/")
-list(FILTER WANGLE_HEADERS EXCLUDE REGEX "/build/")
-list(FILTER WANGLE_HEADERS EXCLUDE REGEX "/example/")
+list(FILTER WANGLE_HEADERS EXCLUDE REGEX "(^|/)test/")
+list(FILTER WANGLE_HEADERS EXCLUDE REGEX "(^|/)facebook/")
+list(FILTER WANGLE_HEADERS EXCLUDE REGEX "(^|/)build/")
+list(FILTER WANGLE_HEADERS EXCLUDE REGEX "(^|/)example/")
 
 # Collect test headers separately
-file(GLOB_RECURSE WANGLE_TEST_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-list(FILTER WANGLE_TEST_HEADERS INCLUDE REGEX "/test/")
-list(FILTER WANGLE_TEST_HEADERS EXCLUDE REGEX "/facebook/")
+file(GLOB_RECURSE WANGLE_TEST_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+list(FILTER WANGLE_TEST_HEADERS INCLUDE REGEX "(^|/)test/")
+list(FILTER WANGLE_TEST_HEADERS EXCLUDE REGEX "(^|/)facebook/")
 
 # Install headers preserving directory structure
-wangle_install_headers(wangle ${CMAKE_CURRENT_SOURCE_DIR} ${WANGLE_HEADERS})
+wangle_install_headers(wangle . ${WANGLE_HEADERS})
 
 # =============================================================================
 # CMake package configuration
