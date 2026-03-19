@@ -36,7 +36,7 @@ static void freeFunc(
 
 static int dupFunc(
     CRYPTO_EX_DATA* to,
-    const CRYPTO_EX_DATA* from,
+    const CRYPTO_EX_DATA* /* from */,
     DupFuncFromDType from_d,
     int idx,
     long /* argl */,
