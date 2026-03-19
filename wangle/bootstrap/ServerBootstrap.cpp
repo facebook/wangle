@@ -20,7 +20,7 @@
 
 namespace wangle {
 
-void ServerWorkerPool::registerEventBase(folly::EventBase& evb) {
+void ServerWorkerPool::registerEventBase(folly::EventBase& evb) noexcept {
   std::shared_ptr<Acceptor> worker;
   try {
     worker = acceptorFactory_->newAcceptor(&evb);
@@ -42,7 +42,7 @@ void ServerWorkerPool::registerEventBase(folly::EventBase& evb) {
   }
 }
 
-void ServerWorkerPool::unregisterEventBase(folly::EventBase& evb) {
+void ServerWorkerPool::unregisterEventBase(folly::EventBase& evb) noexcept {
   auto worker = [&]() -> std::shared_ptr<Acceptor> {
     std::unique_lock holder(workersMutex_);
     for (auto it = workers_->begin(); it != workers_->end(); ++it) {

@@ -394,8 +394,8 @@ class ServerWorkerPool : public folly::IOThreadPoolExecutorBase::IOObserver {
   template <typename F>
   void forRandomWorker(F&& f) const;
 
-  void registerEventBase(folly::EventBase& evb) override;
-  void unregisterEventBase(folly::EventBase& evb) override;
+  void registerEventBase(folly::EventBase& evb) noexcept override;
+  void unregisterEventBase(folly::EventBase& evb) noexcept override;
 
  private:
   using WorkerMap =
