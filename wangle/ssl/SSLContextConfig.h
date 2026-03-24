@@ -145,7 +145,7 @@ struct SSLContextConfig {
     nextProtocols.emplace_back(1, inNextProtocols);
   }
 
-  typedef std::function<bool(char const* server_name)> SNINoMatchFn;
+  using SNINoMatchFn = std::function<bool(char const* server_name)>;
 
   std::vector<CertificateInfo> certificates;
   std::vector<DelegatedCredInfo> delegatedCredentials;
