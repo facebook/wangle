@@ -151,3 +151,141 @@ TEST_F(SocketPeekerTest, TestNoPeekSuccess) {
   EXPECT_CALL(callback, peekSuccess_(BufMatches(&buf, 0)));
   peeker->start();
 }
+
+TEST(TransportPeekerTest, TestReadBufferAvailableExactSize) {
+  folly::EventBase evb;
+  auto* sock = new MockAsyncSocket(&evb);
+  MockSocketPeekerCallback callback;
+  TransportPeeker::UniquePtr peeker(new TransportPeeker(sock, &callback, 13));
+
+  auto buf = folly::IOBuf::create(13);
+  buf->append(13);
+  memset(buf->writableData(), 0xAB, 13);
+
+  std::vector<uint8_t> peekedBytes;
+  EXPECT_CALL(callback, peekSuccess_(_)).WillOnce(SaveArg<0>(&peekedBytes));
+  EXPECT_CALL(*sock, setReadCB(nullptr));
+
+  peeker->readBufferAvailable(std::move(buf));
+
+  ASSERT_EQ(peekedBytes.size(), 13);
+  for (int i = 0; i < 13; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xAB);
+  }
+
+  auto readData = peeker->moveReadData();
+  ASSERT_NE(readData, nullptr);
+  EXPECT_EQ(readData->computeChainDataLength(), 13);
+
+  sock->destroy();
+}
+
+TEST(TransportPeekerTest, TestReadBufferAvailableOversized) {
+  folly::EventBase evb;
+  auto* sock = new MockAsyncSocket(&evb);
+  MockSocketPeekerCallback callback;
+  TransportPeeker::UniquePtr peeker(new TransportPeeker(sock, &callback, 13));
+
+  auto buf = folly::IOBuf::create(2048);
+  buf->append(2048);
+  memset(buf->writableData(), 0xAB, 13);
+  memset(buf->writableData() + 13, 0xCD, 2035);
+
+  std::vector<uint8_t> peekedBytes;
+  EXPECT_CALL(callback, peekSuccess_(_)).WillOnce(SaveArg<0>(&peekedBytes));
+  EXPECT_CALL(*sock, setReadCB(nullptr));
+
+  peeker->readBufferAvailable(std::move(buf));
+
+  ASSERT_EQ(peekedBytes.size(), 13);
+  for (int i = 0; i < 13; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xAB);
+  }
+
+  auto readData = peeker->moveReadData();
+  ASSERT_NE(readData, nullptr);
+  EXPECT_EQ(readData->computeChainDataLength(), 2048);
+  EXPECT_EQ(readData->data()[0], 0xAB);
+  EXPECT_EQ(readData->data()[13], 0xCD);
+
+  sock->destroy();
+}
+
+TEST(TransportPeekerTest, TestReadBufferAvailableMultiple) {
+  folly::EventBase evb;
+  auto* sock = new MockAsyncSocket(&evb);
+  MockSocketPeekerCallback callback;
+  TransportPeeker::UniquePtr peeker(new TransportPeeker(sock, &callback, 13));
+
+  auto buf1 = folly::IOBuf::create(5);
+  buf1->append(5);
+  memset(buf1->writableData(), 0xAA, 5);
+  EXPECT_CALL(callback, peekSuccess_(_)).Times(0);
+  peeker->readBufferAvailable(std::move(buf1));
+
+  Mock::VerifyAndClearExpectations(&callback);
+
+  auto buf2 = folly::IOBuf::create(8);
+  buf2->append(8);
+  memset(buf2->writableData(), 0xBB, 8);
+
+  std::vector<uint8_t> peekedBytes;
+  EXPECT_CALL(callback, peekSuccess_(_)).WillOnce(SaveArg<0>(&peekedBytes));
+  EXPECT_CALL(*sock, setReadCB(nullptr));
+
+  peeker->readBufferAvailable(std::move(buf2));
+
+  ASSERT_EQ(peekedBytes.size(), 13);
+  for (int i = 0; i < 5; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xAA);
+  }
+  for (int i = 5; i < 13; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xBB);
+  }
+
+  auto readData = peeker->moveReadData();
+  ASSERT_NE(readData, nullptr);
+  EXPECT_EQ(readData->computeChainDataLength(), 13);
+
+  sock->destroy();
+}
+
+TEST(TransportPeekerTest, TestReadBufferAvailableMultipleOversized) {
+  folly::EventBase evb;
+  auto* sock = new MockAsyncSocket(&evb);
+  MockSocketPeekerCallback callback;
+  TransportPeeker::UniquePtr peeker(new TransportPeeker(sock, &callback, 13));
+
+  auto buf1 = folly::IOBuf::create(5);
+  buf1->append(5);
+  memset(buf1->writableData(), 0xAA, 5);
+  EXPECT_CALL(callback, peekSuccess_(_)).Times(0);
+  peeker->readBufferAvailable(std::move(buf1));
+
+  Mock::VerifyAndClearExpectations(&callback);
+
+  auto buf2 = folly::IOBuf::create(2043);
+  buf2->append(2043);
+  memset(buf2->writableData(), 0xBB, 8);
+  memset(buf2->writableData() + 8, 0xCC, 2035);
+
+  std::vector<uint8_t> peekedBytes;
+  EXPECT_CALL(callback, peekSuccess_(_)).WillOnce(SaveArg<0>(&peekedBytes));
+  EXPECT_CALL(*sock, setReadCB(nullptr));
+
+  peeker->readBufferAvailable(std::move(buf2));
+
+  ASSERT_EQ(peekedBytes.size(), 13);
+  for (int i = 0; i < 5; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xAA);
+  }
+  for (int i = 5; i < 13; i++) {
+    EXPECT_EQ(peekedBytes[i], 0xBB);
+  }
+
+  auto readData = peeker->moveReadData();
+  ASSERT_NE(readData, nullptr);
+  EXPECT_EQ(readData->computeChainDataLength(), 2048);
+
+  sock->destroy();
+}

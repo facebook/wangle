@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <folly/io/Cursor.h>
 #include <folly/io/async/AsyncIoUringSocketFactory.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTransport.h>
@@ -105,9 +106,41 @@ class TransportPeeker : public folly::AsyncTransport::ReadCallback,
   }
 
   bool isBufferMovable() noexcept override {
-    // Returning false so that we can supply the exact length of the
-    // number of bytes we want to read.
-    return false;
+    return true;
+  }
+
+  // Used to supply the exact length of the number of bytes we want to read.
+  size_t maxBufferSize() const override {
+    return peekBytes_.size();
+  }
+
+  void readBufferAvailable(
+      std::unique_ptr<folly::IOBuf> buf) noexcept override {
+    folly::DelayedDestruction::DestructorGuard dg(this);
+
+    auto bufLen = buf->computeChainDataLength();
+    auto len = std::min(bufLen, peekBytes_.size() - read_);
+    folly::io::Cursor cursor(buf.get());
+    cursor.pull(peekBytes_.data() + read_, len);
+    read_ += len;
+    CHECK_LE(read_, peekBytes_.size());
+
+    if (readData_) {
+      readData_->appendToChain(std::move(buf));
+    } else {
+      readData_ = std::move(buf);
+    }
+
+    if (read_ == peekBytes_.size()) {
+      transport_->setReadCB(nullptr);
+      auto callback = std::exchange(transportCallback_, nullptr);
+      transport_ = nullptr;
+      callback->peekSuccess(std::move(peekBytes_));
+    }
+  }
+
+  std::unique_ptr<folly::IOBuf> moveReadData() {
+    return std::move(readData_);
   }
 
  private:
@@ -115,6 +148,7 @@ class TransportPeeker : public folly::AsyncTransport::ReadCallback,
   Callback* transportCallback_;
   size_t read_{0};
   std::vector<uint8_t> peekBytes_;
+  std::unique_ptr<folly::IOBuf> readData_;
 };
 
 class SocketPeeker : public TransportPeeker, private TransportPeeker::Callback {
