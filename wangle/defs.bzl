@@ -58,13 +58,8 @@ def _compute_include_directories():
     return ["/".join(len(thrift_path.split("/")) * [".."])]
 
 def wangle_cxx_library(
-        name,
-        compiler_flags = [],
-        fbandroid_compiler_flags = [],
-        fbobjc_compiler_flags = [],
-        windows_compiler_flags = [],
-        windows_msvc_compiler_flags_override = [],
-        **kwargs):
+    name, compiler_flags = [], fbandroid_compiler_flags = [], fbobjc_compiler_flags = [], windows_compiler_flags = [], windows_msvc_compiler_flags_override = [], **kwargs
+):
     """Translate a simpler declartion into the more complete library target"""
     fb_xplat_cxx_library(
         name = name,
@@ -79,19 +74,11 @@ def wangle_cxx_library(
         windows_compiler_flags = windows_compiler_flags + WINDOWS_CLANG_CXX_FLAGS,
         windows_msvc_compiler_flags_override = windows_msvc_compiler_flags_override + WINDOWS_MSVC_CXXFLAGS,
         visibility = ["PUBLIC"],
-        **kwargs
+        **kwargs,
     )
 
 def wangle_cxx_binary(name, **kwargs):
-    fb_xplat_cxx_binary(
-        name = name,
-        platforms = (CXX,),
-        **kwargs
-    )
+    fb_xplat_cxx_binary(name = name, platforms = (CXX,), **kwargs)
 
 def wangle_cxx_test(name, **kwargs):
-    fb_xplat_cxx_test(
-        name = name,
-        platforms = (CXX,),
-        **kwargs
-    )
+    fb_xplat_cxx_test(name = name, platforms = (CXX,), **kwargs)

@@ -1,4 +1,4 @@
-""" build mode definitions for wangle """
+"""build mode definitions for wangle"""
 
 load("@fbcode//:BUILD_MODE.bzl", get_parent_modes = "get_empty_modes")
 load("@fbcode_macros//build_defs:create_build_mode.bzl", "extend_build_modes")
@@ -14,8 +14,7 @@ _lsan_suppressions = [
     "wangle::ServerAcceptor",
 ]
 
-_tags = [
-]
+_tags = []
 
 _modes = extend_build_modes(
     get_parent_modes(),
@@ -24,5 +23,5 @@ _modes = extend_build_modes(
 )
 
 def get_modes():
-    """ Return modes for this file """
+    """Return modes for this file"""
     return _modes
