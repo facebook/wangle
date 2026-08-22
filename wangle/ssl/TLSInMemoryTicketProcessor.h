@@ -44,7 +44,7 @@ class TLSInMemoryTicketProcessor {
   virtual ~TLSInMemoryTicketProcessor();
   TLSTicketKeySeeds initInMemoryTicketSeeds();
 
-  /* Add a callback fucntion to be fired periodically. */
+  /* Add a callback function to be fired periodically. */
 
  private:
   void initScheduler();
