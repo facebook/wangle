@@ -146,7 +146,7 @@ class EchoHandler : public HandlerAdapter<std::string> {
 };
 ```
 
-Notice that we override other methods — readException and readEOF. There are few other methods that can be overriden. If you need to handle a particular event, just override the corresponding virtual method.
+Notice that we override other methods — readException and readEOF. There are few other methods that can be overridden. If you need to handle a particular event, just override the corresponding virtual method.
 
 Now onto the client’s pipeline factory. It is identical the server’s pipeline factory apart from _EventBaseHandler_ — which handles writing data from an event loop thread.
 
