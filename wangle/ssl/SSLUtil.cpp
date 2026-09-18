@@ -54,7 +54,9 @@ SSLResumeEnum SSLUtil::getResumeState(folly::AsyncSSLSocket* sslSocket) {
 }
 
 std::unique_ptr<std::string> SSLUtil::getCommonName(const X509* cert) {
-  X509_NAME* subject = X509_get_subject_name((X509*)cert);
+  // X509_get_subject_name() returns const X509_NAME* since OpenSSL 4.0;
+  // auto keeps this compiling on older versions too.
+  auto subject = X509_get_subject_name((X509*)cert);
   if (!subject) {
     return nullptr;
   }
@@ -81,7 +83,8 @@ std::unique_ptr<std::list<std::string>> SSLUtil::getSubjectAltName(
     for (int i = 0; i < (int)count; ++i) {
       GENERAL_NAME* generalName = sk_GENERAL_NAME_value(names, i);
       if (generalName->type == GEN_DNS) {
-        ASN1_STRING* s = generalName->d.dNSName;
+        // auto: GENERAL_NAME union members are const since OpenSSL 4.0.
+        auto s = generalName->d.dNSName;
         const char* name = (const char*)ASN1_STRING_get0_data(s);
         // I can't find any docs on what a negative return value here
         // would mean, so I'm going to ignore it.
