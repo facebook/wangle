@@ -31,7 +31,7 @@ class FizzConfigUtil {
   /*
    * Adds certs to the cert manager from context configs.
    * If strictSSL is specified will throw on any failed cert load.
-   * Returns true if atleast one cert was successfully loaded
+   * Returns true if at least one cert was successfully loaded
    */
   static bool addCertsToManager(
       const std::vector<SSLContextConfig>& configs,
