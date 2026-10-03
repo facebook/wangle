@@ -48,6 +48,18 @@ class MockHandshakeHelperCallback
     connectionError_(transport, ex, sslErr);
   }
 
+  MOCK_METHOD1_T(protocolPeekComplete_, void(SecureTransportType));
+  void protocolPeekComplete(
+      SecureTransportType secureTransportType) noexcept override {
+    protocolPeekComplete_(secureTransportType);
+  }
+
+  MOCK_METHOD1_T(protocolPeekError_, void(const folly::AsyncSocketException&));
+  void protocolPeekError(
+      const folly::AsyncSocketException& ex) noexcept override {
+    protocolPeekError_(ex);
+  }
+
   void connectionReady(
       folly::AsyncTransport::UniquePtr transport,
       std::string nextProtocol,

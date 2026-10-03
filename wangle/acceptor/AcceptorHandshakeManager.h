@@ -84,6 +84,14 @@ class AcceptorHandshakeHelper : public folly::DelayedDestruction {
         folly::AsyncTransport* transport,
         folly::exception_wrapper ex,
         folly::Optional<SSLErrorEnum> sslErr) noexcept = 0;
+
+    /** Called when a peeker classifies a connection. */
+    virtual void protocolPeekComplete(
+        SecureTransportType /* secureTransportType */) noexcept {}
+
+    /** Called when the helper failed before it could classify the protocol. */
+    virtual void protocolPeekError(
+        const folly::AsyncSocketException& /* ex */) noexcept {}
   };
 
   /**
@@ -263,6 +271,12 @@ class AcceptorHandshakeManager : public ManagedConnection,
       folly::exception_wrapper ex,
       folly::Optional<SSLErrorEnum> details) noexcept override;
 
+  void protocolPeekComplete(
+      SecureTransportType secureTransportType) noexcept override;
+
+  void protocolPeekError(
+      const folly::AsyncSocketException& ex) noexcept override;
+
   std::chrono::milliseconds timeSinceAcceptMs() const;
 
   virtual void startHelper(folly::AsyncSSLSocket::UniquePtr sock) = 0;
@@ -274,6 +288,10 @@ class AcceptorHandshakeManager : public ManagedConnection,
   std::chrono::steady_clock::time_point acceptTime_;
   TransportInfo tinfo_;
   AcceptorHandshakeHelper::UniquePtr helper_;
+  // Distinguishes local aborts from peer failures.
+  folly::Optional<SSLErrorEnum> abortReason_;
+  // Only set for connections handled by a peeker.
+  folly::Optional<SecureTransportType> classifiedTransportType_;
 };
 
 } // namespace wangle

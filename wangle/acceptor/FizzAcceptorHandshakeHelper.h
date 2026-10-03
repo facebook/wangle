@@ -314,7 +314,9 @@ class DefaultToFizzPeekingCallback
     : public wangle::PeekingAcceptorHandshakeHelper::PeekCallback {
  public:
   DefaultToFizzPeekingCallback()
-      : wangle::PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
+      : wangle::PeekingAcceptorHandshakeHelper::PeekCallback(
+            0,
+            SecureTransportType::TLS) {}
 
   std::shared_ptr<const fizz::server::FizzServerContext> getContext() const {
     return context_;

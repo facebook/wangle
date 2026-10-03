@@ -394,6 +394,25 @@ class Acceptor : public folly::AsyncServerSocket::AcceptCallback,
    */
   virtual void sslConnectionError(const folly::exception_wrapper& ex);
 
+  /** Called when a peeker classifies a connection. */
+  virtual void protocolPeekComplete(
+      SecureTransportType /* secureTransportType */) noexcept {}
+
+  /** Peek failed; abortReason distinguishes local closes from EOF. */
+  virtual void protocolPeekError(
+      const folly::AsyncSocketException& /* ex */,
+      folly::Optional<SSLErrorEnum> /* abortReason */) noexcept {}
+
+  // Only reported after a successful peek.
+  virtual void protocolHandshakeSuccess(
+      SecureTransportType /* type */) noexcept {}
+
+  /** Post-peek handshake failed; abortReason identifies local aborts. */
+  virtual void protocolHandshakeError(
+      SecureTransportType /* classifiedTransportType */,
+      const folly::exception_wrapper& /* ex */,
+      folly::Optional<SSLErrorEnum> /* abortReason */) noexcept {}
+
   /**
    * Hook for subclasses to record stats about SSL connection establishment.
    *

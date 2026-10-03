@@ -69,7 +69,9 @@ class DefaultToSSLPeekingCallback
     : public PeekingAcceptorHandshakeHelper::PeekCallback {
  public:
   DefaultToSSLPeekingCallback()
-      : PeekingAcceptorHandshakeHelper::PeekCallback(0) {}
+      : PeekingAcceptorHandshakeHelper::PeekCallback(
+            0,
+            SecureTransportType::TLS) {}
 
   AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& /* bytes */,

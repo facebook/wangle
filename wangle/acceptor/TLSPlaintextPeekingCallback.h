@@ -32,7 +32,9 @@ class TLSPlaintextPeekingCallback
 
  public:
   TLSPlaintextPeekingCallback()
-      : PeekingAcceptorHandshakeHelper::PeekCallback(kPeekCount) {}
+      : PeekingAcceptorHandshakeHelper::PeekCallback(
+            kPeekCount,
+            SecureTransportType::NONE) {}
 
   AcceptorHandshakeHelper::UniquePtr getHelper(
       const std::vector<uint8_t>& bytes,

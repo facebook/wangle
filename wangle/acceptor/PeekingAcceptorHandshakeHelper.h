@@ -36,12 +36,20 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
  public:
   class PeekCallback {
    public:
-    explicit PeekCallback(size_t bytesRequired)
-        : bytesRequired_(bytesRequired) {}
+    /** Returned helpers must negotiate secureTransportType. */
+    explicit PeekCallback(
+        size_t bytesRequired,
+        SecureTransportType secureTransportType = SecureTransportType::NONE)
+        : bytesRequired_(bytesRequired),
+          secureTransportType_(secureTransportType) {}
     virtual ~PeekCallback() = default;
 
     size_t getBytesRequired() const {
       return bytesRequired_;
+    }
+
+    SecureTransportType getSecureTransportType() const {
+      return secureTransportType_;
     }
 
     virtual AcceptorHandshakeHelper::UniquePtr getHelper(
@@ -52,6 +60,7 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
 
    private:
     const size_t bytesRequired_;
+    const SecureTransportType secureTransportType_;
   };
 
   PeekingAcceptorHandshakeHelper(
@@ -92,22 +101,24 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
     folly::DelayedDestruction::DestructorGuard dg(this);
     peeker_ = nullptr;
 
+    PeekCallback* selectedCallback = nullptr;
     for (auto& peekCallback : peekCallbacks_) {
       helper_ =
           peekCallback->getHelper(peekBytes, clientAddr_, acceptTime_, tinfo_);
       if (helper_) {
+        selectedCallback = peekCallback;
         break;
       }
     }
 
     if (!helper_) {
-      // could not get a helper, report error.
       auto type =
           folly::AsyncSocketException::AsyncSocketExceptionType::CORRUPTED_DATA;
-      return peekError(
-          folly::AsyncSocketException(type, "Unrecognized protocol"));
+      auto ex = folly::AsyncSocketException(type, "Unrecognized protocol");
+      return reportPeekFailure(ex);
     }
 
+    callback_->protocolPeekComplete(selectedCallback->getSecureTransportType());
     auto callback = callback_;
     callback_ = nullptr;
     helper_->start(std::move(socket_), callback);
@@ -115,16 +126,22 @@ class PeekingAcceptorHandshakeHelper : public AcceptorHandshakeHelper,
   }
 
   void peekError(const folly::AsyncSocketException& ex) noexcept override {
+    folly::DelayedDestruction::DestructorGuard dg(this);
     peeker_ = nullptr;
+    reportPeekFailure(ex);
+  }
+
+ private:
+  void reportPeekFailure(const folly::AsyncSocketException& ex) noexcept {
     auto callback = callback_;
     callback_ = nullptr;
+    callback->protocolPeekError(ex);
     callback->connectionError(
         socket_.get(),
         folly::make_exception_wrapper<folly::AsyncSocketException>(ex),
         folly::none);
   }
 
- private:
   ~PeekingAcceptorHandshakeHelper() override = default;
 
   folly::AsyncSSLSocket::UniquePtr socket_;

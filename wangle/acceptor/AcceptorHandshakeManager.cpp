@@ -53,6 +53,9 @@ void AcceptorHandshakeManager::connectionReady(
     std::string nextProtocol,
     SecureTransportType secureTransportType,
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
+  if (classifiedTransportType_) {
+    acceptor_->protocolHandshakeSuccess(*classifiedTransportType_);
+  }
   try {
     transport->getPeerAddress(&peerAddress_);
   } catch (...) {
@@ -84,6 +87,10 @@ void AcceptorHandshakeManager::connectionError(
     folly::AsyncTransport* transport,
     folly::exception_wrapper ex,
     folly::Optional<SSLErrorEnum> sslErr) noexcept {
+  if (classifiedTransportType_) {
+    acceptor_->protocolHandshakeError(
+        *classifiedTransportType_, ex, abortReason_);
+  }
   if (sslErr) {
     acceptor_->updateSSLStats(
         transport, timeSinceAcceptMs(), sslErr.value(), ex);
@@ -91,6 +98,17 @@ void AcceptorHandshakeManager::connectionError(
   acceptor_->getConnectionManager()->removeConnection(this);
   acceptor_->sslConnectionError(std::move(ex));
   destroy();
+}
+
+void AcceptorHandshakeManager::protocolPeekComplete(
+    SecureTransportType secureTransportType) noexcept {
+  classifiedTransportType_ = secureTransportType;
+  acceptor_->protocolPeekComplete(secureTransportType);
+}
+
+void AcceptorHandshakeManager::protocolPeekError(
+    const folly::AsyncSocketException& ex) noexcept {
+  acceptor_->protocolPeekError(ex, abortReason_);
 }
 
 std::chrono::milliseconds AcceptorHandshakeManager::timeSinceAcceptMs() const {
@@ -122,6 +140,7 @@ void AcceptorHandshakeManager::handshakeAborted(SSLErrorEnum reason) {
   // The helper guarantees that it will not destroy itself; we are responsible
   // for its destruction.
   DestructorGuard guard(this);
+  abortReason_ = reason;
   helper_->dropConnection(reason);
 
   // Safe to still access `this` because of the DestructorGuard above.
