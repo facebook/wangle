@@ -244,6 +244,18 @@ class FizzAcceptorHandshakeHelper
   void dropConnection(
       wangle::SSLErrorEnum reason = wangle::SSLErrorEnum::NO_ERROR) override {
     sslError_ = reason;
+    if (fallbackTransitionPending_) {
+      // AsyncFizzServer released its handshake callback when it requested the
+      // fallback, so closing it will not report the error for us.
+      fallbackTransitionPending_ = false;
+      transport_->closeNow();
+      fizzHandshakeError(
+          transport_.get(),
+          folly::make_exception_wrapper<folly::AsyncSocketException>(
+              folly::AsyncSocketException::END_OF_FILE,
+              "socket closed locally"));
+      return;
+    }
     if (transport_) {
       transport_->closeNow();
       return;
@@ -275,6 +287,7 @@ class FizzAcceptorHandshakeHelper
       folly::exception_wrapper ex) noexcept override;
   void fizzHandshakeAttemptFallback(
       fizz::server::AttemptVersionFallback fallback) override;
+  void startFallbackHandshake();
 
   // AsyncSSLSocket::HandshakeCallback API
   void handshakeSuc(folly::AsyncSSLSocket* sock) noexcept override;
@@ -306,6 +319,7 @@ class FizzAcceptorHandshakeHelper
   size_t keyUpdateThreshold_{0};
 
   fizz::server::AttemptVersionFallback fallback_;
+  bool fallbackTransitionPending_{false};
   ExtendedFallbackStatePolicy extendedFallbackStatePolicy_;
   fizz::AsyncFizzBase::TransportOptions transportOptions_;
 };

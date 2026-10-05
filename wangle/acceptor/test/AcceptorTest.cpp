@@ -21,6 +21,7 @@
 #include <fizz/server/DefaultCertManager.h>
 #include <folly/FileUtil.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/IoUringBackend.h>
 #include <folly/io/async/test/AsyncSSLSocketTest.h>
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
@@ -28,6 +29,8 @@
 #include <wangle/acceptor/AcceptObserver.h>
 #include <wangle/acceptor/Acceptor.h>
 #include <wangle/util/Logging.h>
+
+#include <array>
 
 using namespace folly;
 using namespace wangle;
@@ -77,6 +80,74 @@ class TestAcceptor : public Acceptor {
   void stop() {
     acceptStopped();
   }
+};
+
+class CapturingTestAcceptor : public TestAcceptor {
+ public:
+  using TestAcceptor::TestAcceptor;
+
+  void onNewConnection(
+      folly::AsyncTransportWrapper::UniquePtr socket,
+      const folly::SocketAddress* /*address*/,
+      const std::string& /*nextProtocolName*/,
+      SecureTransportType /*secureTransportType*/,
+      const TransportInfo& /*tinfo*/) override {
+    transport = std::move(socket);
+    getEventBase()->terminateLoopSoon();
+  }
+
+  folly::AsyncTransportWrapper::UniquePtr transport;
+};
+
+class ExactReadCallback : public folly::AsyncTransport::ReadCallback {
+ public:
+  ExactReadCallback(std::string expected, folly::Function<void()> onComplete)
+      : expected_(std::move(expected)), onComplete_(std::move(onComplete)) {}
+
+  void getReadBuffer(void** bufReturn, size_t* lenReturn) override {
+    *bufReturn = buffer_.data() + received_;
+    *lenReturn = buffer_.size() - received_;
+  }
+
+  void readDataAvailable(size_t len) noexcept override {
+    received_ += len;
+    if (received_ >= expected_.size()) {
+      EXPECT_EQ(std::string(buffer_.data(), received_), expected_);
+      onComplete_();
+    }
+  }
+
+  void readEOF() noexcept override {
+    ADD_FAILURE() << "unexpected EOF";
+    onComplete_();
+  }
+
+  void readErr(const folly::AsyncSocketException& ex) noexcept override {
+    ADD_FAILURE() << "unexpected read error: " << ex.what();
+    onComplete_();
+  }
+
+ private:
+  std::array<char, 256> buffer_{};
+  size_t received_{0};
+  std::string expected_;
+  folly::Function<void()> onComplete_;
+};
+
+class SuccessfulWriteCallback : public folly::AsyncTransport::WriteCallback {
+ public:
+  void writeSuccess() noexcept override {
+    success = true;
+  }
+
+  void writeErr(
+      size_t bytesWritten,
+      const folly::AsyncSocketException& ex) noexcept override {
+    ADD_FAILURE() << "write failed after " << bytesWritten
+                  << " bytes: " << ex.what();
+  }
+
+  bool success{false};
 };
 
 enum class TestSSLConfig { NO_SSL, SSL, SSL_MULTI_CA };
@@ -658,6 +729,172 @@ TEST_P(
   acceptor = nullptr;
   Mock::VerifyAndClearExpectations(onAcceptCb.get());
 }
+
+#if FOLLY_HAS_LIBURING
+namespace {
+
+std::unique_ptr<EventBase> makeIoUringEventBase() {
+  try {
+    return std::make_unique<EventBase>(EventBase::Options{}.setBackendFactory(
+        []() -> std::unique_ptr<EventBaseBackendBase> {
+          IoUringBackend::Options options;
+          options.setInitialProvidedBuffers(2048, 1024);
+          return std::make_unique<IoUringBackend>(std::move(options));
+        }));
+  } catch (const IoUringBackend::NotAvailable&) {
+    return nullptr;
+  }
+}
+
+std::shared_ptr<ServerSocketConfig> makeFallbackServerConfig() {
+  auto config = std::make_shared<ServerSocketConfig>();
+  SSLContextConfig sslCtxConfig;
+  sslCtxConfig.setCertificate(
+      find_resource(folly::test::kTestCert).string(),
+      find_resource(folly::test::kTestKey).string(),
+      "");
+  sslCtxConfig.clientVerification =
+      SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+  sslCtxConfig.sessionContext = "AcceptorTest";
+  sslCtxConfig.isDefault = true;
+  sslCtxConfig.sessionCacheEnabled = false;
+  config->sslContextConfigs.emplace_back(std::move(sslCtxConfig));
+  return config;
+}
+
+// Fizz only falls back to OpenSSL for clients that cannot negotiate TLS 1.3.
+std::shared_ptr<SSLContext> makeFallbackClientContext() {
+  auto clientContext =
+      std::make_shared<SSLContext>(SSLContext::SSLVersion::TLSv1_2);
+  clientContext->disableTLS13();
+  clientContext->setVerificationOption(
+      SSLContext::SSLVerifyPeerEnum::NO_VERIFY);
+  return clientContext;
+}
+
+class SSLErrorCountingAcceptor : public CapturingTestAcceptor {
+ public:
+  using CapturingTestAcceptor::CapturingTestAcceptor;
+
+  void sslConnectionError(const folly::exception_wrapper& ex) override {
+    ++sslConnectionErrors;
+    CapturingTestAcceptor::sslConnectionError(ex);
+    getEventBase()->terminateLoopSoon();
+  }
+
+  size_t sslConnectionErrors{0};
+};
+
+} // namespace
+
+TEST(IoUringFizzFallbackTest, CompletesHandshakeAndExchangesApplicationData) {
+  auto eventBase = makeIoUringEventBase();
+  if (!eventBase) {
+    GTEST_SKIP() << "IoUringBackend not available";
+  }
+
+  auto acceptor =
+      std::make_shared<CapturingTestAcceptor>(makeFallbackServerConfig());
+  auto serverSocket = AsyncServerSocket::newSocket(eventBase.get());
+  serverSocket->addAcceptCallback(acceptor.get(), eventBase.get());
+  acceptor->init(serverSocket.get(), eventBase.get());
+
+  auto fizzLoggingCb = std::make_unique<StrictMock<MockFizzLoggingCallback>>();
+  acceptor->getFizzPeeker()->options().setLoggingCallback(fizzLoggingCb.get());
+  EXPECT_CALL(*fizzLoggingCb, logFizzHandshakeFallback(_, _));
+  EXPECT_CALL(*fizzLoggingCb, logFallbackHandshakeSuccess(_, _));
+
+  serverSocket->bind(0);
+  serverSocket->listen(100);
+  serverSocket->startAccepting();
+  SocketAddress serverAddress;
+  serverSocket->getAddress(&serverAddress);
+
+  auto clientSocket =
+      AsyncSSLSocket::newSocket(makeFallbackClientContext(), eventBase.get());
+  clientSocket->connect(nullptr, serverAddress);
+
+  eventBase->loopForever();
+
+  ASSERT_NE(acceptor->transport, nullptr);
+  Mock::VerifyAndClearExpectations(fizzLoggingCb.get());
+
+  size_t readsCompleted = 0;
+  auto onReadComplete = [&] {
+    if (++readsCompleted == 2) {
+      eventBase->terminateLoopSoon();
+    }
+  };
+  const std::string clientPayload = "client-to-server";
+  const std::string serverPayload = "server-to-client";
+  ExactReadCallback serverRead(clientPayload, onReadComplete);
+  ExactReadCallback clientRead(serverPayload, onReadComplete);
+  SuccessfulWriteCallback clientWrite;
+  SuccessfulWriteCallback serverWrite;
+  acceptor->transport->setReadCB(&serverRead);
+  clientSocket->setReadCB(&clientRead);
+  clientSocket->write(&clientWrite, clientPayload.data(), clientPayload.size());
+  acceptor->transport->write(
+      &serverWrite, serverPayload.data(), serverPayload.size());
+  eventBase->loopForever();
+
+  EXPECT_TRUE(clientWrite.success);
+  EXPECT_TRUE(serverWrite.success);
+  acceptor->transport->setReadCB(nullptr);
+  clientSocket->setReadCB(nullptr);
+  acceptor->transport->closeNow();
+  acceptor->transport.reset();
+  clientSocket->closeNow();
+  acceptor->forceStop();
+  serverSocket->stopAccepting();
+  eventBase->loop();
+}
+
+TEST(IoUringFizzFallbackTest, DropDuringModeSwitchFailsHandshake) {
+  auto eventBase = makeIoUringEventBase();
+  if (!eventBase) {
+    GTEST_SKIP() << "IoUringBackend not available";
+  }
+
+  auto acceptor =
+      std::make_shared<SSLErrorCountingAcceptor>(makeFallbackServerConfig());
+  auto serverSocket = AsyncServerSocket::newSocket(eventBase.get());
+  serverSocket->addAcceptCallback(acceptor.get(), eventBase.get());
+  acceptor->init(serverSocket.get(), eventBase.get());
+
+  // The drop runs later in the fallback's event-loop iteration, before the
+  // cancelled native receive can complete, so it lands mid-transition.
+  // StrictMock fails the test if the OpenSSL handshake is ever attempted.
+  auto fizzLoggingCb = std::make_unique<StrictMock<MockFizzLoggingCallback>>();
+  acceptor->getFizzPeeker()->options().setLoggingCallback(fizzLoggingCb.get());
+  EXPECT_CALL(*fizzLoggingCb, logFizzHandshakeFallback(_, _))
+      .WillOnce([&](auto&&...) {
+        eventBase->runInLoop([&] { acceptor->dropAllConnections(); });
+      });
+  EXPECT_CALL(*fizzLoggingCb, logFizzHandshakeError(_, _));
+
+  serverSocket->bind(0);
+  serverSocket->listen(100);
+  serverSocket->startAccepting();
+  SocketAddress serverAddress;
+  serverSocket->getAddress(&serverAddress);
+
+  auto clientSocket =
+      AsyncSSLSocket::newSocket(makeFallbackClientContext(), eventBase.get());
+  clientSocket->connect(nullptr, serverAddress);
+  eventBase->loopForever();
+
+  EXPECT_EQ(acceptor->sslConnectionErrors, 1);
+  EXPECT_EQ(acceptor->transport, nullptr);
+
+  clientSocket->closeNow();
+  acceptor->forceStop();
+  serverSocket->stopAccepting();
+  // Completes the cancelled receive, which must not start the fallback.
+  eventBase->loop();
+  Mock::VerifyAndClearExpectations(fizzLoggingCb.get());
+}
+#endif
 
 TEST_F(AcceptorTest, AcceptorUsesSslCtxConfigIfFizzFallbackStateDisabled) {
   auto config = std::make_shared<ServerSocketConfig>();

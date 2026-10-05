@@ -16,6 +16,7 @@
 
 #include <fizz/record/Types.h>
 #include <fizz/server/State.h>
+#include <folly/futures/Future.h>
 #if !defined(_WIN32) // No FD-passing on Windows, don't try to make it build.
 #include <folly/io/async/fdsock/AsyncFdSocket.h>
 #endif
@@ -199,6 +200,41 @@ void FizzAcceptorHandshakeHelper::fizzHandshakeAttemptFallback(
 
   fallback_ = std::move(fallback);
 
+  auto* socket = WANGLE_CHECK_NOTNULL(
+      transport_->getUnderlyingTransport<folly::AsyncSocket>());
+  auto* eventBase = WANGLE_CHECK_NOTNULL(socket->getEventBase());
+  fallbackTransitionPending_ = true;
+  auto completeSwitch =
+      [this, guard = DestructorGuard(this)](
+          folly::Try<std::unique_ptr<folly::IOBuf>>&& result) mutable {
+        (void)guard;
+        if (!fallbackTransitionPending_) {
+          return;
+        }
+        fallbackTransitionPending_ = false;
+        if (result.hasException()) {
+          fizzHandshakeError(transport_.get(), result.exception());
+          return;
+        }
+        if (auto unread = std::move(result).value()) {
+          if (fallback_.clientHello) {
+            fallback_.clientHello->appendToChain(std::move(unread));
+          } else {
+            fallback_.clientHello = std::move(unread);
+          }
+        }
+        startFallbackHandshake();
+      };
+  auto pendingSwitch = socket->asyncSwitchToEventHandlerMode();
+  if (pendingSwitch.isReady()) {
+    completeSwitch(std::move(pendingSwitch).result());
+  } else {
+    folly::futures::detachOn(
+        eventBase, std::move(pendingSwitch).defer(std::move(completeSwitch)));
+  }
+}
+
+void FizzAcceptorHandshakeHelper::startFallbackHandshake() {
   folly::AsyncSocket* socket =
       transport_->getUnderlyingTransport<folly::AsyncSocket>();
 
