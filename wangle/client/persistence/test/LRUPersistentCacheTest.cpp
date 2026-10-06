@@ -351,7 +351,7 @@ TYPED_TEST(LRUPersistentCacheTest, ExecutorCacheScheduleInterval) {
   auto cache = createCacheWithExecutor<TypeParam>(
       this->manualExecutor,
       std::move(this->persistence),
-      std::chrono::milliseconds(60 * 60 * 1000),
+      std::chrono::hours(24 * 365 * 100),
       1);
   cache->init();
   this->manualExecutor->run();

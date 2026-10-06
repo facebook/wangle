@@ -94,9 +94,10 @@ void LRUPersistentCache<K, V, MutexT>::put(const K& key, const V& val) {
     return;
   }
 
-  // Within the same time interval as the last sync
-  if (std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
-      syncInterval_) {
+  // The default time point means no executor sync has been scheduled yet.
+  if (lastExecutorScheduleTime_ != std::chrono::steady_clock::time_point{} &&
+      std::chrono::steady_clock::now() - lastExecutorScheduleTime_ <
+          syncInterval_) {
     return;
   }
 
