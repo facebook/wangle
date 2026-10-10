@@ -53,10 +53,12 @@ bool FizzConfigUtil::addCertsToManager(
           FIZZ_THROW_ON_ERROR(
               FizzUtil::readChainFile(x509Chain, err, cert.certPath), err);
           std::shared_ptr<folly::PasswordInFile> pw;
-          if (pwFactory) {
-            pw = pwFactory->getPasswordCollector(cert.passwordPath);
-          } else {
-            pw = std::make_shared<folly::PasswordInFile>(cert.passwordPath);
+          if (!cert.passwordPath.empty()) {
+            if (pwFactory) {
+              pw = pwFactory->getPasswordCollector(cert.passwordPath);
+            } else {
+              pw = std::make_shared<folly::PasswordInFile>(cert.passwordPath);
+            }
           }
 
           folly::ssl::EvpPkeyUniquePtr pkey;
