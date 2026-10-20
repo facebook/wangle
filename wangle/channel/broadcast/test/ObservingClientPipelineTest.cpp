@@ -20,7 +20,6 @@
 #include "wangle/channel/broadcast/ObservingHandler.h"
 
 #include <folly/portability/GTest.h>
-#include <wangle/util/Logging.h>
 
 using namespace wangle;
 using namespace folly;
