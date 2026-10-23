@@ -16,6 +16,8 @@
 
 #include <folly/portability/GFlags.h>
 
+#include <fmt/format.h>
+#include <folly/String.h>
 #include <folly/init/Init.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -40,7 +42,9 @@ class FileServerHandler : public HandlerAdapter<std::string> {
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd == -1) {
       write(
-          ctx, sformat("Error opening {}: {}\r\n", filename, strerror(errno)));
+          ctx,
+          fmt::format(
+              "Error opening {}: {}\r\n", filename, folly::errnoStr(errno)));
       return;
     }
 
@@ -48,7 +52,10 @@ class FileServerHandler : public HandlerAdapter<std::string> {
     if (fstat(fd, &buf) == -1) {
       write(
           ctx,
-          sformat("Could not stat file {}: {}\r\n", filename, strerror(errno)));
+          fmt::format(
+              "Could not stat file {}: {}\r\n",
+              filename,
+              folly::errnoStr(errno)));
       return;
     }
 
@@ -60,7 +67,7 @@ class FileServerHandler : public HandlerAdapter<std::string> {
             [this, guard, ctx, filename](const std::exception& e) {
               write(
                   ctx,
-                  sformat(
+                  fmt::format(
                       "Error sending file {}: {}\r\n",
                       filename,
                       exceptionStr(e)));
@@ -68,7 +75,7 @@ class FileServerHandler : public HandlerAdapter<std::string> {
   }
 
   void readException(Context* ctx, exception_wrapper ew) override {
-    write(ctx, sformat("Error: {}\r\n", exceptionStr(ew)))
+    write(ctx, fmt::format("Error: {}\r\n", exceptionStr(ew)))
         .thenValue([this, ctx](auto&&) { close(ctx); });
   }
 
