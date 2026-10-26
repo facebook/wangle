@@ -259,7 +259,7 @@ TEST_F(ConnectionManagerTest, testDropEstablishedVerifyOrder) {
 
   // Initially connection will be added in decreasing order highest to lowest,
   // it will be N, N - 1, N - 2, ..., 1, 0, thats because we loop from (0, N)
-  // and push items at the begining of the loop. During drop connections we
+  // and push items at the beginning of the loop. During drop connections we
   // start from last item which will be lowest and we push them back to
   // identifiers vector, meaning everything will be sorted in increasing order
   ASSERT_TRUE(identifiers.size() >= 2);
