@@ -47,6 +47,9 @@ include(CheckCXXSourceCompiles)
 function(check_working_cxx_atomics varname)
   set(OLD_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
   get_directory_property(compile_options COMPILE_OPTIONS)
+  # CMAKE_REQUIRED_FLAGS takes no generator expressions, which a parent
+  # project's add_compile_options() can leave in COMPILE_OPTIONS.
+  string(GENEX_STRIP "${compile_options}" compile_options)
   set(CMAKE_REQUIRED_FLAGS ${compile_options})
   CHECK_CXX_SOURCE_COMPILES("
 #include <atomic>
