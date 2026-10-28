@@ -300,6 +300,29 @@ TEST(SSLContextManagerTest, Test1) {
       sslCtxMgr.getSSLCtxBySuffix(SSLContextKey("abc.xyz.example.com")));
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
+TEST(SSLContextManagerTest, TestOpensslSecurityLevel) {
+  SSLContextManagerForTest sslCtxMgr(
+      "vip_ssl_context_manager_test_", getSettings(), nullptr);
+  SSLCacheOptions cacheOptions{};
+  SocketAddress addr;
+  TLSTicketKeySeeds seeds{{"67"}, {"68"}, {"69"}};
+
+  SSLContextConfig ctxConfig;
+  ctxConfig.setCertificateBuf(kTestCert1PEM, kTestCert1Key);
+  ctxConfig.clientVerification =
+      folly::SSLContext::VerifyClientCertificate::DO_NOT_REQUEST;
+  ctxConfig.isDefault = true;
+  ctxConfig.sslCiphers = "DEFAULT:@SECLEVEL=2";
+  ctxConfig.opensslSecurityLevel = 0;
+
+  sslCtxMgr.resetSSLContextConfigs(
+      {ctxConfig}, {}, cacheOptions, &seeds, addr, nullptr);
+  EXPECT_EQ(
+      SSL_CTX_get_security_level(sslCtxMgr.getDefaultSSLCtx()->getSSLCtx()), 0);
+}
+#endif
+
 TEST(SSLContextManagerTest, TestResetSSLContextConfigs) {
   SSLContextManagerForTest sslCtxMgr(
       "vip_ssl_context_manager_test_", getSettings(), nullptr);

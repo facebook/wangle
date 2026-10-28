@@ -136,6 +136,11 @@ struct SSLContextConfig {
   std::string sslCiphers{getDefaultCiphers()};
   std::string sslCiphersuites{getDefaultCiphersuites()};
   std::string sigAlgs{getDefaultSigAlgs()};
+  // If set, overrides OpenSSL's security level (SSL_CTX_set_security_level),
+  // which sets the minimum protocol version, signature algorithm and key size
+  // the context accepts. Takes precedence over an @SECLEVEL in sslCiphers.
+  // Ignored with BoringSSL.
+  folly::Optional<int> opensslSecurityLevel;
   std::string eccCurveName{"prime256v1"};
 
   // Weighted lists of NPN strings to advertise

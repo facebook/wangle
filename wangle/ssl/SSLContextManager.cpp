@@ -781,6 +781,12 @@ SSLContextManager::SslContexts::buildServerSSLContext(
   sslCtx->setCiphersuitesOrThrow(ctxConfig.sslCiphersuites);
 #endif
   sslCtx->setSigAlgsOrThrow(ctxConfig.sigAlgs);
+#if !defined(OPENSSL_IS_BORINGSSL)
+  if (ctxConfig.opensslSecurityLevel) {
+    SSL_CTX_set_security_level(
+        sslCtx->getSSLCtx(), *ctxConfig.opensslSecurityLevel);
+  }
+#endif
 
   // Use a fix DH param
   DH* dh = get_dh2048();
