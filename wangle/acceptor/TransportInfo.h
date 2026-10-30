@@ -164,6 +164,12 @@ struct TransportInfo {
   std::shared_ptr<std::string> sslCipher{nullptr};
 
   /*
+   * The IANA ID of the SSL ciphersuite used by the transaction's
+   * transport.  Returns zero if the transport is not SSL.
+   */
+  uint16_t sslCipherId{0};
+
+  /*
    * The SSL server name used by the transaction's
    * transport.  Returns null if the transport is not SSL.
    */

@@ -51,6 +51,7 @@ void SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
   tinfo.sslCipher = sock->getNegotiatedCipherName()
       ? std::make_shared<std::string>(sock->getNegotiatedCipherName())
       : nullptr;
+  tinfo.sslCipherId = sock->getNegotiatedCipherId();
   tinfo.sslVersion = sock->getSSLVersion();
   const char* sigAlgName = sock->getSSLCertSigAlgName();
   tinfo.sslCertSigAlgName =
