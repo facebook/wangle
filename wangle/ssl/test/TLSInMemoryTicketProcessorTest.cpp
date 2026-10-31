@@ -36,8 +36,8 @@ TEST_F(TestInMemoryTicket, TestUpdateInMemoryTicket) {
   Baton<> ticketBaton;
   TLSTicketKeySeeds rotatedSeeds;
   auto callback = [&rotatedSeeds, &ticketBaton](TLSTicketKeySeeds seeds) {
-    ticketBaton.post();
     rotatedSeeds = seeds;
+    ticketBaton.post();
   };
   auto processor = TLSInMemoryTicketProcessor(
       {callback},
