@@ -16,6 +16,8 @@
 
 #include <wangle/util/MultiFilePoller.h>
 
+#include <cstdio>
+
 #include <folly/FileUtil.h>
 #include <folly/MapUtil.h>
 #include <folly/String.h>
@@ -49,9 +51,19 @@ class MultiFilePollerTest : public testing::Test {
     // detect the change.
     folly::makeFuture()
         .delayed(kWriteWaitMs)
-        .thenValue(
-            [&](auto&&) { ASSERT_TRUE(folly::writeFile(data, path.c_str())); })
+        .thenValue([&](auto&&) { atomicWriteFile(path, data); })
         .wait();
+  }
+
+  // Write data to path atomically (temp file + rename) so pollers never
+  // observe a partially written file. A tick that stats the file between
+  // creation and completion of a direct write sees one mtime, fires, and
+  // then sees the completed write as a second change, delivering two
+  // callbacks for a single logical write.
+  void atomicWriteFile(const std::string& path, const std::string& data) {
+    const std::string tmp = path + ".tmp";
+    ASSERT_TRUE(folly::writeFile(data, tmp.c_str()));
+    ASSERT_EQ(0, ::rename(tmp.c_str(), path.c_str()));
   }
 
  protected:
@@ -182,7 +194,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
       });
 
   // Create f2 to trigger cb2.
-  ASSERT_TRUE(folly::writeFile(d2, f2.c_str()));
+  atomicWriteFile(f2, d2);
   ASSERT_TRUE(sem2.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem2.reset();
@@ -192,7 +204,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
   EXPECT_EQ(d2, data2); // The data obtained by cb should equal what's written.
 
   // Create f3 to trigger cb3. Note that cb1 should not run.
-  ASSERT_TRUE(folly::writeFile(d3, f3.c_str()));
+  atomicWriteFile(f3, d3);
   ASSERT_TRUE(sem3.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem3.reset();
@@ -202,7 +214,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
   EXPECT_EQ(std::vector<std::string>({d3, "<NODATA>"}), data3);
 
   // Create f1 to trigger cb3 and cb1. Order doesn't matter.
-  ASSERT_TRUE(folly::writeFile(d1, f1.c_str()));
+  atomicWriteFile(f1, d1);
   ASSERT_TRUE(sem1.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem1.reset();
@@ -240,7 +252,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // f1 is in two different callbacks. Cancel cb1 should not affect cb3.
   updater_->cancelCallback(cb1);
-  ASSERT_TRUE(folly::writeFile(d11, f1.c_str())); // Last write to f1 > 1s ago.
+  atomicWriteFile(f1, d11); // Last write to f1 > 1s ago.
   ASSERT_TRUE(sem3.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem3.reset();
@@ -254,7 +266,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // cb2 and cb4 use and only use f2. Cancel cb2 should not affect cb4.
   updater_->cancelCallback(cb2);
-  ASSERT_TRUE(folly::writeFile(d22, f2.c_str())); // Last write to f2 > 1s ago.
+  atomicWriteFile(f2, d22); // Last write to f2 > 1s ago.
   ASSERT_TRUE(sem4.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   sem4.reset();
@@ -267,7 +279,7 @@ TEST_F(MultiFilePollerTest, ComplexTest) {
 
   // Now we cancel cb4. Record of f2 should be cleaned up.
   updater_->cancelCallback(cb4);
-  ASSERT_TRUE(folly::writeFile(d1, f2.c_str()));
+  atomicWriteFile(f2, d1);
   ASSERT_FALSE(sem4.try_wait_until(
       std::chrono::steady_clock::now() + kMaxSemaphoreWaitMs));
   EXPECT_EQ(d21, data2); // cb2 should not run, so not updated to d1.
