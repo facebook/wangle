@@ -19,8 +19,9 @@
 #include <folly/Conv.h>
 
 #include <folly/FileUtil.h>
-#include <folly/Format.h>
 #include <folly/Memory.h>
+#include <folly/Optional.h>
+#include <folly/ScopeGuard.h>
 #include <folly/io/async/AsyncSSLSocket.h>
 #include <folly/portability/OpenSSL.h>
 #include <folly/ssl/OpenSSLPtrTypes.h>
