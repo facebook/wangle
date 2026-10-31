@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <folly/Format.h>
 #include <wangle/util/Logging.h>
 #include <typeinfo>
 

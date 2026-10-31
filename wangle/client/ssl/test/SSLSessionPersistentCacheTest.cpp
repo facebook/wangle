@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <folly/Format.h>
 #include <folly/Memory.h>
 #include <folly/json/DynamicConverter.h>
 
