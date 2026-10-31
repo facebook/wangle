@@ -18,6 +18,7 @@
 
 #include <exception>
 
+#include <folly/ExceptionString.h>
 #include <folly/FileUtil.h>
 #include <folly/json/json.h>
 #include <folly/portability/Unistd.h>
