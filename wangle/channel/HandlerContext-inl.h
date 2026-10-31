@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <fmt/format.h>
 #include <wangle/util/Logging.h>
 #include <typeinfo>
 
